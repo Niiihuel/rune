@@ -11,7 +11,7 @@ No se edita a mano. Lo genera [cargo-about](https://github.com/EmbarkStudios/car
 con `about.toml` y esta plantilla, `about.hbs`:
 
 ```sh
-cargo about generate --locked --offline --all-features about.hbs -o THIRD_PARTY_NOTICES.md
+cargo about generate --locked --offline --all-features about.hbs | cat -s > THIRD_PARTY_NOTICES.md
 ```
 
 ## Lo que no viene de Cargo

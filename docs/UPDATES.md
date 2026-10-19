@@ -121,10 +121,14 @@ Lo genera [cargo-about](https://github.com/EmbarkStudios/cargo-about) con
 
 ```sh
 nix-shell -p cargo-about --run \
-  "cargo about generate --locked --offline --all-features about.hbs -o THIRD_PARTY_NOTICES.md"
+  "cargo about generate --locked --offline --all-features about.hbs | cat -s > THIRD_PARTY_NOTICES.md"
 ```
 
-Hay que regenerarlo con cada cambio de `Cargo.lock` y commitearlo; el
+`cat -s` junta las líneas en blanco repetidas: algunos crates traen la
+misma licencia en dos archivos que sólo difieren en una línea en blanco
+(`miniz_oxide`: `LICENSE` y `LICENSE-MIT.md`), y cargo-about toma el que
+lea primero según el sistema de archivos. Hay que regenerarlo con cada
+cambio de `Cargo.lock` y commitearlo; el
 workflow Release lo regenera igual y no sigue si difiere. Cada artefacto lo
 lleva: el programa lo tiene adentro (`include_str!`) y lo imprime con
 `rune --licenses` (el workflow compara esa salida con el archivo en Linux y
