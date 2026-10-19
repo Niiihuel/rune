@@ -213,6 +213,18 @@ fn remembered_provider() -> Option<ProviderChoice> {
     ProviderChoice::from_key(key.trim())
 }
 
+/// Where a start with nothing remembered begins: the Discord login when this
+/// build has it, so a release never opens on the simulation by itself; the
+/// simulation only for its own development options.
+fn unremembered_provider(arguments: &Arguments) -> ProviderChoice {
+    let simulated = arguments.data || arguments.latency.is_some();
+    if !simulated && ProviderChoice::DiscordSession.unavailable(None).is_none() {
+        ProviderChoice::DiscordSession
+    } else {
+        ProviderChoice::Mock
+    }
+}
+
 /// Keep `choice` for the next start, off the interface's thread.
 fn remember_provider(choice: ProviderChoice) {
     let Some(path) = provider_config() else {
@@ -540,14 +552,14 @@ fn main() -> eframe::Result {
         // The last choice, unless `--provider` says otherwise; captures and
         // the benchmark always start from the command line alone.
         let interactive = arguments.screenshot.is_none() && !arguments.bench;
-        if let Some(choice) = remembered_provider().filter(|choice| {
-            interactive
-                && !arguments.provider_given
-                && choice
-                    .unavailable(arguments.discord_client_id.as_deref())
-                    .is_none()
-        }) {
-            arguments.provider = choice;
+        if interactive && !arguments.provider_given {
+            arguments.provider = remembered_provider()
+                .filter(|choice| {
+                    choice
+                        .unavailable(arguments.discord_client_id.as_deref())
+                        .is_none()
+                })
+                .unwrap_or_else(|| unremembered_provider(&arguments));
         }
         arguments
     })
@@ -4952,6 +4964,18 @@ mod tests {
         }
         assert!(args(&["--provider", "mock"], None).unwrap().provider_given);
         assert!(!args(&[], None).unwrap().provider_given);
+        // Nothing remembered: the login in a build that has it, never the
+        // simulation by itself; the simulation's own options keep it.
+        let login = cfg!(all(
+            feature = "session-login",
+            any(target_os = "linux", windows)
+        ));
+        let first = unremembered_provider(&args(&[], None).unwrap());
+        assert_eq!(first == ProviderChoice::DiscordSession, login);
+        assert_eq!(
+            unremembered_provider(&args(&["--data"], None).unwrap()),
+            ProviderChoice::Mock
+        );
         assert!(ProviderChoice::Discord.unavailable(None).is_some());
         assert!(ProviderChoice::Discord.unavailable(Some(" ")).is_some());
         assert!(ProviderChoice::Discord.unavailable(Some("123")).is_none());

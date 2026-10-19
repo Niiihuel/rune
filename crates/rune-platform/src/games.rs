@@ -9,6 +9,9 @@
 //! names are matched against a list the caller gives, by their last path
 //! components. The same names, listed once, are the programs a person can
 //! add as a game ([`programs`]).
+//!
+//! On Windows the processes of this logon session are listed instead, by
+//! the full path of their programs ([`windows`]).
 
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc, Mutex};
@@ -48,7 +51,7 @@ const INTERVAL: Duration = Duration::from_secs(10);
 /// Path components looked at, from the end.
 const TAIL: usize = 8;
 /// Processes looked at in one scan.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 const MAX_PROCESSES: usize = 4096;
 
 /// The watcher and its thread. Dropping it stops them.
@@ -260,7 +263,13 @@ fn processes() -> Vec<String> {
     paths
 }
 
-#[cfg(not(target_os = "linux"))]
+// Windows (windows-medios).
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use self::windows::processes;
+
+#[cfg(not(any(target_os = "linux", windows)))]
 fn processes() -> Vec<String> {
     Vec::new()
 }
@@ -347,7 +356,7 @@ mod tests {
         assert_eq!(key, programs[0].key);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn this_test_finds_itself_by_name() {
         let me = std::env::current_exe().unwrap();

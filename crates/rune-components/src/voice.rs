@@ -54,6 +54,9 @@ pub mod ids {
     pub const SOUND: &str = "vz:sound";
     /// «Elegir otra pantalla» in the picker: the system's asks again.
     pub const PICK_SCREEN: &str = "vz:pick-screen";
+    /// A screen or a window in RUNE's own picker, where the system has
+    /// none (Windows): `vz:source:{id}`, by the host's id of it.
+    pub const SOURCE: &str = "vz:source:";
     pub const SHARE_DISMISS: &str = "vz:share:dismiss";
     pub const STOP_CAMERA: &str = "vz:stop-camera";
     /// The surfaces the host presents the previews' frames on.
@@ -177,6 +180,19 @@ pub struct VideoControls {
     pub sound: bool,
     /// The system remembers the screen chosen: it can be chosen anew.
     pub pick_again: bool,
+    // Windows' screen picker (windows-medios).
+    /// What RUNE's own picker offers to share, where the system has no
+    /// dialog of its own (Windows); empty elsewhere.
+    pub sources: Vec<ScreenChoice>,
+}
+
+/// A screen or a window RUNE's own picker offers, the one chosen checked.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ScreenChoice {
+    pub id: String,
+    pub name: String,
+    pub window: bool,
+    pub chosen: bool,
 }
 
 /// The camera's and the screen's buttons, `height` high on `base`.
@@ -1581,16 +1597,35 @@ fn quality_picker(
     let item = |id: String, label: String, on: bool| {
         DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).selected(on))
     };
-    let mut entries: Vec<DropdownMenuEntry> = StreamQuality::HEIGHTS
-        .iter()
-        .map(|height| {
+    // What to share, first, where RUNE itself offers it (windows-medios).
+    let mut entries = Vec::new();
+    for (windows, heading) in [(false, t("Pantallas")), (true, t("Ventanas"))] {
+        let offered: Vec<&ScreenChoice> = video
+            .sources
+            .iter()
+            .filter(|source| source.window == windows)
+            .collect();
+        if !offered.is_empty() {
+            entries.push(DropdownMenuEntry::Heading(heading.into()));
+        }
+        entries.extend(offered.into_iter().map(|source| {
             item(
-                format!("{}{height}", ids::QUALITY),
-                format!("{height}p"),
-                chosen.height == *height,
+                format!("{}{}", ids::SOURCE, source.id),
+                source.name.clone(),
+                source.chosen,
             )
-        })
-        .collect();
+        }));
+    }
+    if !entries.is_empty() {
+        entries.push(DropdownMenuEntry::Heading(t("Calidad").into()));
+    }
+    entries.extend(StreamQuality::HEIGHTS.iter().map(|height| {
+        item(
+            format!("{}{height}", ids::QUALITY),
+            format!("{height}p"),
+            chosen.height == *height,
+        )
+    }));
     entries.push(DropdownMenuEntry::Separator);
     entries.extend(StreamQuality::RATES.iter().map(|fps| {
         item(
@@ -2210,6 +2245,69 @@ mod tests {
                 "{expected} in {shown:?}"
             );
         }
+    }
+
+    #[test]
+    fn rune_s_own_picker_offers_screens_then_windows_before_the_quality() {
+        let source = |id: &str, name: &str, window, chosen| ScreenChoice {
+            id: id.into(),
+            name: name.into(),
+            window,
+            chosen,
+        };
+        let view = Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![person(1, false, false, false)],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size: Size::new(980.0, 762.0),
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls {
+                picker: Some(StreamQuality::default()),
+                sources: vec![
+                    source(
+                        r"screen:\\.\DISPLAY1",
+                        "Pantalla 1 (principal) · 1920×1080",
+                        false,
+                        true,
+                    ),
+                    source("window:42", "Un juego", true, false),
+                ],
+                ..Default::default()
+            },
+            watch: Ok(()),
+            watching: Vec::new(),
+            previews: Vec::new(),
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let (_, laid) = frame(stage(view, &Look::ONYX), Size::new(980.0, 762.0));
+        let ids = controls(&laid);
+        for id in [
+            r"vz:source:screen:\\.\DISPLAY1",
+            "vz:source:window:42",
+            ids::SHARE,
+        ] {
+            assert!(ids.contains(&id.to_owned()), "{id} in {ids:?}");
+        }
+        let shown = texts(&laid);
+        let at = |text: &str| {
+            shown
+                .iter()
+                .position(|shown| shown == text)
+                .unwrap_or_else(|| panic!("{text} in {shown:?}"))
+        };
+        assert!(at("Pantallas") < at("Pantalla 1 (principal) · 1920×1080"));
+        assert!(at("Ventanas") < at("Un juego"));
+        assert!(at("Un juego") < at("Calidad") && at("Calidad") < at("720p"));
     }
 
     #[test]

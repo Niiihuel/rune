@@ -30,8 +30,10 @@ mod processing;
 /// The person's own call sounds, from a folder they chose.
 pub mod sounds;
 mod stretch;
-/// Local screen and camera preview through the desktop portal.
-#[cfg(target_os = "linux")]
+/// Local screen and camera preview through the desktop portal; on Windows
+/// through RUNE's own picker, Windows.Graphics.Capture and Media
+/// Foundation (windows-medios).
+#[cfg(any(target_os = "linux", windows))]
 pub mod video;
 
 pub use capture::{Capture, CaptureRequest, CaptureSnapshot, CaptureState};

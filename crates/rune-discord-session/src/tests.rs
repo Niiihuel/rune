@@ -470,7 +470,8 @@ impl Running {
     }
 
     async fn next_any(&mut self) -> Event {
-        tokio::time::timeout(Duration::from_secs(1), self.events.recv())
+        // Generous: on Windows a refused loopback connection takes ~2 s.
+        tokio::time::timeout(Duration::from_secs(10), self.events.recv())
             .await
             .expect("expected provider event")
             .unwrap()

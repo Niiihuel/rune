@@ -16,7 +16,7 @@ use pw::stream::{StreamFlags, StreamState};
 use rune_i18n::{es, t};
 
 use super::{
-    convert_within, lock, CameraInfo, Pace, Pixels, Plane, Shared, VideoKind, PREVIEW_INTERVAL,
+    convert_within, jpeg_frame, lock, CameraInfo, Keeper, Pixels, Plane, Shared, VideoKind,
 };
 
 /// How often the stop flag and the deadlines are checked.
@@ -42,8 +42,7 @@ struct Format {
 struct Reader {
     format: Option<Format>,
     /// Which frames to keep, and the last one previewed while sending.
-    pace: Pace,
-    previewed: Option<Instant>,
+    keeper: Keeper,
     connected: bool,
 }
 
@@ -213,40 +212,18 @@ pub(super) fn read(
                 };
                 let now = Instant::now();
                 last_frame.set(Some(now));
-                let (max, interval) = shared.capture();
-                let since = |at: Option<Instant>| at.map(|at| now.saturating_duration_since(at));
                 let memory = buffer.datas_mut().first().map(|data| data.type_());
-                {
-                    let mut stats = lock(&shared.stats);
-                    stats.delivered += 1;
-                    stats.memory = match memory {
-                        Some(spa::buffer::DataType::DmaBuf) => "dmabuf",
-                        Some(spa::buffer::DataType::MemFd) => "memfd",
-                        Some(spa::buffer::DataType::MemPtr) => "memptr",
-                        _ => "other",
-                    };
-                }
-                // Dropping the buffer queues it back: skipped frames cost nothing.
-                if !reader.pace.keep(now, interval) {
-                    return;
-                }
-                let Some(format) = reader.format else { return };
-                let Some(frame) = frame(format, buffer.datas_mut(), max) else {
-                    return;
+                lock(&shared.stats).memory = match memory {
+                    Some(spa::buffer::DataType::DmaBuf) => "dmabuf",
+                    Some(spa::buffer::DataType::MemFd) => "memfd",
+                    Some(spa::buffer::DataType::MemPtr) => "memptr",
+                    _ => "other",
                 };
-                {
-                    let mut stats = lock(&shared.stats);
-                    stats.kept += 1;
-                    stats.converting_micros += now.elapsed().as_micros() as u64;
-                }
-                if shared.sending.is_none() {
-                    return shared.push(frame);
-                }
-                if since(reader.previewed).is_none_or(|since| since >= PREVIEW_INTERVAL) {
-                    reader.previewed = Some(now);
-                    shared.push(frame.clone());
-                }
-                shared.keep(frame);
+                // Dropping the buffer queues it back: skipped frames cost nothing.
+                let format = reader.format;
+                shared.deliver(&mut reader.keeper, now, |max| {
+                    frame(format?, buffer.datas_mut(), max)
+                });
             }
         })
         .register()
@@ -445,30 +422,6 @@ fn frame(format: Format, datas: &mut [spa::buffer::Data], max: (u32, u32)) -> Op
     convert_within(format.pixels, format.width, format.height, &planes, max)
 }
 
-/// One camera's JPEG picture within `max`. A camera's MJPEG often leaves
-/// out the Huffman tables when they are JPEG's standard ones (MJPEG in AVI
-/// does too): its `AVI1` mark has the decoder fill in those missing.
-fn jpeg_frame(jpeg: &[u8], max: (u32, u32)) -> Option<super::Frame> {
-    use zune_core::{bytestream::ZCursor, colorspace::ColorSpace, options::DecoderOptions};
-    let rest = jpeg.strip_prefix(&[0xFF, 0xD8])?;
-    let mut marked = Vec::with_capacity(jpeg.len() + 9);
-    marked.extend_from_slice(b"\xFF\xD8\xFF\xE0\x00\x07AVI1\x00");
-    marked.extend_from_slice(rest);
-    let side = super::MAX_SOURCE_SIDE as usize;
-    let options = DecoderOptions::default()
-        .jpeg_set_out_colorspace(ColorSpace::RGBA)
-        .set_max_width(side)
-        .set_max_height(side);
-    let mut decoder = zune_jpeg::JpegDecoder::new_with_options(ZCursor::new(&marked[..]), options);
-    let rgba = decoder.decode().ok()?;
-    let (width, height) = decoder.dimensions()?;
-    let plane = Plane {
-        bytes: &rgba,
-        stride: width * 4,
-    };
-    convert_within(Pixels::Rgb4, width as u32, height as u32, &[plane], max)
-}
-
 /// The bytes of a data plane from its chunk's offset, and its stride.
 fn plane(data: &mut spa::buffer::Data, row: usize) -> Option<(Plane<'_>, &[u8])> {
     let chunk = data.chunk();
@@ -485,45 +438,6 @@ fn plane(data: &mut spa::buffer::Data, row: usize) -> Option<(Plane<'_>, &[u8])>
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// A synthetic camera picture: FFmpeg's test pattern, 64×48, 4:2:2 as
-    /// USB cameras send it, with JPEG's standard Huffman tables.
-    const CAMERA: &[u8] = include_bytes!("../../fixtures/camera.jpg");
-
-    /// `jpeg` without its Huffman tables, as many cameras send it.
-    fn without_tables(jpeg: &[u8]) -> Vec<u8> {
-        let mut out = jpeg[..2].to_vec();
-        let mut at = 2;
-        loop {
-            let marker = jpeg[at + 1];
-            if marker == 0xDA {
-                out.extend_from_slice(&jpeg[at..]);
-                return out;
-            }
-            let length = usize::from(u16::from_be_bytes([jpeg[at + 2], jpeg[at + 3]]));
-            if marker != 0xC4 {
-                out.extend_from_slice(&jpeg[at..at + 2 + length]);
-            }
-            at += 2 + length;
-        }
-    }
-
-    #[test]
-    fn a_camera_s_mjpeg_decodes_with_or_without_its_tables() {
-        let max = super::super::PREVIEW_MAX;
-        let frame = jpeg_frame(CAMERA, max).unwrap();
-        assert_eq!((frame.width, frame.height), (64, 48));
-        assert!(frame.rgba.chunks(4).all(|pixel| pixel[3] == 255));
-        // Not one flat color: the pattern is there.
-        assert!(frame.rgba.chunks(4).any(|pixel| pixel != &frame.rgba[..4]));
-        let bare = without_tables(CAMERA);
-        assert!(bare.len() < CAMERA.len(), "the tables were taken out");
-        assert_eq!(jpeg_frame(&bare, max), Some(frame));
-        let small = jpeg_frame(CAMERA, (32, 32)).unwrap();
-        assert_eq!((small.width, small.height), (32, 24));
-        assert!(jpeg_frame(b"not a picture", max).is_none());
-        assert!(jpeg_frame(&[0xFF, 0xD8], max).is_none());
-    }
 
     #[test]
     fn cameras_are_offered_mjpeg_besides_raw_pictures() {

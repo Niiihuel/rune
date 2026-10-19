@@ -162,7 +162,10 @@ a ejecutar el login ni a usar una cuenta.
 **Elegir el proveedor (2026-10-17).** El [host](../apps/desktop/src/main.rs)
 arranca con `--provider mock|discord|discord-session`; sin argumento usa la
 última elección, guardada en `$XDG_CONFIG_HOME/rune/provider` (sólo la clave
-del proveedor, nunca credenciales), y si no hay, Mock. Desde la ventana se
+del proveedor, nunca credenciales), y si no hay, el inicio de sesión no
+oficial cuando la compilación lo trae (las releases), o Mock si no (o con
+`--data`/`--latency`, opciones de la simulación). Una release nunca abre
+sola en la simulación (2026-10-19, al instalar la 0.1.0). Desde la ventana se
 elige en Ajustes → Conexión → «Elegí el proveedor» y en la página de acceso
 («Usar otro proveedor»): cada opción dice su origen (simulado, oficial, no
 oficial), lo que es, por qué no se puede usar en este equipo (OAuth2 sin el

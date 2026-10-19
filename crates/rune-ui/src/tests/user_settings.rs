@@ -966,6 +966,8 @@ fn the_rail_marks_follow_the_notification_settings() {
     assert!(!next.prefs.notification_content && !next.prefs.message_sounds);
 }
 
+// Windows has no GPU engine yet: there it cannot be turned on (windows-medios).
+#[cfg(not(windows))]
 #[test]
 fn the_gpu_does_the_video_until_it_is_turned_off_and_that_is_kept() {
     let mut host = Host::new();
@@ -977,6 +979,20 @@ fn the_gpu_does_the_video_until_it_is_turned_off_and_that_is_kept() {
     host.click("us:video-hardware");
     assert!(!host.ui.prefs.video_hardware);
     assert!(!host.us_next_run().prefs.video_hardware);
+}
+
+#[cfg(windows)]
+#[test]
+fn on_windows_the_gpu_switch_says_openh264_does_the_video() {
+    let mut host = Host::new();
+    host.us_open();
+    host.us_write(SEARCH, "aceleración por hardware");
+    host.click("us:page=voice");
+    assert!(!host.us_buttons().iter().any(|id| id == "us:video-hardware"));
+    let said = host.frame().commands.iter().any(|command| {
+        matches!(command, limn::DrawCommand::Text { text, .. } if text.contains("OpenH264"))
+    });
+    assert!(said);
 }
 
 #[test]

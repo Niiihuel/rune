@@ -8,12 +8,28 @@
 //! then `SET_ACTIVITY` (cleared when it leaves) or `INVITE_BROWSER`; every
 //! other command is refused. Pings (3) are answered (4). There is no TCP or
 //! WebSocket port, and only this user's programs are heard.
+//!
+//! On Windows the same protocol goes over the named pipe
+//! `\\?\pipe\discord-ipc-N`, as the official client has it ([`windows`]).
 
-use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
 
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(any(target_os = "linux", windows))]
+mod protocol;
+// Windows (windows-medios).
+#[cfg(windows)]
+mod windows;
+
+/// Where the server listens: the runtime directory on Linux, the pipes'
+/// prefix on Windows.
+#[cfg(target_os = "linux")]
+type Place = Option<std::path::PathBuf>;
+#[cfg(windows)]
+type Place = String;
+#[cfg(not(any(target_os = "linux", windows)))]
+type Place = ();
 
 /// What a program says it is doing. Text is bounded and without control
 /// characters; anything else it sent is dropped.
@@ -65,17 +81,19 @@ pub struct RichPresence {
 }
 
 impl RichPresence {
-    /// Open the first free `discord-ipc-N` in the runtime directory and
-    /// listen; `wake` runs after each event.
+    /// Open the first free `discord-ipc-N` in the runtime directory (a
+    /// named pipe on Windows) and listen; `wake` runs after each event.
     pub fn start(wake: Arc<dyn Fn() + Send + Sync>) -> Self {
         #[cfg(target_os = "linux")]
-        let dir = crate::local_socket::runtime_dir();
-        #[cfg(not(target_os = "linux"))]
-        let dir = None;
-        Self::spawn(dir, wake)
+        let place = crate::local_socket::runtime_dir();
+        #[cfg(windows)]
+        let place = self::windows::PIPES.to_owned();
+        #[cfg(not(any(target_os = "linux", windows)))]
+        let place = ();
+        Self::spawn(place, wake)
     }
 
-    fn spawn(dir: Option<PathBuf>, wake: Arc<dyn Fn() + Send + Sync>) -> Self {
+    fn spawn(place: Place, wake: Arc<dyn Fn() + Send + Sync>) -> Self {
         let (sender, events) = mpsc::channel();
         let (stop, stopped) = tokio::sync::oneshot::channel();
         let account = Arc::new(Mutex::new(None));
@@ -85,10 +103,12 @@ impl RichPresence {
             }
         };
         #[cfg(target_os = "linux")]
-        linux::spawn(dir, account.clone(), report, stopped);
-        #[cfg(not(target_os = "linux"))]
+        linux::spawn(place, account.clone(), report, stopped);
+        #[cfg(windows)]
+        self::windows::spawn(place, account.clone(), report, stopped);
+        #[cfg(not(any(target_os = "linux", windows)))]
         {
-            let _ = (dir, stopped);
+            let _ = (place, stopped);
             report(PresenceEvent::Unavailable);
         }
         Self {

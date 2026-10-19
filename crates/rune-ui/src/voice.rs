@@ -419,6 +419,10 @@ pub(crate) fn update(
     if let Some(user) = number(id, ids::STOP_WATCHING) {
         return Some(video::stop_watching(ui, store, UserId(user)));
     }
+    // RUNE's own picker (windows-medios).
+    if let Some(source) = id.strip_prefix(ids::SOURCE) {
+        return Some(video::choose_source(ui, source));
+    }
     if let Some(user) = number(id, "vz:tile-more:") {
         let user = UserId(user);
         let open = menu.is_some_and(|menu| menu.user == user && menu.at.is_none());

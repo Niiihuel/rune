@@ -5,8 +5,16 @@
 //!
 //! Everything here runs programs and reads files: call it off the
 //! interface's thread.
+//!
+//! Windows has no fontconfig: there DirectWrite lists the families and
+//! says which files hold a family's faces ([`windows`]).
 
+#[cfg(not(windows))]
 use std::process::Command;
+
+// Windows (windows-medios).
+#[cfg(windows)]
+mod windows;
 
 /// Families listed at most, and the largest face file read.
 const MAX_FAMILIES: usize = 4096;
@@ -33,15 +41,20 @@ pub struct Faces {
 
 /// The installed families, sorted, without hidden ones (named with a dot).
 pub fn families() -> Vec<String> {
-    Command::new("fc-list")
+    #[cfg(windows)]
+    let families = self::windows::families();
+    #[cfg(not(windows))]
+    let families = Command::new("fc-list")
         .args([":", "family"])
         .output()
         .ok()
         .filter(|output| output.status.success())
         .map(|output| parse_families(&String::from_utf8_lossy(&output.stdout)))
-        .unwrap_or_default()
+        .unwrap_or_default();
+    families
 }
 
+#[cfg_attr(windows, allow(dead_code))]
 fn parse_families(listed: &str) -> Vec<String> {
     let mut families: Vec<String> = listed
         .lines()
@@ -67,13 +80,14 @@ pub fn load(family: &str) -> Option<Faces> {
     if !valid(family) {
         return None;
     }
-    let regular = face(family, 80)?;
-    let other = |weight| face(family, weight).filter(|found| *found != regular);
-    let medium = other(100);
-    let bold = other(200);
+    let [regular, medium, semibold, bold] = files(family)?;
+    let regular = regular?;
+    let other = |found: Option<(String, u32)>| found.filter(|found| *found != regular);
+    let medium = other(medium);
+    let bold = other(bold);
     // Not the same file twice: a family without semibold answers with bold.
-    let semibold =
-        other(180).filter(|found| Some(found) != medium.as_ref() && Some(found) != bold.as_ref());
+    let semibold = other(semibold)
+        .filter(|found| Some(found) != medium.as_ref() && Some(found) != bold.as_ref());
     Some(Faces {
         regular: read(&regular)?,
         medium: medium.as_ref().and_then(read),
@@ -82,8 +96,24 @@ pub fn load(family: &str) -> Option<Faces> {
     })
 }
 
+/// The files of `family`'s regular, medium, semibold and bold faces.
+#[cfg(not(windows))]
+fn files(family: &str) -> Option<[Option<(String, u32)>; 4]> {
+    let regular = face(family, 80)?;
+    Some([
+        Some(regular),
+        face(family, 100),
+        face(family, 180),
+        face(family, 200),
+    ])
+}
+
+#[cfg(windows)]
+use self::windows::faces as files;
+
 /// The file and index fontconfig picks for `family` at `weight` (80
 /// regular, 100 medium, 180 semibold, 200 bold), upright and of normal width.
+#[cfg(not(windows))]
 fn face(family: &str, weight: u32) -> Option<(String, u32)> {
     let pattern = format!("{}:weight={weight}:slant=0:width=100", escape(family));
     let output = Command::new("fc-match")
@@ -95,6 +125,7 @@ fn face(family: &str, weight: u32) -> Option<(String, u32)> {
 }
 
 /// What `fc-match` printed, if it is `family` near `weight`.
+#[cfg_attr(windows, allow(dead_code))]
 fn matched(printed: &str, family: &str, weight: u32) -> Option<(String, u32)> {
     let mut lines = printed.lines();
     let file = lines.next()?.to_owned();
@@ -123,6 +154,7 @@ fn matched(printed: &str, family: &str, weight: u32) -> Option<(String, u32)> {
 }
 
 /// Characters fontconfig's pattern syntax gives meaning to.
+#[cfg_attr(windows, allow(dead_code))]
 fn escape(family: &str) -> String {
     let mut escaped = String::with_capacity(family.len());
     for character in family.chars() {
@@ -139,18 +171,27 @@ fn escape(family: &str) -> String {
 /// lack a glyph, as a browser falls back (2026-10-17: names and tags with
 /// such characters showed boxes). Only OpenType files, at most `limit`.
 pub fn fallbacks(character: char, limit: usize) -> Vec<(String, u32)> {
-    let pattern = format!(":charset={:x}", u32::from(character));
-    Command::new("fc-match")
-        .args(["-s", "-f", "%{file}\\n%{index}\\n", &pattern])
+    #[cfg(windows)]
+    let found = self::windows::fallbacks(character, limit);
+    #[cfg(not(windows))]
+    let found = Command::new("fc-match")
+        .args([
+            "-s",
+            "-f",
+            "%{file}\\n%{index}\\n",
+            &format!(":charset={:x}", u32::from(character)),
+        ])
         .output()
         .ok()
         .filter(|output| output.status.success())
         .map(|output| candidates(&String::from_utf8_lossy(&output.stdout), limit))
-        .unwrap_or_default()
+        .unwrap_or_default();
+    found
 }
 
 /// The files and faces `fc-match -s` printed, two lines each. A variable
 /// font's named instance (the high bits of its index) is its face.
+#[cfg_attr(windows, allow(dead_code))]
 fn candidates(printed: &str, limit: usize) -> Vec<(String, u32)> {
     let lines: Vec<&str> = printed.lines().collect();
     lines
@@ -158,13 +199,17 @@ fn candidates(printed: &str, limit: usize) -> Vec<(String, u32)> {
         .filter_map(|pair| {
             let file = pair[0].trim();
             let index: u32 = pair[1].trim().parse().ok()?;
-            let opentype = [".ttf", ".otf", ".ttc", ".otc"]
-                .iter()
-                .any(|end| file.to_ascii_lowercase().ends_with(end));
-            (file.starts_with('/') && opentype).then(|| (file.to_owned(), index & 0xFFFF))
+            (file.starts_with('/') && opentype(file)).then(|| (file.to_owned(), index & 0xFFFF))
         })
         .take(limit)
         .collect()
+}
+
+/// Whether `file` is an OpenType font or collection, by its name.
+fn opentype(file: &str) -> bool {
+    [".ttf", ".otf", ".ttc", ".otc"]
+        .iter()
+        .any(|end| file.to_ascii_lowercase().ends_with(end))
 }
 
 /// The face `index` of the font file `file`, if it is not too large.

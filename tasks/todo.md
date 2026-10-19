@@ -4785,3 +4785,44 @@ Pendiente y por qué:
   sin él, el login da el enlace de Microsoft. Con MSVC el cargador va
   enlazado; un instalador armado con MinGW (prueba con Wine) lleva
   `WebView2Loader.dll` con `/DLoader=`.
+
+## Windows, segunda etapa: medios y escritorio (2026-10-19, rama `windows-medios`)
+
+Lo que la primera etapa dejó apagado, salvo el login (`windows-login`) y el
+instalador (`windows-instalador`). Detalle en
+[PLATFORM.md](../docs/PLATFORM.md#segunda-etapa-medios-y-escritorio-2026-10-19-rama-windows-medios)
+y [MEDIA.md](../docs/MEDIA.md#implementado-pantalla-cámara-y-sonido-de-la-pantalla-en-windows-2026-10-19-rama-windows-medios).
+Nada se probó en un Windows real.
+
+- [x] Pantalla compartida: Windows.Graphics.Capture (1903+) con Direct3D 11
+  propio, al mismo codificador (OpenH264); selector de RUNE en el menú de
+  calidad («Pantallas», «Ventanas»), listado en un hilo; ventana cerrada o
+  pantalla desconectada terminan con el motivo.
+- [x] Sonido de la pantalla: loopback por proceso de WASAPI (2004+), sin
+  los procesos de RUNE; mismo `Mix` y Opus que Linux.
+- [x] Cámara: Media Foundation (lista por nombre, elige formato, lectura
+  asíncrona, NV12/YUY2/I420/MJPEG convertidos por RUNE); permisos,
+  ocupada, sin Media Foundation: lo dice.
+- [x] Detectar juegos: procesos de la sesión con su ruta, misma lista.
+  Apagado por defecto.
+- [x] `discord-ipc`: tubería `\\?\pipe\discord-ipc-N`, mismo protocolo
+  (`rich_presence/protocol.rs`), sólo la sesión. Apagado por defecto.
+- [x] Fuentes del sistema y sus respaldos con DirectWrite.
+- [x] Ajustes ya no dice que eso falta en Windows; «Aceleración por
+  hardware de H.264» queda deshabilitada y dice que va OpenH264.
+- [x] Pruebas: con Wine pasan las nuevas (formato y planos de la cámara,
+  ids y orden del selector, ventanas ofrecidas, pantallas de Wine,
+  procesos, la tubería de punta a punta, DirectWrite) y OpenH264; en Linux,
+  `deliver`, MJPEG, el selector en `rune-components` y `rune-ui`.
+
+Pendiente y por qué:
+
+- Probar en Windows 10/11 (lista en PLATFORM.md): Wine no tiene
+  Windows.Graphics.Capture, cámaras ni el loopback por proceso.
+- Codificador por hardware en Windows (MFT H.264 de Media Foundation) y
+  respaldo con DXGI Desktop Duplication: no hicieron falta para la primera
+  versión; sin ellos va OpenH264 y Windows 10 1903+.
+- El loopback no distingue aplicaciones: otra llamada abierta (el cliente
+  oficial) se oiría en el sonido de la pantalla.
+- Video en mensajes en Windows (no estaba en este pedido): MP4 con OpenH264
+  es directo; WebM y MKV necesitan otro decodificador.

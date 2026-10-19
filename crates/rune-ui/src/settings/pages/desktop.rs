@@ -155,7 +155,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
                 .map(|(id, label, chosen, enabled)| (id.as_str(), label.as_str(), *chosen, *enabled))
                 .collect();
             let note = ui.desktop.font_problem.as_deref().map_or_else(|| {
-                windows(es("La del texto de toda la ventana. En Windows RUNE todavía no lista las fuentes del sistema: usa la suya."))
+                windows(es("La del texto de toda la ventana. Las fuentes del sistema se leen con DirectWrite; si una se desinstala, RUNE vuelve a la suya."))
                     .unwrap_or(t("La del texto de toda la ventana. Las fuentes del sistema se leen con fontconfig; si una se desinstala, RUNE vuelve a la suya."))
             }, t);
             Element::column(vec![
@@ -213,11 +213,11 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
             }
         }
         "rich-presence" => {
-            let denied = windows(es("En Windows RUNE todavía no abre el canal local discord-ipc."))
-                .or((!capable(|can| can.local_activity)).then_some(t("Este proveedor no publica actividades.")));
+            let denied = (!capable(|can| can.local_activity)).then_some(t("Este proveedor no publica actividades."));
             let note = match (&ui.desktop.rich_presence_problem, prefs.rich_presence) {
                 (Some(problem), true) => t(problem),
-                _ => t("Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por el socket local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu usuario, sin puertos de red."),
+                _ => windows(es("Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por la tubería local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu sesión de Windows, sin puertos de red."))
+                    .unwrap_or(t("Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por el socket local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu usuario, sin puertos de red.")),
             };
             toggle(
                 "us:rich-presence",
@@ -228,8 +228,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
             )
         }
         "game-activity" => {
-            let denied = windows(es("En Windows RUNE todavía no detecta juegos."))
-                .or((!capable(|can| can.local_activity && can.detectable_games)).then_some(t("Este proveedor no reconoce juegos.")));
+            let denied = (!capable(|can| can.local_activity && can.detectable_games)).then_some(t("Este proveedor no reconoce juegos."));
             toggle(
                 "us:game-activity",
                 t("Detectar juegos"),

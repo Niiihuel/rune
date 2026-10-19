@@ -367,8 +367,8 @@ fn the_stage_lists_who_is_in_the_call_and_who_speaks_or_is_muted() {
     assert!(!host.vz_shows(&format!("{}:muted", ids::tile(me.0))));
 }
 
-// Screen and camera are Linux only (windows-base).
-#[cfg(target_os = "linux")]
+// Screen and camera are Linux's and Windows' (windows-medios).
+#[cfg(any(target_os = "linux", windows))]
 #[test]
 fn the_bar_mutes_deafens_and_hangs_up_and_the_video_says_it_stays_here() {
     let mut host = Host::new();
@@ -839,8 +839,55 @@ fn out_of_the_call_more_than_three_people_are_counted_not_named() {
     assert!(position.x + text.chars().count() as f32 * 7.0 <= size.width);
 }
 
-// Screen and camera are Linux only (windows-base).
-#[cfg(target_os = "linux")]
+// RUNE's own picker (windows-medios): what the host lists is offered,
+// the main screen chosen until another is, a choice kept while listed.
+#[test]
+fn rune_s_own_picker_offers_what_the_host_listed() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    host.click(ids::SCREEN);
+    assert!(host.ui.video.picker);
+    let listed = |windows: &[(&str, &str)]| {
+        let mut listed = vec![(
+            r"screen:\\.\DISPLAY1".to_owned(),
+            "Pantalla 1".to_owned(),
+            false,
+        )];
+        listed.extend(
+            windows
+                .iter()
+                .map(|(id, name)| ((*id).to_owned(), (*name).to_owned(), true)),
+        );
+        listed
+    };
+    crate::video_sources_listed(&mut host.ui, listed(&[("window:42", "Un juego")]));
+    assert_eq!(
+        host.ui.video.source.as_deref(),
+        Some(r"screen:\\.\DISPLAY1")
+    );
+    assert!(host.vz_usable("vz:source:window:42"));
+    host.click("vz:source:window:42");
+    assert_eq!(host.ui.video.source.as_deref(), Some("window:42"));
+    assert!(host.ui.video.picker, "choosing keeps it open");
+    // An id the host never listed changes nothing.
+    crate::video::choose_source(&mut host.ui, "window:7");
+    assert_eq!(host.ui.video.source.as_deref(), Some("window:42"));
+    // Listed again with it still there, it stays; gone, the main screen.
+    crate::video_sources_listed(&mut host.ui, listed(&[("window:42", "Un juego")]));
+    assert_eq!(host.ui.video.source.as_deref(), Some("window:42"));
+    crate::video_sources_listed(&mut host.ui, listed(&[]));
+    assert_eq!(
+        host.ui.video.source.as_deref(),
+        Some(r"screen:\\.\DISPLAY1")
+    );
+    // Where the system has its own dialog nothing is listed or chosen.
+    crate::video_sources_listed(&mut host.ui, Vec::new());
+    assert_eq!(host.ui.video.source, None);
+}
+
+// Screen and camera are Linux's and Windows' (windows-medios).
+#[cfg(any(target_os = "linux", windows))]
 #[test]
 fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
     use rune_model::{StreamPhase, StreamQuality};
@@ -1045,8 +1092,8 @@ fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
     assert!(!host.vz_shows(ids::SCREEN));
 }
 
-// Screen and camera are Linux only (windows-base).
-#[cfg(target_os = "linux")]
+// Screen and camera are Linux's and Windows' (windows-medios).
+#[cfg(any(target_os = "linux", windows))]
 #[test]
 fn the_camera_goes_to_the_call_says_what_it_sends_and_is_taken_back_on_every_stop() {
     let mut host = Host::new();
@@ -1222,7 +1269,7 @@ fn the_rail_says_who_is_in_voice_in_each_server_and_marks_the_own_call() {
     assert_eq!(speakers(&frame, look.online), 1, "the own call is green");
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn rune_ui_live_waiting() -> crate::Live {
     crate::Live::Waiting
 }
@@ -1617,8 +1664,8 @@ fn the_column_tells_the_server_it_shows_and_how_long_each_voice_room_is_on() {
     );
 }
 
-// Screen and camera are Linux only (windows-base).
-#[cfg(target_os = "linux")]
+// Screen and camera are Linux's and Windows' (windows-medios).
+#[cfg(any(target_os = "linux", windows))]
 // Calls and the voice panel (llamadas-y-panel-de-voz).
 #[test]
 fn the_bars_camera_arrow_tries_the_camera_without_sending_it() {

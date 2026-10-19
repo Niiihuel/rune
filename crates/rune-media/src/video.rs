@@ -14,27 +14,49 @@
 //! ([`Video::send_camera`]), is kept at the size and rate it is sent at
 //! instead, for [`encode`]: one frame waits at most, the newest; the preview
 //! still gets one at most 15 times a second.
+//!
+//! Windows has no portal (windows-medios): RUNE's own picker lists the
+//! screens and windows ([`sources`]), Windows.Graphics.Capture reads the one
+//! chosen and Media Foundation the cameras, into the same queues as here.
 
 use std::collections::VecDeque;
+#[cfg(target_os = "linux")]
 use std::future::Future;
+#[cfg(target_os = "linux")]
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
+#[cfg(target_os = "linux")]
 use rune_i18n::t;
+#[cfg(target_os = "linux")]
 use rune_platform::screencast::{self, CancelSignal, CaptureError, ParentWindow, ScreenCast};
 
 /// Someone else's stream, decoded on its own thread.
 pub mod decode;
 /// The account's shared screen or camera, encoded on its own thread.
 pub mod encode;
+/// Who encodes and decodes: the GPU's engines, OpenH264 after them.
+mod engine;
 /// The GPU's H264 encoder and decoder, through GStreamer.
+#[cfg(target_os = "linux")]
 pub mod gpu;
+#[cfg(target_os = "linux")]
 mod pipewire;
 /// The sound of the account's shared screen, from the other applications.
 pub mod sound;
+/// Room in a stream's SPS for the GPU's decoders (GStreamer's).
+#[cfg(target_os = "linux")]
 mod sps;
+// Windows (windows-medios).
+#[cfg(windows)]
+mod windows;
+/// No GPU's encoder or decoder on Windows yet: OpenH264 does it.
+#[cfg(windows)]
+pub use self::windows::gpu;
+#[cfg(windows)]
+pub use self::windows::sources;
 
 /// The largest preview, in pixels; larger sources are scaled down to fit.
 pub const PREVIEW_MAX: (u32, u32) = (1280, 720);
@@ -61,6 +83,24 @@ pub enum VideoState {
     Running,
     /// Over, with the reason when it was not stopped from RUNE.
     Ended(Option<String>),
+}
+
+/// A screen or a window to share, as RUNE's own picker offers it where the
+/// system has no dialog of its own (Windows).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScreenSource {
+    /// What to ask [`Video::share`] for it by, while it stays.
+    pub id: String,
+    pub name: String,
+    /// A window, not a whole screen.
+    pub window: bool,
+}
+
+/// The screens and windows RUNE's picker offers: none on Linux, where the
+/// portal's dialog chooses.
+#[cfg(target_os = "linux")]
+pub fn sources() -> Vec<ScreenSource> {
+    Vec::new()
 }
 
 /// A camera the system offers, as the portal's remote shows it.
@@ -256,9 +296,51 @@ impl Shared {
     fn running(&self) -> bool {
         *lock(&self.state) == VideoState::Running
     }
+
+    /// A frame delivered at `now`: counted and, if `keeper` keeps it,
+    /// converted by `make` within the size kept and handed to the preview
+    /// and, while sending, to the encoder.
+    pub(crate) fn deliver(
+        &self,
+        keeper: &mut Keeper,
+        now: Instant,
+        make: impl FnOnce((u32, u32)) -> Option<Frame>,
+    ) {
+        lock(&self.stats).delivered += 1;
+        let (max, interval) = self.capture();
+        if !keeper.pace.keep(now, interval) {
+            return;
+        }
+        let Some(frame) = make(max) else {
+            return;
+        };
+        {
+            let mut stats = lock(&self.stats);
+            stats.kept += 1;
+            stats.converting_micros += now.elapsed().as_micros() as u64;
+        }
+        if self.sending.is_none() {
+            return self.push(frame);
+        }
+        let since = keeper.previewed.map(|at| now.saturating_duration_since(at));
+        if since.is_none_or(|since| since >= PREVIEW_INTERVAL) {
+            keeper.previewed = Some(now);
+            self.push(frame.clone());
+        }
+        self.keep(frame);
+    }
+}
+
+/// What a source's reader keeps from frame to frame: which frames to keep,
+/// and when one last went to the preview while sending.
+#[derive(Default)]
+pub(crate) struct Keeper {
+    pace: Pace,
+    previewed: Option<Instant>,
 }
 
 /// A portal session that outlives the request: the system can end it.
+#[cfg(target_os = "linux")]
 trait Session: Send {
     /// Why the system ended it.
     fn ended(&mut self) -> Pin<Box<dyn Future<Output = String> + Send + '_>>;
@@ -266,6 +348,7 @@ trait Session: Send {
     fn close(self: Box<Self>) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 }
 
+#[cfg(target_os = "linux")]
 impl Session for ScreenCast {
     fn ended(&mut self) -> Pin<Box<dyn Future<Output = String> + Send + '_>> {
         Box::pin(async move { ScreenCast::ended(self).await.to_string() })
@@ -280,6 +363,7 @@ impl Session for ScreenCast {
 }
 
 /// What the portal granted.
+#[cfg(target_os = "linux")]
 struct Source {
     remote: std::os::fd::OwnedFd,
     /// The node to read; `None` lets PipeWire pick (a camera).
@@ -289,6 +373,7 @@ struct Source {
     restore: Option<String>,
 }
 
+#[cfg(target_os = "linux")]
 type Opening = Pin<Box<dyn Future<Output = Result<Source, CaptureError>> + Send>>;
 
 /// One previewed source. Creating it asks the system at once; dropping it
@@ -296,9 +381,11 @@ type Opening = Pin<Box<dyn Future<Output = Result<Source, CaptureError>> + Send>
 pub struct Video {
     shared: Arc<Shared>,
     /// Dropped with the handle: that cancels whatever the worker awaits.
+    #[cfg(target_os = "linux")]
     _cancel: tokio::sync::watch::Sender<bool>,
 }
 
+#[cfg(target_os = "linux")]
 impl Video {
     /// Ask the system to share a monitor or a window: its picker chooses,
     /// unless `restore` names a choice it remembers.
@@ -320,13 +407,6 @@ impl Video {
             Some(sending(max, fps)),
             screen(parent, restore),
         )
-    }
-
-    /// The frames kept for sending, the newest only, from any thread; nothing
-    /// for a preview.
-    pub fn frames(&self) -> impl FnMut() -> Option<Frame> + Send + 'static {
-        let shared = self.shared.clone();
-        move || lock(&shared.raw).take()
     }
 
     /// Ask the system for the cameras and preview `device`, one of the
@@ -377,6 +457,15 @@ impl Video {
             _cancel: cancel,
         }
     }
+}
+
+impl Video {
+    /// The frames kept for sending, the newest only, from any thread; nothing
+    /// for a preview.
+    pub fn frames(&self) -> impl FnMut() -> Option<Frame> + Send + 'static {
+        let shared = self.shared.clone();
+        move || lock(&shared.raw).take()
+    }
 
     pub fn snapshot(&self) -> VideoSnapshot {
         VideoSnapshot {
@@ -412,6 +501,7 @@ fn sending(max: (u32, u32), fps: u32) -> ((u32, u32), Duration) {
 
 /// How a screen is asked for: the portal's picker chooses, or the choice
 /// `restore` names.
+#[cfg(target_os = "linux")]
 fn screen(
     parent: Option<ParentWindow>,
     restore: Option<String>,
@@ -437,6 +527,7 @@ fn screen(
 
 /// The source's worker: ask the portal, read the stream, and release both
 /// on whichever end comes first.
+#[cfg(target_os = "linux")]
 fn work(
     shared: Arc<Shared>,
     kind: VideoKind,
@@ -505,6 +596,7 @@ fn work(
     });
 }
 
+#[cfg(target_os = "linux")]
 async fn cancelled(cancel: &mut CancelSignal) {
     while !*cancel.borrow() {
         if cancel.changed().await.is_err() {
@@ -637,6 +729,30 @@ fn convert_within(
         height: out_h,
         rgba,
     })
+}
+
+/// One camera's JPEG picture within `max`. A camera's MJPEG often leaves
+/// out the Huffman tables when they are JPEG's standard ones (MJPEG in AVI
+/// does too): its `AVI1` mark has the decoder fill in those missing.
+fn jpeg_frame(jpeg: &[u8], max: (u32, u32)) -> Option<Frame> {
+    use zune_core::{bytestream::ZCursor, colorspace::ColorSpace, options::DecoderOptions};
+    let rest = jpeg.strip_prefix(&[0xFF, 0xD8])?;
+    let mut marked = Vec::with_capacity(jpeg.len() + 9);
+    marked.extend_from_slice(b"\xFF\xD8\xFF\xE0\x00\x07AVI1\x00");
+    marked.extend_from_slice(rest);
+    let side = MAX_SOURCE_SIDE as usize;
+    let options = DecoderOptions::default()
+        .jpeg_set_out_colorspace(ColorSpace::RGBA)
+        .set_max_width(side)
+        .set_max_height(side);
+    let mut decoder = zune_jpeg::JpegDecoder::new_with_options(ZCursor::new(&marked[..]), options);
+    let rgba = decoder.decode().ok()?;
+    let (width, height) = decoder.dimensions()?;
+    let plane = Plane {
+        bytes: &rgba,
+        stride: width * 4,
+    };
+    convert_within(Pixels::Rgb4, width as u32, height as u32, &[plane], max)
 }
 
 #[cfg(test)]

@@ -158,6 +158,8 @@ pub use call_sounds::{
 };
 // The shared screen's stream starts once its source runs (audio work).
 pub use video::{capture_quality as video_capture_quality, screen_ready as video_screen_ready};
+// RUNE's own screen picker, where the system has none (windows-medios).
+pub use video::sources_listed as video_sources_listed;
 pub use view::view;
 // The window's own title bar (barra-e-icono).
 pub mod title_bar;

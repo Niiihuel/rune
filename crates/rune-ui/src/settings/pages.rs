@@ -993,6 +993,15 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             prefs.effective_processing().automatic_gain,
         ),
         "camera" => camera(ctx),
+        // Windows has no GPU engine yet: OpenH264 always (windows-medios).
+        "video-hardware" if cfg!(windows) => parts::toggle(
+            "us:video-hardware",
+            t("Aceleración por hardware de H.264"),
+            None,
+            false,
+            Some(t("En Windows RUNE todavía codifica y decodifica el video con OpenH264, en el procesador.")),
+            look,
+        ),
         "video-hardware" => toggle(
             "us:video-hardware",
             t("Aceleración por hardware de H.264"),
@@ -1813,7 +1822,7 @@ fn camera(ctx: &Ctx) -> Element {
             look.muted,
         )),
     };
-    let supported = cfg!(target_os = "linux");
+    let supported = cfg!(any(target_os = "linux", windows));
     let mut rows = vec![
         Element::spacer().size(None, Some(16.0)),
         line(t("Cámara"), 16.0, look.text).font_family(limn::FontFamily::SansMedium),

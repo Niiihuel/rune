@@ -299,11 +299,12 @@ programs.nix-ld.libraries = with pkgs; [
   wayland libxkbcommon vulkan-loader libGL alsa-lib pipewire stdenv.cc.cc.lib
   gst_all_1.gstreamer gst_all_1.gst-plugins-base
   gtk4 webkitgtk_6_0 glib cairo pango gdk-pixbuf graphene libsoup_3
-  xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr
+  libx11 libxcursor libxi libxrandr  # xorg.* en nixpkgs anteriores
 ];
 environment.sessionVariables = {
   # TLS de la ventana de login (WebKit) y plugins de GStreamer.
-  GIO_EXTRA_MODULES = "${pkgs.glib-networking}/lib/gio/modules";
+  # Una lista, para sumarse a la de dconf (con un texto, NixOS no los junta).
+  GIO_EXTRA_MODULES = [ "${pkgs.glib-networking}/lib/gio/modules" ];
   GST_PLUGIN_SYSTEM_PATH_1_0 = lib.makeSearchPathOutput "lib" "lib/gstreamer-1.0"
     (with pkgs.gst_all_1; [ gst-plugins-base gst-plugins-good gst-plugins-bad ]);
 };

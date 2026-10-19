@@ -46,18 +46,8 @@ cpal = { version = "0.18.2", features = ["pipewire"] }
 # Screen and camera preview: reads the video node of the remote the desktop
 # portal grants. The same 0.10 bindings cpal already links; no new library.
 pipewire = "0.10.1"
-# The portal requests and sessions that grant those remotes.
-rune-platform.workspace = true
 # Drives the portal's async requests on each video source's own thread.
 tokio = { workspace = true }
-# H264, the codec of Discord's screen streams: decodes a watched stream on
-# its own thread. Cisco's OpenH264 built from source (`source` feature),
-# so Cisco's patent license does not cover it: see docs/MEDIA.md.
-openh264 = "=0.9.8"
-# The same OpenH264 bindings openh264 builds on (not a new library): its
-# runtime bit-rate option, which the safe API lacks, so a new rate needs no
-# new encoder and no key frame, as in WebRTC's use of OpenH264.
-openh264-sys2 = "0.9.9"
 # The GPU's H264 encoder and decoder, OpenH264 staying as the fallback:
 # GStreamer's VA-API (Mesa, the integrated GPU) and NVENC/NVDEC (nvcodec)
 # elements, as Serein uses them. Bindings MIT/Apache-2.0; GStreamer is
@@ -66,6 +56,20 @@ openh264-sys2 = "0.9.9"
 gstreamer = "0.25.4"
 gstreamer-app = "0.25.2"
 gstreamer-video = "0.25.4"
+
+# Video on Linux and on Windows (windows-medios).
+[target.'cfg(any(target_os = "linux", windows))'.dependencies]
+# The portal requests and sessions that grant the remotes on Linux; the
+# parent window the same API takes on Windows.
+rune-platform.workspace = true
+# H264, the codec of Discord's screen streams: decodes a watched stream on
+# its own thread. Cisco's OpenH264 built from source (`source` feature),
+# so Cisco's patent license does not cover it: see docs/MEDIA.md.
+openh264 = "=0.9.8"
+# The same OpenH264 bindings openh264 builds on (not a new library): its
+# runtime bit-rate option, which the safe API lacks, so a new rate needs no
+# new encoder and no key frame, as in WebRTC's use of OpenH264.
+openh264-sys2 = "0.9.9"
 # A camera that only gives MJPEG: each picture is one JPEG, decoded in pure
 # Rust. Not a new library: the JPEG decoder `image` already uses (rune-core).
 zune-jpeg = "0.5.15"
@@ -73,6 +77,36 @@ zune-core = "0.5.3"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 cpal = "0.18.2"
+
+# Windows (windows-medios): the screen through Windows.Graphics.Capture and
+# Direct3D 11, cameras through Media Foundation, the applications' sound
+# through WASAPI's process loopback, and the monitors and windows RUNE's
+# picker lists. The same `windows` bindings cpal and rune-platform already
+# build (0.62), with the parts these call; no other crate.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [
+    "Foundation",
+    "Graphics_Capture",
+    "Graphics_DirectX_Direct3D11",
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_Media_MediaFoundation",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+    "Win32_System_WinRT_Direct3D11",
+    "Win32_System_WinRT_Graphics_Capture",
+    "Win32_UI_WindowsAndMessaging",
+] }
+# Not a new crate: the core `windows` re-exports, named directly because
+# its `#[implement]` macro (the callbacks Media Foundation and WASAPI call)
+# expands to `::windows_core` paths.
+windows-core = "0.62.2"
 
 [[example]]
 name = "devices"

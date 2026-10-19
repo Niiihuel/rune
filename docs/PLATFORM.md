@@ -254,7 +254,9 @@ por índice y fuentes variables que cubran el peso) y lee los archivos (hasta
 [LIMN_INTEGRATION.md](LIMN_INTEGRATION.md)) y vuelve a medir el árbol. Sólo
 se guarda el nombre (`ui_font`): si la familia desaparece, RUNE vuelve a
 Ubuntu y lo dice. Serein guarda el archivo entero en SQLite. La escala de
-la interfaz ya existía (zoom 50–200 %).
+la interfaz ya existía (zoom 50–200 %). En Windows la lista, los pesos y
+los respaldos salen de DirectWrite
+([segunda etapa](#segunda-etapa-medios-y-escritorio-2026-10-19-rama-windows-medios)).
 
 ![Fuente](img/escritorio-fuente-2026-10-17.png)
 
@@ -314,6 +316,9 @@ Ajustes › Sistema › Actividad (decisión del dueño del 2026-10-17; ver
   en la sesión, la pública `/applications/detectable` de Discord), por la
   cola más larga de la ruta; el juego reconocido se mantiene mientras
   siga abierto.
+
+En Windows, la tubería `\\?\pipe\discord-ipc-N` y los procesos de la
+sesión ([segunda etapa](#segunda-etapa-medios-y-escritorio-2026-10-19-rama-windows-medios)).
 
 Gana la actividad más nueva de un programa; si no hay, el juego. RUNE la
 muestra como la actividad propia (`Store::presence` de la cuenta) y la
@@ -524,21 +529,64 @@ session-login`, como en Linux. **Sin probar en un Windows real.**
 
 ### Apagado en Windows (y la interfaz lo dice)
 
-- **Pantalla compartida, cámara y video en mensajes** (PipeWire, GStreamer,
-  OpenH264): la interfaz dice «La vista previa de pantalla y cámara solo
-  funciona en Linux por ahora»; un video adjunto suena sin imagen.
-- **Detectar juegos** y **Actividad de otros programas** (`discord-ipc`,
-  que en Windows es una tubería con nombre): interruptores deshabilitados
-  con su motivo.
-- **Fuentes del sistema**: no hay fontconfig; la lista queda en la de RUNE y
-  la nota lo dice. **Dibujar con**: sin `sysfs`, sólo «Automático» (Windows
-  elige la GPU por aplicación en Configuración › Pantalla › Gráficos).
+- **Video en mensajes**: un video adjunto suena sin imagen (Linux lo
+  decodifica con OpenH264 y GStreamer). Pantalla, cámara, juegos,
+  `discord-ipc` y fuentes del sistema llegaron en la segunda etapa (abajo).
+- **Aceleración por hardware de H.264**: no hay motor de la GPU en Windows
+  todavía (Linux usa VA-API y NVENC/NVDEC por GStreamer); el interruptor
+  está deshabilitado y dice que codifica y decodifica OpenH264.
+- **Dibujar con**: sin `sysfs`, sólo «Automático» (Windows elige la GPU por
+  aplicación en Configuración › Pantalla › Gráficos).
 - **Instalador** por usuario (Inno Setup, en `%LOCALAPPDATA%\Programs\RUNE`,
   con acceso directo, desinstalador y modo silencioso para el updater) e
   ícono y versión en `rune.exe`: rama `windows-instalador`, detalle en
   [UPDATES.md](UPDATES.md#windows). El ícono es `assets/icons/rune.ico`
   (rama `barra-e-icono`; cómo se hizo en
   [ARTWORK.md](ARTWORK.md)).
+
+### Segunda etapa: medios y escritorio (2026-10-19, rama `windows-medios`)
+
+Lo que la primera etapa dejó apagado, salvo el login (WebView2) y el
+instalador, que hacen otros: detrás de la misma API de `rune-media` y
+`rune-platform` que usa Linux, cada cosa en su `windows.rs`. Si una versión
+de Windows no puede, la fuente termina con el motivo y la interfaz lo dice
+(probado con Wine, que no tiene ninguna de las tres APIs de medios).
+Serein resuelve lo mismo con el crate `windows-capture` y Media Foundation;
+acá van directo sobre `windows` 0.62, el mismo que ya compilaban cpal y el
+port base (más `windows-core`, el mismo crate, nombrado porque su macro
+`#[implement]` lo pide). Sin copiar código.
+
+| Qué | Linux | Windows |
+| --- | --- | --- |
+| Elegir pantalla o ventana | el diálogo del portal | el selector de RUNE: en el menú de calidad, «Pantallas» (la principal primero, con su resolución) y «Ventanas» (las de la barra de tareas con título, hasta 32, nunca las de RUNE), listadas en un hilo al abrirlo; sin elegir, la principal |
+| Pantalla compartida | PipeWire | Windows.Graphics.Capture (Windows 10 1903 o posterior), con un dispositivo Direct3D 11 propio (o WARP): cada cuadro que se queda se copia a memoria y entra a las mismas colas, tamaños y ritmos; el codificador es el mismo OpenH264. Windows dibuja su borde amarillo mientras captura. Una ventana que se cierra o una pantalla que se desconecta terminan la transmisión con el motivo |
+| Sonido de la pantalla | un flujo de PipeWire por aplicación, sin RUNE ni otras llamadas | el loopback por proceso de WASAPI (Windows 10 2004 o posterior): todo lo que suena menos los procesos de RUNE. No distingue aplicaciones: la llamada de otro cliente de voz abierto se oiría. Sin él, se comparte sin sonido y lo dice |
+| Cámara | PipeWire (YUY2, NV12, RGB, MJPEG) | Media Foundation: lista las cámaras por nombre, abre la elegida y de lo que ofrece toma lo que mejor encaja (primero el ritmo, después el tamaño más chico que cubre lo que se manda, crudo antes que MJPEG); NV12, YUY2, I420 y MJPEG se convierten acá, como en Linux. Lectura asíncrona: una cámara que se traba se nota a los 5 s. Sin permiso de Windows, ocupada o sin Media Foundation (ediciones N): lo dice |
+| Codificar y decodificar video | VA-API, NVENC/NVDEC u OpenH264 | OpenH264 (el de Linux, compilado de la fuente) |
+| Detectar juegos | `/proc` | los procesos de esta sesión de Windows (`CreateToolhelp32Snapshot`), por la ruta de su programa (`QueryFullProcessImageNameW` con el mínimo acceso) o su nombre; la misma lista y el mismo índice |
+| Actividad de otros programas | `$XDG_RUNTIME_DIR/discord-ipc-N` | la tubería `\\?\pipe\discord-ipc-N` (la primera libre de 0 a 9, como el cliente oficial): primera instancia propia, sin clientes remotos, sólo programas de esta sesión; el protocolo es el mismo código (`rich_presence/protocol.rs`) |
+| Fuentes del sistema | fontconfig | DirectWrite: familias por su nombre en inglés, sus pesos sin negritas simuladas, y fuentes de respaldo para caracteres que las de RUNE no tienen (primero las de Windows: Segoe UI Symbol, Emoji, YaHei…) |
+
+Verificado desde NixOS (target `x86_64-pc-windows-gnu`, Wine 10): clippy
+`-D warnings` del workspace limpio; con Wine pasan las pruebas nuevas: la
+elección del formato de la cámara, sus planos y errores, los ids del
+selector y el orden de las pantallas, qué ventanas se ofrecen, la lista de
+pantallas de Wine, los procesos (la prueba se encuentra a sí misma), la
+tubería `discord-ipc` de punta a punta (saludo, actividad y su borrado al
+irse) y DirectWrite (lista familias, lee una y da respaldos). OpenH264
+codifica y decodifica con Wine como en Linux. Con `--ignored`, Wine dice
+por qué no hay pantalla («hace falta Windows 10 (1903)»), cámara («No hay
+ninguna cámara conectada») ni sonido («necesita Windows 10 (versión
+2004)»): no tiene Windows.Graphics.Capture, cámaras ni el loopback por
+proceso, así que **ningún cuadro, imagen de cámara ni sonido se capturó
+todavía en Windows**. `rune.exe` con Wine, en una llamada de la
+simulación, abre el selector con la pantalla de Wine (`--action
+'voice:{open}' --action after:vz:screen`); Wine encontró un error, ya
+corregido: pedir desde otro hilo el título de las ventanas de RUNE
+esperaba a la interfaz y la lista no llegaba nunca. Ahora las ventanas de
+RUNE se saltean antes de preguntarles nada.
+
+![El selector de RUNE con Wine](img/windows-medios-selector-2026-10-19.png)
 
 ### Qué tiene que probar el dueño en Windows
 
@@ -610,3 +658,26 @@ local (`cargo build --release -p rune-desktop` en Windows):
   agent y las client hints que RUNE copia.
 - Sin WebView2 Runtime (por ejemplo, en una máquina virtual de Windows 10
   sin actualizar): RUNE dice que falta y da el enlace de Microsoft.
+- Segunda etapa (`windows-medios`), en una llamada de la simulación y
+  después en una real:
+  - Compartir pantalla: el menú lista «Pantallas» y «Ventanas»; compartir
+    la principal, otra pantalla y una ventana (un juego en ventana y uno a
+    pantalla completa), mirar la vista previa y el borde de Windows, y
+    cerrar la ventana compartida (tiene que terminar con «La fuente dejó de
+    estar disponible»). La línea `rune: voice share: video …` del registro
+    dice `BGRA d3d11` y el ritmo.
+  - Con sonido: que se oiga un video o un juego y no la llamada (ni los
+    sonidos de RUNE); con el cliente oficial abierto en otra llamada, su
+    voz sí se oiría (límite del loopback).
+  - Cámara: la lista en Ajustes › Voz y video, «Probar video» y en una
+    llamada; con el permiso de cámara apagado en Configuración ›
+    Privacidad y seguridad › Cámara tiene que decir cómo darlo; con la
+    cámara abierta en otro programa, que está ocupada; desenchufarla.
+  - Detectar juegos con un juego de Steam (Windows) y su `Jugando a…`.
+  - Actividad de otros programas: un juego o reproductor con Rich Presence
+    (por ejemplo uno con `discord-rpc`), con y sin el cliente oficial
+    abierto (RUNE toma `discord-ipc-1` si el oficial tiene la 0, y el
+    programa le habla al primero que encuentra).
+  - Apariencia › Fuente: la lista de Windows, elegir una (Segoe UI,
+    Cascadia, una instalada por el usuario) y un nombre con caracteres
+    chinos o símbolos (los respaldos).

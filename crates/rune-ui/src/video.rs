@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-use rune_components::voice::{ids, Preview, Thumbnail, VideoControls, NO_VIDEO};
+use rune_components::voice::{ids, Preview, ScreenChoice, Thumbnail, VideoControls, NO_VIDEO};
 use rune_i18n::{t, tr};
 use rune_model::{CallPhase, ChannelId, ServerId, StreamPhase, StreamQuality, UserId};
 use rune_provider::{
@@ -58,6 +58,13 @@ pub struct Video {
     pub picker: bool,
     /// The shared screen goes without the applications' sound.
     pub silent: bool,
+    // RUNE's own screen picker (windows-medios).
+    /// The screens and windows the host listed for the picker, by id, name
+    /// and whether each is a window: only where the system has no picker of
+    /// its own (Windows); empty elsewhere.
+    pub sources: Vec<(String, String, bool)>,
+    /// The one of them chosen to share; the main screen until one is.
+    pub source: Option<String>,
 }
 
 /// One source: whether it is wanted, and what the host has of it.
@@ -223,7 +230,7 @@ pub(crate) fn thumbnail(
 
 /// Why the screen and camera cannot be had on this system, if they cannot.
 pub(crate) fn unsupported() -> Option<&'static str> {
-    (!cfg!(target_os = "linux")).then(|| t(NO_VIDEO))
+    (!cfg!(any(target_os = "linux", windows))).then(|| t(NO_VIDEO))
 }
 
 /// The account is in a call it can share in.
@@ -347,6 +354,29 @@ pub(crate) fn pick_screen_again(ui: &mut Ui) -> Vec<Intent> {
         .collect()
 }
 
+/// The host listed what RUNE's own picker offers: the choice stays if it
+/// is still there, else the first (the main screen) is chosen.
+pub fn sources_listed(ui: &mut Ui, listed: Vec<(String, String, bool)>) {
+    let kept = ui
+        .video
+        .source
+        .as_ref()
+        .is_some_and(|chosen| listed.iter().any(|(id, ..)| id == chosen));
+    if !kept {
+        ui.video.source = listed.first().map(|(id, ..)| id.clone());
+    }
+    ui.video.sources = listed;
+}
+
+/// A screen or a window chosen in RUNE's own picker, which stays open.
+pub(crate) fn choose_source(ui: &mut Ui, id: &str) -> Vec<Intent> {
+    if ui.video.sources.iter().any(|(listed, ..)| listed == id) {
+        ui.video.source = Some(id.to_owned());
+    }
+    ui.video.picker = true;
+    Vec::new()
+}
+
 /// «Con sonido» in the picker, which stays open.
 pub(crate) fn toggle_sound(ui: &mut Ui) -> Vec<Intent> {
     ui.video.silent = !ui.video.silent;
@@ -419,6 +449,17 @@ pub(crate) fn controls(ui: &Ui, store: &Store) -> VideoControls {
         picker: ui.video.picker.then_some(ui.video.quality),
         sound: !ui.video.silent,
         pick_again: ui.prefs.screen_restore.is_some(),
+        sources: ui
+            .video
+            .sources
+            .iter()
+            .map(|(id, name, window)| ScreenChoice {
+                id: id.clone(),
+                name: name.clone(),
+                window: *window,
+                chosen: ui.video.source.as_deref() == Some(id.as_str()),
+            })
+            .collect(),
     }
 }
 

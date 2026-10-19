@@ -5,8 +5,11 @@ use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
+use serde_json::{json, Value};
+
+use super::super::protocol::{CLOSE, FRAME, HANDSHAKE, MAX_FRAME, PING, PONG};
 use super::*;
-use crate::rich_presence::RichPresence;
+use crate::rich_presence::{Activity, RichPresence};
 
 struct Program(UnixStream);
 

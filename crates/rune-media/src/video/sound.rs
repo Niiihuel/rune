@@ -15,17 +15,31 @@
 //! diagnostic line ([`ScreenSound::heard`]): applications' names and
 //! roles only, never what they play. Dropping the [`ScreenSound`] stops
 //! the thread within a tick.
+//!
+//! On Windows (windows-medios) WASAPI's process loopback reads everything
+//! the computer plays except RUNE's own processes ([`windows`]): the same
+//! mix, encoder and handing on, without telling the applications apart.
 
+#[cfg(target_os = "linux")]
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
+#[cfg(target_os = "linux")]
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, Thread};
 use std::time::Duration;
 
+#[cfg(target_os = "linux")]
 use pipewire as pw;
+#[cfg(target_os = "linux")]
 use pw::spa;
 use rune_i18n::{es, t};
+
+// Windows (windows-medios).
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use self::windows::work;
 
 use super::{lock, Shared, VideoState};
 
@@ -103,12 +117,14 @@ pub struct Heard {
 
 /// Who plays a stream, as its PipeWire client says.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(windows, allow(dead_code))]
 pub(crate) struct Player {
     pid: Option<u32>,
     binary: String,
     name: String,
 }
 
+#[cfg_attr(windows, allow(dead_code))]
 impl Player {
     /// From a client's properties: the process it says it is, or the one
     /// its socket belongs to.
@@ -124,6 +140,7 @@ impl Player {
 
 /// Whether the stream with the properties `node`, played by `player`, goes
 /// in the screen's sound of the process `own`.
+#[cfg_attr(windows, allow(dead_code))]
 pub(crate) fn verdict(node: &dyn Fn(&str) -> Option<String>, player: &Player, own: u32) -> Verdict {
     if player.pid == Some(own) {
         return Verdict::Own;
@@ -178,6 +195,7 @@ pub fn summary(heard: &[Heard]) -> String {
 }
 
 /// A name for the log: printable, at most 40 characters.
+#[cfg_attr(windows, allow(dead_code))]
 fn shown(name: &str) -> String {
     let name: String = name.chars().filter(|c| !c.is_control()).take(40).collect();
     if name.is_empty() {
@@ -221,6 +239,7 @@ impl Mix {
         true
     }
 
+    #[cfg_attr(windows, allow(dead_code))]
     pub(crate) fn remove(&mut self, source: u32) {
         self.sources.remove(&source);
     }
@@ -306,13 +325,46 @@ impl Drop for ScreenSound {
     }
 }
 
+/// The Opus encoder of the screen's sound: music, at [`BITRATE`].
+fn encoder() -> Result<opus::Encoder, String> {
+    let mut encoder = opus::Encoder::new(48_000, opus::Channels::Stereo, opus::Application::Audio)
+        .map_err(|_| t(UNAVAILABLE).to_owned())?;
+    encoder
+        .set_bitrate(opus::Bitrate::Bits(BITRATE))
+        .map_err(|_| t(UNAVAILABLE).to_owned())?;
+    Ok(encoder)
+}
+
+/// Encode 20 ms of the mix and hand the packet to `send`: the sound runs
+/// from its first packet. No room in `send` drops it, as the network would.
+fn send_frame(
+    shared: &Shared,
+    encoder: &mut opus::Encoder,
+    frame: &[f32],
+    send: &mut impl FnMut(Vec<u8>) -> bool,
+) -> Result<(), String> {
+    let mut packet = [0u8; 1275];
+    let length = encoder
+        .encode_float(frame, &mut packet)
+        .map_err(|_| t(UNAVAILABLE).to_owned())?;
+    let mut state = lock(&shared.state);
+    if *state == VideoState::Starting {
+        *state = VideoState::Running;
+    }
+    drop(state);
+    let _ = send(packet[..length].to_vec());
+    Ok(())
+}
+
 /// One application's capture stream, kept while it plays.
+#[cfg(target_os = "linux")]
 struct Source {
     _stream: pw::stream::StreamRc,
     _listener: pw::stream::StreamListener<()>,
 }
 
 /// A playing stream whose client has not said who it is yet.
+#[cfg(target_os = "linux")]
 struct Waiting {
     client: u32,
     serial: String,
@@ -320,6 +372,7 @@ struct Waiting {
 }
 
 /// What the registry's callbacks share on the thread.
+#[cfg(target_os = "linux")]
 struct Registry {
     core: pw::core::CoreRc,
     mix: Rc<RefCell<Mix>>,
@@ -334,8 +387,10 @@ struct Registry {
 }
 
 /// The node properties a verdict and the diagnostic line read.
+#[cfg(target_os = "linux")]
 const NODE_KEYS: [&str; 4] = ["media.role", "media.class", "application.name", "node.name"];
 
+#[cfg(target_os = "linux")]
 impl Registry {
     /// Decide on the stream `id` now that its client said who plays it.
     fn decide(&self, id: u32, stream: Waiting, player: &Player) {
@@ -383,17 +438,14 @@ impl Registry {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn work(
     shared: &Arc<Shared>,
     heard: Arc<Mutex<Vec<(u32, Heard)>>>,
     send: impl FnMut(Vec<u8>) -> bool + 'static,
 ) -> Result<(), String> {
     let unavailable = |_| t(UNAVAILABLE).to_owned();
-    let mut encoder = opus::Encoder::new(48_000, opus::Channels::Stereo, opus::Application::Audio)
-        .map_err(|_| t(UNAVAILABLE).to_owned())?;
-    encoder
-        .set_bitrate(opus::Bitrate::Bits(BITRATE))
-        .map_err(|_| t(UNAVAILABLE).to_owned())?;
+    let encoder = encoder()?;
     pw::init();
     let mainloop = pw::main_loop::MainLoopRc::new(None).map_err(unavailable)?;
     let context = pw::context::ContextRc::new(&mainloop, None).map_err(unavailable)?;
@@ -495,23 +547,15 @@ fn work(
             let Some(frame) = mix.borrow_mut().frame() else {
                 return;
             };
-            let mut packet = [0u8; 1275];
-            match encoder.borrow_mut().encode_float(&frame, &mut packet) {
-                Ok(length) => {
-                    let mut state = lock(&shared.state);
-                    if *state == VideoState::Starting {
-                        *state = VideoState::Running;
-                    }
-                    drop(state);
-                    // No room: the network side is behind, as the network would drop it.
-                    let _ = (send.borrow_mut())(packet[..length].to_vec());
-                }
-                Err(_) => {
-                    failure
-                        .borrow_mut()
-                        .get_or_insert(t(UNAVAILABLE).to_owned());
-                    mainloop.quit();
-                }
+            let sent = send_frame(
+                &shared,
+                &mut encoder.borrow_mut(),
+                &frame,
+                &mut *send.borrow_mut(),
+            );
+            if let Err(reason) = sent {
+                failure.borrow_mut().get_or_insert(reason);
+                mainloop.quit();
             }
         }
     });
@@ -528,6 +572,7 @@ fn work(
 
 /// A capture stream of the application stream node `id` (`serial`), its
 /// samples into `mix`; `None` when PipeWire refuses it.
+#[cfg(target_os = "linux")]
 fn capture(
     core: &pw::core::CoreRc,
     serial: &str,

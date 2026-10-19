@@ -1,12 +1,97 @@
 # RUNE — `rune-media`: viabilidad del stack multimedia en Rust (documento de decisión)
 
-- **Estado:** captura, procesamiento, salida local (tono de prueba y escucharse) y referencia de eco implementados; Opus, jitter, mezcla y medios de llamada implementados y probados sólo con fixtures (sin llamada real); vista previa local de pantalla y cámara implementada en Linux; mirar la pantalla que comparte otra persona y las cámaras de la llamada, y compartir la pantalla propia y enviar la cámara, implementados con OpenH264 y probados sólo con fixtures; de la fase 5, el sonido de las aplicaciones al compartir (PipeWire, sin probar en vivo) y el volumen de cada transmisión; protocolo confirmado por REA y fases en [VIDEO.md](VIDEO.md)
+- **Estado:** captura, procesamiento, salida local (tono de prueba y escucharse) y referencia de eco implementados; Opus, jitter, mezcla y medios de llamada implementados y probados sólo con fixtures (sin llamada real); vista previa local de pantalla y cámara implementada en Linux y, sin probar en un Windows real, en Windows (2026-10-19); mirar la pantalla que comparte otra persona y las cámaras de la llamada, y compartir la pantalla propia y enviar la cámara, implementados con OpenH264 y probados sólo con fixtures; de la fase 5, el sonido de las aplicaciones al compartir (PipeWire, sin probar en vivo) y el volumen de cada transmisión; protocolo confirmado por REA y fases en [VIDEO.md](VIDEO.md)
 - **última verificación: 2026-10-17**
 - **Alcance:** audio local, Opus, transporte de voz, captura de pantalla y de cámara. Linux/NixOS/Wayland primero; Windows y macOS más adelante.
 - **Convención:** todo lo que no se pudo confirmar contra una fuente primaria o en esta máquina lleva la marca **(no verificado)**.
 - Las versiones, fechas y licencias de los crates salen de la API de crates.io consultada el 2026-10-14. El estado de los repositorios sale de la API de GitHub/GitLab del mismo día.
 
 ---
+
+## Implementado: pantalla, cámara y sonido de la pantalla en Windows (2026-10-19, rama `windows-medios`)
+
+`rune_media::video` compila en Linux y en Windows con la misma API
+(`Video::screen`, `share`, `camera`, `send_camera`, `frames`, `snapshot`,
+`take_frame`, `capture_stats`; `encode`, `decode`, `sound`), así que el
+host (`apps/desktop/src/video.rs`) y la interfaz no cambian de forma: en
+Windows sólo cambia de dónde salen los cuadros. **Nada se probó en un
+Windows real**; con Wine, cada fuente termina diciendo por qué no puede.
+
+- **Lo común.** Lo que PipeWire hacía con cada cuadro (contarlo, el ritmo
+  de `Pace`, convertir dentro del tamaño que se guarda, la vista previa a
+  15 por segundo mientras se manda) pasó a `Shared::deliver` con un
+  `Keeper` por lector; `pipewire.rs` y los lectores de Windows lo usan
+  igual. El decodificador de MJPEG (`jpeg_frame`) y su prueba pasaron a
+  `video.rs`. `Engine`/`HARDWARE` pasaron a `video/engine.rs`; en Windows
+  `gpu` es un módulo cuyos motores nunca arrancan, así que codifica y
+  decodifica OpenH264 (el mismo de Linux, compilado de la fuente) y Ajustes
+  lo dice en «Aceleración por hardware de H.264».
+- **Elegir qué compartir.** Windows no tiene portal: `video::sources()`
+  lista las pantallas (la principal primero, después de izquierda a
+  derecha, «Pantalla 2 · 1920×1080») y las ventanas de la barra de tareas
+  (visibles, sin dueño, ni de herramientas ni ocultas por DWM, con título,
+  nunca las de RUNE ni el escritorio; hasta 32) en un hilo, cada vez que se
+  abre el menú de calidad. El menú muestra «Pantallas», «Ventanas» y
+  «Calidad» (`vz:source:{id}`; ids `screen:\\.\DISPLAYn` y
+  `window:{hwnd}`); `rune_ui::video_sources_listed` guarda la elección
+  mientras siga en la lista y, si no, toma la principal. En Linux la lista
+  está vacía y el menú no cambia. Un id que no nombra una pantalla o una
+  ventana nunca comparte otra cosa: termina con «La ventana elegida ya no
+  está abierta». La vista previa sin llamada (sin proveedor que transmita)
+  toma la pantalla principal.
+- **Pantalla** (`video/windows/screen.rs`): Windows.Graphics.Capture
+  (Windows 10 1903 o posterior; antes lo dice) sobre un dispositivo
+  Direct3D 11 propio (la GPU o WARP), un `Direct3D11CaptureFramePool`
+  libre de hilos consultado cada 4 ms (Windows manda cuadros sólo cuando
+  algo cambia). Cada cuadro que el ritmo guarda se copia a una textura de
+  lectura del tamaño del contenido (una ventana achicada no arrastra su
+  búfer viejo), se mapea y entra como BGRA a `convert_within`; los demás se
+  sueltan sin copiarse. Con otro tamaño, el pool se rehace. Ventana cerrada
+  o pantalla desconectada (`Closed`): «La fuente dejó de estar
+  disponible». Una ventana minimizada no da cuadros: si empieza así y
+  sigue 15 s, «La fuente no envió imágenes». La línea de diagnóstico dice `BGRA d3d11`. Windows dibuja su
+  borde alrededor de lo que se captura (RUNE no lo saca). Sin respaldo con
+  DXGI Desktop Duplication: en un Windows anterior a 1903 compartir
+  pantalla dice que hace falta 1903.
+- **Cámara** (`video/windows/camera.rs`): Media Foundation lista las
+  cámaras por nombre (id: su enlace simbólico) y abre la elegida, o la
+  primera. De sus formatos nativos elige (`choose`) primero los que llegan
+  al ritmo pedido (29,97 cuenta como 30), después el tamaño más chico que
+  cubre lo que se guarda (o el más grande si ninguno), crudo antes que
+  MJPEG (NV12, YUY2, I420, MJPEG) y el ritmo más cercano: una cámara USB 2
+  con YUY2 720p a 10 fps y MJPEG 720p a 30 da MJPEG. Windows no convierte:
+  los planos se leen del búfer (bidimensional con su paso, o contiguo con
+  el paso del tipo) y se convierten acá como en Linux. La lectura es
+  asíncrona (`IMFSourceReaderCallback`): cada imagen entra a las colas en
+  el callback y el hilo pide la siguiente; así nota una cámara trabada
+  (5 s), el primer cuadro que no llega (15 s) y para sin esperarla (al
+  parar vacía la lectura en curso, a lo sumo 1 s, antes de cerrar Media
+  Foundation). Sin
+  permiso en Configuración › Privacidad y seguridad › Cámara, ocupada por
+  otro programa, desconectada, sin Media Foundation (ediciones N) o sin un
+  formato que RUNE lea (RGB): lo dice.
+- **Sonido de la pantalla** (`video/sound/windows.rs`): el loopback por
+  proceso de WASAPI (Windows 10 2004 o posterior) excluyendo el árbol de
+  procesos de RUNE, en PCM de 16 bits a 48 kHz, leído cada 10 ms y mezclado
+  y codificado cada 20 ms con el mismo `Mix` y el mismo Opus de Linux
+  (`encoder`, `send_frame`). No distingue aplicaciones como PipeWire: la
+  llamada de otro cliente de voz abierto se oiría. La línea de diagnóstico
+  dice «other applications» y «RUNE (own processes)». Si Windows no lo
+  tiene, se comparte sin sonido y la interfaz dice por qué.
+- **Pruebas** (con Wine, `cargo test --target x86_64-pc-windows-gnu -p
+  rune-media`): elección de formato, planos contiguos de NV12 e I420,
+  subtipos y motivos de la cámara; ids del selector, orden y nombres de las
+  pantallas, qué ventanas se ofrecen y la lista real de Wine; muestras de
+  16 bits; `deliver` y el MJPEG (también en Linux); OpenH264 codifica y
+  decodifica. Con `--ignored`, la pantalla, la cámara y el sonido de Wine
+  terminan con su motivo. Sin probar: un cuadro real de
+  Windows.Graphics.Capture, una cámara real y el loopback (Wine no los
+  tiene), el job de Windows de la CI y MSVC.
+- **Pendiente:** el codificador por hardware de Windows (los MFT H.264 de
+  Media Foundation: NVENC, Quick Sync, AMF) en el lugar de `gpu`; el
+  respaldo con DXGI Desktop Duplication; miniaturas en el selector; video
+  en mensajes (MP4 con OpenH264 sería directo; WebM y MKV necesitan otro
+  decodificador que GStreamer).
 
 ## Corregido: los micrófonos ya no incluyen las salidas (2026-10-19, rama `microfonos-sin-salidas`)
 

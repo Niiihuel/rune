@@ -5,7 +5,8 @@
 { pkgs ? import <nixpkgs> { }, withLogin ? false, withDocs ? false, withWindows ? false }:
 let
   # winit and wgpu dlopen the first four at run time; cpal links the next two;
-  # OpenH264, built from source in C++, links libstdc++.
+  # OpenH264, built from source in C++, links libstdc++; GStreamer's bindings
+  # link GLib in every build, not only the login's.
   # WebKit/GTK are only for the optional, separate login process.
   login = pkgs.lib.optionals withLogin (with pkgs; [
     gtk4 webkitgtk_6_0 glib-networking
@@ -32,7 +33,7 @@ let
   # Rust's standard library for that target links. Releases are built with
   # MSVC on Windows itself; this is a check from here, not a release.
   mingw = pkgs.pkgsCross.mingwW64;
-  runtime = pkgs.lib.makeLibraryPath ((with pkgs; [ wayland libxkbcommon vulkan-loader libGL alsa-lib pipewire stdenv.cc.cc.lib ]) ++ gst ++ login);
+  runtime = pkgs.lib.makeLibraryPath ((with pkgs; [ wayland libxkbcommon vulkan-loader libGL alsa-lib pipewire stdenv.cc.cc.lib glib ]) ++ gst ++ login);
 in
 pkgs.mkShell ({
   # dbus-daemon runs isolated FileChooser contract fixtures, never the session bus.

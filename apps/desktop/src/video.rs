@@ -16,10 +16,13 @@
 //! window of its own gets a viewport of the host's: limn's frame for it
 //! painted there, its pictures on a surface of their own.
 
-// Screen, camera and watched streams are Linux only for now (windows-base):
-// elsewhere this keeps its shape with nothing to show, and what only Linux
-// uses is left unused.
-#![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports, unused_mut))]
+// Screen, camera and watched streams are Linux's and Windows'
+// (windows-medios): elsewhere this keeps its shape with nothing to show,
+// and what only they use is left unused.
+#![cfg_attr(
+    not(any(target_os = "linux", windows)),
+    allow(dead_code, unused_imports, unused_mut)
+)]
 
 use std::collections::{HashMap, VecDeque};
 
@@ -35,13 +38,13 @@ use rune_provider::VoiceSupport;
 use rune_state::Store;
 use rune_ui::{Intent, Live, Ui};
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 use rune_media::video::encode::{Engine, HARDWARE};
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 use rune_media::video::{encode::EncodeStats, CaptureStats, Frame, Video as Source, VideoState};
 
 /// One source held for the interface.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 struct Held {
     source: Source,
     /// The account it was asked for: another one never inherits it.
@@ -68,14 +71,14 @@ const QUEUE: usize = 4;
 /// How often the shared screen's diagnostic line is written.
 const DIAG_EVERY: Duration = Duration::from_secs(5);
 /// What goes to the call, frames and kilobits a second, and who encodes it.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 type Going = ((u32, u32), &'static str);
 
 /// One source's units waiting for its decoder, and whether the next one
 /// must be a key frame.
 #[derive(Default)]
 struct Queue {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     units: VecDeque<rune_media::video::decode::Unit>,
     skip: bool,
 }
@@ -87,7 +90,7 @@ struct Router {
     queues: HashMap<(UserId, VideoKind), Weak<Mutex<Queue>>>,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 impl Router {
     /// Sort what the provider sent into the queues of the sources decoded.
     fn route(&mut self) {
@@ -123,7 +126,7 @@ impl Router {
 }
 
 /// Where a watched stream's pictures come from.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 enum Pictures {
     Decoded(rune_media::video::decode::Decoding),
     /// The simulated provider's: made up here, from when it started.
@@ -131,7 +134,7 @@ enum Pictures {
 }
 
 /// Someone's stream or camera, as held.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 struct Watched {
     owner: UserId,
     pictures: Pictures,
@@ -145,7 +148,7 @@ struct Watched {
     hardware: bool,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 impl Watched {
     /// From `router`, or made up while the provider is simulated; `None`
     /// when this provider carries no pictures.
@@ -225,35 +228,40 @@ impl Watched {
 
 #[derive(Default)]
 pub struct Video {
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     screen: Option<Held>,
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     camera: Option<Held>,
     /// The provider's end of watched streams and cameras, when it carries them.
     link: Option<Arc<Mutex<Router>>>,
     /// The streams watched, at most [`MAX_STREAMS`].
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     streams: Vec<Watched>,
     /// The others' cameras on the stage, at most [`MAX_CAMERAS`].
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     cameras: Vec<Watched>,
     /// The cameras the provider was told are on screen.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     told: Vec<UserId>,
     /// The window was made full screen for a stream shown alone.
     fullscreen: bool,
     /// The trees of the streams in windows of their own.
     windows: HashMap<UserId, UiTree>,
     /// The applications' sound, while it goes along with the shared screen.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     sound: Option<rune_media::video::sound::ScreenSound>,
     /// When the shared screen's last diagnostic line was written, and what
     /// its source and encoder had counted then.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     diag: Option<(Instant, CaptureStats, EncodeStats)>,
     /// The GPU's engines the account lets encode and decode video.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     engines: &'static [Engine],
+    // RUNE's own screen picker (windows-medios).
+    /// While the share's picker is open: what it offers, being listed off
+    /// this thread (`Some(Some)`), or listed already for this opening.
+    #[cfg(any(target_os = "linux", windows))]
+    sources: Option<Option<std::sync::mpsc::Receiver<Vec<rune_media::video::ScreenSource>>>>,
 }
 
 /// Pixels per point that fill `area` with a frame `width` pixels wide: the
@@ -292,27 +300,27 @@ impl Video {
 
     /// A source is held: the host polls its frames at the preview's rate.
     pub fn active(&self) -> bool {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         {
             self.screen.is_some()
                 || self.camera.is_some()
                 || !self.streams.is_empty()
                 || !self.cameras.is_empty()
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", windows)))]
         false
     }
 
     /// When to look for the next frame, while a source is held.
     pub fn next_poll(&self) -> Option<std::time::Duration> {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         {
             if !self.streams.is_empty() || !self.cameras.is_empty() {
                 return Some(STREAM_POLL);
             }
             self.active().then_some(rune_media::video::PREVIEW_INTERVAL)
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", windows)))]
         None
     }
 
@@ -337,8 +345,9 @@ impl Video {
             ui.video.cameras.len(),
             ui.video.streams.clone(),
             ui.video.watched.clone(),
+            ui.video.sources.clone(),
         );
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         {
             self.set_engines(if ui.prefs.video_hardware {
                 HARDWARE
@@ -349,13 +358,21 @@ impl Video {
             let account = store.me();
             let device = ui.video.device.clone();
             let sending = rune_ui::video_sending(ui, store);
+            self.step_sources(ctx, ui);
+            // What RUNE's own picker chose (Windows), or the portal's token
+            // of what its dialog chose last time (Linux).
+            let chosen = ui
+                .video
+                .source
+                .clone()
+                .or_else(|| ui.prefs.screen_restore.clone());
             // Captured at the quality to send from the dialog on: the stream
             // comes after, and must not ask for the source again.
             let screen = step_one(
                 ctx,
                 &mut self.screen,
                 screen.then_some(None),
-                ui.prefs.screen_restore.clone(),
+                chosen,
                 rune_ui::video_capture_quality(ui, store),
                 account,
                 SCREEN_SURFACE,
@@ -420,7 +437,7 @@ impl Video {
             let wanted = rune_ui::video_cameras(ui, store);
             ui.video.watched = self.step_cameras(ctx, &wanted, simulated(store), laid_out, now);
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", windows)))]
         {
             let _ = (ctx, &store, laid_out, now, parent);
             ui.video.screen.live = Live::Off;
@@ -435,14 +452,48 @@ impl Video {
                 ui.video.cameras.len(),
                 ui.video.streams.clone(),
                 ui.video.watched.clone(),
+                ui.video.sources.clone(),
             );
         (changed, intents)
+    }
+
+    /// While the share's picker is open, list what RUNE's own picker offers
+    /// (Windows has no portal; Linux lists nothing), off this thread, once
+    /// each time it opens.
+    #[cfg(any(target_os = "linux", windows))]
+    fn step_sources(&mut self, ctx: &egui::Context, ui: &mut Ui) {
+        if !ui.video.picker {
+            self.sources = None;
+            return;
+        }
+        let listing = self.sources.get_or_insert_with(|| {
+            let (sender, receiver) = std::sync::mpsc::channel();
+            let ctx = ctx.clone();
+            let spawned = std::thread::Builder::new()
+                .name("rune-screens".into())
+                .spawn(move || {
+                    let _ = sender.send(rune_media::video::sources());
+                    ctx.request_repaint();
+                });
+            spawned.is_ok().then_some(receiver)
+        });
+        let listed = listing
+            .as_ref()
+            .and_then(|receiver| receiver.try_recv().ok());
+        if let Some(listed) = listed {
+            *listing = None;
+            let listed = listed
+                .into_iter()
+                .map(|source| (source.id, source.name, source.window))
+                .collect();
+            rune_ui::video_sources_listed(ui, listed);
+        }
     }
 
     /// Let the GPU's `engines` encode and decode, at once: what is sent and
     /// watched starts again with them from a key frame, keeping its source
     /// and last picture.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn set_engines(&mut self, engines: &'static [Engine]) {
         if engines == self.engines {
             return;
@@ -477,7 +528,7 @@ impl Video {
     /// Encode the shared screen, or the camera, for the provider while it
     /// goes to the call at `sending`: what goes out and who encodes it, or
     /// why the encoder stopped.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn send(
         &mut self,
         kind: VideoKind,
@@ -574,7 +625,7 @@ impl Video {
     /// provider's `network` line, for the owner to send when a stream is
     /// not fluid; and the applications its sound mixes. Sizes, rates,
     /// counts and applications' names only.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn diagnose(&mut self, now: Instant) {
         let counted = self.screen.as_ref().and_then(|held| {
             let encoding = held.encoding.as_ref()?;
@@ -617,7 +668,7 @@ impl Video {
     /// Read the applications' sound into the provider while the interface
     /// wants it along with the shared screen; one that fails says why and
     /// the screen goes on without it.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn step_sound(&mut self, ui: &mut Ui, store: &Store, now: Instant) {
         let link = self
             .link
@@ -647,7 +698,7 @@ impl Video {
     /// Hold the cameras `wanted` (at most [`MAX_CAMERAS`]) and nobody else's,
     /// tell the provider which are on screen, and present their newest
     /// pictures: what each shows.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn step_cameras(
         &mut self,
         ctx: &egui::Context,
@@ -707,7 +758,7 @@ impl Video {
     /// Hold the streams the store says are watched (at most
     /// [`MAX_STREAMS`]), if they carry pictures here, and nobody else's;
     /// present their newest pictures: what each shows.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     fn step_streams(
         &mut self,
         ctx: &egui::Context,
@@ -775,7 +826,7 @@ impl Video {
                 limn_egui::attach_fonts(&mut tree, ctx);
                 tree
             });
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", windows))]
             let mut held = self.streams.iter_mut().find(|held| held.owner == owner);
             let viewport = egui::ViewportId::from_hash_of(("rune-stream", owner.0));
             let builder = egui::ViewportBuilder::default()
@@ -788,7 +839,7 @@ impl Video {
                 if let Some(view) = rune_ui::video_window(ui, store, owner, size) {
                     tree.set_root(view);
                     let laid_out = tree.layout(size);
-                    #[cfg(target_os = "linux")]
+                    #[cfg(any(target_os = "linux", windows))]
                     if let Some(held) = held.as_mut() {
                         if let Some(frame) = &held.last {
                             let id = ids::window_surface(owner.0);
@@ -807,7 +858,7 @@ impl Video {
 
     /// Let go of every source, as when the window closes.
     pub fn clear(&mut self) {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         {
             for (held, id) in [
                 (&mut self.screen, SCREEN_SURFACE),
@@ -837,7 +888,7 @@ fn simulated(store: &Store) -> bool {
 
 /// Decode `owner`'s video of `kind` on its own thread, from its queue in
 /// `router`; the queue goes with the thread.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn decoding(
     router: Arc<Mutex<Router>>,
     owner: UserId,
@@ -874,7 +925,7 @@ fn decoding(
 
 /// A frame of the simulated stream `elapsed` in: color bands drifting
 /// sideways and a white bar sweeping across, so it reads as moving video.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn simulated_frame(elapsed: Duration) -> Frame {
     let (width, height) = SIMULATED;
     let shift = (elapsed.as_millis() / 20) as u32;
@@ -908,7 +959,7 @@ fn simulated_frame(elapsed: Duration) -> Frame {
 
 /// Present `frame` on the surface `id` at the density its laid-out area
 /// asks for, unless already shown at it. Whether it is on the surface.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn present(
     ctx: &egui::Context,
     id: &str,
@@ -933,7 +984,7 @@ fn present(
 
 /// Hold the source `wanted` asks for (`Some(device)`), or none; present its
 /// newest frame. `Err` when it ended, with why unless RUNE stopped it.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 #[allow(clippy::type_complexity)]
 fn step_one(
     ctx: &egui::Context,
@@ -1002,7 +1053,7 @@ fn step_one(
 
 /// What the shared screen's source and encoder did between two counts,
 /// over `elapsed`: see [`Video::diagnose`].
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn video_line(
     before: &CaptureStats,
     capture: &CaptureStats,
@@ -1054,7 +1105,7 @@ fn video_line(
 /// Who encodes or decodes (`name` says it either way), for the diagnostic
 /// lines: the GPU's engine that failed before it, or why OpenH264 does it.
 /// `hardware` is whether the account lets the GPU do it.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 fn engine_note(
     name: fn(Engine) -> &'static str,
     engine: Engine,
@@ -1073,7 +1124,7 @@ fn engine_note(
 mod tests {
     use super::*;
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn the_share_line_says_what_the_source_and_encoder_did_each_second() {
         let before = CaptureStats {
@@ -1133,7 +1184,7 @@ mod tests {
         );
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn the_lines_say_who_encodes_and_why_openh264_does() {
         let note =
@@ -1163,7 +1214,7 @@ mod tests {
         assert_eq!(density(640, area(0.0)), 1.0);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn the_simulated_stream_moves_and_is_opaque() {
         let first = simulated_frame(Duration::ZERO);
@@ -1184,7 +1235,7 @@ mod tests {
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn units_reach_the_decoder_of_their_source_and_a_full_queue_waits_for_a_key_frame() {
         let (port, link) = rune_provider::video::video_link();
@@ -1243,7 +1294,7 @@ mod tests {
         assert!(router.queues.is_empty());
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn at_most_four_cameras_are_decoded_and_the_provider_is_told_which() {
         use rune_provider::video::VideoRequest::Wants;
@@ -1283,7 +1334,7 @@ mod tests {
         assert!(!video.active());
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     #[test]
     fn another_decoder_choice_restarts_what_is_watched_from_a_key_frame() {
         use rune_provider::video::VideoRequest::KeyFrame;

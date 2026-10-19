@@ -68,6 +68,8 @@ mod automod;
 mod updates;
 // Windows (windows-base).
 mod windows;
+// Windows' media and desktop (windows-medios).
+mod windows_media;
 
 /// Each file's entries, by the file's name.
 pub(crate) const ALL: &[(&str, Entries)] = &[
@@ -113,4 +115,5 @@ pub(crate) const ALL: &[(&str, Entries)] = &[
     ("automod", automod::ENTRIES),
     ("updates", updates::ENTRIES),
     ("windows", windows::ENTRIES),
+    ("windows_media", windows_media::ENTRIES),
 ];

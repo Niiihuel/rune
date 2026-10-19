@@ -217,6 +217,7 @@ fn work(
 
 /// An RGBA picture as a frame within [`STREAM_MAX`]; `None` if it is empty,
 /// larger than anything a stream sends or not all in `plane`.
+#[cfg_attr(windows, allow(dead_code))]
 pub(super) fn within(width: u32, height: u32, plane: Plane) -> Option<Frame> {
     if width == 0
         || height == 0

@@ -1,15 +1,19 @@
+#[cfg(target_os = "linux")]
 use std::os::unix::net::UnixStream;
+#[cfg(target_os = "linux")]
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
 use super::*;
 
+#[cfg(target_os = "linux")]
 const WATCHDOG: Duration = Duration::from_secs(5);
 
 fn plane(bytes: &[u8], stride: usize) -> Plane<'_> {
     Plane { bytes, stride }
 }
 
+#[cfg(target_os = "linux")]
 fn wait_for(video: &Video, done: impl Fn(&VideoSnapshot) -> bool) -> VideoSnapshot {
     let start = Instant::now();
     loop {
@@ -22,6 +26,7 @@ fn wait_for(video: &Video, done: impl Fn(&VideoSnapshot) -> bool) -> VideoSnapsh
     }
 }
 
+#[cfg(target_os = "linux")]
 fn wait_flag(flag: &AtomicBool) {
     let start = Instant::now();
     while !flag.load(Ordering::Acquire) {
@@ -108,6 +113,8 @@ fn the_queue_keeps_only_the_newest_frames() {
     assert_eq!(queue.dropped.load(Ordering::Relaxed), 4);
 }
 
+// The portal's sessions and PipeWire's remotes are Linux's.
+#[cfg(target_os = "linux")]
 #[test]
 fn a_denied_source_ends_with_the_reason_and_never_has_a_frame() {
     let video = Video::spawn(VideoKind::Camera, None, None, |_| {
@@ -124,6 +131,8 @@ fn a_denied_source_ends_with_the_reason_and_never_has_a_frame() {
     assert_eq!(snapshot.frames, 0);
 }
 
+// The portal's sessions and PipeWire's remotes are Linux's.
+#[cfg(target_os = "linux")]
 #[test]
 fn dropping_while_the_system_asks_cancels_the_request() {
     let released = Arc::new(AtomicBool::new(false));
@@ -141,11 +150,13 @@ fn dropping_while_the_system_asks_cancels_the_request() {
 }
 
 /// A session that the test ends, and that says when it was released.
+#[cfg(target_os = "linux")]
 struct FakeSession {
     ended: Option<tokio::sync::oneshot::Receiver<()>>,
     closed: Arc<AtomicBool>,
 }
 
+#[cfg(target_os = "linux")]
 impl Session for FakeSession {
     fn ended(&mut self) -> Pin<Box<dyn Future<Output = String> + Send + '_>> {
         Box::pin(async move {
@@ -162,6 +173,7 @@ impl Session for FakeSession {
 }
 
 /// A source whose remote nobody answers: PipeWire waits on it, with no frame.
+#[cfg(target_os = "linux")]
 fn granted(
     ended: tokio::sync::oneshot::Receiver<()>,
     closed: Arc<AtomicBool>,
@@ -183,6 +195,8 @@ fn granted(
     (video, peer)
 }
 
+// The portal's sessions and PipeWire's remotes are Linux's.
+#[cfg(target_os = "linux")]
 #[test]
 fn the_system_ending_the_session_ends_the_preview_and_releases_it() {
     let closed = Arc::new(AtomicBool::new(false));
@@ -201,6 +215,8 @@ fn the_system_ending_the_session_ends_the_preview_and_releases_it() {
     wait_flag(&closed);
 }
 
+// The portal's sessions and PipeWire's remotes are Linux's.
+#[cfg(target_os = "linux")]
 #[test]
 fn stopping_a_granted_source_releases_its_session() {
     let closed = Arc::new(AtomicBool::new(false));
@@ -211,6 +227,8 @@ fn stopping_a_granted_source_releases_its_session() {
     wait_flag(&closed);
 }
 
+// The portal's sessions and PipeWire's remotes are Linux's.
+#[cfg(target_os = "linux")]
 #[test]
 fn a_remote_that_hangs_up_ends_the_preview_and_releases_the_session() {
     let closed = Arc::new(AtomicBool::new(false));
@@ -286,6 +304,90 @@ fn the_pace_keeps_a_jittery_source_at_its_rate_and_halves_one_twice_as_fast() {
     assert!(pace.keep(resumed, interval));
     assert!(!pace.keep(resumed + Duration::from_millis(5), interval));
     assert!(pace.keep(resumed + interval, interval));
+}
+
+/// A synthetic camera picture: FFmpeg's test pattern, 64×48, 4:2:2 as
+/// USB cameras send it, with JPEG's standard Huffman tables.
+const CAMERA: &[u8] = include_bytes!("../../fixtures/camera.jpg");
+
+/// `jpeg` without its Huffman tables, as many cameras send it.
+fn without_tables(jpeg: &[u8]) -> Vec<u8> {
+    let mut out = jpeg[..2].to_vec();
+    let mut at = 2;
+    loop {
+        let marker = jpeg[at + 1];
+        if marker == 0xDA {
+            out.extend_from_slice(&jpeg[at..]);
+            return out;
+        }
+        let length = usize::from(u16::from_be_bytes([jpeg[at + 2], jpeg[at + 3]]));
+        if marker != 0xC4 {
+            out.extend_from_slice(&jpeg[at..at + 2 + length]);
+        }
+        at += 2 + length;
+    }
+}
+
+#[test]
+fn a_camera_s_mjpeg_decodes_with_or_without_its_tables() {
+    let max = PREVIEW_MAX;
+    let frame = jpeg_frame(CAMERA, max).unwrap();
+    assert_eq!((frame.width, frame.height), (64, 48));
+    assert!(frame.rgba.chunks(4).all(|pixel| pixel[3] == 255));
+    // Not one flat color: the pattern is there.
+    assert!(frame.rgba.chunks(4).any(|pixel| pixel != &frame.rgba[..4]));
+    let bare = without_tables(CAMERA);
+    assert!(bare.len() < CAMERA.len(), "the tables were taken out");
+    assert_eq!(jpeg_frame(&bare, max), Some(frame));
+    let small = jpeg_frame(CAMERA, (32, 32)).unwrap();
+    assert_eq!((small.width, small.height), (32, 24));
+    assert!(jpeg_frame(b"not a picture", max).is_none());
+    assert!(jpeg_frame(&[0xFF, 0xD8], max).is_none());
+}
+
+#[test]
+fn a_delivered_frame_is_kept_at_the_pace_and_previewed_while_sent() {
+    let frame = |max: (u32, u32)| {
+        Some(Frame {
+            width: max.0.min(2),
+            height: max.1.min(2),
+            rgba: vec![9; 16],
+        })
+    };
+    // A preview: kept frames go to the queue only.
+    let shared = Shared::new();
+    let mut keeper = Keeper::default();
+    let start = Instant::now();
+    shared.deliver(&mut keeper, start, frame);
+    shared.deliver(&mut keeper, start + Duration::from_millis(5), frame);
+    let stats = *lock(&shared.stats);
+    assert_eq!(
+        (stats.delivered, stats.kept),
+        (2, 1),
+        "the second came too soon"
+    );
+    assert!(shared.queue.newest().is_some() && lock(&shared.raw).is_none());
+    // Sending at 30 a second: each kept frame waits for the encoder, the
+    // preview gets one at most every 66 ms.
+    let shared = Shared {
+        sending: Some(((1280, 720), Duration::from_secs(1) / 30)),
+        ..Shared::new()
+    };
+    let mut keeper = Keeper::default();
+    for n in 0..4 {
+        shared.deliver(&mut keeper, start + Duration::from_secs(1) / 30 * n, frame);
+    }
+    assert_eq!(lock(&shared.stats).kept, 4);
+    assert!(lock(&shared.raw).is_some());
+    assert_eq!(
+        shared.queue.queued.load(Ordering::Relaxed),
+        2,
+        "at 0 and 67 ms"
+    );
+    // A frame that cannot be read is counted, never kept.
+    shared.deliver(&mut keeper, start + Duration::from_secs(2), |_| None);
+    assert_eq!(lock(&shared.stats).delivered, 5);
+    assert_eq!(lock(&shared.stats).kept, 4);
 }
 
 /// What scaling a laptop's screen to what is sent costs, per frame. In
