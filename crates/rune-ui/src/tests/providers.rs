@@ -127,3 +127,16 @@ fn the_connection_settings_offer_the_providers_and_the_column_says_the_origin() 
     host.click("provider:use=personal");
     assert_eq!(host.ui.providers.confirming, Some("personal"));
 }
+
+#[test]
+fn only_simulated_data_names_its_origin_under_the_channels() {
+    let mut host = Host::new();
+    let simulated = host.painted().join(" ");
+    let origin = crate::providers::origin_of(&host.store);
+    assert!(origin
+        .as_deref()
+        .is_some_and(|origin| simulated.contains(origin)));
+    host.store.provider.as_mut().unwrap().kind = ProviderKind::Unofficial;
+    assert_eq!(crate::providers::origin_of(&host.store), None);
+    assert!(!host.painted().join(" ").contains("no oficial"));
+}

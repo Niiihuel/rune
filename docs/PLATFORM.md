@@ -405,7 +405,7 @@ terminal ni al archivo.
 
 Primera etapa del port, pedida por el dueño («esto lo quiero para Windows,
 no sólo Linux»). RUNE compila y enlaza para Windows x86_64, y sus
-pruebas pasan con Wine salvo dos (abajo); los servicios del sistema tienen su versión de Windows detrás de la
+pruebas pasan con Wine salvo una (abajo); los servicios del sistema tienen su versión de Windows detrás de la
 misma API de `rune-platform` que usa Linux, así que nada por encima cambió
 salvo lo que la interfaz dice distinto en Windows. **Nada se probó todavía
 en un Windows real** (ver abajo qué se verificó y cómo). Serein corre en
@@ -417,11 +417,19 @@ Windows; se miró cómo resuelve cada servicio, sin copiar código.
   `--workspace --all-targets --all-features -D warnings` limpio (también
   `rune-update`), y `cargo build -p rune-desktop` da un `rune.exe`.
 - **Pruebas con Wine** (`cargo test --target x86_64-pc-windows-gnu
-  --workspace`): pasan todas menos dos, que dependen de Wine o de la carga
-  de la máquina: una medición de tiempo de `rune-components`
-  (`a_long_run_costs_its_length_not_more`, 2,1 s contra 0,5 s) y un cierre
-  del Gateway de prueba que Wine ve como reset de la conexión
-  (`gateway_other_terminal_close_stays_offline_without_automatic_login`).
+  --workspace`): pasan todas menos una medición de tiempo de
+  `rune-components` (`a_long_run_costs_its_length_not_more`, 2,1 s contra
+  0,5 s), que depende de Wine o de la carga de la máquina. Los cierres del
+  Gateway de prueba (4004 y 4014) fallaban a veces con Wine y en la CI de
+  Windows (rama `ci-windows-gateway`): el servidor de prueba mandaba el
+  cierre y soltaba la conexión con frames del cliente sin leer, eso la
+  resetea, y Windows descarta lo que el cliente no leyó todavía, el cierre
+  incluido. Ahora completa el cierre (lee hasta el del cliente, con un
+  plazo de 1 s): con Wine, 0 fallas en 60 vueltas contra 11 en 30. El
+  cliente real no puede recuperar ese código (el sistema ya lo tiró), pero
+  no lo pierde: el reset es una caída, reconecta, y una sesión rechazada
+  vuelve a cerrarse con 4004, que sí lo detiene (prueba
+  `a_reset_that_swallowed_a_terminal_close_retries_once_and_stops_on_the_next`).
   Con `--ignored`: la clave `Run` va y vuelve; el Administrador de
   credenciales guarda, lista, lee y borra, pero Wine no guarda los
   atributos (nombre y avatar); la tubería pasa los enlaces, pero Wine deja

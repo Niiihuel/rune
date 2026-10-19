@@ -311,7 +311,7 @@ fn column(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Element {
     .flex(1.0);
     let list = region(list, CHANNELS, t("Canales"));
     let mut column = vec![header, separator(look), list];
-    // Where the data comes from, whatever the provider.
+    // Simulated data says so at the foot of the column.
     if let Some(origin) = crate::providers::origin_of(store) {
         column.push(chrome::provider_note(&origin, look));
     }

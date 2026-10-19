@@ -4539,7 +4539,8 @@ Nada se probó en un Windows real.
 Verificado (detalle en PLATFORM.md): Linux, fmt, clippy y tests de todo
 el workspace en verde; Windows gnu desde NixOS, clippy limpio, `rune.exe`
 enlaza y abre con Wine; tests con Wine, todos menos una medición de tiempo
-y un cierre del Gateway de prueba. Wine encontró dos errores, corregidos:
+y un cierre del Gateway de prueba (corregido después, rama
+`ci-windows-gateway`). Wine encontró dos errores, corregidos:
 la tubería perdía a un cliente que escribía y se iba antes de la espera, y
 «Guardar como» no notaba otro archivo puesto en el nombre. Sin ejecutar:
 MSVC, la CI y un Windows real.
@@ -4826,3 +4827,20 @@ Pendiente y por qué:
   oficial) se oiría en el sonido de la pantalla.
 - Video en mensajes en Windows (no estaba en este pedido): MP4 con OpenH264
   es directo; WebM y MKV necesitan otro decodificador.
+
+## CI de Windows: el cierre del Gateway de prueba (2026-10-19, rama `ci-windows-gateway`)
+
+- [x] `gateway_4004_discards_pending_work_and_allows_only_a_new_explicit_login`
+  fallaba en el job de Windows de la CI (y la del 4014 con Wine, 11 de 30
+  vueltas): el Gateway de prueba mandaba el cierre y soltaba la conexión
+  con frames del cliente sin leer, eso la resetea, y Windows descarta el
+  cierre que el cliente no leyó todavía. El servidor de prueba ahora
+  completa el cierre (lee hasta el del cliente o 1 s); con Wine, 0 fallas
+  en 60 vueltas. Los otros servidores de prueba del Gateway y de voz
+  guardan el socket hasta que el cliente terminó, salvo
+  `transient_failures_exhaust_a_finite_reconnect_budget`, donde un reset y
+  su 4000 dan el mismo reintento: quedó así.
+- [x] El cliente real: no se puede leer lo que el sistema ya tiró, pero el
+  código no se pierde; el reset es una caída, reconecta y una sesión
+  rechazada vuelve a cerrarse con 4004, que la detiene. Prueba nueva en
+  `gateway_tests.rs`. [PLATFORM.md](../docs/PLATFORM.md#qué-se-verificó-y-cómo).

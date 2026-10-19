@@ -126,16 +126,18 @@ impl Harness {
                 tokio::select! {
                     update = updates.recv() => {
                         let Some((kind,data)) = update else { break; };
-                        if kind == "TEST_CLOSE" {
+                        if kind == "TEST_CLOSE" || kind == "TEST_DISCONNECT" {
                             use tokio_tungstenite::tungstenite::protocol::{CloseFrame, frame::coding::CloseCode};
-                            let code=u16::try_from(data.as_u64().unwrap()).unwrap();
-                            let _ = socket.close(Some(CloseFrame {
-                                code:CloseCode::from(code), reason:"SYNTHETIC_PRIVATE_CLOSE_REASON".into(),
-                            })).await;
-                            break;
-                        }
-                        if kind == "TEST_DISCONNECT" {
-                            let _ = socket.close(None).await;
+                            let frame = data.as_u64().map(|code| CloseFrame {
+                                code:CloseCode::from(u16::try_from(code).unwrap()), reason:"SYNTHETIC_PRIVATE_CLOSE_REASON".into(),
+                            });
+                            let _ = socket.close(frame).await;
+                            // Complete the closing handshake, as a server does: dropped with
+                            // the client's frames unread, the socket resets the connection,
+                            // and Windows discards the close frame the client had not read.
+                            let _ = tokio::time::timeout(Duration::from_secs(1), async {
+                                while let Some(Ok(_)) = socket.next().await {}
+                            }).await;
                             break;
                         }
                         sequence += 1;

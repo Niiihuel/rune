@@ -654,6 +654,42 @@ async fn terminal_close_codes_remain_distinct_without_remote_reason_or_reconnect
     assert_eq!(LoginError::new("Local error").to_string(), "Local error");
 }
 
+/// Windows discards what was not read yet when a reset arrives, close frame
+/// included, so no read can recover the code. It costs one reconnect: a
+/// rejected session is rejected again, and that close stops for good.
+#[tokio::test]
+async fn a_reset_that_swallowed_a_terminal_close_retries_once_and_stops_on_the_next() {
+    let (listener, gateway) = fixture().await;
+    let (tx, mut rx) = mpsc::channel(32);
+    let task = tokio::spawn(async move { gateway.run(secret(), tx).await });
+    let mut first = peer(&listener, 1000).await;
+    assert_eq!(read(&mut first).await["op"], 2);
+    write(&mut first, ready()).await;
+    assert!(matches!(event(&mut rx).await, GatewayEvent::Ready(_)));
+    first.get_ref().set_zero_linger().unwrap();
+    drop(first);
+    assert!(matches!(
+        event(&mut rx).await,
+        GatewayEvent::Reconnecting { attempt: 1, .. }
+    ));
+    let mut second = peer(&listener, 1000).await;
+    assert_eq!(read(&mut second).await["op"], 6);
+    second
+        .send(Message::Close(Some(CloseFrame {
+            code: CloseCode::from(4004),
+            reason: "".into(),
+        })))
+        .await
+        .unwrap();
+    let error = timeout(Duration::from_secs(2), task)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap_err();
+    assert_eq!(error.gateway_close_code(), Some(4004));
+    assert!(rx.recv().await.is_none());
+}
+
 #[test]
 fn member_list_frames_wait_for_room_in_their_own_minute_budget() {
     let start = Instant::now();

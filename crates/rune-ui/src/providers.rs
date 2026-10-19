@@ -200,6 +200,14 @@ pub(crate) fn choosable(ui: &Ui) -> bool {
 }
 
 /// The origin line of the store's provider, if any.
+/// The foot of the channel column: only simulated data says where it comes
+/// from (AGENTS.md); a real account's column ends at its channels (the
+/// owner's choice, 2026-10-19). The sign-in page and Settings › Connection
+/// still name every provider's origin.
 pub(crate) fn origin_of(store: &Store) -> Option<String> {
-    store.provider.as_ref().map(origin)
+    store
+        .provider
+        .as_ref()
+        .filter(|info| info.kind == ProviderKind::Simulated)
+        .map(origin)
 }
