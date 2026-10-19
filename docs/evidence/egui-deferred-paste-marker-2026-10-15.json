@@ -1,0 +1,378 @@
+{
+  "schema": 1,
+  "date": "2026-10-15",
+  "status": "verified-local-sdk3-committed-no-owner-no-rune-integration",
+  "scope": "SDK#3: process-local deferred paste identity, ordered request marker, backend request responses and shared State helper in three existing paste callsites. CPU/API and feature-matrix verification only.",
+  "source": {
+    "upstream": "https://github.com/emilk/egui",
+    "base_tag": "0.36.2",
+    "base_commit": "49682f8baa058bf49e011035cfbd6e825f88a5ef",
+    "parent_local_fixture_commit": "0bff2dd4ada2a32b23f611488f3c7e7b99561d32",
+    "local_commit": "c152f4b7692da7496a74d524755bb32f74db6805",
+    "worktree": "/home/nihuel/projects/personal/egui-clipboard-hook",
+    "files": [
+      {
+        "path": "crates/egui/src/data/input/event.rs",
+        "bytes": 12122,
+        "sha256": "a1a0ff3687d33e83199449f37d13f16e3956cd9d539b607df72138b3752d2094",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-egui-src-data-input-event.rs"
+      },
+      {
+        "path": "crates/egui/src/data/input/mod.rs",
+        "bytes": 836,
+        "sha256": "2b1517dd2aef41948b59856ac08d17210c9251cb9859cdac555c662fc0eadf6a",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-egui-src-data-input-mod.rs"
+      },
+      {
+        "path": "crates/egui-winit/src/clipboard.rs",
+        "bytes": 9907,
+        "sha256": "87c233289273b4d9500b26617f880135c1ba6c399997d0cc9f8e06c56e521ef0",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-egui-winit-src-clipboard.rs"
+      },
+      {
+        "path": "crates/egui-winit/src/lib.rs",
+        "bytes": 111982,
+        "sha256": "e43a0bc09b11c65bdfeda60bf54fd903fc3fc5c89d8c34e8f72d793695cdf3d2",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-egui-winit-src-lib.rs"
+      },
+      {
+        "path": "crates/eframe/src/native/wgpu_integration.rs",
+        "bytes": 52803,
+        "sha256": "843a4cd9f432c7afcb8a7ad97c06bf97b9629397e3e7499247ed6f6342e23706",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-eframe-src-native-wgpu_integration.rs"
+      },
+      {
+        "path": "crates/eframe/src/native/glow_integration.rs",
+        "bytes": 69725,
+        "sha256": "a8edf64bcc1ece815d1917a421437e0b85cf62923b677b8259cfbddb1e796c65",
+        "retained_snapshot": "/tmp/egui-paste-request-20261015-rx5m_asa/candidate-crates-eframe-src-native-glow_integration.rs"
+      }
+    ],
+    "commit_and_snapshots_verified": true,
+    "verification_method": "Six current sources and their six retained snapshots matched final sizes/SHA256; git diff --exit-code against the local commit for those files returned0 and the parent commit was checked.",
+    "remote_push": false,
+    "pull_request": null,
+    "rune_pin_changed": false
+  },
+  "retained_evidence": {
+    "metadata": {
+      "path": "/tmp/egui-paste-request-20261015-rx5m_asa/sdk3-final-checks.json",
+      "bytes": 11055,
+      "sha256": "70af18e6b573787fc074708eb0789aaa9592858a607f275e3fcd65a079db8e29"
+    },
+    "manifest": {
+      "path": "/tmp/egui-paste-request-20261015-rx5m_asa/sdk3-digests.json",
+      "bytes": 4779,
+      "sha256": "6e21e229da60f6d606715c9f9f296b3db78a7efed801dc55a35300046ebbcb32"
+    },
+    "manifest_entries_verified": 23,
+    "verification_method": "All23 manifest entries were reread and matched byte lengths and SHA256. No Cargo, GUI or SDK edits were performed by this documentation task."
+  },
+  "implemented": [
+    "Opaque process-local PasteRequestToken wraps private Unit UserData; fresh constructor, empty Default/is_empty, Clone/Eq/Hash/Debug; serde discards identity and replay remains inert.",
+    "Event::PasteRequested carries ordered reservation identity without content or authority to read; ordinary egui widgets do not insert it.",
+    "ClipboardBackend::request_paste defaults to synchronous get; Clipboard delegates exactly to custom backend, with no fallback for unavailable/rejected/deferred results.",
+    "State::request_paste preserves CRLF-only normalization and empty filtering for Immediate, emits only a nonempty Deferred marker, rejects empty tokens and Rejected without getter/fallback.",
+    "CtrlV and WGPU/Glow ActionRequested::Paste now use the same State helper; all three already normalized CRLF/filtering, so this refactor preserves immediate behavior. Legacy synchronous clipboard_text/get remain available."
+  ],
+  "verification": {
+    "authority": "Root-run local RED/GREEN, full feature matrix and strict checks retained under /tmp; this documentation task verified source/record hashes only.",
+    "api_boundary_red": {
+      "record": {
+        "path": "/tmp/egui-paste-request-20261015-rx5m_asa/api-red-checks.json",
+        "bytes": 1370,
+        "sha256": "0d9a6e488c6e28b72743d9a58c125c8ec9e822f45f56a4a0d78bf37b98f2532e"
+      },
+      "result": {
+        "status": "api-boundary-red-confirmed-no-production-implementation",
+        "authority": "Root-run Cargo commands after tests-only append and owned rustfmt; source snapshots retained separately",
+        "checks": [
+          {
+            "package": "egui",
+            "command": "cargo test -p egui --features persistence --lib paste_request_tests --locked --offline",
+            "session": 72458,
+            "chunk": "8ae96f",
+            "exit_code": 101,
+            "errors": 5,
+            "warnings": 0,
+            "recall": "2538e1b18e0f",
+            "tests_not_executed": 3,
+            "reason": "PasteRequestToken import and PasteRequested Event variant do not exist yet"
+          },
+          {
+            "package": "egui-winit",
+            "command": "cargo test -p egui-winit --no-default-features --features x11 --lib clipboard_paste_tests --locked --offline",
+            "session": 96598,
+            "chunk": "a84687",
+            "exit_code": 101,
+            "errors": 10,
+            "warnings": 0,
+            "recall": "06037ba9785b",
+            "tests_not_executed": 6,
+            "reason": "Token, ClipboardPaste, Backend/Clipboard/State request_paste and Event variant do not exist yet"
+          }
+        ],
+        "interpretation": "New API contract RED, not an inherited runtime bug and not evidence of execution of the nine test bodies. Both existing renderer ActionRequested Paste branches already match CtrlV CRLF normalization/empty filtering; shared helper will preserve all three."
+      },
+      "interpretation": "New API contract compile failures, not inherited runtime bugs; nine test bodies had not executed at RED."
+    },
+    "focused_green": [
+      {
+        "package": "egui",
+        "tests": 3,
+        "filtered": 57,
+        "session": 99606,
+        "chunk": "044d5d",
+        "exit_code": 0
+      },
+      {
+        "package": "egui-winit-x11",
+        "tests": 6,
+        "filtered": 5,
+        "session": 24176,
+        "chunk": "d2d791",
+        "exit_code": 0
+      }
+    ],
+    "full_verification": {
+      "profile": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "checks": [
+        {
+          "label": "egui-persistence-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "egui",
+            "--features",
+            "persistence",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 0.36146596799517283,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/egui-persistence-full.log",
+          "summary": [
+            "cargo test: 60 passed (1 suite, 0.16s)"
+          ]
+        },
+        {
+          "label": "winit-x11-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "egui-winit",
+            "--no-default-features",
+            "--features",
+            "x11",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 0.1734419659987907,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/winit-x11-full.log",
+          "summary": [
+            "cargo test: 11 passed (1 suite, 0.00s)"
+          ]
+        },
+        {
+          "label": "winit-default-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "egui-winit",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 23.8369144610042,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/winit-default-full.log",
+          "summary": [
+            "cargo test: 9 passed (1 suite, 0.00s)"
+          ]
+        },
+        {
+          "label": "winit-wayland-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "egui-winit",
+            "--no-default-features",
+            "--features",
+            "wayland",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 13.697205945005408,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/winit-wayland-full.log",
+          "summary": [
+            "cargo test: 11 passed (1 suite, 0.00s)"
+          ]
+        },
+        {
+          "label": "eframe-glow-x11-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "eframe",
+            "--no-default-features",
+            "--features",
+            "glow,x11",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 11.561282943999686,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/eframe-glow-x11-full.log",
+          "summary": [
+            "cargo test: 9 passed (1 suite, 0.00s)"
+          ]
+        },
+        {
+          "label": "eframe-default-wgpu-full",
+          "command": [
+            "rtk",
+            "cargo",
+            "test",
+            "-p",
+            "eframe",
+            "--lib",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 35.43558943000244,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/eframe-default-wgpu-full.log",
+          "summary": [
+            "cargo test: 9 passed (1 suite, 0.00s)"
+          ]
+        },
+        {
+          "label": "strict-rustdoc",
+          "command": [
+            "rtk",
+            "cargo",
+            "doc",
+            "-p",
+            "egui",
+            "-p",
+            "egui-winit",
+            "-p",
+            "eframe",
+            "--no-deps",
+            "--all-features",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 6.462390713997593,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/strict-rustdoc.log",
+          "summary": [
+            "    Finished `dev` profile [unoptimized] target(s) in 6.40s"
+          ]
+        },
+        {
+          "label": "owned-format",
+          "command": [
+            "rtk",
+            "rustfmt",
+            "--edition",
+            "2024",
+            "--config",
+            "skip_children=true",
+            "--check",
+            "crates/egui/src/data/input/event.rs",
+            "crates/egui/src/data/input/mod.rs",
+            "crates/egui-winit/src/clipboard.rs",
+            "crates/egui-winit/src/lib.rs",
+            "crates/eframe/src/native/wgpu_integration.rs",
+            "crates/eframe/src/native/glow_integration.rs"
+          ],
+          "exit_code": 0,
+          "seconds": 0.10000137399765663,
+          "output": "/tmp/egui-paste-request-20261015-rx5m_asa/owned-format.log",
+          "summary": []
+        }
+      ]
+    },
+    "strict_clippy": {
+      "command": "cargo clippy -p egui -p egui-winit -p eframe --all-targets --all-features --locked --offline -- -D warnings",
+      "session": 31661,
+      "chunk": "81f35e",
+      "exit_code": 0,
+      "issues": 0
+    },
+    "verification_session": {
+      "session": 83393,
+      "chunks": [
+        "9b5c63",
+        "a01b26",
+        "99ba7a"
+      ],
+      "exit_code": 0
+    },
+    "matrix_scope": "egui60 with persistence includes3 new token/event tests. winit11/9/11 are feature configurations, each includes same6 new dispatch tests; not unique additive counts. eframe9 Glow+x11 and9 defaultWGPU preserve existing factory tests. None is added to RUNE1120.",
+    "tests_preserved_byte_identical_to_red": true,
+    "system_clipboard_OS_bodies_cfg_and_helpers_preserved": true,
+    "independent_review": "cache_design_review: zero material blockers on contract, nine RED tests, token/serde/dispatch and all three callsite wiring. Final owned rustfmt only rewrapped State event push."
+  },
+  "compatibility": [
+    "Adding Event::PasteRequested requires external exhaustive matches to handle it.",
+    "Existing backend implementors inherit synchronous request_paste; it does not make arbitrary get calls asynchronous.",
+    "Creating or cloning a token grants no I/O permission; the owner must reserve bounded capacity and validate endpoint/State lifetime/TTL/one-time ACK. No owner exists in this increment."
+  ],
+  "cache_regeneration": {
+    "record": {
+      "path": "/tmp/egui-paste-request-20261015-rx5m_asa/own-build-cache-regeneration.json",
+      "bytes": 1119,
+      "sha256": "442618e1c4b24512b9c9616ad954606c0cb9d99ead1aab1fc0b63297b1a977be"
+    },
+    "note": "To reclaim disk only root-owned SDK generated deps/build/fingerprint/incremental cache was removed while Cargo/GUI idle. Subsequent dev/test debug info is0, incremental0; debug assertions/test semantics were not disabled. Native tested binary and compressed archive retained. See own-build-cache-regeneration.json."
+  },
+  "remaining": [
+    "limn opaque paste target with focus/selection/document/tree-lifetime invalidation including ABA; final target application validated atomically with edit.",
+    "limn-egui ordered native source metadata bridge; RUNE host navigation currently prepasses whole batch and pending Focus applies after batch, both must be corrected before ACK.",
+    "Shared Wayland clipboard/DnD owner with reservation/ACK, endpoint/state lifetimes, bounded text transfer and preserved Selection/Primary/outgoing images.",
+    "RUNE scope invalidation/completion integration, native compositor/real clipboard QA, SDK publication and approved dependency pins."
+  ],
+  "consumer_design_not_implemented": [
+    "limn-egui must preserve ordered native source metadata so RUNE host keyboard handling occurs at the raw event position, not as a whole-batch prepass.",
+    "Pending Intent::Focus and layout must be resolved before target capture and ACK. Closing/unresolved focus/no fresh layout must produce zero ACK/read.",
+    "Opaque limn target needs tree/focus/selection/document lifetime invalidation including shared TextBuffer revisions and ABA; RUNE domain epochs remain separate.",
+    "ACK/completion belong to the same application-owned clipboard owner; no SDK ACK/target/poll is implemented. Embedded UI uses the actual parent endpoint.",
+    "Text paste gates validate current editable target and text policy, not SEND/ATTACH permissions or automatic file/send actions."
+  ],
+  "scope_limits": [
+    "CPU/API tests only for SDK3; no clipboard data I/O, Wayland shared owner, ACK/completion, limn target or RUNE consumer implemented.",
+    "Native WGPU/Glow factory proof belongs to separate SDK2 fixture record, not proof of deferred paste behavior.",
+    "No new dependencies/manifests/lock changes, no SDK remote push/PR and no RUNE source/pin changes in this SDK increment.",
+    "Full source/test logs are retained locally in /tmp snapshots, not all copied into RUNE.",
+    "No real clipboard or native deferred-paste success was exercised. SDK#2 synthetic native factory checkpoint remains separate and immutable.",
+    "RUNE remains at its separate1120-test/18-Mock baseline and existing pin22e0fd93."
+  ],
+  "previous_evidence": [
+    "docs/evidence/egui-clipboard-injection-2026-10-15.json",
+    "docs/evidence/egui-viewport-clipboard-factory-2026-10-15.json",
+    "docs/evidence/egui-clipboard-factory-native-2026-10-15.json"
+  ],
+  "retention_limit": "Full source snapshots and test/check logs are retained locally in /tmp; this canonical record stores hashes/references and does not copy all artifacts into RUNE."
+}

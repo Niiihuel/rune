@@ -1,0 +1,57 @@
+[package]
+name = "rune-login"
+description = "Isolated, temporary owner-operated login window for RUNE"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# The optional authentication surface (WebKitGTK on Linux, WebView2 on
+# Windows); RUNE's application UI remains limn.
+webview = ["dep:gtk4", "dep:webkit6", "dep:serde_json", "dep:webview2-com", "dep:windows"]
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+# The provider owns the redacted credential type and cancellable login contract.
+rune-discord-session = { path = "../rune-discord-session" }
+rune-provider.workspace = true
+# Private child-process pipes and cancellation stay off the UI thread.
+tokio = { workspace = true, features = ["process", "io-util"] }
+# Bind one helper process and one handoff to fresh operating-system entropy.
+getrandom = "0.3"
+# Erase our copies of the helper protocol and candidate when they are dropped.
+zeroize = "1"
+# Parse and compare origins rather than matching URL prefixes.
+url = "2"
+# Escape the service's challenge values into the verification page's script.
+serde_json = { workspace = true, optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# A separate temporary authentication window, enabled only by the webview feature.
+gtk4 = { version = "0.11", features = ["v4_10"], optional = true }
+# Ephemeral WebKit network session with native cancellation and origin policies.
+webkit6 = { version = "0.6", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+# WebView2's COM API, the engine Windows itself ships: the smallest binding
+# (no window toolkit), on the same `windows` 0.62 RUNE already builds.
+webview2-com = { version = "0.39", optional = true }
+# The helper's own window, its message loop and the private-pipe check.
+windows = { version = "0.62.2", optional = true, features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_Console",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_HiDpi",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[lints]
+workspace = true

@@ -1,0 +1,1487 @@
+{
+  "evidence_id": "ev_c4e954855e9cb2f5be40de56f29ef809600ff888f5600c992bf77f2fd5f5dc4f",
+  "subject": null,
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.process-capture",
+  "operation": "capture_process_scenario",
+  "parameters": {
+    "executable_name": "rune_discord_session-9152cf3593dcef47",
+    "argument_count": 2,
+    "event_count": 0,
+    "filesystem_observation_path_count": 0,
+    "normalization": {
+      "paths": true,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "manifest": {
+      "rea_version": "6.4.0",
+      "provider_version": "3",
+      "platform": "linux",
+      "architecture": "x64",
+      "pty_backend": "node-pty",
+      "started_at": "2026-10-15T00:47:31.006Z",
+      "completed_at": "2026-10-15T00:47:31.622Z",
+      "scenario": {
+        "executable": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_discord_session-9152cf3593dcef47",
+        "arguments": [
+          "invitation",
+          "--test-threads=1"
+        ],
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "LD_LIBRARY_PATH": "/nix/store/clvzgv5kqq953s4azqhkg3ddgpvgl9wc-wayland-1.25.0/lib:/nix/store/3kncz3fkk7sv9xc61x096jnbxvxfnx1k-libxkbcommon-1.13.1/lib:/nix/store/y5a34h6vgvsc1pmfmvcqfcvxy2grg3hx-vulkan-loader-1.4.341.0/lib:/nix/store/6rffq8f7j8f6szmd7wdnyddbm7kgr76h-libglvnd-1.7.0/lib:/nix/store/a4h98420m9h8c84r2igrpdd94xsrc9b6-alsa-lib-1.2.15.3/lib:/nix/store/6y2b9qs1npwsvcsl9m66hjarzj0yagb4-pipewire-1.6.5/lib:/nix/store/2qlqp0la5f7q4hf90zw1f1qmvv3hsz25-gtk4-4.22.4/lib:/nix/store/7lga4j8fqkfzkz94chw6gq80s83dkkpf-webkitgtk-2.52.4+abi=6.0/lib:/nix/store/1wx86nk9b1d14v8qbi9aj8zf64xqn8gf-glib-networking-2.80.1/lib:/nix/store/7dl2py4dnp4ffj92r1lq0i54ik1v8kzn-glib-2.88.1/lib:/nix/store/4zwifnznmqsg3zl8y5yyfafwp4sws6rs-cairo-1.18.4/lib:/nix/store/90ln3xz5m2x3r0ykad4mkg9gnwgrjpzg-pango-1.57.1/lib:/nix/store/rgr3i966i5wnblv62fvkid3v3lxy1ivb-gdk-pixbuf-2.44.6/lib:/nix/store/zk1xfvij5pnwllwfhfrnm4pyl2qq7q1d-graphene-1.10.8/lib:/nix/store/jc4y9v7ci45vas65kyl00pzpam3dnbfk-libsoup-3.6.6/lib"
+        },
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 140,
+          "rows": 30,
+          "scrollback": 100
+        },
+        "events": [],
+        "timeout_ms": 15000,
+        "idle_timeout_ms": 10000,
+        "settle_ms": 100,
+        "limits": {
+          "output_bytes": 100000,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 8,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": true,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "finalization_ms": 1000,
+        "executable_sha256": "1ef858decb2ed7ee5bbe6911aa436265733e103354e322c1f2ef994919995cd9"
+      },
+      "comparison_contract": {
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "LD_LIBRARY_PATH": "/nix/store/clvzgv5kqq953s4azqhkg3ddgpvgl9wc-wayland-1.25.0/lib:/nix/store/3kncz3fkk7sv9xc61x096jnbxvxfnx1k-libxkbcommon-1.13.1/lib:/nix/store/y5a34h6vgvsc1pmfmvcqfcvxy2grg3hx-vulkan-loader-1.4.341.0/lib:/nix/store/6rffq8f7j8f6szmd7wdnyddbm7kgr76h-libglvnd-1.7.0/lib:/nix/store/a4h98420m9h8c84r2igrpdd94xsrc9b6-alsa-lib-1.2.15.3/lib:/nix/store/6y2b9qs1npwsvcsl9m66hjarzj0yagb4-pipewire-1.6.5/lib:/nix/store/2qlqp0la5f7q4hf90zw1f1qmvv3hsz25-gtk4-4.22.4/lib:/nix/store/7lga4j8fqkfzkz94chw6gq80s83dkkpf-webkitgtk-2.52.4+abi=6.0/lib:/nix/store/1wx86nk9b1d14v8qbi9aj8zf64xqn8gf-glib-networking-2.80.1/lib:/nix/store/7dl2py4dnp4ffj92r1lq0i54ik1v8kzn-glib-2.88.1/lib:/nix/store/4zwifnznmqsg3zl8y5yyfafwp4sws6rs-cairo-1.18.4/lib:/nix/store/90ln3xz5m2x3r0ykad4mkg9gnwgrjpzg-pango-1.57.1/lib:/nix/store/rgr3i966i5wnblv62fvkid3v3lxy1ivb-gdk-pixbuf-2.44.6/lib:/nix/store/zk1xfvij5pnwllwfhfrnm4pyl2qq7q1d-graphene-1.10.8/lib:/nix/store/jc4y9v7ci45vas65kyl00pzpam3dnbfk-libsoup-3.6.6/lib"
+        },
+        "ambient_environment": "unknown",
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 140,
+          "rows": 30,
+          "scrollback": 100
+        },
+        "events": [],
+        "timeout_ms": 15000,
+        "idle_timeout_ms": 10000,
+        "settle_ms": 100,
+        "finalization_ms": 1000,
+        "limits": {
+          "output_bytes": 100000,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 8,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": true,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "port_normalization_version": "contextual-endpoints-v2",
+        "rendered_line_format": "trailing-spaces-trimmed-v1"
+      },
+      "full_scenario_sha256": "ba43b803a2448057bd961a1d775e7845d38e6fdd51c027f2e9971be11ea2d505",
+      "comparison_contract_sha256": "c62f4b449f87b8d7d526bf57f9d4bdb837cf0e922010068156f134d72391f436",
+      "selected_executable_sha256": "1ef858decb2ed7ee5bbe6911aa436265733e103354e322c1f2ef994919995cd9",
+      "executable_sha256": "1ef858decb2ed7ee5bbe6911aa436265733e103354e322c1f2ef994919995cd9",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "normalization_sha256": "60a27b2d1ee5aa73bf2e5cb2deaed2e9cc548f961ad2e3772c981828b643cc43"
+    },
+    "normalization": {
+      "paths": true,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    },
+    "frames": [
+      {
+        "sequence": 0,
+        "at_ms": 0,
+        "data": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\u001b(B\u001b[m\r\ntest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... "
+      },
+      {
+        "sequence": 1,
+        "at_ms": 0,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest invitations::tests::oversized_and_mismatched_previews_are_rejected ... "
+      },
+      {
+        "sequence": 2,
+        "at_ms": 10,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\u001b(B\u001b[m\r\ntest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... "
+      },
+      {
+        "sequence": 3,
+        "at_ms": 50,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... "
+      },
+      {
+        "sequence": 4,
+        "at_ms": 80,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... "
+      },
+      {
+        "sequence": 5,
+        "at_ms": 80,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... "
+      },
+      {
+        "sequence": 6,
+        "at_ms": 90,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... "
+      },
+      {
+        "sequence": 7,
+        "at_ms": 90,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... "
+      },
+      {
+        "sequence": 8,
+        "at_ms": 90,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... "
+      },
+      {
+        "sequence": 9,
+        "at_ms": 100,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... "
+      },
+      {
+        "sequence": 10,
+        "at_ms": 140,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... "
+      },
+      {
+        "sequence": 11,
+        "at_ms": 140,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... "
+      },
+      {
+        "sequence": 12,
+        "at_ms": 170,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... "
+      },
+      {
+        "sequence": 13,
+        "at_ms": 280,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... "
+      },
+      {
+        "sequence": 14,
+        "at_ms": 280,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... "
+      },
+      {
+        "sequence": 15,
+        "at_ms": 330,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... "
+      },
+      {
+        "sequence": 16,
+        "at_ms": 400,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... "
+      },
+      {
+        "sequence": 17,
+        "at_ms": 470,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... "
+      },
+      {
+        "sequence": 18,
+        "at_ms": 480,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... "
+      },
+      {
+        "sequence": 19,
+        "at_ms": 480,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\ntest tests::session::invitations::invitation_waiting_in_adapter_queue_expires_before_preflight ... "
+      },
+      {
+        "sequence": 20,
+        "at_ms": 480,
+        "data": "\u001b[32mok\u001b(B\u001b[m\r\n\r\ntest result: \u001b[32mok\u001b(B\u001b[m. 22 passed; 0 failed; 0 ignored; 0 measured; 82 filtered out; finished in 0.48s\r\n\r\n"
+      }
+    ],
+    "rendered_frames": [
+      {
+        "sequence": 0,
+        "at_ms": 0,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 105,
+        "cursor_y": 3,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... "
+      },
+      {
+        "sequence": 1,
+        "at_ms": 0,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 76,
+        "cursor_y": 4,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... "
+      },
+      {
+        "sequence": 2,
+        "at_ms": 10,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 90,
+        "cursor_y": 6,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... "
+      },
+      {
+        "sequence": 3,
+        "at_ms": 50,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 82,
+        "cursor_y": 7,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... "
+      },
+      {
+        "sequence": 4,
+        "at_ms": 80,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 111,
+        "cursor_y": 8,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... "
+      },
+      {
+        "sequence": 5,
+        "at_ms": 80,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 101,
+        "cursor_y": 9,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... "
+      },
+      {
+        "sequence": 6,
+        "at_ms": 90,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 90,
+        "cursor_y": 10,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... "
+      },
+      {
+        "sequence": 7,
+        "at_ms": 90,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 96,
+        "cursor_y": 11,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... "
+      },
+      {
+        "sequence": 8,
+        "at_ms": 90,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 108,
+        "cursor_y": 12,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... "
+      },
+      {
+        "sequence": 9,
+        "at_ms": 100,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 112,
+        "cursor_y": 13,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... "
+      },
+      {
+        "sequence": 10,
+        "at_ms": 140,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 105,
+        "cursor_y": 14,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... "
+      },
+      {
+        "sequence": 11,
+        "at_ms": 140,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 120,
+        "cursor_y": 15,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... "
+      },
+      {
+        "sequence": 12,
+        "at_ms": 170,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 100,
+        "cursor_y": 16,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... "
+      },
+      {
+        "sequence": 13,
+        "at_ms": 280,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 99,
+        "cursor_y": 17,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... "
+      },
+      {
+        "sequence": 14,
+        "at_ms": 280,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 123,
+        "cursor_y": 18,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... "
+      },
+      {
+        "sequence": 15,
+        "at_ms": 330,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 100,
+        "cursor_y": 19,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... "
+      },
+      {
+        "sequence": 16,
+        "at_ms": 400,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 125,
+        "cursor_y": 20,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... ok",
+          "test tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... "
+      },
+      {
+        "sequence": 17,
+        "at_ms": 470,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 99,
+        "cursor_y": 21,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... ok",
+          "test tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... ok",
+          "test tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... "
+      },
+      {
+        "sequence": 18,
+        "at_ms": 480,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 106,
+        "cursor_y": 22,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... ok",
+          "test tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... ok",
+          "test tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... ok",
+          "test tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... "
+      },
+      {
+        "sequence": 19,
+        "at_ms": 480,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 99,
+        "cursor_y": 23,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... ok",
+          "test tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... ok",
+          "test tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... ok",
+          "test tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... ok",
+          "test tests::session::invitations::invitation_waiting_in_adapter_queue_expires_before_preflight ...",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_waiting_in_adapter_queue_expires_before_preflight ... "
+      },
+      {
+        "sequence": 20,
+        "at_ms": 480,
+        "columns": 140,
+        "rows": 30,
+        "cursor_x": 0,
+        "cursor_y": 27,
+        "active_buffer": "normal",
+        "lines": [
+          "",
+          "running 22 tests",
+          "test invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... ok",
+          "test invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... ok",
+          "test invitations::tests::oversized_and_mismatched_previews_are_rejected ... ok",
+          "test invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... ok",
+          "test invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... ok",
+          "test tests::invitations::invitation_limits_success_body_and_refuses_redirects ... ok",
+          "test tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... ok",
+          "test tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... ok",
+          "test tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... ok",
+          "test tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... ok",
+          "test tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... ok",
+          "test tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... ok",
+          "test tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... ok",
+          "test tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... ok",
+          "test tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... ok",
+          "test tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... ok",
+          "test tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... ok",
+          "test tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... ok",
+          "test tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... ok",
+          "test tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... ok",
+          "test tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... ok",
+          "test tests::session::invitations::invitation_waiting_in_adapter_queue_expires_before_preflight ... ok",
+          "",
+          "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 82 filtered out; finished in 0.48s",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "\r\nrunning 22 tests\r\ntest invitations::tests::invitation_parser_keeps_hosts_paths_and_identity_out_of_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::optional_description_and_artwork_stay_bounded_without_accepting_remote_urls ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::oversized_and_mismatched_previews_are_rejected ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::preview_uses_only_public_get_and_never_sends_authorization_or_cookies ... \u001b[32mok\r\n\u001b[0mtest invitations::tests::redirects_and_remote_error_bodies_never_escape_the_transport ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_limits_success_body_and_refuses_redirects ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_post_and_preflight_each_have_a_deadline_and_401_does_not_wait_for_body ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_preflight_has_no_credentials_and_post_uses_only_own_identity ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rate_limit_is_shared_and_keeps_actual_retry_delay ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_rejections_are_typed_and_challenge_material_never_leaks ... \u001b[32mok\r\n\u001b[0mtest tests::invitations::invitation_scope_checks_reject_changed_servers_guest_targets_and_malformed_ids ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_acknowledgement_does_not_add_a_server_without_gateway_evidence ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_anonymous_preflight_401_does_not_invalidate_the_session ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_changed_preview_and_verification_requirements_never_submit_extra_posts ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_disconnect_is_uncertain_only_after_post_submission ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_expired_in_core_queue_is_rejected_before_any_http ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_is_single_pending_and_cancel_or_membership_does_not_cancel_submitted_post ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_logout_discards_delayed_preflight_and_post_results ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_revalidates_account_canonical_target_and_current_membership_before_dispatch ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_unauthorized_result_drops_session_and_queued_work ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_waiting_behind_other_rest_work_is_discarded_on_reconnect ... \u001b[32mok\r\n\u001b[0mtest tests::session::invitations::invitation_waiting_in_adapter_queue_expires_before_preflight ... \u001b[32mok\r\n\r\n\u001b[0mtest result: \u001b[32mok\u001b[0m. 22 passed; 0 failed; 0 ignored; 0 measured; 82 filtered out; finished in 0.48s\u001b[2B\u001b[95D"
+      }
+    ],
+    "interaction_events": [],
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "settlement": {
+      "state": "quiesced",
+      "elapsed_ms": 99,
+      "cleanup_outcome": "not_required"
+    },
+    "process_samples": [
+      {
+        "at_ms": 10,
+        "pid": 1,
+        "parent_pid": 2,
+        "command": "<working-directory>/target/debug/deps/rune_discord_session-9152cf3593dcef47 invitation --test-threads=1",
+        "process_group_id": 1,
+        "session_id": 1
+      }
+    ],
+    "filesystem_checkpoints": [
+      {
+        "name": "before",
+        "at_ms": 0,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      },
+      {
+        "name": "after_settlement",
+        "at_ms": 616,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      }
+    ],
+    "event_journal": [
+      {
+        "capture_order": 0,
+        "collection": "filesystem_checkpoints",
+        "index": 0
+      },
+      {
+        "capture_order": 1,
+        "collection": "frames",
+        "index": 0
+      },
+      {
+        "capture_order": 2,
+        "collection": "frames",
+        "index": 1
+      },
+      {
+        "capture_order": 3,
+        "collection": "rendered_frames",
+        "index": 0
+      },
+      {
+        "capture_order": 4,
+        "collection": "frames",
+        "index": 2
+      },
+      {
+        "capture_order": 5,
+        "collection": "rendered_frames",
+        "index": 1
+      },
+      {
+        "capture_order": 6,
+        "collection": "rendered_frames",
+        "index": 2
+      },
+      {
+        "capture_order": 7,
+        "collection": "process_samples",
+        "index": 0
+      },
+      {
+        "capture_order": 8,
+        "collection": "frames",
+        "index": 3
+      },
+      {
+        "capture_order": 9,
+        "collection": "rendered_frames",
+        "index": 3
+      },
+      {
+        "capture_order": 10,
+        "collection": "frames",
+        "index": 4
+      },
+      {
+        "capture_order": 11,
+        "collection": "rendered_frames",
+        "index": 4
+      },
+      {
+        "capture_order": 12,
+        "collection": "frames",
+        "index": 5
+      },
+      {
+        "capture_order": 13,
+        "collection": "rendered_frames",
+        "index": 5
+      },
+      {
+        "capture_order": 14,
+        "collection": "frames",
+        "index": 6
+      },
+      {
+        "capture_order": 15,
+        "collection": "frames",
+        "index": 7
+      },
+      {
+        "capture_order": 16,
+        "collection": "rendered_frames",
+        "index": 6
+      },
+      {
+        "capture_order": 17,
+        "collection": "rendered_frames",
+        "index": 7
+      },
+      {
+        "capture_order": 18,
+        "collection": "frames",
+        "index": 8
+      },
+      {
+        "capture_order": 19,
+        "collection": "rendered_frames",
+        "index": 8
+      },
+      {
+        "capture_order": 20,
+        "collection": "frames",
+        "index": 9
+      },
+      {
+        "capture_order": 21,
+        "collection": "rendered_frames",
+        "index": 9
+      },
+      {
+        "capture_order": 22,
+        "collection": "frames",
+        "index": 10
+      },
+      {
+        "capture_order": 23,
+        "collection": "rendered_frames",
+        "index": 10
+      },
+      {
+        "capture_order": 24,
+        "collection": "frames",
+        "index": 11
+      },
+      {
+        "capture_order": 25,
+        "collection": "rendered_frames",
+        "index": 11
+      },
+      {
+        "capture_order": 26,
+        "collection": "frames",
+        "index": 12
+      },
+      {
+        "capture_order": 27,
+        "collection": "rendered_frames",
+        "index": 12
+      },
+      {
+        "capture_order": 28,
+        "collection": "frames",
+        "index": 13
+      },
+      {
+        "capture_order": 29,
+        "collection": "rendered_frames",
+        "index": 13
+      },
+      {
+        "capture_order": 30,
+        "collection": "frames",
+        "index": 14
+      },
+      {
+        "capture_order": 31,
+        "collection": "rendered_frames",
+        "index": 14
+      },
+      {
+        "capture_order": 32,
+        "collection": "frames",
+        "index": 15
+      },
+      {
+        "capture_order": 33,
+        "collection": "rendered_frames",
+        "index": 15
+      },
+      {
+        "capture_order": 34,
+        "collection": "frames",
+        "index": 16
+      },
+      {
+        "capture_order": 35,
+        "collection": "rendered_frames",
+        "index": 16
+      },
+      {
+        "capture_order": 36,
+        "collection": "frames",
+        "index": 17
+      },
+      {
+        "capture_order": 37,
+        "collection": "rendered_frames",
+        "index": 17
+      },
+      {
+        "capture_order": 38,
+        "collection": "frames",
+        "index": 18
+      },
+      {
+        "capture_order": 39,
+        "collection": "rendered_frames",
+        "index": 18
+      },
+      {
+        "capture_order": 40,
+        "collection": "frames",
+        "index": 19
+      },
+      {
+        "capture_order": 41,
+        "collection": "rendered_frames",
+        "index": 19
+      },
+      {
+        "capture_order": 42,
+        "collection": "frames",
+        "index": 20
+      },
+      {
+        "capture_order": 43,
+        "collection": "rendered_frames",
+        "index": 20
+      },
+      {
+        "capture_order": 44,
+        "collection": "lifecycle",
+        "index": 0
+      },
+      {
+        "capture_order": 45,
+        "collection": "lifecycle",
+        "index": 1
+      },
+      {
+        "capture_order": 46,
+        "collection": "filesystem_checkpoints",
+        "index": 1
+      }
+    ],
+    "files_before": [],
+    "files_after": [],
+    "filesystem_effects": [],
+    "truncated": false,
+    "truncation_details": {
+      "raw_terminal": {
+        "budget_bytes": 100000,
+        "observed_bytes": 2698,
+        "retained_bytes": 2698,
+        "observed_frames": 21,
+        "retained_frames": 21
+      },
+      "rendered_terminal": {
+        "budget_bytes": 100000,
+        "observed_bytes": 58040,
+        "retained_bytes": 58040,
+        "observed_frames": 21,
+        "retained_frames": 21
+      },
+      "filesystem_before": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "filesystem_after": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "process": {
+        "sample_limit": 8,
+        "sampling_partial": false,
+        "retained_samples": 1,
+        "sample_limit_reached": false,
+        "sampling_failures": 0,
+        "first_sampling_failure": null,
+        "coverage": "sampled"
+      }
+    },
+    "limitations": [
+      "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+      "Process trees are sampled and may omit short-lived descendants.",
+      "Filesystem observations are before/after snapshots, not syscall traces.",
+      "Inherited host environment variables are not recorded and may affect results.",
+      "No filesystem observation paths were selected; filesystem effects remain unknown."
+    ],
+    "residual_unknowns": [
+      {
+        "scope": "process",
+        "reason": "Process trees are sampled and may omit short-lived descendants."
+      },
+      {
+        "scope": "process",
+        "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+      },
+      {
+        "scope": "environment",
+        "reason": "Inherited host environment variables are not recorded."
+      },
+      {
+        "scope": "network",
+        "reason": "Network activity is not observed by this capture."
+      },
+      {
+        "scope": "filesystem",
+        "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+      }
+    ],
+    "cleanup": {
+      "owned_process_group": "verified",
+      "temporary_root": "removed"
+    }
+  },
+  "confidence": "observed",
+  "authority": "controlled-replay",
+  "environment": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "isolation": "process"
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results.",
+    "No filesystem observation paths were selected; filesystem effects remain unknown."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

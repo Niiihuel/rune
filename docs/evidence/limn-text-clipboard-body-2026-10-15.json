@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "project": "RUNE",
+  "slice": "07.3 / limn Selection text / A2 body ownership and completion metadata",
+  "status": "accepted_local_uncommitted_internal_slice_only",
+  "worktree": "/home/nihuel/projects/personal/limn-wayland-clipboard",
+  "branch": "feat/shared-wayland-clipboard-text",
+  "base_commit": "06a08883634c5e5c2abe5afb4a5d624a68e98aef",
+  "previous_checkpoint": {
+    "path": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-admission-2026-10-15.json",
+    "bytes": 12573,
+    "sha256": "d5bffbed6785d28a6e9488e4c0519622e380efa8becdec2e4f5be7ef1c1df5c5"
+  },
+  "sources": [
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/lib.rs",
+      "bytes": 5348,
+      "sha256": "1619c290b7f8c438ef33dbe0d0d4e1c6e5dc5a60f2d4d43859aa9e6b3173fd70",
+      "relative_path": "crates/limn-dnd/src/lib.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive.rs",
+      "bytes": 4615,
+      "sha256": "07e4b70b7c7d2eb462a404c9f1c6ae82b79892a48ac7abeb651aabee6a19bf4c",
+      "relative_path": "crates/limn-dnd/src/receive.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/clipboard_body_tests.rs",
+      "bytes": 28203,
+      "sha256": "a071515add98b1546a4fff2d04bfee8c6c2e8ba0ac617339f18e7404a82b9ad4",
+      "relative_path": "crates/limn-dnd/src/receive/clipboard_body_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/clipboard_control.rs",
+      "bytes": 29754,
+      "sha256": "832aa11e3135d142002a1ab5f15b5f0941dc676f13669e0e8f430e03e2dea454",
+      "relative_path": "crates/limn-dnd/src/receive/clipboard_control.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/clipboard_control_tests.rs",
+      "bytes": 26942,
+      "sha256": "072426ef03e872c0b627e47acb2d9171c6ddaed4396a5b47acb3a262201839bd",
+      "relative_path": "crates/limn-dnd/src/receive/clipboard_control_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/control.rs",
+      "bytes": 14233,
+      "sha256": "ad7556d1ad1fa68916675aba3811374aa1413f545ab542cd8a20858652aa58d9",
+      "relative_path": "crates/limn-dnd/src/receive/control.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/owner_incoming_runtime_tests.rs",
+      "bytes": 5466,
+      "sha256": "11460f2503e6e96b2fd4f4e0b74721113123c5a464a98afc2ed16f41b48ae44c",
+      "relative_path": "crates/limn-dnd/src/receive/owner_incoming_runtime_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/owner_runtime_tests.rs",
+      "bytes": 17887,
+      "sha256": "41822d58995fad920a02bee03d168f06fc7a035972769dc09ff1fa2d43481a01",
+      "relative_path": "crates/limn-dnd/src/receive/owner_runtime_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland.rs",
+      "bytes": 28725,
+      "sha256": "ab02551327a7c59a262c9503fbb8d73582ede2a9eec87a309961f2d8b570349f",
+      "relative_path": "crates/limn-dnd/src/receive/wayland.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland_endpoints.rs",
+      "bytes": 8445,
+      "sha256": "23f283465abf68fd07fa6fb98bcb34545599436e4e52b46ab5a694b2e33b0065",
+      "relative_path": "crates/limn-dnd/src/receive/wayland_endpoints.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland_offers.rs",
+      "bytes": 17584,
+      "sha256": "2af291d9e4d0644b7a5f1726311653f019ee7ecfa6e97aa57b4d598c5004ee07",
+      "relative_path": "crates/limn-dnd/src/receive/wayland_offers.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/worker_pool.rs",
+      "bytes": 32419,
+      "sha256": "375b7f15c0b5ffccd908e8be76a12874f4d7dec4a24466789e5cb3e63d152c2f",
+      "relative_path": "crates/limn-dnd/src/receive/worker_pool.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/text_clipboard_limits.rs",
+      "bytes": 4665,
+      "sha256": "7a0a3222dcf715b445735a7f887f5ff2cd8b7d79dc6b68131d379972daf4859d",
+      "relative_path": "crates/limn-dnd/src/text_clipboard_limits.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/text_clipboard_limits_tests.rs",
+      "bytes": 3156,
+      "sha256": "7962ff8a225b65fa0d4522299bac2edf586f88fda3bbcbffdbe012854d925c5a",
+      "relative_path": "crates/limn-dnd/src/text_clipboard_limits_tests.rs"
+    }
+  ],
+  "checks": [
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-api-red.json",
+      "bytes": 13490,
+      "sha256": "4b5ec8be0562847cfac3d2639600e183beb24199a0aefa5c978fa01bc4d91965",
+      "exit_code": 101,
+      "seconds": 3.167,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-api-red.log",
+      "log_bytes": 55882,
+      "log_sha256": "351e45b870517c271d16bc4e4a725ff36cf5afcb8f4e9319ed2f45a3c7cb1469"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-first-attempt.json",
+      "bytes": 13838,
+      "sha256": "397409cc2bf7903f416d446b1bfa12baf4f49500fbb67e3f2f3b2f1dc92c4b3f",
+      "exit_code": 0,
+      "seconds": 5.917,
+      "test_results": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 152 filtered out; finished in 0.12s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-first-attempt.log",
+      "log_bytes": 1048,
+      "log_sha256": "42baa8fa7d60a0c350566c78f975dbe353d88aa5e70ed5dfbc91fbce3f991d77"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-all-dnd.json",
+      "bytes": 13580,
+      "sha256": "7aeee333596d0d1f368a0ffb9905e53b2687b1883a008cff79a471808213999c",
+      "exit_code": 0,
+      "seconds": 3.024,
+      "test_results": [
+        "test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-all-dnd.log",
+      "log_bytes": 17409,
+      "log_sha256": "d7281024e74e2ad29c84ee5a45d847c5097b7bd730a5a34ce57296b56439c07c"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-scoped-format.json",
+      "bytes": 13691,
+      "sha256": "c8bf2eb4dba5f0e05065ba179f876a6dbb3910b7705de5abbf3d79f57be1944f",
+      "exit_code": 0,
+      "seconds": 2.211,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-scoped-format.log",
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-formatted-all-dnd.json",
+      "bytes": 13990,
+      "sha256": "79ea27eafbbec7bd49d71b7426c3cee88092c792b8c442813f82de9332dbe8d6",
+      "exit_code": 0,
+      "seconds": 6.583,
+      "test_results": [
+        "test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-formatted-all-dnd.log",
+      "log_bytes": 17511,
+      "log_sha256": "160e2534a4a09d1087d2036e430eb2623ed2d0793134a2b692b98952b4e86105"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-format-check.json",
+      "bytes": 13661,
+      "sha256": "a6291f99f9206a7a7cd6762ab9715b7a3fd13dc56ade7fabddc107e3feac890e",
+      "exit_code": 0,
+      "seconds": 2.207,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a2-format-check.log",
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "accepted_behavior": [
+    "One worker-owned strong body slot, Weak control/request references and one staged RAW String; Core and Headers remain payload-free.",
+    "Exact current Claimed request stages at most configured text bytes; duplicate stage cannot replace the first body; producer errors preserve the first terminal reason.",
+    "Only the post-watcher finalizer may publish; the test fixture exclusively uses the explicit never-installed-watcher precondition.",
+    "Publication retains the original read deadline and starts completion TTL once; poll checks fresh time after all authority and slot guards.",
+    "Valid poll moves the exact RAW String once, including empty text; stale/expired/cancelled poll returns metadata once and leaves internal body cleanup to worker.",
+    "Abandoned bodies are taken under authority, destroyed outside every guard on worker, then the exact Incoming lease retires; old handles cannot affect a reused slot.",
+    "Worker Drop drains staged/slot bodies before releasing its strong slot Arc; it does not release Incoming or synthesize native cleanup/OwnerClosed."
+  ],
+  "test_interpretation": {
+    "initial_red": "72 missing API/field compilation errors (62 E0599, 10 E0609), zero bodies executed; not a behavior assertion RED.",
+    "first_attempt": "All five new groups passed at the first implementation attempt (0.12 s tests, 5.917 s wall).",
+    "complete_suite": [
+      "test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+    ],
+    "complete_suite_wall_seconds": 6.583,
+    "counts": "A1 152 + five A2 groups = 157; no ignored, skipped, weakened or removed assertions.",
+    "a1_tests_unchanged": "Formatted accepted A1 test bytes remain exact after stripping only the new child module hook; other A1 source snapshots remain unchanged except the A2 implementation file.",
+    "raw_test": {
+      "path": "/tmp/limn-clipboard-a2-red-20261015-4ti2tfp4/clipboard-body-a2-tests.unwired.raw",
+      "bytes": 25856,
+      "sha256": "4d722245111dcc948acf4794a3bc7ceb08a87313c8e1e18a8567b4c34aa9aa5e"
+    },
+    "ownership_limit": "Dedicated worker Drop and empty temporary UI Arc are observed; no allocator-level String deallocation or destructor-thread instrumentation is claimed.",
+    "clock_limit": "Bounded mutex contention tests use stale caller time; source review additionally verifies the clock sample occurs after the final required guard."
+  },
+  "review": {
+    "contract": {
+      "path": "/tmp/limn-clipboard-a2-private-20261015-5x96cr9u/a2-body-staging-private-contract-v3.md",
+      "bytes": 19699,
+      "sha256": "18ee0b2654dff1a71b62538fa6d8c90a5a3007764c8ee235cccd5163f5800fa8"
+    },
+    "candidate": {
+      "path": "/tmp/limn-clipboard-a2-private-20261015-5x96cr9u/a2-body-candidate-v1.rs",
+      "bytes": 28993,
+      "sha256": "0fc94eb59bb10710ebf28133275d2b22d66c8c37969eb0420b8cafa64a8d8a88"
+    },
+    "independent_agent": "/root/a2_contract_challenge",
+    "result": "GO, 0 material blockers for contract, exact raw fixtures and frozen implementation; no Cargo/GUI/edits by reviewer.",
+    "root": "Full 574-line raw test and implementation diff read; no material findings. Scoped rustfmt followed by complete 157-test rerun and format check."
+  },
+  "not_implemented_or_not_proven": [
+    "Real Selection/keyboard/focus-fence dispatch, typed text Receive, bounded pipe UTF-8 decoder, actual text watcher cleanup/publication integration (B/C).",
+    "Public owner text attach/reserve and TextPasteRequest facade, lightweight Ping wiring, Primary, CopyText/CopyImage and URI clipboard operations.",
+    "Functional SDK clipboard adapter, RUNE consumer/pin, OS clipboard interoperability, native paste QA, Hyprland or connected Discord.",
+    "Strict non-test Clippy/workspace shipping checks for this incomplete branch; the private text service still lacks its permanent State producer.",
+    "New commit/push/PR/merge or RUNE dependency changes."
+  ],
+  "progress_unchanged": {
+    "closed_flows": 5,
+    "total_flows": 21,
+    "rune_historical_tests_passed": 1128,
+    "rune_historical_native_mock_captures": 18,
+    "note": "A2 is an internal slice; 07.3 remains partial and limn matrices are not added to RUNE counts."
+  },
+  "next": "Permanent B/C consumer in existing State/Job/runtime, with real protocol fixture and Generic/OwnedFd gate before SDK/RUNE integration."
+}

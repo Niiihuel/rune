@@ -1,0 +1,403 @@
+{
+  "evidence_id": "ev_4d57b4f1945546fdb2f00bfab1f722168983c38362f3c2b436687ae2816f8d5e",
+  "subject": null,
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.process-capture",
+  "operation": "capture_process_scenario",
+  "parameters": {
+    "executable_name": "save-example-checkpoint",
+    "argument_count": 8,
+    "event_count": 0,
+    "filesystem_observation_path_count": 0,
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "manifest": {
+      "rea_version": "6.4.0",
+      "provider_version": "3",
+      "platform": "linux",
+      "architecture": "x64",
+      "pty_backend": "node-pty",
+      "started_at": "2026-10-15T10:36:07.777Z",
+      "completed_at": "2026-10-15T10:36:24.179Z",
+      "scenario": {
+        "executable": "/tmp/rune-save-native-20261015-gw8qijjd/save-example-checkpoint",
+        "arguments": [
+          "--folder",
+          "/tmp/rune-save-native-20261015-gw8qijjd/fixtures",
+          "--suggested-name",
+          "guardado.txt",
+          "--expect-destination",
+          "/tmp/rune-save-native-20261015-gw8qijjd/fixtures/guardado.txt",
+          "--cancel-after-ms",
+          "240000"
+        ],
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/data",
+          "XDG_CACHE_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/config",
+          "XDG_STATE_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/state"
+        },
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 120,
+          "rows": 30,
+          "scrollback": 200
+        },
+        "events": [],
+        "timeout_ms": 270000,
+        "idle_timeout_ms": 260000,
+        "settle_ms": 300,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 24,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "finalization_ms": 1000,
+        "executable_sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8"
+      },
+      "comparison_contract": {
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/data",
+          "XDG_CACHE_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/config",
+          "XDG_STATE_HOME": "/tmp/rune-save-native-20261015-gw8qijjd/state"
+        },
+        "ambient_environment": "unknown",
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 120,
+          "rows": 30,
+          "scrollback": 200
+        },
+        "events": [],
+        "timeout_ms": 270000,
+        "idle_timeout_ms": 260000,
+        "settle_ms": 300,
+        "finalization_ms": 1000,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 24,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "port_normalization_version": "contextual-endpoints-v2",
+        "rendered_line_format": "trailing-spaces-trimmed-v1"
+      },
+      "full_scenario_sha256": "b283eb83a3c2fece880caed60333ac72f80ad4df1c745c72476f99ea1805d9db",
+      "comparison_contract_sha256": "45eaf91cc8b80df45d0481b500e110aa1324c1a09780d2e43387d4fc306aabfd",
+      "selected_executable_sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8",
+      "executable_sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "normalization_sha256": "5c58aa1aa890197f15f9c59ef755d01120e6e07f356fa1ef2f20787e63b6fa87"
+    },
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    },
+    "frames": [
+      {
+        "sequence": 0,
+        "at_ms": 16250,
+        "data": "Destino seleccionado. No se abrió ni escribió el archivo.\r\nCoincide con el destino de prueba esperado.\r\n"
+      }
+    ],
+    "rendered_frames": [
+      {
+        "sequence": 0,
+        "at_ms": 16250,
+        "columns": 120,
+        "rows": 30,
+        "cursor_x": 0,
+        "cursor_y": 2,
+        "active_buffer": "normal",
+        "lines": [
+          "Destino seleccionado. No se abrió ni escribió el archivo.",
+          "Coincide con el destino de prueba esperado.",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "Destino seleccionado. No se abrió ni escribió el archivo.\r\nCoincide con el destino de prueba esperado.\u001b[1B\u001b[43D"
+      }
+    ],
+    "interaction_events": [],
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "settlement": {
+      "state": "quiesced",
+      "elapsed_ms": 116,
+      "cleanup_outcome": "not_required"
+    },
+    "process_samples": [
+      {
+        "at_ms": 10,
+        "pid": 1,
+        "parent_pid": 2,
+        "command": "/tmp/rune-save-native-20261015-gw8qijjd/save-example-checkpoint --folder /tmp/rune-save-native-20261015-gw8qijjd/fixtures --suggested-name guardado.txt --expect-destination /tmp/rune-save-native-20261015-gw8qijjd/fixtures/guardado.txt --cancel-after-ms 240000",
+        "process_group_id": 1,
+        "session_id": 1
+      }
+    ],
+    "filesystem_checkpoints": [
+      {
+        "name": "before",
+        "at_ms": 0,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      },
+      {
+        "name": "after_settlement",
+        "at_ms": 16402,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      }
+    ],
+    "event_journal": [
+      {
+        "capture_order": 0,
+        "collection": "filesystem_checkpoints",
+        "index": 0
+      },
+      {
+        "capture_order": 1,
+        "collection": "process_samples",
+        "index": 0
+      },
+      {
+        "capture_order": 2,
+        "collection": "frames",
+        "index": 0
+      },
+      {
+        "capture_order": 3,
+        "collection": "lifecycle",
+        "index": 0
+      },
+      {
+        "capture_order": 4,
+        "collection": "rendered_frames",
+        "index": 0
+      },
+      {
+        "capture_order": 5,
+        "collection": "lifecycle",
+        "index": 1
+      },
+      {
+        "capture_order": 6,
+        "collection": "filesystem_checkpoints",
+        "index": 1
+      }
+    ],
+    "files_before": [],
+    "files_after": [],
+    "filesystem_effects": [],
+    "truncated": false,
+    "truncation_details": {
+      "raw_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 106,
+        "retained_bytes": 106,
+        "observed_frames": 1,
+        "retained_frames": 1
+      },
+      "rendered_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 215,
+        "retained_bytes": 215,
+        "observed_frames": 1,
+        "retained_frames": 1
+      },
+      "filesystem_before": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "filesystem_after": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "process": {
+        "sample_limit": 24,
+        "sampling_partial": false,
+        "retained_samples": 1,
+        "sample_limit_reached": false,
+        "sampling_failures": 0,
+        "first_sampling_failure": null,
+        "coverage": "sampled"
+      }
+    },
+    "limitations": [
+      "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+      "Process trees are sampled and may omit short-lived descendants.",
+      "Filesystem observations are before/after snapshots, not syscall traces.",
+      "Inherited host environment variables are not recorded and may affect results.",
+      "No filesystem observation paths were selected; filesystem effects remain unknown."
+    ],
+    "residual_unknowns": [
+      {
+        "scope": "process",
+        "reason": "Process trees are sampled and may omit short-lived descendants."
+      },
+      {
+        "scope": "process",
+        "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+      },
+      {
+        "scope": "environment",
+        "reason": "Inherited host environment variables are not recorded."
+      },
+      {
+        "scope": "network",
+        "reason": "Network activity is not observed by this capture."
+      },
+      {
+        "scope": "filesystem",
+        "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2692700 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2692700/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2692826 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2692826/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2693138 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2693138/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2693150 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2693150/environ'"
+      }
+    ],
+    "cleanup": {
+      "owned_process_group": "verified",
+      "temporary_root": "removed",
+      "unverified_processes": [
+        {
+          "pid": 2692700,
+          "reason": "EACCES: permission denied, open '/proc/2692700/environ'"
+        },
+        {
+          "pid": 2692826,
+          "reason": "EACCES: permission denied, open '/proc/2692826/environ'"
+        },
+        {
+          "pid": 2693138,
+          "reason": "EACCES: permission denied, open '/proc/2693138/environ'"
+        },
+        {
+          "pid": 2693150,
+          "reason": "EACCES: permission denied, open '/proc/2693150/environ'"
+        }
+      ]
+    }
+  },
+  "confidence": "observed",
+  "authority": "controlled-replay",
+  "environment": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "isolation": "process"
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results.",
+    "No filesystem observation paths were selected; filesystem effects remain unknown."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

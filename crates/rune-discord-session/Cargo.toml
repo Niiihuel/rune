@@ -1,0 +1,60 @@
+[package]
+name = "rune-discord-session"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+rune-provider.workspace = true
+# The keyring boundary that remembers the session (owner-authorized 2026-10-16).
+rune-platform.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Bounded HTTPS requests for identity, history and explicit message actions.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# Erase the owned session input on cancellation, rejection and logout.
+zeroize = "1"
+# Parse service timestamps without inventing message ordering or edit times.
+chrono.workspace = true
+# Cancellable Gateway transport with TLS and bounded WebSocket frames.
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+# An attachment's bytes as a body handed over a chunk at a time, to report
+# progress; both already built for reqwest, so nothing new is compiled.
+bytes = "1.12.1"
+http-body = "1"
+# Stream/sink polling for the independent Gateway loop.
+futures-util = { version = "0.3", features = ["sink"] }
+# Validate service and loopback-test URLs before sending credentials.
+url = "2"
+# A voice message's waveform arrives base64-encoded; the version rune-core
+# already builds, so nothing new is compiled.
+base64 = "0.22"
+# Random heartbeat jitter and per-session message nonce namespaces.
+getrandom = "0.3"
+# DAVE, the end-to-end encryption Discord requires for calls: MLS groups and
+# frame keys, the crate Serein and songbird use. Pinned: young, no stable API.
+davey = { version = "=0.1.5", default-features = false }
+# The transport encryption Discord's voice servers require
+# (aead_xchacha20_poly1305_rtpsize); RustCrypto, pure Rust.
+chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["alloc"] }
+
+[dev-dependencies]
+# Deterministic expiry and cancellation tests use Tokio's controlled clock.
+tokio = { workspace = true, features = ["test-util"] }
+# The synthetic voice server's MLS external sender in fixtures; the same
+# versions davey already builds, so nothing new is compiled.
+openmls = { version = "0.8.1", default-features = false }
+openmls_rust_crypto = "0.5.1"
+openmls_basic_credential = "0.5.0"
+# Encodes the synthetic screen stream the voice fixtures send; the same
+# version rune-media builds for decoding.
+openh264 = "=0.9.8"
+
+[lints]
+workspace = true

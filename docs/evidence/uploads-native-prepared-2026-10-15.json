@@ -1,0 +1,606 @@
+{
+  "evidence_id": "ev_5fa70a4cc5a60eb804488f69116129176a80ce3cbbe4c60c3384fdf6187cb65c",
+  "subject": null,
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.process-capture",
+  "operation": "capture_process_scenario",
+  "parameters": {
+    "executable_name": "rune-uploads-checkpoint",
+    "argument_count": 12,
+    "event_count": 0,
+    "filesystem_observation_path_count": 1,
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "manifest": {
+      "rea_version": "6.4.0",
+      "provider_version": "3",
+      "platform": "linux",
+      "architecture": "x64",
+      "pty_backend": "node-pty",
+      "started_at": "2026-10-15T08:35:27.067Z",
+      "completed_at": "2026-10-15T08:35:33.379Z",
+      "scenario": {
+        "executable": "/tmp/rune-uploads-native-20261015-_o6h8zrb/rune-uploads-checkpoint",
+        "arguments": [
+          "--provider",
+          "mock",
+          "--screenshot",
+          "/tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png",
+          "--channel",
+          "general",
+          "--capture-draft",
+          "Borrador con archivo",
+          "--action",
+          "composer:plus",
+          "--action",
+          "composer:attach"
+        ],
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/data",
+          "XDG_CACHE_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/config"
+        },
+        "filesystem_observation_paths": [
+          "/tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png"
+        ],
+        "terminal": {
+          "columns": 120,
+          "rows": 40,
+          "scrollback": 1000
+        },
+        "events": [],
+        "timeout_ms": 25000,
+        "idle_timeout_ms": 20000,
+        "settle_ms": 500,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 32,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "finalization_ms": 2000,
+        "executable_sha256": "dc963e25fcf83d14cb2b4e0538cb65849a0cae575c3bd8cbf2b30dde4b31cd5d"
+      },
+      "comparison_contract": {
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/data",
+          "XDG_CACHE_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-uploads-native-20261015-_o6h8zrb/config"
+        },
+        "ambient_environment": "unknown",
+        "filesystem_observation_paths": [
+          "/tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png"
+        ],
+        "terminal": {
+          "columns": 120,
+          "rows": 40,
+          "scrollback": 1000
+        },
+        "events": [],
+        "timeout_ms": 25000,
+        "idle_timeout_ms": 20000,
+        "settle_ms": 500,
+        "finalization_ms": 2000,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 32,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "port_normalization_version": "contextual-endpoints-v2",
+        "rendered_line_format": "trailing-spaces-trimmed-v1"
+      },
+      "full_scenario_sha256": "be19c1816b99696b88d240f0ef02f2f0e97462a56f19b220536619ce0e5bba8c",
+      "comparison_contract_sha256": "a4cfdd244298d9be0bcb1e1440ef1a6f1d8548cba7f5c62e489d44fbc8ee2d4f",
+      "selected_executable_sha256": "dc963e25fcf83d14cb2b4e0538cb65849a0cae575c3bd8cbf2b30dde4b31cd5d",
+      "executable_sha256": "dc963e25fcf83d14cb2b4e0538cb65849a0cae575c3bd8cbf2b30dde4b31cd5d",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "normalization_sha256": "5c58aa1aa890197f15f9c59ef755d01120e6e07f356fa1ef2f20787e63b6fa87"
+    },
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    },
+    "frames": [
+      {
+        "sequence": 0,
+        "at_ms": 1010,
+        "data": "rune: first frame painted 762.3ms after start\r\n"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 5880,
+        "data": "rune: saved /tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png\r\n"
+      }
+    ],
+    "rendered_frames": [
+      {
+        "sequence": 0,
+        "at_ms": 1010,
+        "columns": 120,
+        "rows": 40,
+        "cursor_x": 0,
+        "cursor_y": 1,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 762.3ms after start",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 762.3ms after start\u001b[1B\u001b[45D"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 5880,
+        "columns": 120,
+        "rows": 40,
+        "cursor_x": 0,
+        "cursor_y": 2,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 762.3ms after start",
+          "rune: saved /tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 762.3ms after start\r\nrune: saved /tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png\u001b[1B\u001b[74D"
+      }
+    ],
+    "interaction_events": [],
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "settlement": {
+      "state": "quiesced",
+      "elapsed_ms": 129,
+      "cleanup_outcome": "not_required"
+    },
+    "process_samples": [
+      {
+        "at_ms": 10,
+        "pid": 1,
+        "parent_pid": 2,
+        "command": "/tmp/rune-uploads-native-20261015-_o6h8zrb/rune-uploads-checkpoint --provider mock --screenshot /tmp/rune-uploads-native-20261015-_o6h8zrb/upload-prepared.png --channel general --capture-draft Borrador con archivo --action composer:plus --action composer:attach",
+        "process_group_id": 1,
+        "session_id": 1
+      }
+    ],
+    "filesystem_checkpoints": [
+      {
+        "name": "before",
+        "at_ms": 0,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      },
+      {
+        "name": "after_settlement",
+        "at_ms": 6312,
+        "files": [
+          {
+            "path": "root_0:.",
+            "mode": 33188,
+            "size": 316829,
+            "type": "file",
+            "sha256": "16e1347e5364c22ea8e039a5bd85762aebc2ff2a347e159e24a97587343f9c17",
+            "symlink_target": null
+          }
+        ],
+        "effects": [
+          {
+            "path": "root_0:.",
+            "status": "created",
+            "before": null,
+            "after": {
+              "path": "root_0:.",
+              "mode": 33188,
+              "size": 316829,
+              "type": "file",
+              "sha256": "16e1347e5364c22ea8e039a5bd85762aebc2ff2a347e159e24a97587343f9c17",
+              "symlink_target": null
+            }
+          }
+        ],
+        "truncated": false
+      }
+    ],
+    "event_journal": [
+      {
+        "capture_order": 0,
+        "collection": "filesystem_checkpoints",
+        "index": 0
+      },
+      {
+        "capture_order": 1,
+        "collection": "process_samples",
+        "index": 0
+      },
+      {
+        "capture_order": 2,
+        "collection": "frames",
+        "index": 0
+      },
+      {
+        "capture_order": 3,
+        "collection": "rendered_frames",
+        "index": 0
+      },
+      {
+        "capture_order": 4,
+        "collection": "frames",
+        "index": 1
+      },
+      {
+        "capture_order": 5,
+        "collection": "rendered_frames",
+        "index": 1
+      },
+      {
+        "capture_order": 6,
+        "collection": "lifecycle",
+        "index": 0
+      },
+      {
+        "capture_order": 7,
+        "collection": "lifecycle",
+        "index": 1
+      },
+      {
+        "capture_order": 8,
+        "collection": "filesystem_checkpoints",
+        "index": 1
+      }
+    ],
+    "files_before": [],
+    "files_after": [
+      {
+        "path": "root_0:.",
+        "mode": 33188,
+        "size": 316829,
+        "type": "file",
+        "sha256": "16e1347e5364c22ea8e039a5bd85762aebc2ff2a347e159e24a97587343f9c17",
+        "symlink_target": null
+      }
+    ],
+    "filesystem_effects": [
+      {
+        "path": "root_0:.",
+        "status": "created",
+        "before": null,
+        "after": {
+          "path": "root_0:.",
+          "mode": 33188,
+          "size": 316829,
+          "type": "file",
+          "sha256": "16e1347e5364c22ea8e039a5bd85762aebc2ff2a347e159e24a97587343f9c17",
+          "symlink_target": null
+        }
+      }
+    ],
+    "truncated": false,
+    "truncation_details": {
+      "raw_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 123,
+        "retained_bytes": 123,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "rendered_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 348,
+        "retained_bytes": 348,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "filesystem_before": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "filesystem_after": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 316829,
+        "hash_omissions": []
+      },
+      "process": {
+        "sample_limit": 32,
+        "sampling_partial": false,
+        "retained_samples": 1,
+        "sample_limit_reached": false,
+        "sampling_failures": 0,
+        "first_sampling_failure": null,
+        "coverage": "sampled"
+      }
+    },
+    "limitations": [
+      "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+      "Process trees are sampled and may omit short-lived descendants.",
+      "Filesystem observations are before/after snapshots, not syscall traces.",
+      "Inherited host environment variables are not recorded and may affect results."
+    ],
+    "residual_unknowns": [
+      {
+        "scope": "process",
+        "reason": "Process trees are sampled and may omit short-lived descendants."
+      },
+      {
+        "scope": "process",
+        "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+      },
+      {
+        "scope": "environment",
+        "reason": "Inherited host environment variables are not recorded."
+      },
+      {
+        "scope": "network",
+        "reason": "Network activity is not observed by this capture."
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325104 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325104/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325105 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325105/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325106 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325106/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325155 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325155/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325291 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325291/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325293 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325293/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325405 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325405/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325406 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325406/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325407 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325407/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325408 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325408/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325409 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325409/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325410 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325410/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325470 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325470/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2325513 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2325513/environ'"
+      }
+    ],
+    "cleanup": {
+      "owned_process_group": "verified",
+      "temporary_root": "removed",
+      "unverified_processes": [
+        {
+          "pid": 2325104,
+          "reason": "EACCES: permission denied, open '/proc/2325104/environ'"
+        },
+        {
+          "pid": 2325105,
+          "reason": "EACCES: permission denied, open '/proc/2325105/environ'"
+        },
+        {
+          "pid": 2325106,
+          "reason": "EACCES: permission denied, open '/proc/2325106/environ'"
+        },
+        {
+          "pid": 2325155,
+          "reason": "EACCES: permission denied, open '/proc/2325155/environ'"
+        },
+        {
+          "pid": 2325291,
+          "reason": "EACCES: permission denied, open '/proc/2325291/environ'"
+        },
+        {
+          "pid": 2325293,
+          "reason": "EACCES: permission denied, open '/proc/2325293/environ'"
+        },
+        {
+          "pid": 2325405,
+          "reason": "EACCES: permission denied, open '/proc/2325405/environ'"
+        },
+        {
+          "pid": 2325406,
+          "reason": "EACCES: permission denied, open '/proc/2325406/environ'"
+        },
+        {
+          "pid": 2325407,
+          "reason": "EACCES: permission denied, open '/proc/2325407/environ'"
+        },
+        {
+          "pid": 2325408,
+          "reason": "EACCES: permission denied, open '/proc/2325408/environ'"
+        },
+        {
+          "pid": 2325409,
+          "reason": "EACCES: permission denied, open '/proc/2325409/environ'"
+        },
+        {
+          "pid": 2325410,
+          "reason": "EACCES: permission denied, open '/proc/2325410/environ'"
+        },
+        {
+          "pid": 2325470,
+          "reason": "EACCES: permission denied, open '/proc/2325470/environ'"
+        },
+        {
+          "pid": 2325513,
+          "reason": "EACCES: permission denied, open '/proc/2325513/environ'"
+        }
+      ]
+    }
+  },
+  "confidence": "observed",
+  "authority": "controlled-replay",
+  "environment": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "isolation": "process"
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

@@ -1,0 +1,100 @@
+[workspace]
+resolver = "2"
+members = ["apps/desktop", "crates/rune-i18n", "crates/rune-model", "crates/rune-provider", "crates/rune-discord", "crates/rune-discord-session", "crates/rune-login", "crates/rune-state", "crates/rune-storage", "crates/rune-core", "crates/rune-media", "crates/rune-components", "crates/rune-ui", "crates/rune-platform", "crates/rune-update"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+# limn: native UI from our verified integration branch, preserving Composer
+# file-drop targets and column sizing while adding captured paste/indexed input,
+# plus PR #66 (F-keys, Alt, mouse side buttons, focus regions, fitted surfaces)
+# and PR #67 (color emoji artwork over text glyphs), PR #72
+# (ImageViewer::action, «Guardar como…» in the viewer) and PR #73
+# (syntax-highlighted fenced code in Markdown, P4) on top, and
+# `limn_egui::font_definitions_with` (interface text in a font the person
+# chose, PR #76, P6) and Element::foreground_gradient (role gradients on
+# names, PR #75, P5), and pictures in a line of text (TextSpan::image and
+# ::surface: a server's emoji in messages, bios and replies, 2026-10-17), and
+# faces in a hint (Tooltip::faces: who is in a server's calls, on the rail),
+# and the marks of text (underline, strikethrough, bold italic and subtext in
+# Markdown; hints on a span; a line limit ending in «…»; filled highlights in
+# a text area: PR #82, 2026-10-18), and a layer that dims under the pointer
+# with the named hover region under it (Element::dim_on_hover,
+# hover_region_id, UiTree::hovered_region: a card's effect at 35 %, the
+# message whose text the pointer is over; branch rune/hover-dim, 2026-10-18),
+# and a semibold face, more code languages, surfaces that never grow past
+# their pixels, option hints and an avatar's own color (branch
+# rune/limn-tipografia-y-opciones, 2026-10-18), and the options of a hint
+# (delay, title, pointer, fill), a Badge in another corner and size, icons
+# under 16 px and emoji categories, a level on a Slider's track, a Switch of
+# any size, a Select's rows in view and field text, a scrollbar that wakes
+# under the pointer, and a Composer whose editor grows beside its controls
+# with richer suggestions (branch rune/limn-avisos-y-compositor, 2026-10-18),
+# and every key with its release and the modifiers held (push to talk and the
+# key recorder without egui, the message bar that widens with Shift), mirrored
+# surfaces (the camera's preview) and surfaces in buttons and menu options
+# (animated emoji of apps' parts; branch rune/limn-teclado-y-superficies,
+# 2026-10-19), and images on screen that never evict each other from the
+# texture cache (an emoji picker with more pictures than the limit flickered;
+# branch rune/emoji-parpadeo, 2026-10-19); all joined in branch
+# rune/integration-2026-10-19.
+# The exact revision stays in Cargo.lock; a git dependency keeps workspace fmt
+# from rewriting third-party sources. Upstream work is published separately.
+limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
+limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
+eframe = { version = "0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }
+# The core owns async provider sessions, HTTP I/O and the loopback OAuth callback.
+# Async filesystem writes keep explicit attachment downloads off the UI thread.
+tokio = { version = "1.53", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util", "fs"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# The interface's languages: the active one and the English of its texts.
+rune-i18n = { path = "crates/rune-i18n" }
+rune-model = { path = "crates/rune-model" }
+rune-provider = { path = "crates/rune-provider" }
+# The authorized OAuth identity adapter; selected only by the desktop host.
+rune-discord = { path = "crates/rune-discord" }
+# Separate, explicitly unofficial adapter for an owner-operated session.
+rune-discord-session = { path = "crates/rune-discord-session" }
+# Ephemeral login in a child process; web rendering is an opt-in feature.
+rune-login = { path = "crates/rune-login" }
+rune-state = { path = "crates/rune-state" }
+rune-storage = { path = "crates/rune-storage" }
+rune-core = { path = "crates/rune-core" }
+# Native system services run independently of the window and account provider.
+rune-platform = { path = "crates/rune-platform" }
+rune-media = { path = "crates/rune-media" }
+rune-components = { path = "crates/rune-components" }
+rune-ui = { path = "crates/rune-ui" }
+# RUNE's own signed updates, independent of the window and providers.
+rune-update = { path = "crates/rune-update" }
+
+# hpke-rs 0.6.1 (davey -> openmls_rust_crypto) depends on libcrux-sha3 0.0.8,
+# affected by RUSTSEC-2026-0207/0208. openmls pins hpke-rs ^0.6, so this copy
+# swaps it for RustCrypto sha3 and drops the libcrux backend; see
+# vendor/hpke-rs/RUNE-PATCH.md for the diff and when to remove it.
+[patch.crates-io]
+hpke-rs = { path = "vendor/hpke-rs" }
+
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+
+[profile.dev]
+debug = "line-tables-only"
+
+# Dependencies are built once, so they can afford to be optimized: an
+# unoptimized renderer drops frames. Workspace crates stay fast to rebuild.
+[profile.dev.package."*"]
+opt-level = 2
+debug = false
+
+[profile.release]
+lto = "thin"

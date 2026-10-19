@@ -1,0 +1,401 @@
+{
+  "date": "2026-10-15",
+  "kind": "static-source-audit-addendum",
+  "status": "existing-wayland-backend-candidate-not-integrated-or-native-verified-in-rune",
+  "scope": "Source review of limn-dnd and cached native SDK ownership; no REA runtime or native DND proof",
+  "runtime_actions": {
+    "cargo_executed": false,
+    "binaries_launched": false,
+    "native_input_sent": false,
+    "account_accessed": false,
+    "native_drop_verified": false
+  },
+  "initial_read_only_finding": {
+    "correction": "limn-dnd exists in git source at both historical RUNE dependency revisions and inspected main; it is absent from the effective RUNE Cargo dependency graph and limn-egui integration, not absent from those git revisions.",
+    "git_evidence": {
+      "command": "git ls-tree <revision> crates/limn-dnd",
+      "tree": "5d357beabb58d8af01af46b84aed094b207448f6",
+      "revisions": [
+        "2618b37d1c17b73ef70c43e67f5641ec4da41a3a",
+        "1ad33eb224b6b4fb48de9423b23a89d6230e087f",
+        "a3ce02a630a5e8310efecbdad6a7d1b7767cf63c"
+      ],
+      "inspected_main_commit_time": "2026-10-15T05:46:12-03:00"
+    },
+    "implemented_mechanism": "A private Wayland queue on the host window own wl_display, a wl_data_device per seat, exact wl_surface check on enter, compositor surface-local motion coordinates, and URI-list bytes received for the dropped offer. This can bypass the missing winit 0.30.13 Wayland file-event producer without a winit fork.",
+    "integration_status": "No FileDnd caller was found outside limn-dnd itself; no limn_dnd dependency in RUNE Cargo manifests/lock. DndEvent is not automatically translated by limn-egui into UiEvent.",
+    "platform_limit": "attach returns None outside Linux/Wayland. The lib comment about X11/Windows/macOS winit events does not establish positioned batches or verified support on those platforms.",
+    "test_limit": "Three URI codec tests and a live connection/locally rejected outgoing-drag test exist. The live test returns early when no compositor is available; it does not exercise a real incoming batch, source-file preparation, RUNE integration or UI account/permission races."
+  },
+  "static_findings": [
+    {
+      "id": "move-finish",
+      "severity": "P1-before-RUNE-integration",
+      "sources": [
+        "limn_wayland"
+      ],
+      "lines": [
+        210,
+        226,
+        328
+      ],
+      "finding": "Incoming offers advertise Copy|Move and finish before URI validation and application admission. Move completion may allow the source to delete transferred data. RUNE attachments must not acknowledge a Move operation.",
+      "reproduction_plan": "Select Move action, deliver a URI list rejected by RUNE, observe that existing Received handling still calls finish before emitting the batch. This is a source-based plan, not an executed RED."
+    },
+    {
+      "id": "offer-identity",
+      "severity": "P1-before-RUNE-integration",
+      "sources": [
+        "limn_wayland"
+      ],
+      "lines": [
+        37,
+        41,
+        166,
+        172,
+        210,
+        226,
+        361,
+        378
+      ],
+      "finding": "Received carries x/y/data without offer identity; global dropped/action can be replaced by another offer/seat. Old read completion can finish/destroy the newer stored offer and emit the old batch.",
+      "reproduction_plan": "Hold read A, accept/drop B, complete A first, then B. Require matching offer, action, position and terminal for each operation; stale/cancelled results must not authorize a new UI scope."
+    },
+    {
+      "id": "bounds-and-cancellation",
+      "severity": "P1-before-RUNE-integration",
+      "sources": [
+        "limn_api",
+        "limn_wayland"
+      ],
+      "lines": [
+        35,
+        66,
+        89,
+        178,
+        369,
+        377
+      ],
+      "finding": "Commands/events are unbounded, poll drains into an unbounded Vec, and each drop starts a new blocking read thread with no deadline/cancellation. take(16 MiB) truncates without detecting an extra byte or read error.",
+      "reproduction_plan": "Use a held-open URI pipe and repeated drops, then MAX_LIST_BYTES+1 input. Require one bounded reader/operation, bounded reliable terminals, coalesced hover, timeout/cancel and explicit oversized failure without prefix publication."
+    },
+    {
+      "id": "uri-subset",
+      "severity": "P1-before-RUNE-integration",
+      "sources": [
+        "limn_uri_list"
+      ],
+      "lines": [
+        48,
+        77
+      ],
+      "finding": "decode filters invalid/unsupported lines and accepts malformed percent escapes literally. Mixed lists can silently become subsets, contrary to the current RUNE all-or-error import contract.",
+      "reproduction_plan": "Valid local URI plus invalid/remote/malformed URI and oversized path/count cases; reject the full batch before any path enters Core."
+    },
+    {
+      "id": "lifetime-and-ui-join",
+      "severity": "P1-before-RUNE-integration",
+      "sources": [
+        "limn_api",
+        "limn_wayland",
+        "wayland_backend_0317_system"
+      ],
+      "lines": [
+        55,
+        85,
+        89,
+        94,
+        106,
+        114
+      ],
+      "finding": "Safe attach documents a borrowed window lifetime but FileDnd stores no lifetime/owner. Foreign backend requires display to remain alive; worker Drop synchronously joins, including startup roundtrip or blocking callbacks.",
+      "reproduction_plan": "Hold startup/transfer, begin host close and drop the last owner. Require explicit shutdown ownership/handshake, guest-protocol cleanup, bounded cancellation and last destructors outside UI before releasing borrowed display/surface owners."
+    }
+  ],
+  "cached_sdk_ownership_chain": {
+    "observed": [
+      "eframe 0.36.2 CreationContext supplies raw handles and Option<&Arc<winit::Window>>.",
+      "winit 0.30.13 Wayland Window owns Arc<Mutex<WindowState>> and WindowState owns a cloned wayland_client::Connection; its EventLoop separately owns Connection and event dispatch.",
+      "wayland_client 0.31.15 Connection owns Backend; system InnerBackend uses Arc<Inner>.",
+      "Backend::from_foreign_display is guest mode: it does not own/close the borrowed display and requires that display live through all guest clones; SDK requires Wayland cleanup before guest backend drop."
+    ],
+    "conclusion": "The cached chain provides evidence for a possible retained-owner design, but obtaining or cloning Arc<Window> alone is not a complete safe-API or shutdown proof. It does not demonstrate continued event dispatch, cleanup order, worker termination or behavior after host event-loop shutdown. An explicit owner/foreign-queue shutdown handshake and lifecycle tests remain prerequisites.",
+    "safe_api_promised": false
+  },
+  "proposed_next_scope": {
+    "implemented": false,
+    "location": "Separate upstream limn worktree/PR for receive-only Wayland backend hardening, then an independent limn-egui/RUNE integration slice.",
+    "prerequisites": [
+      "Copy-only negotiation and exact-offer completion after validation.",
+      "Opaque per-offer/generation identity, cancel/reset of in-flight batches and stale-account/channel rejection.",
+      "Bounded queues/read credit, coalesced hover, one fixed/nonblocking read owner, explicit overflow/read failure and deadlines.",
+      "Strict complete URI-list decoding and current RUNE count/path/metadata bounds before Core admission; no automatic send.",
+      "Retain proven native owners until a tested shutdown handshake completes; no UI join or foreign-display use after owner release.",
+      "Convert surface-local coordinates to the tree coordinate/zoom space; test DPI, zoom, overlays, same-frame input and closed/changed windows.",
+      "Synthetic Wayland/state/pipe race tests followed by a real owned-fixture incoming batch and preparation QA."
+    ],
+    "unchanged_policy": "Legacy RawInput without a position tied to its batch remains rejected. This addendum does not enable imports, outgoing DND, remote uploads or another platform.",
+    "alternatives": "winit/egui 0.31 migration or a coordinated backend backport remain alternatives, not the only possible routes."
+  },
+  "primary_sources": {
+    "limn_api": {
+      "path": "/home/nihuel/projects/personal/limn-column-shrink/crates/limn-dnd/src/lib.rs",
+      "bytes": 3947,
+      "sha256": "04809fd36a12a28430d7f74765faf93ce19e4fd2077c4099f09799feab13efb0",
+      "lines": {
+        "events": [
+          22,
+          44
+        ],
+        "attach": [
+          52,
+          86
+        ],
+        "poll": [
+          89,
+          95
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "limn_wayland": {
+      "path": "/home/nihuel/projects/personal/limn-column-shrink/crates/limn-dnd/src/wayland.rs",
+      "bytes": 16432,
+      "sha256": "9e194dc5d24540dc1aaa39ef278b98f716b1c1bb1d9d40805ca33645c9ce99f3",
+      "lines": {
+        "queues_and_worker": [
+          35,
+          94
+        ],
+        "offer_completion": [
+          210,
+          226
+        ],
+        "surface_and_motion": [
+          306,
+          349
+        ],
+        "drop_read": [
+          353,
+          379
+        ],
+        "live_test": [
+          489,
+          523
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "limn_uri_list": {
+      "path": "/home/nihuel/projects/personal/limn-column-shrink/crates/limn-dnd/src/uri_list.rs",
+      "bytes": 3644,
+      "sha256": "6e9ff9cea06cea9ed96a7fcff9dd50e5457abeeeb786808b0095c44d5efa698e",
+      "lines": {
+        "decode": [
+          48,
+          77
+        ],
+        "tests": [
+          80,
+          113
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "limn_manifest": {
+      "path": "/home/nihuel/projects/personal/limn-column-shrink/crates/limn-dnd/Cargo.toml",
+      "bytes": 668,
+      "sha256": "fbd89627f16fe3e752ea409e8395c0a216052f68c4a9fe0b3fd365a2d1d65403",
+      "lines": {
+        "dependencies": [
+          16,
+          21
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "limn_backend_contract": {
+      "path": "/home/nihuel/projects/personal/limn-column-shrink/docs/backend.md",
+      "bytes": 10067,
+      "sha256": "1cf83fdd45de18cb12d2b6205758e62bde131b1c34abcd44bbf4f9ebc689e1c2",
+      "lines": {
+        "events": [
+          35,
+          57
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "eframe_0362": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/eframe-0.36.2/src/epi.rs",
+      "bytes": 37243,
+      "sha256": "9dad50a69b22c031c125df16b76d9bed59e8695c97639f927b8f7f8ccb3fe820",
+      "lines": {
+        "raw_handles": [
+          100,
+          115
+        ],
+        "window_arc": [
+          140,
+          147
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "winit_03013_window": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.13/src/platform_impl/linux/wayland/window/mod.rs",
+      "bytes": 25452,
+      "sha256": "30b6c00aa143046e4b1d7277e5fd08ae7ef7f7f084b0c0e62c89e0dda8a5c6c2",
+      "lines": {
+        "state_and_display": [
+          42,
+          78
+        ],
+        "connection_clone": [
+          109,
+          113
+        ],
+        "drop": [
+          718,
+          723
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "winit_03013_window_state": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.13/src/platform_impl/linux/wayland/window/state.rs",
+      "bytes": 43519,
+      "sha256": "d09f9c19235a36d0a0068eb82428a27e3a4f318f31925368e573310ae791030a",
+      "lines": {
+        "connection": [
+          56,
+          60
+        ],
+        "drop": [
+          1150,
+          1168
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "winit_03013_event_loop": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.13/src/platform_impl/linux/wayland/event_loop/mod.rs",
+      "bytes": 30268,
+      "sha256": "dd1ceefa859550fb109460ff9b536307dfa457069899244da0220c0a81267edb",
+      "lines": {
+        "connection_and_dispatcher": [
+          48,
+          79
+        ],
+        "wayland_dispatch": [
+          89,
+          106
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "wayland_client_03115": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wayland-client-0.31.15/src/conn.rs",
+      "bytes": 11042,
+      "sha256": "7abb7cb65390cb87235266b01ec02a378699465922e42f2c10922d2c7c48f2b0",
+      "lines": {
+        "connection_backend": [
+          34,
+          40
+        ],
+        "from_backend": [
+          110,
+          119
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "wayland_backend_0317_api": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wayland-backend-0.3.17/src/client_api.rs",
+      "bytes": 14645,
+      "sha256": "aaf1bfaf418b897821b856bf614932263e7b4b9d2293908b0b473ab57aab74f6",
+      "lines": {
+        "shared_backend": [
+          134,
+          145
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "wayland_backend_0317_system": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wayland-backend-0.3.17/src/sys/mod.rs",
+      "bytes": 9087,
+      "sha256": "0ba2132bd106016e2a45219dc810343a152bb03700e0c4a282529f9e1732c379",
+      "lines": {
+        "foreign_display_safety": [
+          85,
+          104
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "wayland_backend_0317_system_impl": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wayland-backend-0.3.17/src/sys/client_impl/mod.rs",
+      "bytes": 41538,
+      "sha256": "b7606de09034a7098e7c70733630c6f304caeef94c1fa3e99b7c0f8955d7d632",
+      "lines": {
+        "strong_backend_owner": [
+          200,
+          215
+        ],
+        "guest_mode": [
+          271,
+          296
+        ],
+        "connection_drop": [
+          1128,
+          1154
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    },
+    "sctk_020_offer": {
+      "path": "/home/nihuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/smithay-client-toolkit-0.20.0/src/data_device_manager/data_offer.rs",
+      "bytes": 15867,
+      "sha256": "a08041dd7524579a774b09c6a748fa041cacc86073f84fde91f02c16e1f64742",
+      "lines": {
+        "offer_coordinates_and_finish": [
+          64,
+          94
+        ]
+      },
+      "authority": "local primary source; static inspection only"
+    }
+  },
+  "external_primary_links": [
+    {
+      "url": "https://github.com/Niiihuel/limn/blob/a3ce02a630a5e8310efecbdad6a7d1b7767cf63c/crates/limn-dnd/src/lib.rs",
+      "purpose": "Exact inspected limn API source"
+    },
+    {
+      "url": "https://github.com/Niiihuel/limn/blob/a3ce02a630a5e8310efecbdad6a7d1b7767cf63c/crates/limn-dnd/src/wayland.rs",
+      "purpose": "Exact inspected Wayland implementation"
+    },
+    {
+      "url": "https://docs.rs/eframe/0.36.2/eframe/struct.CreationContext.html",
+      "purpose": "Raw handle traits and root winit window API"
+    },
+    {
+      "url": "https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_data_device",
+      "purpose": "Surface-local position and data-device offer/drop protocol"
+    },
+    {
+      "url": "https://wayland.freedesktop.org/docs/html/apa.html#protocol-spec-wl_data_source",
+      "purpose": "Move source deletion after dnd_finished"
+    },
+    {
+      "url": "https://github.com/Smithay/wayland-rs/blob/72f7fe0d9e99cb720ed57ade0c3077aec533b6ab/wayland-backend/src/sys/mod.rs#L85-L104",
+      "purpose": "Guest backend/display lifetime at the git revision recorded by the cached 0.3.17 package; local SDK source hashes above are the inspected authority"
+    }
+  ],
+  "limits": [
+    "Static source inspection does not establish successful native incoming DND or account safety.",
+    "No runtime REA evidence ID is assigned to this addendum; existing native/historical checkpoint ledgers and counts remain unchanged.",
+    "Existing code is a backend candidate. Its source presence, compilation or non-drop connection test must not be labelled functional DND support in RUNE."
+  ]
+}

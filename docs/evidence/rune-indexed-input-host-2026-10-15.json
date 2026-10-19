@@ -1,0 +1,1327 @@
+{
+  "schema": 1,
+  "date": "2026-10-15",
+  "status": "host-indexed-order-focus-and-switcher-query-verified",
+  "scope": "RUNE ordered host input, native-focus synchronization and controlled switcher reset; native paused Mock sequences only. The broader07.3 owner/ACK/deferred clipboard and functional native DnD remain open.",
+  "source": {
+    "rune_snapshot": "Working-tree six-source/manifest snapshot, not a new RUNE Git commit or whole-repository source archive.",
+    "files": [
+      {
+        "relative": "Cargo.toml",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26"
+        }
+      },
+      {
+        "relative": "Cargo.lock",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0"
+        }
+      },
+      {
+        "relative": "apps/desktop/src/main.rs",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/apps/desktop/src/main.rs",
+          "bytes": 108892,
+          "sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-apps_desktop_src_main.rs",
+          "bytes": 108892,
+          "sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7"
+        }
+      },
+      {
+        "relative": "apps/desktop/src/input_tests.rs",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/apps/desktop/src/input_tests.rs",
+          "bytes": 17804,
+          "sha256": "dca00b30b4e51208a869a7b084353a3b5b2d75aa5acd8950b06269f936412574"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-apps_desktop_src_input_tests.rs",
+          "bytes": 17804,
+          "sha256": "dca00b30b4e51208a869a7b084353a3b5b2d75aa5acd8950b06269f936412574"
+        }
+      },
+      {
+        "relative": "crates/rune-ui/src/lib.rs",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/crates/rune-ui/src/lib.rs",
+          "bytes": 38062,
+          "sha256": "c1c931c166ffc4872630001cd3ebcb9a32f0a1ac18ecf896100cd7a89dcaf8da"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-crates_rune-ui_src_lib.rs",
+          "bytes": 38062,
+          "sha256": "c1c931c166ffc4872630001cd3ebcb9a32f0a1ac18ecf896100cd7a89dcaf8da"
+        }
+      },
+      {
+        "relative": "crates/rune-ui/src/settings/mod.rs",
+        "source": {
+          "path": "/home/nihuel/projects/personal/rune/crates/rune-ui/src/settings/mod.rs",
+          "bytes": 33092,
+          "sha256": "783ee3729fc83080d9b79dea052250727e6002cf3cac57f651f00e1894e0c01b"
+        },
+        "snapshot": {
+          "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-crates_rune-ui_src_settings_mod.rs",
+          "bytes": 33092,
+          "sha256": "783ee3729fc83080d9b79dea052250727e6002cf3cac57f651f00e1894e0c01b"
+        }
+      }
+    ],
+    "main_sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7",
+    "limn_pin": "6ae42859f86f5d255e107a23142aca3c19c86590",
+    "limn_branch": "rune/ordered-input-integration",
+    "limn_merge_parents": [
+      "22e0fd93c14b3f3c89375135f83c1e9c41307330",
+      "b52284a0d94b090784139d8be874f63b9694b48d"
+    ],
+    "publication_authority": "Root reported successful publication/clean integration branch; exact commit parents were independently read locally. No new remote lookup by canonical author.",
+    "dependency_source": "git+file:///home/nihuel/projects/personal/lienzo?branch=rune%2Fordered-input-integration",
+    "resolution_before_rune_pin_update": {
+      "scope": "Own limn integration branch only; no RUNE pin change yet",
+      "base": "22e0fd93c14b3f3c89375135f83c1e9c41307330",
+      "merged": "b52284a0d94b090784139d8be874f63b9694b48d",
+      "resolution": "Converter region byte-identical to upstream indexed source; legacy file test changes expected order only; both paths/position/no-content-read retained; docs/changelog reconcile superseded artificial after-input ordering. Composer/Column preservation independently reviewed.",
+      "reviewer": "/root/cache_design_review",
+      "converter_sha256": "01a3cedde4477c637375aba7e57d796ba8b0833b8bd8b3449ba11f114979f4e3"
+    },
+    "compatibility": "Preserves Composer/Column; indexed converter supersedes artificial after-input file order with explicit frame-derived None prefix. Unreliable legacy files remain rejected before bridge and submission barrier remains."
+  },
+  "input_records": [
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/resolution.json",
+      "bytes": 610,
+      "sha256": "274e997af366cbd328b20b62321f1c00cf479f83044bf6a85ec8c280a2af3111"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/workspace-tests.json",
+      "bytes": 2426,
+      "sha256": "ad9fe61fc08043adfec39a15c2699e116bc778478366fe169af1d7e12c61a793"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/checks.json",
+      "bytes": 1489,
+      "sha256": "f63f90f9024c07ab4db2ff54e30f9ac9d80787f7f24f7cc1bc874756255d0af3"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-pin-workspace.json",
+      "bytes": 2858,
+      "sha256": "4f48d27978df0c3b18c1edf8ec993163ef008ce3026e37b231b8522852a8fd7c"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-red.json",
+      "bytes": 1488,
+      "sha256": "09342062c5d9a3e584e0556e77db0d9c7e83ce43856dd1ec3a54ee98829b9c74"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red.json",
+      "bytes": 1641,
+      "sha256": "7f3cc21968e17c926004abefa45dd4061ad4c978e052d5ff3ffb352a71729dae"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green.json",
+      "bytes": 1629,
+      "sha256": "9205d45d4b0f66153c69d60f4a9090ed9fcb97e8dbba67d5299286f9433e3314"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red.json",
+      "bytes": 1671,
+      "sha256": "580dc38c627b2c87efb9c7f658848d612a83cf2b9daa1920d90f7cec063d7ba5"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green.json",
+      "bytes": 1629,
+      "sha256": "917fefcc70d20e14265142cfc1f2ee1f0aaf243d770afe9d2501b2309cbf307b"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red.json",
+      "bytes": 1641,
+      "sha256": "5781fa09ac24790e23c1cc88c71663a45116bb3f20fb840d547297ebade4788e"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green.json",
+      "bytes": 1644,
+      "sha256": "310c97ce308079f5a3aa60082bb590ebc453a65898c23cb1e116b1e779f7e87e"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final-checks.json",
+      "bytes": 4473,
+      "sha256": "e6c972504c53ffc02348e2b534fcd8338b957a0ae96b55658d5de7e95c70181e"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final2-checks.json",
+      "bytes": 4530,
+      "sha256": "c27c4447e3699bf01b48a26e7a3a9663c3829ad1d2eb0101db2fa75edd081e1e"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-rune-sources.json",
+      "bytes": 2939,
+      "sha256": "1bf5995fce84eb924e624b70703bcfcdc8d80f17db6b135087e893e2bdc0743d"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/independent-reviews.json",
+      "bytes": 780,
+      "sha256": "e7c0e781b8ba81d03a32e35e56e09e7bc586b695f33191b236a2c363a0d82405"
+    },
+    {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/before-switcher-ui.json",
+      "bytes": 559,
+      "sha256": "4ffd6e9a0bd08cbe9be5926c4a072442f17c026a44493b40072e497ef1cb07f5"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/artifact.first.json",
+      "bytes": 185,
+      "sha256": "b3fb816cc6c24eac48404de59d5acc3e63541c5f28ff6655aa67308dc89dcbc3"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/artifact.v2.json",
+      "bytes": 188,
+      "sha256": "c299032a5a78a462fcee695e21ff99a9100c05509f685ebb18f17159fa350997"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/native-first-root-review.json",
+      "bytes": 1512,
+      "sha256": "c96a9756cf1e93c4e4b73651ddc94a6268602338c8020c53cbcf4503d8fb5c4d"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/native-final-root-review.json",
+      "bytes": 3423,
+      "sha256": "1c9f58bb2bb0f350a034b50d48ed2f67847a2db233b17379cd672e817b8535c3"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/rea-native-first.json",
+      "bytes": 16678,
+      "sha256": "b5b5a451475ea57ffbfdfd6ea8c82383e24f920bf196f354c66bf463d69929ee"
+    },
+    {
+      "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/rea-native-final.json",
+      "bytes": 19424,
+      "sha256": "47bc133944576b17a2522acf01f9cc220c74dbfd69465e49c238c630be058a99"
+    }
+  ],
+  "cpu": {
+    "limn_integration": {
+      "summary": {
+        "passed": 1595,
+        "ignored": 5,
+        "suites": 21,
+        "sum_suite_seconds": 6.66,
+        "wall_seconds": 22.541
+      },
+      "record": {
+        "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/workspace-tests.json",
+        "bytes": 2426,
+        "sha256": "ad9fe61fc08043adfec39a15c2699e116bc778478366fe169af1d7e12c61a793"
+      },
+      "strict_checks": [
+        {
+          "name": "workspace-clippy",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--locked",
+            "--offline",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit_code": 0,
+          "seconds": 10.868,
+          "log_bytes": 673,
+          "log_sha256": "662b97fc8f1379ca2f7fdb00fef37d1793a4973f05022010696f1f1592549d8f"
+        },
+        {
+          "name": "gallery-hot-clippy",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "clippy",
+            "-p",
+            "limn-gallery",
+            "--all-targets",
+            "--features",
+            "hot",
+            "--locked",
+            "--offline",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit_code": 0,
+          "seconds": 5.493,
+          "log_bytes": 468,
+          "log_sha256": "0b4377fff2f75701b78588b5cc1272ab8a34e9d6cff505c29737c85ad1e396d0"
+        },
+        {
+          "name": "workspace-rustdoc",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "doc",
+            "--workspace",
+            "--no-deps",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 5.46,
+          "log_bytes": 1178,
+          "log_sha256": "0b46009189beb2c88442d7efe6db329a3a1bf76d12976870e95b93ae6f8e7be7"
+        },
+        {
+          "name": "diff-whitespace",
+          "command": [
+            "rtk",
+            "proxy",
+            "git",
+            "diff",
+            "--cached",
+            "--check"
+          ],
+          "exit_code": 0,
+          "seconds": 0.025,
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "rune_pin_only_baseline": {
+      "summary": {
+        "passed": 1120,
+        "ignored": 6,
+        "suites": 25,
+        "sum_suite_seconds": 5.69,
+        "wall_seconds": 25.366
+      },
+      "record": {
+        "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-pin-workspace.json",
+        "bytes": 2858,
+        "sha256": "4f48d27978df0c3b18c1edf8ec993163ef008ce3026e37b231b8522852a8fd7c"
+      }
+    },
+    "test_setup_failure": {
+      "record": {
+        "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-red.json",
+        "bytes": 1488,
+        "sha256": "09342062c5d9a3e584e0556e77db0d9c7e83ce43856dd1ec3a54ee98829b9c74"
+      },
+      "diagnostic": "E0560: RawInput has no modifiers field; fixture corrected with ModifiersChanged before tests ran.",
+      "tests_executed": 0,
+      "functional_red_claimed": false
+    },
+    "behavior_red6": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 101,
+      "seconds": 1.986,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 105451,
+          "sha256": "076333167fd7f1c0ac41b18228762366b75249543f1700fbfbf9b25b8af20aef",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 13309,
+          "sha256": "bc31de72e5df8b9fe1ac9a4f1d0fcd870579ff234c52b98156ba13c7cc6bb24e",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-behavior-red.log",
+      "log_bytes": 3569,
+      "log_sha256": "7a15736816419c8351d7a815db353b2dd7a121e277988e9dd906098cedab4ada",
+      "test_results": [
+        "test result: FAILED. 0 passed; 6 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.01s"
+      ]
+    },
+    "green6": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "seconds": 2.211,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 108463,
+          "sha256": "d813154402e8ec624472952d5e9a4f03fec775ee9c62455fe4768350775ae035",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 13309,
+          "sha256": "bc31de72e5df8b9fe1ac9a4f1d0fcd870579ff234c52b98156ba13c7cc6bb24e",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-first-green.log",
+      "log_bytes": 889,
+      "log_sha256": "cb4e6b3abb72126c7746c2ebe6468dd23bd81138902bf8e733185111fb7f703a",
+      "test_results": [
+        "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s"
+      ]
+    },
+    "focus_fallback_red7": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 101,
+      "seconds": 1.785,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 108463,
+          "sha256": "d813154402e8ec624472952d5e9a4f03fec775ee9c62455fe4768350775ae035",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 15355,
+          "sha256": "4dc1808c946ef42545878614d69f545d6abc4ecdc1af38c85fdd69ac3c031fe2",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-focus-fallback-red.log",
+      "log_bytes": 1571,
+      "log_sha256": "91bcdeb8711b53fac51b70c34bc72f227e7aacb01e3d15ea5437e89e4129cb20",
+      "test_results": [
+        "test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s"
+      ]
+    },
+    "green7": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "seconds": 1.621,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 108892,
+          "sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 15640,
+          "sha256": "fdabc321785fd27464f92f6aefb1e88165f898be1da4b3616b51ff9c5882104a",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-final-green.log",
+      "log_bytes": 983,
+      "log_sha256": "ee103e85f674b9042f4a97a8b9f2a26e864547fd63c8874fb78aab41a445af1d",
+      "test_results": [
+        "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s"
+      ]
+    },
+    "switcher_red8": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 101,
+      "seconds": 1.837,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 108892,
+          "sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 17631,
+          "sha256": "50838c8251d21d02958a47a2a3f092aad2d595636adc26f1822f8193b43ef754",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-red.log",
+      "log_bytes": 1751,
+      "log_sha256": "75629f0ef4896fad52c64385fb51b8a9979d9eb56112ddf06c2bb325e6414e33",
+      "test_results": [
+        "test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s"
+      ]
+    },
+    "switcher_green8": {
+      "command": [
+        "rtk",
+        "proxy",
+        "cargo",
+        "test",
+        "-p",
+        "rune-desktop",
+        "--all-features",
+        "input_tests::",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "seconds": 3.43,
+      "sources": [
+        {
+          "relative": "apps/desktop/src/main.rs",
+          "bytes": 108892,
+          "sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green-apps_desktop_src_main.rs"
+        },
+        {
+          "relative": "apps/desktop/src/input_tests.rs",
+          "bytes": 17804,
+          "sha256": "dca00b30b4e51208a869a7b084353a3b5b2d75aa5acd8950b06269f936412574",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green-apps_desktop_src_input_tests.rs"
+        },
+        {
+          "relative": "Cargo.toml",
+          "bytes": 2871,
+          "sha256": "39a9b5ca8e7591b75ecc620e05c9a18008d57c380d6a9eaede79ba852b0c5a26",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green-Cargo.toml"
+        },
+        {
+          "relative": "Cargo.lock",
+          "bytes": 154577,
+          "sha256": "19d559c1d781e6fde1a21ee1a3d81ae554f5139b0252f88fa0633be0789697c0",
+          "snapshot": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green-Cargo.lock"
+        }
+      ],
+      "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/host-switcher-green.log",
+      "log_bytes": 1166,
+      "log_sha256": "0e0637ecbd41e76831e61e5bf4848880f7bbaccda9467044e9ca8751ee9e102b",
+      "test_results": [
+        "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.03s"
+      ]
+    },
+    "intermediate_rune1127": {
+      "summary": {
+        "passed": 1127,
+        "ignored": 6,
+        "suites": 25,
+        "sum_suite_seconds": 5.62,
+        "wall_seconds": 8.539
+      },
+      "record": {
+        "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final-checks.json",
+        "bytes": 4473,
+        "sha256": "e6c972504c53ffc02348e2b534fcd8338b957a0ae96b55658d5de7e95c70181e"
+      },
+      "status": "Superseded by final1128 after native switcher finding; retained historical result."
+    },
+    "rune_final": {
+      "summary": {
+        "passed": 1128,
+        "ignored": 6,
+        "suites": 25,
+        "sum_suite_seconds": 5.77,
+        "wall_seconds": 11.027
+      },
+      "checks": [
+        {
+          "name": "rune-final2-fmt",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "exit_code": 0,
+          "seconds": 0.785,
+          "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final2-fmt.log",
+          "log_bytes": 0,
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "test_results": []
+        },
+        {
+          "name": "rune-final2-workspace",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "test",
+            "--workspace",
+            "--all-features",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 11.027,
+          "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final2-workspace.log",
+          "log_bytes": 110395,
+          "log_sha256": "d54fcb6f33d41d70b79afc3faa40813f27d329e44ec9ef94353e2cd069391f11",
+          "test_results": [
+            "test result: ok. 101 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+            "test result: ok. 165 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.20s",
+            "test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s",
+            "test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s",
+            "test result: ok. 150 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s",
+            "test result: ok. 11 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 0.11s",
+            "test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s",
+            "test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s",
+            "test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+            "test result: ok. 109 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+            "test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+            "test result: ok. 320 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.58s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+          ]
+        },
+        {
+          "name": "rune-final2-clippy",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "clippy",
+            "--workspace",
+            "--all-targets",
+            "--all-features",
+            "--locked",
+            "--offline",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "exit_code": 0,
+          "seconds": 3.648,
+          "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final2-clippy.log",
+          "log_bytes": 237,
+          "log_sha256": "c3b0db10f4e744c2aafab5c3bd7fbd5a05bbfe67f23d6e6a02597d7b2a1ed1d1",
+          "test_results": []
+        },
+        {
+          "name": "rune-final2-desktop-build",
+          "command": [
+            "rtk",
+            "proxy",
+            "cargo",
+            "build",
+            "-p",
+            "rune-desktop",
+            "--all-features",
+            "--locked",
+            "--offline"
+          ],
+          "exit_code": 0,
+          "seconds": 1.536,
+          "log": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/rune-final2-desktop-build.log",
+          "log_bytes": 156,
+          "log_sha256": "96784167a6e6fbdc2d2116ff5186fb36ec6dcbf33ff444889e9ece6f7bb10f35",
+          "test_results": []
+        }
+      ]
+    },
+    "review": {
+      "reviewer": "/root/cache_design_review",
+      "material_findings_final": 0,
+      "scopes": [
+        "limn integration preserves Composer/Column and exact converter",
+        "RUNE six App tests and initial input dispatcher",
+        "new F12 positive and native-focus fallback",
+        "eighth switcher regression and final shared UI helper"
+      ],
+      "initial_test_sensitivity_issue": "F12 even presses could pass if ignored; positive single-press assertion added before final GREEN",
+      "production_main_sha256": "da8406d97bdedf1ab17ca0058b8926cd7cfbfa037c4f7dc1821cf3d8e35f23d7",
+      "ui_lib_sha256": "c1c931c166ffc4872630001cd3ebcb9a32f0a1ac18ecf896100cd7a89dcaf8da",
+      "ui_settings_sha256": "783ee3729fc83080d9b79dea052250727e6002cf3cac57f651f00e1894e0c01b",
+      "cargo_or_gui_by_reviewer": false
+    },
+    "test_scope": "Eight App groups included in1128, with same-frame batches simulated by real App+egui context tests; native paused runs do not prove same-frame batching. Existing six ignored tests retained; no counts summed across limn/RUNE/configurations.",
+    "assertion_chronology": "Six behavior groups preserved after fixture correction; F12 single-press positive added for sensitivity, then seventh raw-focus fallback and eighth stale-controlled-query regression. Formatting changed test source hashes; no byte-identical assertion claim across additions."
+  },
+  "implemented": [
+    "App consumes events_indexed after normalize and walks every native source index, including untranslated events, releasing the egui read guard before host effects.",
+    "Host keys use each source Key pressed/modifiers; navigation/F12 effects and pending focus/layout precede the next index. Missing requested focus clears old focus.",
+    "WindowFocused callbacks cut UiTree focus at their own positions even during closing; frame focus supplies initial/eventless fallback only without focus callbacks.",
+    "Switcher opening shares a helper: reset Ui state, SetInput empty, then Focus. CtrlK and menu entry use that controlled reset; same EditorTree old query cannot survive reopening."
+  ],
+  "native": {
+    "environment": "Owned cookie-protected private Xvfb X11, own Mock RUNE and synthetic text/paused keys. Not an OS sandbox; no hardware/adapter claim.",
+    "historical_first": {
+      "status": "partial",
+      "result": {
+        "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/result.json",
+        "bytes": 6827,
+        "sha256": "095bfc30bf7e781611649531ac2c5ccc1961b9bb449bac3efc64877f14f54da4"
+      },
+      "root_review": {
+        "run": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq",
+        "rea_evidence_id": "ev_fd5a91badf747cf525576c25b942b64ffe10939141d10018e5e901fa06bfac02",
+        "root_visual_reviewed": true,
+        "outcome": "partial: navigation/draft retention passed; reopened switcher retained stale text despite fresh Ui query state",
+        "screenshots_reviewed": 5,
+        "observed": [
+          "initial switcher query general and matching destination visible",
+          "general composer QA-A-20261015",
+          "ayuda composer QA-B-20261015",
+          "return to general retains only QA-A-20261015",
+          "reopened switcher displays generalQA-switcher-20261015, revealing stale field state"
+        ],
+        "scope": "Native paused X11 sequences on cookie-protected private Xvfb. No same-frame batching proof, clipboard request, provider/account integration, network trace or hardware acceleration claim. Original runner result remains untouched. REA process sampling was partial at sixteen samples; filesystem and network effects unobserved by REA. Runner separately records owned process cleanup.",
+        "compressed_binary": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/desktop-checkpoint.first-native.gz",
+          "bytes": 32065715,
+          "sha256": "41fd5ca6ba6d3aabb5747d265b42a92f588d0a60d28e4998e3f18e4130c89554"
+        },
+        "uncompressed_verified": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/desktop-checkpoint",
+          "bytes": 107434680,
+          "sha256": "cc6ccf65139681ea0fbd4e5ad059d86b9c1a93b6966b656fe13d0e6b581a01fa"
+        }
+      },
+      "screenshots": [
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/00-initial-selector.png",
+          "bytes": 115056,
+          "sha256": "b4872b9113d1b12c2030a81267c03e3db657cfeefd8305fa337c17f3f35b2301",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — bienvenida"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/01-channel-a.png",
+          "bytes": 178016,
+          "sha256": "4cc672e0ad2b4c20a288496f9a34d2d08e343b0206a7c6eec021842e09192da9",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/02-channel-b.png",
+          "bytes": 184111,
+          "sha256": "69f80af8f1ad278f6bf511784c95553697a5fca8cfc76e0322c02ebfe8ea7c62",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — ayuda"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/03-channel-a-return.png",
+          "bytes": 177925,
+          "sha256": "6ed3a2442989470c4299cf9e4eea309318f2b65105177184f8b9e852c1bcc378",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/04-switcher.png",
+          "bytes": 121768,
+          "sha256": "d44c275f0090ee70d95bfcfde4f2592cf07b3d4aa42e26151c8bf33fa15167d1",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        }
+      ],
+      "reason": "App/cleanup exit0 did not imply product success: reopened switcher showed generalQA-switcher despite fresh Ui query. This led to eighth behavior RED and shared UI reset fix."
+    },
+    "final": {
+      "status": "verified-within-paused-mock-scope",
+      "result": {
+        "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/result.json",
+        "bytes": 6833,
+        "sha256": "6b9cf6028bab314c0f10b9bcc7f2d2b4c17a02b25f79e97d91b0b778aea8daea"
+      },
+      "root_review": {
+        "schema": 1,
+        "run": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y",
+        "rea_evidence_id": "ev_c0a2ffab8a42c6bf371eb1363db99a716dd78201a7eda9d935fb0425ba6c2e61",
+        "root_visual_reviewed": true,
+        "outcome": "pass within native paused Mock sequence scope",
+        "screenshots_reviewed": 5,
+        "observed": [
+          "initial switcher query general and matching destination visible",
+          "general composer QA-A-20261015",
+          "ayuda composer QA-B-20261015",
+          "return to general retains only QA-A-20261015",
+          "reopened switcher displays exactly QA-switcher-20261015; the previous general query is absent"
+        ],
+        "scope": "Native paused X11 sequences on cookie-protected private Xvfb. No same-frame batching, physical timing, system clipboard request, provider/account integration, network trace or hardware acceleration claim. Original runner visual/product flags remain untouched; this is the separate Root visual review. REA process sampling retained22 samples without reaching256 cap but may omit short-lived descendants. Filesystem and network remain unobserved by REA; runner separately records owned process cleanup.",
+        "result": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/result.json",
+          "bytes": 6833,
+          "sha256": "6b9cf6028bab314c0f10b9bcc7f2d2b4c17a02b25f79e97d91b0b778aea8daea"
+        },
+        "screenshots": [
+          {
+            "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/00-initial-selector.png",
+            "bytes": 115041,
+            "sha256": "25a02da966217fc9841a532b2e23bcbb0cd79c7d2b476c1ef8fb59d9d1d91072",
+            "width": 1280,
+            "height": 800,
+            "title": "RUNE — bienvenida"
+          },
+          {
+            "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/01-channel-a.png",
+            "bytes": 178000,
+            "sha256": "dba50b09e9a3d480183f8446a667c2235f4d3b1bbd81c10832c331cb8e931eb3",
+            "width": 1280,
+            "height": 800,
+            "title": "RUNE — general"
+          },
+          {
+            "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/02-channel-b.png",
+            "bytes": 184335,
+            "sha256": "1c67335acff8f263d72c10337eb1c44ee685ff21be90658c27f7c72db91adea1",
+            "width": 1280,
+            "height": 800,
+            "title": "RUNE — ayuda"
+          },
+          {
+            "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/03-channel-a-return.png",
+            "bytes": 177911,
+            "sha256": "40caabe6bb601a4537082b27aef92fe208db7354d85c0e5de266c831dbbc3e4f",
+            "width": 1280,
+            "height": 800,
+            "title": "RUNE — general"
+          },
+          {
+            "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/04-switcher.png",
+            "bytes": 120935,
+            "sha256": "9000638237a0b588b000326b8b870d923da046598e0cb8aad19509db6d85b0c2",
+            "width": 1280,
+            "height": 800,
+            "title": "RUNE — general"
+          }
+        ],
+        "compressed_binary": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/desktop-checkpoint.final-native.gz",
+          "bytes": 32065161,
+          "sha256": "cd87394f6f40f50ae68222d84dcfce790e53e9c61a88aa83efaade0377a00079"
+        },
+        "uncompressed_verified": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/desktop-checkpoint-v2",
+          "bytes": 107434128,
+          "sha256": "9a414e44c258e1223f502072b162cdcff3ee099b761d44befc529c9a2186446d"
+        },
+        "historical_first_run_review": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/native-first-root-review.json"
+      },
+      "binary": {
+        "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/desktop-checkpoint-v2",
+        "bytes": 107434128,
+        "sha256": "9a414e44c258e1223f502072b162cdcff3ee099b761d44befc529c9a2186446d"
+      },
+      "screenshots": [
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/00-initial-selector.png",
+          "bytes": 115041,
+          "sha256": "25a02da966217fc9841a532b2e23bcbb0cd79c7d2b476c1ef8fb59d9d1d91072",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — bienvenida"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/01-channel-a.png",
+          "bytes": 178000,
+          "sha256": "dba50b09e9a3d480183f8446a667c2235f4d3b1bbd81c10832c331cb8e931eb3",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/02-channel-b.png",
+          "bytes": 184335,
+          "sha256": "1c67335acff8f263d72c10337eb1c44ee685ff21be90658c27f7c72db91adea1",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — ayuda"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/03-channel-a-return.png",
+          "bytes": 177911,
+          "sha256": "40caabe6bb601a4537082b27aef92fe208db7354d85c0e5de266c831dbbc3e4f",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/04-switcher.png",
+          "bytes": 120935,
+          "sha256": "9000638237a0b588b000326b8b870d923da046598e0cb8aad19509db6d85b0c2",
+          "width": 1280,
+          "height": 800,
+          "title": "RUNE — general"
+        }
+      ],
+      "app_exit_code": 0,
+      "xvfb_exit_code": 0,
+      "cleanup_errors": [],
+      "xauthority_removed": true
+    },
+    "runner_flags_unchanged": {
+      "visual_reviewed": false,
+      "product_behavior_verified": false,
+      "same_frame_batching_tested": false,
+      "clipboard_tested": false
+    },
+    "visual_authority": "Root separately reviewed all five images of each run; original runner result flags remain untouched. Final observed generalQA-A, ayudaQA-B, return-generalQA-A and exactly QA-switcher, without old general prefix.",
+    "artifacts": {
+      "first": [
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/04-switcher.png",
+          "bytes": 121768,
+          "sha256": "d44c275f0090ee70d95bfcfde4f2592cf07b3d4aa42e26151c8bf33fa15167d1"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/01-channel-a.png",
+          "bytes": 178016,
+          "sha256": "4cc672e0ad2b4c20a288496f9a34d2d08e343b0206a7c6eec021842e09192da9"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/app.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/xvfb.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/03-channel-a-return.png",
+          "bytes": 177925,
+          "sha256": "6ed3a2442989470c4299cf9e4eea309318f2b65105177184f8b9e852c1bcc378"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/xvfb.stderr",
+          "bytes": 817,
+          "sha256": "12dcabf0449b9ff85d589b86d110c814777977daca56e7ba8ec300c5334fe397"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/00-initial-selector.png",
+          "bytes": 115056,
+          "sha256": "b4872b9113d1b12c2030a81267c03e3db657cfeefd8305fa337c17f3f35b2301"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/app.stderr",
+          "bytes": 305,
+          "sha256": "8d1cfdc4ce4f617e266a466dc81aecc9e2d6fa91f4f3e1f3ab05e8cda432ff78"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/02-channel-b.png",
+          "bytes": 184111,
+          "sha256": "69f80af8f1ad278f6bf511784c95553697a5fca8cfc76e0322c02ebfe8ea7c62"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-lj073inq/app-process.json",
+          "bytes": 242,
+          "sha256": "a4367a8854d0f32febc4221eb73e8e5dee3ec1aad745d1f44b32ebfd505dd0c1"
+        }
+      ],
+      "final": [
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/04-switcher.png",
+          "bytes": 120935,
+          "sha256": "9000638237a0b588b000326b8b870d923da046598e0cb8aad19509db6d85b0c2"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/01-channel-a.png",
+          "bytes": 178000,
+          "sha256": "dba50b09e9a3d480183f8446a667c2235f4d3b1bbd81c10832c331cb8e931eb3"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/app.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/xvfb.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/03-channel-a-return.png",
+          "bytes": 177911,
+          "sha256": "40caabe6bb601a4537082b27aef92fe208db7354d85c0e5de266c831dbbc3e4f"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/xvfb.stderr",
+          "bytes": 817,
+          "sha256": "12dcabf0449b9ff85d589b86d110c814777977daca56e7ba8ec300c5334fe397"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/00-initial-selector.png",
+          "bytes": 115041,
+          "sha256": "25a02da966217fc9841a532b2e23bcbb0cd79c7d2b476c1ef8fb59d9d1d91072"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/app.stderr",
+          "bytes": 305,
+          "sha256": "76e8e62f80c1d75fd71658e00e886097b284ddf2999f5d64a9fb0b322e8ee3fe"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/02-channel-b.png",
+          "bytes": 184335,
+          "sha256": "1c67335acff8f263d72c10337eb1c44ee685ff21be90658c27f7c72db91adea1"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-3fqgrv1y/app-process.json",
+          "bytes": 245,
+          "sha256": "8f6290b8ab718c69a0685280880a35346f1db92e839c79af8d9f2eef85ca5c07"
+        }
+      ],
+      "helpers": [
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-native.py",
+          "bytes": 15617,
+          "sha256": "fc7f40ac4fdd0fff7c7208649eb9d1d33d255edb06efe37e8219ae81975e0a42"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/run-native-v2.py",
+          "bytes": 15623,
+          "sha256": "ecb494e337e57d812a13f451a9eabc8d37610586b50576ece2e7b4b60fce2055"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/owned.py",
+          "bytes": 4783,
+          "sha256": "cd48fedad02b8f78ab68d9c01d081135bf396ef41011a160c020c3d54755a3d8"
+        },
+        {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/README.md",
+          "bytes": 3263,
+          "sha256": "f3d4950e3707a4472beba103de06f875ff4182196772fc1ec6355349d84be577"
+        }
+      ]
+    },
+    "rea": [
+      {
+        "record": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/rea-native-first.json",
+          "bytes": 16678,
+          "sha256": "b5b5a451475ea57ffbfdfd6ea8c82383e24f920bf196f354c66bf463d69929ee"
+        },
+        "evidence_id": "ev_fd5a91badf747cf525576c25b942b64ffe10939141d10018e5e901fa06bfac02",
+        "exit": {
+          "code": 0,
+          "signal": 0,
+          "reason": "exited"
+        },
+        "truncated": true,
+        "process_samples": 16,
+        "process_sampling": {
+          "sample_limit": 16,
+          "sampling_partial": true,
+          "retained_samples": 16,
+          "sample_limit_reached": true,
+          "sampling_failures": 0,
+          "first_sampling_failure": null,
+          "coverage": "sampled"
+        },
+        "limitations": [
+          "Artifact identity is unavailable for this observation.",
+          "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+          "Process trees are sampled and may omit short-lived descendants.",
+          "Process-tree sampling ended with an incomplete observation.",
+          "Filesystem observations are before/after snapshots, not syscall traces.",
+          "Inherited host environment variables are not recorded and may affect results.",
+          "No filesystem observation paths were selected; filesystem effects remain unknown.",
+          "Process sampling stopped with incomplete observations; sample_limit is reported in truncation_details.process."
+        ],
+        "residual_unknowns": [
+          {
+            "scope": "process",
+            "reason": "Process trees are sampled and may omit short-lived descendants."
+          },
+          {
+            "scope": "process",
+            "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+          },
+          {
+            "scope": "environment",
+            "reason": "Inherited host environment variables are not recorded."
+          },
+          {
+            "scope": "network",
+            "reason": "Network activity is not observed by this capture."
+          },
+          {
+            "scope": "filesystem",
+            "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+          },
+          {
+            "scope": "process",
+            "reason": "Process sampling stopped with incomplete observations; sample_limit is reported in truncation_details.process."
+          }
+        ],
+        "raw_result": null,
+        "pid_normalization": true
+      },
+      {
+        "record": {
+          "path": "/tmp/rune-indexed-host-native-20261015-cb4g03x_/rea-native-final.json",
+          "bytes": 19424,
+          "sha256": "47bc133944576b17a2522acf01f9cc220c74dbfd69465e49c238c630be058a99"
+        },
+        "evidence_id": "ev_c0a2ffab8a42c6bf371eb1363db99a716dd78201a7eda9d935fb0425ba6c2e61",
+        "exit": {
+          "code": 0,
+          "signal": 0,
+          "reason": "exited"
+        },
+        "truncated": false,
+        "process_samples": 22,
+        "process_sampling": {
+          "sample_limit": 256,
+          "sampling_partial": false,
+          "retained_samples": 22,
+          "sample_limit_reached": false,
+          "sampling_failures": 0,
+          "first_sampling_failure": null,
+          "coverage": "sampled"
+        },
+        "limitations": [
+          "Artifact identity is unavailable for this observation.",
+          "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+          "Process trees are sampled and may omit short-lived descendants.",
+          "Filesystem observations are before/after snapshots, not syscall traces.",
+          "Inherited host environment variables are not recorded and may affect results.",
+          "No filesystem observation paths were selected; filesystem effects remain unknown."
+        ],
+        "residual_unknowns": [
+          {
+            "scope": "process",
+            "reason": "Process trees are sampled and may omit short-lived descendants."
+          },
+          {
+            "scope": "process",
+            "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+          },
+          {
+            "scope": "environment",
+            "reason": "Inherited host environment variables are not recorded."
+          },
+          {
+            "scope": "network",
+            "reason": "Network activity is not observed by this capture."
+          },
+          {
+            "scope": "filesystem",
+            "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+          },
+          {
+            "scope": "process",
+            "reason": "Ownership of unrelated process 4054738 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/4054738/environ'"
+          },
+          {
+            "scope": "process",
+            "reason": "Ownership of unrelated process 4054954 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/4054954/environ'"
+          }
+        ],
+        "raw_result": null,
+        "pid_normalization": true
+      }
+    ],
+    "limits": [
+      "REA process IDs are normalized aliases; raw_result is null. They do not atomically bind an OS image/window PID. Own helper separately records PID/exe/start identity and scoped cleanup.",
+      "First REA capture has16 process samples and truncation; final22 samples do not reach256 cap but remain sampled and may omit short-lived descendants.",
+      "Filesystem was not selected and network was not observed; inherited environment remains unknown. Final unrelated processes with unverifiable ownership were left untouched.",
+      "Private Xvfb app exited0 by WM_DELETE_WINDOW; own server cleanup0 and cookie removal are separate helper facts, not an exhaustive OS process-tree proof.",
+      "Scenario requested no clipboard reads/writes; eframe may initialize its default backend. No SDK request token/owner/ACK/completion or provider/account integration was exercised.",
+      "Ten QA images remain separate from18 historical canonical Mock captures; first5 are partial, final5 verified.",
+      "Native inputs were paused sequences, not physical chronology or same-frame batching proof. No functional native DnD/Hyprland or remote SEND/ATTACH claim."
+    ]
+  },
+  "readback": {
+    "record": {
+      "path": "/tmp/limn-rune-ordered-integration-20261015-9o9l78ie/final-docs-readback.json",
+      "bytes": 25131,
+      "sha256": "79a8bd3bc4ca406665199239e8572fd8014910ed72f9ac88ad7183560c870ff6"
+    },
+    "files_verified": 116,
+    "current_sources_and_snapshots": 6,
+    "native_pngs": 10,
+    "gzip_stream_roundtrips": 2,
+    "author_executed_cargo_or_gui": false
+  },
+  "remaining": [
+    "Shared Wayland owner/reservation/ACK/completion, SDK deferred marker in RUNE, atomic same-owner authorization before I/O.",
+    "Apply captured PasteTarget plus domain account/channel/draft/modal/endpoint/reconnect epochs to a future asynchronous completion; current ordered host is groundwork, not a clipboard capability.",
+    "Receiver/clipboard coexistence, functional native DnD and other platforms remain open; this checkpoint closes only host order/focus/controlled-query portion."
+  ],
+  "history": {
+    "prior_canonicals": [
+      {
+        "path": "docs/evidence/egui-clipboard-injection-2026-10-15.json",
+        "bytes": 6838,
+        "sha256": "117ceac2c4cb2773716e52235b9851b09b1a8e45d64b5f1d5ee38150524a03a2"
+      },
+      {
+        "path": "docs/evidence/egui-viewport-clipboard-factory-2026-10-15.json",
+        "bytes": 8990,
+        "sha256": "adce16cf234fb3967c2ed254833bab5b828df7c74688f9d2659b94d17fc94022"
+      },
+      {
+        "path": "docs/evidence/egui-clipboard-factory-native-2026-10-15.json",
+        "bytes": 11603,
+        "sha256": "b58c6e9cbd0e2226365bbcfaae92cacce9407b936eebc99c8baaa041f755b0f8"
+      },
+      {
+        "path": "docs/evidence/egui-deferred-paste-marker-2026-10-15.json",
+        "bytes": 16624,
+        "sha256": "d455dd1a3611c6d9337bb9eda6209bd2586b5d257ece9a3fd36077f4ec0ed80c"
+      },
+      {
+        "path": "docs/evidence/limn-captured-paste-target-2026-10-15.json",
+        "bytes": 40336,
+        "sha256": "8a950287554bac1e10b9e2b35b0a1119c9015e58d81285eee8826dd1ac4e1b54"
+      },
+      {
+        "path": "docs/evidence/limn-indexed-input-2026-10-15.json",
+        "bytes": 34803,
+        "sha256": "dee58be12de73cd96df18d8202f09554d20a77119f351a2178350dda0afca829"
+      }
+    ],
+    "prior_rune_checkpoint": {
+      "passed": 1120,
+      "ignored": 6,
+      "suites": 25,
+      "limn_pin": "22e0fd93c14b3f3c89375135f83c1e9c41307330",
+      "canonical_mock_captures": 18
+    },
+    "canonical_mock_captures_unchanged": 18,
+    "additional_qa_images": {
+      "partial": 5,
+      "final": 5
+    },
+    "policy": "Prior canonicals remain byte-immutable. New pin/counts do not rewrite earlier snapshots or make upstream Draft PRs public merges."
+  }
+}

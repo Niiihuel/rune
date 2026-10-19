@@ -1,0 +1,466 @@
+{
+  "evidence_id": "ev_2357e0ba5117c41c756925470a592c36053c9c2c3ea3f58eb6a37c4678ee065f",
+  "subject": null,
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.process-capture",
+  "operation": "capture_process_scenario",
+  "parameters": {
+    "executable_name": "desktop-checkpoint",
+    "argument_count": 12,
+    "event_count": 0,
+    "filesystem_observation_path_count": 0,
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "manifest": {
+      "rea_version": "6.4.0",
+      "provider_version": "3",
+      "platform": "linux",
+      "architecture": "x64",
+      "pty_backend": "node-pty",
+      "started_at": "2026-10-15T09:20:27.678Z",
+      "completed_at": "2026-10-15T09:22:12.082Z",
+      "scenario": {
+        "executable": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-checkpoint",
+        "arguments": [
+          "--provider",
+          "mock",
+          "--screenshot",
+          "/tmp/rune-multiple-native-20261015-5qzkrplj/sent.png",
+          "--channel",
+          "general",
+          "--capture-draft",
+          "Borrador con dos archivos",
+          "--action",
+          "composer:plus",
+          "--action",
+          "composer:attach"
+        ],
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/data",
+          "XDG_CACHE_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/config"
+        },
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 120,
+          "rows": 40,
+          "scrollback": 1000
+        },
+        "events": [],
+        "timeout_ms": 300000,
+        "idle_timeout_ms": 297000,
+        "settle_ms": 300,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 24,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "finalization_ms": 1000,
+        "executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc"
+      },
+      "comparison_contract": {
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/data",
+          "XDG_CACHE_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-multiple-native-20261015-5qzkrplj/config"
+        },
+        "ambient_environment": "unknown",
+        "filesystem_observation_paths": [],
+        "terminal": {
+          "columns": 120,
+          "rows": 40,
+          "scrollback": 1000
+        },
+        "events": [],
+        "timeout_ms": 300000,
+        "idle_timeout_ms": 297000,
+        "settle_ms": 300,
+        "finalization_ms": 1000,
+        "limits": {
+          "output_bytes": 65536,
+          "files": 10000,
+          "file_bytes": 10000000,
+          "processes": 24,
+          "filesystem_depth": 16
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "port_normalization_version": "contextual-endpoints-v2",
+        "rendered_line_format": "trailing-spaces-trimmed-v1"
+      },
+      "full_scenario_sha256": "4547befb803e030925d01b981a0f4182c2fe61bac7a0b396e6923524ed2fc7d9",
+      "comparison_contract_sha256": "44195f5c114bdb45ea929f34c24bfa95e94b3feb995fe89f6a3554767b13d8ee",
+      "selected_executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc",
+      "executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "normalization_sha256": "5c58aa1aa890197f15f9c59ef755d01120e6e07f356fa1ef2f20787e63b6fa87"
+    },
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    },
+    "frames": [
+      {
+        "sequence": 0,
+        "at_ms": 230,
+        "data": "rune: first frame painted 109.1ms after start\r\n"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 104210,
+        "data": "rune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/sent.png\r\n"
+      }
+    ],
+    "rendered_frames": [
+      {
+        "sequence": 0,
+        "at_ms": 230,
+        "columns": 120,
+        "rows": 40,
+        "cursor_x": 0,
+        "cursor_y": 1,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 109.1ms after start",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 109.1ms after start\u001b[1B\u001b[45D"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 104210,
+        "columns": 120,
+        "rows": 40,
+        "cursor_x": 0,
+        "cursor_y": 2,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 109.1ms after start",
+          "rune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/sent.png",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 109.1ms after start\r\nrune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/sent.png\u001b[1B\u001b[64D"
+      }
+    ],
+    "interaction_events": [],
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "settlement": {
+      "state": "quiesced",
+      "elapsed_ms": 124,
+      "cleanup_outcome": "not_required"
+    },
+    "process_samples": [
+      {
+        "at_ms": 10,
+        "pid": 1,
+        "parent_pid": 2,
+        "command": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-checkpoint --provider mock --screenshot /tmp/rune-multiple-native-20261015-5qzkrplj/sent.png --channel general --capture-draft Borrador con dos archivos --action composer:plus --action composer:attach",
+        "process_group_id": 1,
+        "session_id": 1
+      }
+    ],
+    "filesystem_checkpoints": [
+      {
+        "name": "before",
+        "at_ms": 0,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      },
+      {
+        "name": "after_settlement",
+        "at_ms": 104404,
+        "files": [],
+        "effects": [],
+        "truncated": false
+      }
+    ],
+    "event_journal": [
+      {
+        "capture_order": 0,
+        "collection": "filesystem_checkpoints",
+        "index": 0
+      },
+      {
+        "capture_order": 1,
+        "collection": "process_samples",
+        "index": 0
+      },
+      {
+        "capture_order": 2,
+        "collection": "frames",
+        "index": 0
+      },
+      {
+        "capture_order": 3,
+        "collection": "rendered_frames",
+        "index": 0
+      },
+      {
+        "capture_order": 4,
+        "collection": "frames",
+        "index": 1
+      },
+      {
+        "capture_order": 5,
+        "collection": "rendered_frames",
+        "index": 1
+      },
+      {
+        "capture_order": 6,
+        "collection": "lifecycle",
+        "index": 0
+      },
+      {
+        "capture_order": 7,
+        "collection": "lifecycle",
+        "index": 1
+      },
+      {
+        "capture_order": 8,
+        "collection": "filesystem_checkpoints",
+        "index": 1
+      }
+    ],
+    "files_before": [],
+    "files_after": [],
+    "filesystem_effects": [],
+    "truncated": false,
+    "truncation_details": {
+      "raw_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 113,
+        "retained_bytes": 113,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "rendered_terminal": {
+        "budget_bytes": 65536,
+        "observed_bytes": 328,
+        "retained_bytes": 328,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "filesystem_before": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "filesystem_after": {
+        "files_limit": 10000,
+        "depth_limit": 16,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 10000000,
+        "hashed_bytes": 0,
+        "hash_omissions": []
+      },
+      "process": {
+        "sample_limit": 24,
+        "sampling_partial": false,
+        "retained_samples": 1,
+        "sample_limit_reached": false,
+        "sampling_failures": 0,
+        "first_sampling_failure": null,
+        "coverage": "sampled"
+      }
+    },
+    "limitations": [
+      "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+      "Process trees are sampled and may omit short-lived descendants.",
+      "Filesystem observations are before/after snapshots, not syscall traces.",
+      "Inherited host environment variables are not recorded and may affect results.",
+      "No filesystem observation paths were selected; filesystem effects remain unknown."
+    ],
+    "residual_unknowns": [
+      {
+        "scope": "process",
+        "reason": "Process trees are sampled and may omit short-lived descendants."
+      },
+      {
+        "scope": "process",
+        "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+      },
+      {
+        "scope": "environment",
+        "reason": "Inherited host environment variables are not recorded."
+      },
+      {
+        "scope": "network",
+        "reason": "Network activity is not observed by this capture."
+      },
+      {
+        "scope": "filesystem",
+        "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2517952 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2517952/environ'"
+      },
+      {
+        "scope": "process",
+        "reason": "Ownership of unrelated process 2520229 could not be verified; it was left untouched: EACCES: permission denied, open '/proc/2520229/environ'"
+      }
+    ],
+    "cleanup": {
+      "owned_process_group": "verified",
+      "temporary_root": "removed",
+      "unverified_processes": [
+        {
+          "pid": 2517952,
+          "reason": "EACCES: permission denied, open '/proc/2517952/environ'"
+        },
+        {
+          "pid": 2520229,
+          "reason": "EACCES: permission denied, open '/proc/2520229/environ'"
+        }
+      ]
+    }
+  },
+  "confidence": "observed",
+  "authority": "controlled-replay",
+  "environment": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "isolation": "process"
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results.",
+    "No filesystem observation paths were selected; filesystem effects remain unknown."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

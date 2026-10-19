@@ -1,0 +1,627 @@
+{
+  "evidence_id": "ev_a9f1a0f5d039f2230e6e996d3553fca9e5be494b85d7e6c15a2ca12558a68001",
+  "subject": null,
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "analysis_profile": null,
+  "predicate_type": "rea.process-capture",
+  "operation": "capture_process_scenario",
+  "parameters": {
+    "executable_name": "rune-final-checkpoint",
+    "argument_count": 19,
+    "event_count": 0,
+    "filesystem_observation_path_count": 2,
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    }
+  },
+  "raw_result": null,
+  "normalized_result": {
+    "manifest": {
+      "rea_version": "6.4.0",
+      "provider_version": "3",
+      "platform": "linux",
+      "architecture": "x64",
+      "pty_backend": "node-pty",
+      "started_at": "2026-10-15T06:44:10.483Z",
+      "completed_at": "2026-10-15T06:44:12.578Z",
+      "scenario": {
+        "executable": "/tmp/rune-reads-native-20261015-eyj66ini/rune-final-checkpoint",
+        "arguments": [
+          "--provider",
+          "mock",
+          "--channel",
+          "general",
+          "--data",
+          "--screenshot",
+          "/tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png",
+          "--action",
+          "inbox:open",
+          "--action",
+          "inbox:read:104",
+          "--action",
+          "inbox:read:105",
+          "--action",
+          "inbox:read:117",
+          "--action",
+          "inbox:read:125",
+          "--capture-draft",
+          "Borrador de bandeja vacía intacto"
+        ],
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-data",
+          "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-config"
+        },
+        "filesystem_observation_paths": [
+          "/tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png",
+          "/tmp/rune-reads-native-20261015-eyj66ini/empty-data/rune"
+        ],
+        "terminal": {
+          "columns": 100,
+          "rows": 30,
+          "scrollback": 300
+        },
+        "events": [],
+        "timeout_ms": 30000,
+        "idle_timeout_ms": 20000,
+        "settle_ms": 150,
+        "limits": {
+          "output_bytes": 131072,
+          "files": 128,
+          "file_bytes": 8388608,
+          "processes": 64,
+          "filesystem_depth": 3
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "finalization_ms": 1500,
+        "executable_sha256": "43192d9cfddaa7853e0239a52c872c54c6265ab8bb5c06abde4c3126d593c312"
+      },
+      "comparison_contract": {
+        "working_directory": "/home/nihuel/projects/personal/rune",
+        "environment": {
+          "DISPLAY": ":0",
+          "WAYLAND_DISPLAY": "wayland-1",
+          "XDG_RUNTIME_DIR": "/run/user/1000",
+          "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+          "XDG_SESSION_TYPE": "wayland",
+          "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-data",
+          "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-cache",
+          "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/empty-config"
+        },
+        "ambient_environment": "unknown",
+        "filesystem_observation_paths": [
+          "/tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png",
+          "/tmp/rune-reads-native-20261015-eyj66ini/empty-data/rune"
+        ],
+        "terminal": {
+          "columns": 100,
+          "rows": 30,
+          "scrollback": 300
+        },
+        "events": [],
+        "timeout_ms": 30000,
+        "idle_timeout_ms": 20000,
+        "settle_ms": 150,
+        "finalization_ms": 1500,
+        "limits": {
+          "output_bytes": 131072,
+          "files": 128,
+          "file_bytes": 8388608,
+          "processes": 64,
+          "filesystem_depth": 3
+        },
+        "normalization": {
+          "paths": false,
+          "pids": true,
+          "ports": true,
+          "time_bucket_ms": 10,
+          "patterns": []
+        },
+        "port_normalization_version": "contextual-endpoints-v2",
+        "rendered_line_format": "trailing-spaces-trimmed-v1"
+      },
+      "full_scenario_sha256": "ffbaf466e2ed17878c05580132b35b58b398c3949eb7d4a18dec64ea8380de26",
+      "comparison_contract_sha256": "b49002e5af0ed693047c76edac884a7bef0ed4eb839f89867a6b28d9bd6fbbca",
+      "selected_executable_sha256": "43192d9cfddaa7853e0239a52c872c54c6265ab8bb5c06abde4c3126d593c312",
+      "executable_sha256": "43192d9cfddaa7853e0239a52c872c54c6265ab8bb5c06abde4c3126d593c312",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "normalization_sha256": "5c58aa1aa890197f15f9c59ef755d01120e6e07f356fa1ef2f20787e63b6fa87"
+    },
+    "normalization": {
+      "paths": false,
+      "pids": true,
+      "ports": true,
+      "time_bucket_ms": 10,
+      "patterns": []
+    },
+    "frames": [
+      {
+        "sequence": 0,
+        "at_ms": 200,
+        "data": "rune: first frame painted 114.7ms after start\r\n"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 1890,
+        "data": "rune: saved /tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png\r\n"
+      }
+    ],
+    "rendered_frames": [
+      {
+        "sequence": 0,
+        "at_ms": 200,
+        "columns": 100,
+        "rows": 30,
+        "cursor_x": 0,
+        "cursor_y": 1,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 114.7ms after start",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 114.7ms after start\u001b[1B\u001b[45D"
+      },
+      {
+        "sequence": 1,
+        "at_ms": 1890,
+        "columns": 100,
+        "rows": 30,
+        "cursor_x": 0,
+        "cursor_y": 2,
+        "active_buffer": "normal",
+        "lines": [
+          "rune: first frame painted 114.7ms after start",
+          "rune: saved /tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "serialized_state": "rune: first frame painted 114.7ms after start\r\nrune: saved /tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png\u001b[1B\u001b[68D"
+      }
+    ],
+    "interaction_events": [],
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "settlement": {
+      "state": "quiesced",
+      "elapsed_ms": 121,
+      "cleanup_outcome": "not_required"
+    },
+    "process_samples": [
+      {
+        "at_ms": 10,
+        "pid": 1,
+        "parent_pid": 2,
+        "command": "/tmp/rune-reads-native-20261015-eyj66ini/rune-final-checkpoint --provider mock --channel general --data --screenshot /tmp/rune-reads-native-20261015-eyj66ini/inbox-empty.png --action inbox:open --action inbox:read:104 --action inbox:read:105 --action inbox:read:117 --action inbox:read:125 --capture-draft Borrador de bandeja vacía intacto",
+        "process_group_id": 1,
+        "session_id": 1
+      }
+    ],
+    "filesystem_checkpoints": [
+      {
+        "name": "before",
+        "at_ms": 0,
+        "files": [
+          {
+            "path": "root_1:.",
+            "mode": 16877,
+            "size": 4096,
+            "type": "directory",
+            "sha256": null,
+            "symlink_target": null
+          },
+          {
+            "path": "root_1:rune.db",
+            "mode": 33152,
+            "size": 102400,
+            "type": "file",
+            "sha256": "930df56fde659ff43532dfdbeaa561fcf40f25d6ed68d4c0111e6bd4f82eddc6",
+            "symlink_target": null
+          }
+        ],
+        "effects": [],
+        "truncated": false
+      },
+      {
+        "name": "after_settlement",
+        "at_ms": 2095,
+        "files": [
+          {
+            "path": "root_0:.",
+            "mode": 33188,
+            "size": 476285,
+            "type": "file",
+            "sha256": "5ba946ecd7127e11cc28e43a385e46beab5fa2d26486e7829f2cc0e8aa83b0d6",
+            "symlink_target": null
+          },
+          {
+            "path": "root_1:.",
+            "mode": 16832,
+            "size": 4096,
+            "type": "directory",
+            "sha256": null,
+            "symlink_target": null
+          },
+          {
+            "path": "root_1:rune.db",
+            "mode": 33152,
+            "size": 102400,
+            "type": "file",
+            "sha256": "fa0f90b0e92d038db1b1c5bf1ae224ba7327d483382ea22b5621b4c66e0feaca",
+            "symlink_target": null
+          }
+        ],
+        "effects": [
+          {
+            "path": "root_0:.",
+            "status": "created",
+            "before": null,
+            "after": {
+              "path": "root_0:.",
+              "mode": 33188,
+              "size": 476285,
+              "type": "file",
+              "sha256": "5ba946ecd7127e11cc28e43a385e46beab5fa2d26486e7829f2cc0e8aa83b0d6",
+              "symlink_target": null
+            }
+          },
+          {
+            "path": "root_1:.",
+            "status": "modified",
+            "before": {
+              "path": "root_1:.",
+              "mode": 16877,
+              "size": 4096,
+              "type": "directory",
+              "sha256": null,
+              "symlink_target": null
+            },
+            "after": {
+              "path": "root_1:.",
+              "mode": 16832,
+              "size": 4096,
+              "type": "directory",
+              "sha256": null,
+              "symlink_target": null
+            }
+          },
+          {
+            "path": "root_1:rune.db",
+            "status": "modified",
+            "before": {
+              "path": "root_1:rune.db",
+              "mode": 33152,
+              "size": 102400,
+              "type": "file",
+              "sha256": "930df56fde659ff43532dfdbeaa561fcf40f25d6ed68d4c0111e6bd4f82eddc6",
+              "symlink_target": null
+            },
+            "after": {
+              "path": "root_1:rune.db",
+              "mode": 33152,
+              "size": 102400,
+              "type": "file",
+              "sha256": "fa0f90b0e92d038db1b1c5bf1ae224ba7327d483382ea22b5621b4c66e0feaca",
+              "symlink_target": null
+            }
+          }
+        ],
+        "truncated": false
+      }
+    ],
+    "event_journal": [
+      {
+        "capture_order": 0,
+        "collection": "filesystem_checkpoints",
+        "index": 0
+      },
+      {
+        "capture_order": 1,
+        "collection": "process_samples",
+        "index": 0
+      },
+      {
+        "capture_order": 2,
+        "collection": "frames",
+        "index": 0
+      },
+      {
+        "capture_order": 3,
+        "collection": "rendered_frames",
+        "index": 0
+      },
+      {
+        "capture_order": 4,
+        "collection": "frames",
+        "index": 1
+      },
+      {
+        "capture_order": 5,
+        "collection": "rendered_frames",
+        "index": 1
+      },
+      {
+        "capture_order": 6,
+        "collection": "lifecycle",
+        "index": 0
+      },
+      {
+        "capture_order": 7,
+        "collection": "lifecycle",
+        "index": 1
+      },
+      {
+        "capture_order": 8,
+        "collection": "filesystem_checkpoints",
+        "index": 1
+      }
+    ],
+    "files_before": [
+      {
+        "path": "root_1:.",
+        "mode": 16877,
+        "size": 4096,
+        "type": "directory",
+        "sha256": null,
+        "symlink_target": null
+      },
+      {
+        "path": "root_1:rune.db",
+        "mode": 33152,
+        "size": 102400,
+        "type": "file",
+        "sha256": "930df56fde659ff43532dfdbeaa561fcf40f25d6ed68d4c0111e6bd4f82eddc6",
+        "symlink_target": null
+      }
+    ],
+    "files_after": [
+      {
+        "path": "root_0:.",
+        "mode": 33188,
+        "size": 476285,
+        "type": "file",
+        "sha256": "5ba946ecd7127e11cc28e43a385e46beab5fa2d26486e7829f2cc0e8aa83b0d6",
+        "symlink_target": null
+      },
+      {
+        "path": "root_1:.",
+        "mode": 16832,
+        "size": 4096,
+        "type": "directory",
+        "sha256": null,
+        "symlink_target": null
+      },
+      {
+        "path": "root_1:rune.db",
+        "mode": 33152,
+        "size": 102400,
+        "type": "file",
+        "sha256": "fa0f90b0e92d038db1b1c5bf1ae224ba7327d483382ea22b5621b4c66e0feaca",
+        "symlink_target": null
+      }
+    ],
+    "filesystem_effects": [
+      {
+        "path": "root_0:.",
+        "status": "created",
+        "before": null,
+        "after": {
+          "path": "root_0:.",
+          "mode": 33188,
+          "size": 476285,
+          "type": "file",
+          "sha256": "5ba946ecd7127e11cc28e43a385e46beab5fa2d26486e7829f2cc0e8aa83b0d6",
+          "symlink_target": null
+        }
+      },
+      {
+        "path": "root_1:.",
+        "status": "modified",
+        "before": {
+          "path": "root_1:.",
+          "mode": 16877,
+          "size": 4096,
+          "type": "directory",
+          "sha256": null,
+          "symlink_target": null
+        },
+        "after": {
+          "path": "root_1:.",
+          "mode": 16832,
+          "size": 4096,
+          "type": "directory",
+          "sha256": null,
+          "symlink_target": null
+        }
+      },
+      {
+        "path": "root_1:rune.db",
+        "status": "modified",
+        "before": {
+          "path": "root_1:rune.db",
+          "mode": 33152,
+          "size": 102400,
+          "type": "file",
+          "sha256": "930df56fde659ff43532dfdbeaa561fcf40f25d6ed68d4c0111e6bd4f82eddc6",
+          "symlink_target": null
+        },
+        "after": {
+          "path": "root_1:rune.db",
+          "mode": 33152,
+          "size": 102400,
+          "type": "file",
+          "sha256": "fa0f90b0e92d038db1b1c5bf1ae224ba7327d483382ea22b5621b4c66e0feaca",
+          "symlink_target": null
+        }
+      }
+    ],
+    "truncated": false,
+    "truncation_details": {
+      "raw_terminal": {
+        "budget_bytes": 131072,
+        "observed_bytes": 117,
+        "retained_bytes": 117,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "rendered_terminal": {
+        "budget_bytes": 131072,
+        "observed_bytes": 336,
+        "retained_bytes": 336,
+        "observed_frames": 2,
+        "retained_frames": 2
+      },
+      "filesystem_before": {
+        "files_limit": 128,
+        "depth_limit": 3,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 8388608,
+        "hashed_bytes": 102400,
+        "hash_omissions": []
+      },
+      "filesystem_after": {
+        "files_limit": 128,
+        "depth_limit": 3,
+        "enumeration_truncated": false,
+        "enumeration_reasons": [],
+        "hash_budget_bytes": 8388608,
+        "hashed_bytes": 578685,
+        "hash_omissions": []
+      },
+      "process": {
+        "sample_limit": 64,
+        "sampling_partial": false,
+        "retained_samples": 1,
+        "sample_limit_reached": false,
+        "sampling_failures": 0,
+        "first_sampling_failure": null,
+        "coverage": "sampled"
+      }
+    },
+    "limitations": [
+      "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+      "Process trees are sampled and may omit short-lived descendants.",
+      "Filesystem observations are before/after snapshots, not syscall traces.",
+      "Inherited host environment variables are not recorded and may affect results."
+    ],
+    "residual_unknowns": [
+      {
+        "scope": "process",
+        "reason": "Process trees are sampled and may omit short-lived descendants."
+      },
+      {
+        "scope": "process",
+        "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+      },
+      {
+        "scope": "environment",
+        "reason": "Inherited host environment variables are not recorded."
+      },
+      {
+        "scope": "network",
+        "reason": "Network activity is not observed by this capture."
+      }
+    ],
+    "cleanup": {
+      "owned_process_group": "verified",
+      "temporary_root": "removed"
+    }
+  },
+  "confidence": "observed",
+  "authority": "controlled-replay",
+  "environment": {
+    "id": "linux-x64",
+    "platform": "linux",
+    "architecture": "x64",
+    "isolation": "process"
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

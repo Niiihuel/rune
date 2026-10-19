@@ -1,0 +1,240 @@
+{
+  "schema": 1,
+  "observed_at_utc": "2026-10-15T22:47:38Z",
+  "project": "RUNE",
+  "slice": "07.3 / limn Selection text / A1 admission metadata",
+  "status": "accepted_local_uncommitted_metadata_slice_only",
+  "worktree": "/home/nihuel/projects/personal/limn-wayland-clipboard",
+  "branch": "feat/shared-wayland-clipboard-text",
+  "base_commit": "06a08883634c5e5c2abe5afb4a5d624a68e98aef",
+  "sources": [
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/lib.rs",
+      "bytes": 5348,
+      "sha256": "1619c290b7f8c438ef33dbe0d0d4e1c6e5dc5a60f2d4d43859aa9e6b3173fd70",
+      "relative_path": "crates/limn-dnd/src/lib.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive.rs",
+      "bytes": 4615,
+      "sha256": "07e4b70b7c7d2eb462a404c9f1c6ae82b79892a48ac7abeb651aabee6a19bf4c",
+      "relative_path": "crates/limn-dnd/src/receive.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/clipboard_control.rs",
+      "bytes": 18245,
+      "sha256": "66208b27e9aa1ba245f76b76525d25cfefb8e4c15efa65e02234d79d70729c7f",
+      "relative_path": "crates/limn-dnd/src/receive/clipboard_control.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/clipboard_control_tests.rs",
+      "bytes": 26896,
+      "sha256": "154c97ca8722cf0d774038fdf0bfcdaf215dfc76e518db73d3dd8af5f62fcc3f",
+      "relative_path": "crates/limn-dnd/src/receive/clipboard_control_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/control.rs",
+      "bytes": 14233,
+      "sha256": "ad7556d1ad1fa68916675aba3811374aa1413f545ab542cd8a20858652aa58d9",
+      "relative_path": "crates/limn-dnd/src/receive/control.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/owner_incoming_runtime_tests.rs",
+      "bytes": 5466,
+      "sha256": "11460f2503e6e96b2fd4f4e0b74721113123c5a464a98afc2ed16f41b48ae44c",
+      "relative_path": "crates/limn-dnd/src/receive/owner_incoming_runtime_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/owner_runtime_tests.rs",
+      "bytes": 17887,
+      "sha256": "41822d58995fad920a02bee03d168f06fc7a035972769dc09ff1fa2d43481a01",
+      "relative_path": "crates/limn-dnd/src/receive/owner_runtime_tests.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland.rs",
+      "bytes": 28725,
+      "sha256": "ab02551327a7c59a262c9503fbb8d73582ede2a9eec87a309961f2d8b570349f",
+      "relative_path": "crates/limn-dnd/src/receive/wayland.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland_endpoints.rs",
+      "bytes": 8445,
+      "sha256": "23f283465abf68fd07fa6fb98bcb34545599436e4e52b46ab5a694b2e33b0065",
+      "relative_path": "crates/limn-dnd/src/receive/wayland_endpoints.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/wayland_offers.rs",
+      "bytes": 17584,
+      "sha256": "2af291d9e4d0644b7a5f1726311653f019ee7ecfa6e97aa57b4d598c5004ee07",
+      "relative_path": "crates/limn-dnd/src/receive/wayland_offers.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/receive/worker_pool.rs",
+      "bytes": 32419,
+      "sha256": "375b7f15c0b5ffccd908e8be76a12874f4d7dec4a24466789e5cb3e63d152c2f",
+      "relative_path": "crates/limn-dnd/src/receive/worker_pool.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/text_clipboard_limits.rs",
+      "bytes": 4665,
+      "sha256": "7a0a3222dcf715b445735a7f887f5ff2cd8b7d79dc6b68131d379972daf4859d",
+      "relative_path": "crates/limn-dnd/src/text_clipboard_limits.rs"
+    },
+    {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/crates/limn-dnd/src/text_clipboard_limits_tests.rs",
+      "bytes": 3156,
+      "sha256": "7962ff8a225b65fa0d4522299bac2edf586f88fda3bbcbffdbe012854d925c5a",
+      "relative_path": "crates/limn-dnd/src/text_clipboard_limits_tests.rs"
+    }
+  ],
+  "checks": [
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-api-red.json",
+      "bytes": 12802,
+      "sha256": "10f4127c6c0c8fd576e407d5dcc052253b709166e8b447e8019caffabe4fbf40",
+      "exit_code": 101,
+      "seconds": 2.999,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-api-red.log",
+      "log_bytes": 15765,
+      "log_sha256": "cabd2cb3df782f13db66e7a4cc60ec3f26339178b3907be41fc8ee1210c04fbf"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/text-limits-api-red.json",
+      "bytes": 11791,
+      "sha256": "b00c1fe548abe1635ebb432d015b88835614e2a261c2615c2e5adbee0a964c7c",
+      "exit_code": 101,
+      "seconds": 2.927,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/text-limits-api-red.log",
+      "log_bytes": 603,
+      "log_sha256": "c3f764631b17acf899e3487ae1b8509ba94e6c2d50dd6282845ae9312588ad59"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/text-limits-first-green.json",
+      "bytes": 12361,
+      "sha256": "0931a129a050c434e8eddacf9302ec1a3d29ebf4a6257141a2afc87a868c20ec",
+      "exit_code": 0,
+      "seconds": 5.354,
+      "test_results": [
+        "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 142 filtered out; finished in 0.00s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/text-limits-first-green.log",
+      "log_bytes": 802,
+      "log_sha256": "6100c6fb4fde5d070cca0986fbab7746b6db22a15fff5b6d361ebbc9294c46e1"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-first-green.json",
+      "bytes": 13070,
+      "sha256": "42a79c9bfc379ef6a9f3086778f57a30dda33d92dc77005dec6c476dd72ecc01",
+      "exit_code": 101,
+      "seconds": 5.687,
+      "test_results": [
+        "test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 146 filtered out; finished in 0.12s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-first-green.log",
+      "log_bytes": 1823,
+      "log_sha256": "bdf915bbd9cf23b7a23db52c49257de7e79567d4449ab02342e10afa2ad6642f"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-fixture-corrected-green.json",
+      "bytes": 13532,
+      "sha256": "85b8eb970e93c4f3cbf549ad6206205b30ac1b7bfd4f535e400174ca40cbd719",
+      "exit_code": 0,
+      "seconds": 5.714,
+      "test_results": [
+        "test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 146 filtered out; finished in 0.12s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-fixture-corrected-green.log",
+      "log_bytes": 1020,
+      "log_sha256": "00151b2314a909097dd62feae874c5d28924f050eb0f2501afaa51ff18dce204"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-all-dnd.json",
+      "bytes": 12902,
+      "sha256": "3ea2661382a497e976b1fd2e2442934ce04f03d01df114b345e3e7a370c34ab5",
+      "exit_code": 101,
+      "seconds": 13.664,
+      "test_results": [
+        "test result: FAILED. 149 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-all-dnd.log",
+      "log_bytes": 17808,
+      "log_sha256": "54aa4eee542621f8684edcc9a1a692673db08c3fce0d40784935c505abae1159"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-witness-all-dnd.json",
+      "bytes": 13565,
+      "sha256": "c01867154facd2f71c830bf48286e8cc0e38bb24665e353bf462675fc524e72d",
+      "exit_code": 0,
+      "seconds": 6.477,
+      "test_results": [
+        "test result: ok. 152 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-witness-all-dnd.log",
+      "log_bytes": 16883,
+      "log_sha256": "b7be3b0d13b130e72fb2da1acf2a58e620c80abdac1022f5cf2dfe8e7ca9de56"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-formatted-all-dnd.json",
+      "bytes": 13645,
+      "sha256": "8465c24e2962140b4eca13ae3618c7a6f6d05045aafd8cd817b6f3c29253206e",
+      "exit_code": 0,
+      "seconds": 6.403,
+      "test_results": [
+        "test result: ok. 152 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s"
+      ],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-formatted-all-dnd.log",
+      "log_bytes": 16883,
+      "log_sha256": "b8483c66eee896174866c332c36fc2d5d2c8433509f483a3bc360311df59b359"
+    },
+    {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-format-check.json",
+      "bytes": 13321,
+      "sha256": "270bdb3e865d99463c8abcf95e599af7f01ea5280469dc9cc26b23ef16b79ba8",
+      "exit_code": 0,
+      "seconds": 2.162,
+      "test_results": [],
+      "log": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-a1-format-check.log",
+      "log_bytes": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "accepted_behavior": [
+    "Validated public TextClipboardLimits and redacted ClipboardError; four focused configuration tests.",
+    "Checked non-reused logical IDs, immutable parent/SurfaceId, bounded four-seat metadata snapshots.",
+    "Single Incoming admission shared by DnD and text, Reserve/ACK/claim metadata with fresh authority and clock checks.",
+    "Cancellation and exact-ID cleanup prevent old handles from releasing a later request.",
+    "DnD early release is allowed only after Coordinator/routing cleanup and proven absence of the matching real reader; runtime watcher retention is covered without detaching the endpoint."
+  ],
+  "test_interpretation": {
+    "baseline_dnd": 142,
+    "current_dnd": 152,
+    "new": "4 limits tests + 5 admission groups + 1 real-runtime watcher-retention test",
+    "all_current": "152 passed, 0 failed, 0 ignored in 0.80 s; 6.403 s wall after formatting",
+    "regression_history": "The pre-witness full run had 149 passed and 2 existing DnD failures. Both existing tests are unchanged and pass with the witness fix.",
+    "fixture_history": "First admission run had 4 passed and one MIME fixture failure. v3 gives the Plain-only offer a new Selection identity; production code was unchanged for the correction.",
+    "red_scope": "Initial RED was missing API compilation, zero test bodies. The two existing DnD failures are separate behavior regressions; no behavior RED is claimed for the new runtime safety test."
+  },
+  "review": {
+    "independent_agent": "/root/clipboard_recovery_review",
+    "result": "0 material findings; read-only review of six frozen implementation sources and exact raw new runtime test before wiring; no Cargo or GUI run by reviewer.",
+    "formatting": "cargo fmt restricted to limn-dnd; same 13 changed/new source paths, no unrelated tracked file changes.",
+    "descriptor_proof_limit": "Production strong FD references are retired sequentially by the same worker. This is not a proof about arbitrary concurrent Arc last-drop on another thread."
+  },
+  "not_implemented_or_not_proven": [
+    "Selection/keyboard protocol retention, typed text Receive, pipe reader, body staging/publication/poll/TTL and public TextPasteRequest/owner text attach API.",
+    "Primary, CopyText, CopyImage, URI, functional SDK clipboard adapter or RUNE consumer.",
+    "OS clipboard interoperability, native text-paste QA, Hyprland coexistence, connected Discord account or remote uploads.",
+    "Strict non-test Clippy/workspace verification for this unfinished branch; private text admission APIs currently have no production consumer.",
+    "A new commit, push, PR, RUNE dependency pin or merged change."
+  ],
+  "progress_unchanged": {
+    "closed_flows": 5,
+    "total_flows": 21,
+    "rune_historical_tests_passed": 1128,
+    "rune_historical_native_mock_captures": 18,
+    "note": "limn tests are not added to RUNE test counts; 07.3 remains partial."
+  },
+  "next": "A2 body ownership, staging, certified publication, single-use poll and TTL; then B/C real Selection/keyboard/runtime before SDK/RUNE integration."
+}

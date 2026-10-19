@@ -1,0 +1,9 @@
+/target
+/references/
+*.db
+*.db-journal
+.direnv/
+result
+/.claude/worktrees/
+# Notes kept only in the owner's copy, never published.
+/privado/

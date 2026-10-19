@@ -1,0 +1,55 @@
+[package]
+name = "rune-core"
+description = "RUNE's services: provider sessions, reconnection, history requests and the local store's thread"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+rune-provider.workspace = true
+rune-storage.workspace = true
+# Keep selected descriptors in the service, outside the interface and providers.
+rune-platform.workspace = true
+# A card's GIF arrives as a short MP4: its pictures decode with the H264
+# reader and decoder that watched streams use, into animation frames.
+rune-media.workspace = true
+# Sealed attachment buffers retain their memory credit through clones and slices.
+bytes = "1.12.1"
+# Provider sessions run on a small runtime owned by the client.
+tokio = { workspace = true, features = ["process"] } # Killable, isolated PDF renderer off the UI thread.
+# Public, credential-free artwork downloads run on the core runtime.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# Validate image origins and reject credentials, fragments and non-HTTPS URLs.
+url = "2"
+# Decode bounded artwork and attachment previews, including a GIF's first frame, off the UI thread.
+image = { version = "0.25.10", default-features = false, features = ["png", "webp", "jpeg", "gif"] }
+# Digest and encode validated thumbnails for limn's existing RasterImage contract.
+sha2 = "0.10"
+base64 = "0.22"
+# Decode bounded responses from the optional, documented GIF search API.
+serde_json.workspace = true
+# Animated vector (Lottie) stickers drawn into the animation cache's frames:
+# a pure Rust rasterizer on tiny-skia (already in the tree through resvg),
+# MIT/Apache-2.0. Without its default features: no GIF export, embedded
+# images or text layers, which stickers that need them do without.
+rasterlottie = { version = "=0.2.4", default-features = false }
+# Pictures kept on disk are written beside their place, 0600 under a random
+# name, and moved in whole; the tests' private fixtures use it too. It was a
+# dependency of the tests already, and its own are in the tree.
+tempfile = "3"
+
+[dev-dependencies]
+# Writes an animated PNG for its decoding test: `image` only reads them. Already
+# in the tree through `image`.
+png = "0.18"
+# Fixtures write a store as versions before 5 left it, in plain text, and
+# count its rows; the SQLite rune-storage already builds.
+rusqlite.workspace = true

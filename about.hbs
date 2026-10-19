@@ -1,0 +1,250 @@
+# Avisos de terceros
+
+RUNE es software libre bajo MIT o Apache-2.0, a elección
+([LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)). Este archivo
+reúne los avisos de lo que un binario de RUNE trae de terceros, en Linux y en
+Windows: primero lo que no viene de Cargo, después cada dependencia Rust con
+el texto de su licencia. El programa lo lleva adentro: `rune --licenses` lo
+imprime.
+
+No se edita a mano. Lo genera [cargo-about](https://github.com/EmbarkStudios/cargo-about)
+con `about.toml` y esta plantilla, `about.hbs`:
+
+```sh
+cargo about generate --locked --offline --all-features about.hbs -o THIRD_PARTY_NOTICES.md
+```
+
+## Lo que no viene de Cargo
+
+### Fuentes de egui (`epaint_default_fonts`)
+
+La dependencia `epaint_default_fonts` trae embebidas, sin modificar, las
+fuentes predeterminadas de egui:
+
+- **Hack Regular** 3.003: «The work in the Hack project is Copyright 2018
+  Source Foundry Authors and licensed under the MIT License. The work in the
+  DejaVu project was committed to the public domain. Bitstream Vera Sans Mono
+  Copyright 2003 Bitstream Inc. and licensed under the Bitstream Vera License
+  with Reserved Font Names "Bitstream" and "Vera"». Textos completos
+  [más abajo](#textos-de-las-licencias-de-esta-sección).
+- **Ubuntu Light** 0.83: «Copyright 2011 Canonical Ltd. Licensed under the
+  Ubuntu Font Licence 1.0». Texto completo en la sección *Ubuntu Font Licence
+  v1.0* de las dependencias Rust.
+- **Noto Emoji** 1.05: «Copyright 2013 Google Inc. All Rights Reserved.»,
+  bajo la SIL Open Font License 1.1. Texto completo en la sección *SIL Open
+  Font License 1.1* de las dependencias Rust.
+- **emoji-icon-font** 1.1: «Copyright (c) 2014 John Slegers», bajo la
+  licencia MIT. Texto completo [más abajo](#textos-de-las-licencias-de-esta-sección).
+
+### Fuentes e íconos de limn (`limn-egui`)
+
+[limn](https://github.com/Niiihuel/limn), la biblioteca de interfaz de RUNE
+(MIT o Apache-2.0), embebe sin modificar:
+
+- **Ubuntu** Regular, Medium y Bold 0.83: «Copyright 2011 Canonical Ltd.
+  Licensed under the Ubuntu Font Licence 1.0».
+- **Ubuntu Sans** SemiBold 1.006: «Copyright 2010, 2011 Canonical Ltd.»,
+  bajo la Ubuntu Font Licence 1.0.
+- **Noto Sans Math** 3.000: «Copyright 2022 The Noto Project Authors
+  (https://github.com/notofonts/math)», bajo la SIL Open Font License 1.1.
+- **Noto Sans Symbols 2** 2.008: «Copyright 2022 The Noto Project Authors
+  (https://github.com/notofonts/symbols)», bajo la SIL Open Font License 1.1.
+- **Noto Emoji** 3.002: «Copyright 2013 Google LLC», bajo la SIL Open Font
+  License 1.1.
+- **Bootstrap Icons** 1.13.2: «Copyright (c) 2019-2024 The Bootstrap
+  Authors», bajo la licencia MIT. Texto completo
+  [más abajo](#textos-de-las-licencias-de-esta-sección).
+
+Los textos de la Ubuntu Font Licence 1.0 y de la SIL Open Font License 1.1
+están en las secciones de igual nombre de las dependencias Rust; la
+procedencia y los SHA-256 de cada archivo, en
+`assets/licenses/FONT-NOTICES.md` del repositorio de RUNE.
+
+### Twemoji
+
+Los emoji a color son gráficos de [Twemoji](https://github.com/jdecked/twemoji)
+17.0.3, de Twitter, Inc. y otros colaboradores, mantenidos por el proyecto
+jdecked/twemoji, bajo la licencia
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
+RUNE usa los 4009 PNG de 72 × 72 sin modificar sus píxeles; sólo los empaqueta
+uno tras otro con un índice. Ese índice usa `emoji-data.txt` 17.0.0 de Unicode
+(Unicode License v3, texto en su sección de las dependencias Rust). El código
+de Twemoji (MIT) no se incluye. Texto completo de la licencia y procedencia:
+`assets/licenses/Twemoji-CC-BY-4.0.txt` y `assets/licenses/TWEMOJI.md`.
+
+### Marca de GIPHY
+
+La imagen «Powered by GIPHY» es una marca de GIPHY, tomada sin modificar del
+paquete oficial de atribución de GIPHY (<https://developers.giphy.com/docs/#attribution>).
+Sólo atribuye el servicio de GIF opcional; no es parte de RUNE ni está bajo su
+licencia. Procedencia y SHA-256: `assets/licenses/GIPHY.md`.
+
+### hpke-rs, modificado (MPL-2.0)
+
+RUNE compila una copia modificada de [hpke-rs](https://github.com/cryspen/hpke-rs)
+0.6.1 (cifrado de extremo a extremo de la voz): cambia una dependencia de
+SHAKE256 para quitar avisos de seguridad, sin cambiar el algoritmo. Sus
+archivos, también los modificados, siguen bajo la Mozilla Public License 2.0
+(texto en su sección de las dependencias Rust). El código fuente de esa copia,
+con sus cambios, está en `vendor/hpke-rs` del repositorio de RUNE
+(<https://github.com/Niiihuel/rune>), en el tag de esta versión; los cambios
+se describen en `vendor/hpke-rs/RUNE-PATCH.md`. Las demás dependencias bajo
+MPL-2.0 (`hpke-rs-crypto`, `hpke-rs-rust-crypto`, `symphonia`) se usan sin
+modificar, con su código en crates.io.
+
+### ThumbHash
+
+RUNE decodifica las vistas previas en formato
+[ThumbHash](https://github.com/evanw/thumbhash), de Evan Wallace, con una
+implementación propia del formato publicado; el formato y su implementación
+de referencia están bajo la licencia MIT.
+
+### Cargador de WebView2 (Microsoft)
+
+En Windows, compilado con MSVC, `rune.exe` lleva enlazado el cargador
+estático de WebView2 (`WebView2LoaderStatic.lib`), que encuentra el WebView2
+Runtime instalado para las ventanas de inicio de sesión y verificación. Viene
+del SDK [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2)
+1.0.3800.47, dentro del crate `webview2-com-sys`, sin modificar; su licencia
+está abajo. El WebView2 Runtime no viene con RUNE: lo instala Windows o la
+persona, con sus propios términos.
+
+### Recursos propios
+
+Los íconos SVG de `assets/`, el ícono de la aplicación y los sonidos de
+llamada son de RUNE, bajo su misma licencia (ver `docs/ARTWORK.md` y
+`assets/licenses/AUDIO-NOTICES.md`).
+
+### Textos de las licencias de esta sección
+
+#### Hack (MIT y Bitstream Vera)
+
+````text
+The work in the Hack project is Copyright 2018 Source Foundry Authors and licensed under the MIT License
+
+The work in the DejaVu project was committed to the public domain.
+
+Bitstream Vera Sans Mono Copyright 2003 Bitstream Inc. and licensed under the Bitstream Vera License with Reserved Font Names "Bitstream" and "Vera"
+MIT License
+
+Copyright (c) 2018 Source Foundry Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+BITSTREAM VERA LICENSE
+
+Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved. Bitstream Vera is a trademark of Bitstream, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of the fonts accompanying this license ("Fonts") and associated documentation files (the "Font Software"), to reproduce and distribute the Font Software, including without limitation the rights to use, copy, merge, publish, distribute, and/or sell copies of the Font Software, and to permit persons to whom the Font Software is furnished to do so, subject to the following conditions:
+
+The above copyright and trademark notices and this permission notice shall be included in all copies of one or more of the Font Software typefaces.
+
+The Font Software may be modified, altered, or added to, and in particular the designs of glyphs or characters in the Fonts may be modified and additional glyphs or characters may be added to the Fonts, only if the fonts are renamed to names not containing either the words "Bitstream" or the word "Vera".
+
+This License becomes null and void to the extent applicable to Fonts or Font Software that has been modified and is distributed under the "Bitstream Vera" names.
+
+The Font Software may be sold as part of a larger software package but no copy of one or more of the Font Software typefaces may be sold by itself.
+
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL BITSTREAM OR THE GNOME FOUNDATION BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.
+
+Except as contained in this notice, the names of Gnome, the Gnome Foundation, and Bitstream Inc., shall not be used in advertising or otherwise to promote the sale, use or other dealings in this Font Software without prior written authorization from the Gnome Foundation or Bitstream Inc., respectively. For further information, contact: fonts at gnome dot org.
+````
+
+#### Cargador de WebView2 (Microsoft)
+
+````text
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * The name of Microsoft Corporation, or the names of its contributors
+may not be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+````
+
+#### emoji-icon-font (MIT)
+
+````text
+MIT License
+
+Copyright (c) 2014 John Slegers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+````
+
+#### Bootstrap Icons (MIT)
+
+````text
+The MIT License (MIT)
+
+Copyright (c) 2019-2024 The Bootstrap Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+````
+
+## Dependencias Rust
+
+Cada crate que puede llegar a un binario de RUNE (todas las funciones; Linux
+y Windows; sin las dependencias que sólo usan los tests), agrupado por el
+texto de su licencia. Donde un crate ofrece varias licencias a elección, se
+muestra una.
+
+{{#each overview}}
+- {{{name}}}: {{count}}
+{{/each}}
+
+{{#each licenses}}
+### {{{name}}}
+
+{{#each used_by}}
+- {{crate.name}} {{crate.version}}{{#if crate.repository}}, <{{{crate.repository}}}>{{/if}}
+{{/each}}
+
+````text
+{{{text}}}
+````
+
+{{/each}}

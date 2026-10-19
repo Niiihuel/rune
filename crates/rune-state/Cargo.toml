@@ -1,0 +1,17 @@
+[package]
+name = "rune-state"
+description = "RUNE's central state, changed one provider event at a time"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+rune-provider.workspace = true

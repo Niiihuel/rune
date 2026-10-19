@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- RUNE's icon for 16 and 24 px: rune.png's stroke turns thinner than a
+       pixel there, so this draws the mark (rune-mark.svg) thicker on the full
+       tile, in the same amber. -->
+  <defs>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDB24D"/>
+      <stop offset="1" stop-color="#C98A2E"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="22" height="22" rx="5.5" fill="url(#amber)"/>
+  <g transform="translate(12 12) scale(0.72) translate(-12 -12)" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 3v18"/>
+    <path d="M7 4l9 4.5L7 13"/>
+    <path d="M7 13l10 8"/>
+  </g>
+</svg>

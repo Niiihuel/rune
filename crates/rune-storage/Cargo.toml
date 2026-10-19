@@ -1,0 +1,34 @@
+[package]
+name = "rune-storage"
+description = "RUNE's local SQLite store: recent messages per conversation, settings and drafts, sealed per account"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+# SQLite compiled in (`bundled`): the same version on every platform, no
+# system library to match.
+rusqlite.workspace = true
+# A message is kept as one JSON row; its shape is RUNE's own, not a protocol's.
+serde_json.workspace = true
+# The snapshot of a session is kept as JSON, whatever type the caller gives.
+serde.workspace = true
+# Each account's rows are sealed with its own key (XChaCha20-Poly1305): the
+# version rune-discord-session already builds, so nothing new is compiled.
+chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["alloc"] }
+# Random keys and nonces from the operating system; already in the tree.
+getrandom = "0.3"
+# A key, and what it opens, are erased when dropped.
+zeroize = "1"
+# Files kept outside the store are named by a keyed digest (HMAC-SHA-256):
+# the versions DAVE already builds, so nothing new is compiled.
+hmac = "0.12"
+sha2 = "0.10"

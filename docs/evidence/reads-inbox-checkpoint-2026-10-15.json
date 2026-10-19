@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "project": "RUNE",
+  "flow": "06 reads/inbox",
+  "scope": "Implemented and verified locally and with the mock provider; real-provider read synchronization remains disabled.",
+  "verification": {
+    "workspace": {
+      "passed": 925,
+      "ignored": 6,
+      "suites": 23,
+      "reported_duration_seconds": 4.45,
+      "command": "nix-shell --arg withLogin true --arg withDocs true --run 'cargo test --workspace --all-features'"
+    },
+    "format": "cargo fmt --all -- --check: exit 0",
+    "clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings: exit 0",
+    "release": "cargo build --release --workspace --all-features: exit 0; 2 crates compiled; 1m02s",
+    "no_new_dependencies": true
+  },
+  "artifacts": {
+    "release": {
+      "original": "/home/nihuel/projects/personal/rune/target/release/rune",
+      "retained": "/tmp/rune-reads-native-20261015-eyj66ini/rune-compact-inbox-checkpoint",
+      "bytes": 54082288,
+      "sha256": "ac60ab0d0ca25bc666b8cb162a1b535321a8ab2c2212e01c01d32c94c14f6dde"
+    },
+    "core": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_core-7172f9ff005a561c",
+      "retained": "/tmp/rune-reads-native-20261015-eyj66ini/core-tests-final-checkpoint",
+      "bytes": 38513832,
+      "sha256": "e69c6b5612d9122af627297e61c9d9839226b49486a4265d7909d6d8cec230e8"
+    },
+    "state": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_state-11710600fb7f18c2",
+      "retained": "/tmp/rune-reads-native-20261015-eyj66ini/state-tests-final-checkpoint",
+      "bytes": 14111888,
+      "sha256": "a4c719914bfb1d5c2808c24d12321cfe21aac4326b2d1abe37e5349975f957cb"
+    },
+    "desktop": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune-a942056f8b4d4786",
+      "retained": "/tmp/rune-reads-native-20261015-eyj66ini/desktop-tests-compact-inbox-checkpoint",
+      "bytes": 72217800,
+      "sha256": "21dba763a4b31f42c9d7f2a3f78b0f6cdef0a90bda56f859d1db5ae53c3d7af6"
+    }
+  },
+  "process_replays": [
+    {
+      "suite": "rune-core",
+      "record": "docs/evidence/reads-core-process-2026-10-15.json",
+      "evidence_id": "ev_e6aca280032883beaa80c02429c0a80067aeef70854b0ad77e5d5f0908880ead",
+      "passed": 115,
+      "ignored": 1,
+      "exit": 0,
+      "truncated": false
+    },
+    {
+      "suite": "rune-state",
+      "record": "docs/evidence/reads-state-process-2026-10-15.json",
+      "evidence_id": "ev_e60f45dfde2bc282514479d65f79dad97a809ef99a9729a8fe755495124500b9",
+      "passed": 94,
+      "ignored": 0,
+      "exit": 0,
+      "truncated": false
+    },
+    {
+      "suite": "rune-desktop",
+      "record": "docs/evidence/reads-desktop-process-2026-10-15.json",
+      "evidence_id": "ev_255004b0e92fa7e83e72e2be6c273dd20a826a7ec9311dab831022022662ef3c",
+      "passed": 32,
+      "ignored": 0,
+      "exit": 0,
+      "truncated": false
+    }
+  ],
+  "native_cases": [
+    {
+      "case": "ready",
+      "record": "docs/evidence/inbox-ready-2026-10-15.json",
+      "evidence_id": "ev_5fecda0eb8f3af3ba40354c2ef2d49a416f22543773de2c12d1b2047ad268264",
+      "exit": 0,
+      "truncated": false,
+      "arguments": [
+        "--provider",
+        "mock",
+        "--channel",
+        "general",
+        "--data",
+        "--screenshot",
+        "/tmp/rune-reads-native-20261015-eyj66ini/inbox-compact-final.png",
+        "--action",
+        "inbox:open",
+        "--capture-draft",
+        "Borrador de bandeja intacto"
+      ],
+      "environment_overrides": {
+        "DISPLAY": ":0",
+        "WAYLAND_DISPLAY": "wayland-1",
+        "XDG_RUNTIME_DIR": "/run/user/1000",
+        "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-ready-data",
+        "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-ready-cache",
+        "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-ready-config"
+      },
+      "key": "ready",
+      "image": "docs/img/inbox-2026-10-15.png",
+      "bytes": 389235,
+      "sha256": "86215516ed4ac0aac9198386810fad51dc06e3ddea00a49a0644569ac40258e5",
+      "dimensions_px": [
+        1396,
+        1660
+      ],
+      "database": {
+        "path": "/tmp/rune-reads-native-20261015-eyj66ini/compact-ready-data/rune/rune.db",
+        "schema": 4,
+        "mode": "0o600",
+        "read_marks": [],
+        "drafts": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            "Borrador de bandeja intacto"
+          ]
+        ],
+        "messages": 100
+      }
+    },
+    {
+      "case": "reminder",
+      "record": "docs/evidence/read-reminder-reopened-2026-10-15.json",
+      "evidence_id": "ev_313021b7afd0830902ac8a092bc6779ed94aaf8e925f5e75e9a35bf2818bf89c",
+      "exit": 0,
+      "truncated": false,
+      "arguments": [
+        "--provider",
+        "mock",
+        "--channel",
+        "general",
+        "--data",
+        "--screenshot",
+        "/tmp/rune-reads-native-20261015-eyj66ini/reminder-compact-reopened.png",
+        "--capture-draft",
+        "Borrador de recordatorio intacto"
+      ],
+      "environment_overrides": {
+        "DISPLAY": ":0",
+        "WAYLAND_DISPLAY": "wayland-1",
+        "XDG_RUNTIME_DIR": "/run/user/1000",
+        "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-reminder-data",
+        "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-reminder-cache",
+        "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-reminder-config"
+      },
+      "key": "reminder",
+      "image": "docs/img/read-reminder-reopened-2026-10-15.png",
+      "bytes": 692652,
+      "sha256": "dd0063f54ff3f98ad594e54a30843d472cfbdc5ec2db6ed24a273d6fe8d8c4ab",
+      "dimensions_px": [
+        2824,
+        1660
+      ],
+      "database": {
+        "path": "/tmp/rune-reads-native-20261015-eyj66ini/compact-reminder-data/rune/rune.db",
+        "schema": 4,
+        "mode": "0o600",
+        "read_marks": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            {
+              "through": 1040000885,
+              "unread_from": 1040000850,
+              "revision": 1
+            }
+          ]
+        ],
+        "drafts": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            "Borrador de recordatorio intacto"
+          ]
+        ],
+        "messages": 100
+      }
+    },
+    {
+      "case": "context",
+      "record": "docs/evidence/inbox-context-2026-10-15.json",
+      "evidence_id": "ev_70d6bb31afb62d92d395b9713273b0556d2189d9be2578239b48713b57e4cf39",
+      "exit": 0,
+      "truncated": false,
+      "arguments": [
+        "--provider",
+        "mock",
+        "--channel",
+        "general",
+        "--data",
+        "--screenshot",
+        "/tmp/rune-reads-native-20261015-eyj66ini/inbox-compact-context.png",
+        "--action",
+        "inbox:open",
+        "--action",
+        "inbox:go:104",
+        "--capture-draft",
+        "Borrador de salto intacto"
+      ],
+      "environment_overrides": {
+        "DISPLAY": ":0",
+        "WAYLAND_DISPLAY": "wayland-1",
+        "XDG_RUNTIME_DIR": "/run/user/1000",
+        "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-context-data",
+        "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-context-cache",
+        "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-context-config"
+      },
+      "key": "context",
+      "image": "docs/img/inbox-context-2026-10-15.png",
+      "bytes": 677604,
+      "sha256": "a3da5db4dfef568ee0b621588acb0dbb284c3fc108471d6edf1b15f2fca269e4",
+      "dimensions_px": [
+        2824,
+        1660
+      ],
+      "database": {
+        "path": "/tmp/rune-reads-native-20261015-eyj66ini/compact-context-data/rune/rune.db",
+        "schema": 4,
+        "mode": "0o600",
+        "read_marks": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            {
+              "through": 1040000885,
+              "unread_from": 1040000750,
+              "revision": 2
+            }
+          ]
+        ],
+        "drafts": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            "Borrador de salto intacto"
+          ]
+        ],
+        "messages": 151
+      }
+    },
+    {
+      "case": "empty",
+      "record": "docs/evidence/inbox-empty-2026-10-15.json",
+      "evidence_id": "ev_4b3487db76f3177a1b2f77c2b4a842485a191c0580e4172ead8a0048166722ff",
+      "exit": 0,
+      "truncated": false,
+      "arguments": [
+        "--provider",
+        "mock",
+        "--channel",
+        "general",
+        "--data",
+        "--screenshot",
+        "/tmp/rune-reads-native-20261015-eyj66ini/inbox-compact-empty.png",
+        "--action",
+        "inbox:open",
+        "--action",
+        "inbox:read:104",
+        "--action",
+        "inbox:read:105",
+        "--action",
+        "inbox:read:117",
+        "--action",
+        "inbox:read:125",
+        "--capture-draft",
+        "Borrador de bandeja vacía intacto"
+      ],
+      "environment_overrides": {
+        "DISPLAY": ":0",
+        "WAYLAND_DISPLAY": "wayland-1",
+        "XDG_RUNTIME_DIR": "/run/user/1000",
+        "DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus",
+        "XDG_SESSION_TYPE": "wayland",
+        "XDG_DATA_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-empty-data",
+        "XDG_CACHE_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-empty-cache",
+        "XDG_CONFIG_HOME": "/tmp/rune-reads-native-20261015-eyj66ini/compact-empty-config"
+      },
+      "key": "empty",
+      "image": "docs/img/inbox-empty-2026-10-15.png",
+      "bytes": 819474,
+      "sha256": "b23b6d2c796b309fe5bae3a39b9bdbbae2d2bbdfa4fbd0659116cb67f35f0f00",
+      "dimensions_px": [
+        2824,
+        1660
+      ],
+      "database": {
+        "path": "/tmp/rune-reads-native-20261015-eyj66ini/compact-empty-data/rune/rune.db",
+        "schema": 4,
+        "mode": "0o600",
+        "read_marks": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            {
+              "through": 1040000899,
+              "unread_from": null,
+              "revision": 2
+            }
+          ],
+          [
+            "12:rune.mock.v1:1",
+            105,
+            {
+              "through": 1050000419,
+              "unread_from": null,
+              "revision": 1
+            }
+          ],
+          [
+            "12:rune.mock.v1:1",
+            117,
+            {
+              "through": 1170000639,
+              "unread_from": null,
+              "revision": 1
+            }
+          ],
+          [
+            "12:rune.mock.v1:1",
+            125,
+            {
+              "through": 1250000119,
+              "unread_from": null,
+              "revision": 1
+            }
+          ]
+        ],
+        "drafts": [
+          [
+            "12:rune.mock.v1:1",
+            104,
+            "Borrador de bandeja vacía intacto"
+          ]
+        ],
+        "messages": 100
+      }
+    }
+  ],
+  "fixture_provenance": {
+    "account": "12:rune.mock.v1:1",
+    "channel": 104,
+    "reminder": "The instrumented limn action msg:1040000850:unread selected an actually loaded mock message. read-reminder-selected-2026-10-15.json records the prior retained release 43192d9c...; SQLite read-only inspection and normal process restart preserve through=1040000885, unread_from=1040000850, revision=1 and the exact draft. Compact-reminder uses a task-only copy of that persisted database.",
+    "reminder_selected_evidence_id": "ev_2b241aeecacf14fd3bd553452d6425c903afb8a5824e4760a77fce101bf5bf03",
+    "reminder_proof_database": {
+      "path": "/tmp/rune-reads-native-20261015-eyj66ini/reminder-proof.db",
+      "sha256": "fd1978c37638dd4874c3624a7a2ef122a072ed67bebe8945585dc9a4f8ef45a0"
+    },
+    "unloaded_context": "Explicit synthetic database fixture: copy the reminder database, remove bootstrap snapshots, set unread_from=1040000750 and revision=2. This is a real issued mock message below latest window 1040000850..1040000899; it was not selected by UI while unloaded. Inbox opens it through the actual mock provider Context command; tests separately cover user-flow selection and permissions. Sparse context does not acknowledge read.",
+    "empty": "Task-only database copy; four instrumented inbox:read actions for channels 104,105,117,125. Actual mock confirmations, no real account.",
+    "ready": "Task-only database copy with read_marks and cached bootstrap removed; live mock Ready, four unread rows including DM Ada.",
+    "paths": "All captured databases and XDG homes are task-owned temporary fixtures."
+  },
+  "implementation": [
+    "Versioned, account/request/channel-bound provider read confirmations, explicit failures, 256 pending scopes, terminal deadline/cancellation/revocation/disconnection; no automatic retry loop.",
+    "Local progress, manual exact-ID reminder, confirmed cursor/version and late acknowledgement reconciliation remain separate. Retry confirms only existing local progress.",
+    "SQLite schema 4 read_marks migration preserves old data; reliable worker, prepaid bounded restore, account baseline guard, dirty full-choice acknowledgement and close barrier.",
+    "Revision saturation compares the complete choice, retaining distinct equal-revision writes at u64::MAX; opaque choices for temporarily absent channels are preserved without exposing them.",
+    "limn inbox virtualizes at most 1000 visible readable channels, filters known mentions/unread, preserves drafts, opens exact context and delays background focus behind dialogs.",
+    "Real window activity gates automatic read; sparse context/manual reminders/navigation/modal prevent acknowledging the end.",
+    "Mock read-state acknowledgements exercise the full contract, including cancelled/delayed requests, deleted through-boundaries, version monotonicity and DM history permissions."
+  ],
+  "review": {
+    "independent_workers": 3,
+    "cross_review": true,
+    "visual_review": "Root and native_research inspected all four final PNGs with view_image; no material new finding. Narrow-window unread notice may ellipsize.",
+    "regressions": "Observed RED→GREEN on request scope/deadline, persistence and saturation races, snapshot capacity accounting, mock DM permission fixture, Ready/modal preservation and empty inbox rendering. No ignored-test count increase."
+  },
+  "retained_prior_passes": {
+    "initial": "921 workspace tests before DM/Ready fixes; initial release 08722862... retained as rune-checkpoint. Initial inbox had 3 rows, excess empty area and plural typo, corrected in final.",
+    "intermediate": "924 workspace tests before removing the empty ScrollArea; release 43192d9c... retained as rune-final-checkpoint. Four pre-empty-polish GUI records and desktop replay preserved separately; the selected-reminder action uses this release.",
+    "final": "925 workspace tests; final compact release ac60ab0d...; 4 canonical images above.",
+    "canonical_images_across_checkpoints": 13
+  },
+  "evidence_bundle": {
+    "path": "/tmp/rune-reads-native-20261015-eyj66ini/reads-and-inbox-evidence.json",
+    "bytes": 594984,
+    "records": 29,
+    "unknowns": 4,
+    "scope": "Root session only, includes previous and intermediate captures; separate individual records are authoritative for each case."
+  },
+  "limitations": [
+    "Mock-only runtime and synthetic local fixtures. No new authenticated Discord operation, no real read receipt, no real SQLite enablement, no invitation acceptance.",
+    "Static Discord RE remains partial; this implementation is a RUNE design, not observed renderer parity.",
+    "Instrumented limn actions and native viewport captures do not prove physical keyboard input, screen reader support or all geometries.",
+    "Quiet test-harness process captures are test receipts, not network or syscall traces. Filesystem snapshots observe metadata/files only.",
+    "Processes are sampled and inherited environment is not fully recorded. Verified cleanup concerns the owned process group, not every process on the host.",
+    "Prelaunch hash and retained copy are not atomic OS binding to the loaded executable image.",
+    "Temporary retained binaries/databases/bundle can be removed by host cleanup; committed documentation records their hashes and evidence IDs."
+  ]
+}

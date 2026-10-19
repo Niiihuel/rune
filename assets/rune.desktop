@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=RUNE
+Comment=Cliente de chat nativo
+Exec=rune
+Icon=rune
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+StartupWMClass=rune

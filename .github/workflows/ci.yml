@@ -1,0 +1,91 @@
+# Formatting, lints, tests and cargo deny on every push to main and every
+# pull request, on Linux and Windows (windows-base); macOS comes later
+# (docs/ROADMAP.md). Releases: release.yml (docs/UPDATES.md).
+name: CI
+
+# A branch is checked through its pull request; pushing to it as well would
+# run everything twice, in two groups that never cancel each other.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Actions are pinned by commit, the release they were in beside it.
+jobs:
+  linux:
+    name: fmt, clippy y tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # The repository's shell (flake.nix -> shell.nix): the C toolchain,
+      # nasm, cmake, GStreamer, PipeWire and the window libraries, with
+      # LD_LIBRARY_PATH and the private dbus-daemon the tests use.
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      # The workspace's rust-version: raise both together, so a newer
+      # Clippy's lints never fail a push on their own.
+      - uses: dtolnay/rust-toolchain@035fceb3c12fb0c6a9461b52775e16473133e591 # 1.95.0
+        with:
+          toolchain: 1.95.0
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: cargo fmt
+        run: nix develop -c cargo fmt --all -- --check
+      # Every feature, so the unofficial session's login and hCaptcha WebView
+      # is linted too: the `session` shell adds WebKitGTK for it. `--locked`
+      # builds the Cargo.lock cargo deny checked, never a newer resolution.
+      - name: cargo clippy
+        run: nix develop .#session -c cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      # Tests marked #[ignore] need a GPU, a display, the system's fonts or a
+      # release build to measure; they are not run here.
+      - name: cargo test
+        run: nix develop -c cargo test --workspace --locked
+
+  # Windows (windows-base): the MSVC target releases are built with. The
+  # runner's own Visual Studio and CMake build the C that crates bundle
+  # (SQLite, libopus). Every feature, so the Linux-only login window is seen
+  # to stay out of the Windows build.
+  windows:
+    name: clippy y tests (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      # The sources and fixtures as they are in the repository: Git for
+      # Windows would turn their line ends into CRLF.
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dtolnay/rust-toolchain@035fceb3c12fb0c6a9461b52775e16473133e591 # 1.95.0
+        with:
+          toolchain: 1.95.0
+          components: clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+      - name: cargo test
+        run: cargo test --workspace --locked
+      # The system's own services on the runner's throwaway account, which
+      # the default run leaves alone on a person's computer: Credential
+      # Manager, the Run key and a named pipe of the session.
+      - name: cargo test (servicios de Windows)
+        run: cargo test -p rune-platform --locked -- --ignored
+
+  deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Licenses, security advisories, crate sources and bans (deny.toml).
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check

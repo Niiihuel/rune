@@ -1,0 +1,27 @@
+[package]
+name = "rune-provider"
+description = "The provider boundary of RUNE, and a deterministic simulated provider"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+# Providers are asynchronous sessions; the simulation waits as a network would.
+tokio.workspace = true
+# The snapshot of a session is kept by the local store for the next start.
+serde.workspace = true
+# Shared immutable upload bodies retain their service-owned budget across slices.
+bytes = "1.12.1"
+# Mock verifies retry payload identity without retaining service-owned file bytes.
+sha2 = "0.10"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

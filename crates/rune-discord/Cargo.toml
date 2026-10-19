@@ -1,0 +1,36 @@
+[package]
+name = "rune-discord"
+description = "Experimental scoped Discord OAuth2 identity integration for RUNE"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+rune-model.workspace = true
+rune-provider.workspace = true
+# Run cancellable loopback callbacks and HTTP outside the UI thread.
+tokio = { workspace = true, features = ["net", "io-util"] }
+# Decode only the documented OAuth2 and user/guild response fields.
+serde.workspace = true
+serde_json.workspace = true
+# Parse the authorization expiry returned by Discord.
+chrono.workspace = true
+# TLS HTTP without native TLS, cookies, or automatic redirects.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# Encode URLs and parse callback query parameters without string interpolation.
+url = "2"
+# RFC 7636 S256 and unpadded base64url encoding.
+sha2 = "0.10"
+base64 = "0.22"
+# Obtain verifier and state entropy directly from the operating system.
+getrandom = "0.3"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

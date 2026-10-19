@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-14",
+  "scope": "Local native RUNE workflows; no real account operations or copied Serein code.",
+  "references": {
+    "serein": "d1af883c9d7dda90d1261a2d15fc852a5445204d",
+    "serein-current": "5f83077e33e10971159ec7dd56b5c7f21a9902b8",
+    "mode": "read-only; both checkouts clean after inspection"
+  },
+  "environment": "nix-shell --arg withLogin true --arg withDocs true",
+  "baseline": {
+    "command": "cargo test --workspace --all-features",
+    "passed": 636,
+    "ignored": 6,
+    "suites": 23
+  },
+  "integration": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --workspace --all-features",
+      "exit_code": 0,
+      "passed": 651,
+      "ignored": 6,
+      "suites": 23
+    },
+    {
+      "command": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo build --release -p rune-desktop --features session-login",
+      "exit_code": 0
+    }
+  ],
+  "new_tests": {
+    "search": 4,
+    "invitations": 6,
+    "read_markers": 4,
+    "direct_presence": 1
+  },
+  "mutation_check": "Inverting read_sync made both local_read_scope UI regressions fail; exact file restored and both passed.",
+  "review": "Cross-review found and fixed stale search open/close focus and stale invitation input entry replacing an active form.",
+  "binary": {
+    "path": "target/release/rune",
+    "sha256": "5628b51165094856b495c3b056e239cfce7c5d7c6c372dcf52a7af52b97c7d3f"
+  },
+  "captures": [
+    {
+      "path": "docs/img/rune-search-filters.png",
+      "arguments": [
+        "--provider",
+        "mock",
+        "--screenshot",
+        "docs/img/rune-search-filters.png",
+        "--channel",
+        "general",
+        "--capture-attachments",
+        "--action",
+        "message-search:open",
+        "--action",
+        "message-search:files"
+      ],
+      "exit_code": 0,
+      "sha256": "0c89b1fccb7a2eb6213fa9a1170e4a2428e057b8dfcf5e534595994165f765d8"
+    },
+    {
+      "path": "docs/img/rune-invitation-input.png",
+      "arguments": [
+        "--provider",
+        "mock",
+        "--screenshot",
+        "docs/img/rune-invitation-input.png",
+        "--channel",
+        "general",
+        "--capture-invitation",
+        "--action",
+        "invitation:close",
+        "--action",
+        "newsrv:open",
+        "--action",
+        "invitation:input-open"
+      ],
+      "exit_code": 0,
+      "sha256": "dcbf9da5ee927d1b7445c45e918059bf7a50dab42920b8305f5bf70af5566319"
+    }
+  ],
+  "limits": [
+    "Screenshots use synthetic mock data and optional invitation/attachment fixtures.",
+    "No live invitation lookup, membership change, authentication, message send or media transport was exercised.",
+    "Invitation acceptance stays disabled in the production experimental provider.",
+    "Full Discord feature parity is not complete; remaining families and dependencies are in docs/SEREIN_COMPARISON.md."
+  ]
+}

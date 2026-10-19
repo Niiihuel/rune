@@ -1,0 +1,51 @@
+{
+  "scope": "Independent 07.3.2 negative native drop and visible-draft audit; functional native DND remains open",
+  "ledger": {
+    "path": "/home/nihuel/projects/personal/rune/docs/evidence/uploads-drop-rejected-checkpoint-2026-10-15.json",
+    "bytes": 28915,
+    "sha256": "9c2b9db056805edce53b1d81444f5620dd543d0f6a44bb99466293af89a416fe"
+  },
+  "verifier": {
+    "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/verify-evidence.py",
+    "bytes": 29034,
+    "sha256": "1dee418a569efc98c07624e70052ef3f1f4681555bfe1cf658619470a6da1c6d"
+  },
+  "complete": {
+    "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/audit-complete.json",
+    "bytes": 31536,
+    "sha256": "b820505ab237385e102cad4c55c43dfcfe97d06f8f5a6d4436992fb194956c6a",
+    "expected_exit": 0,
+    "ok": true,
+    "unique_files_hashed": 48,
+    "digest_fields_checked": 68
+  },
+  "auditor_regressions": {
+    "test": {
+      "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/test-audit-required-json.py",
+      "bytes": 8302,
+      "sha256": "94fcb265da469047533d6e6ffeae6c5eec6fda36528eef0d8dbd3bd02732a870"
+    },
+    "red": {
+      "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/audit-required-json-red.json",
+      "bytes": 11199,
+      "sha256": "32d7299868a83be223acfc7f80d71f58b28b33609935a51fbd0759454aadf083"
+    },
+    "status_red": {
+      "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/audit-required-json-status-red.json",
+      "bytes": 13422,
+      "sha256": "e50639663d4eef7e9e4651289fbb4755ce60be799c978c4b33e0501e7e996df3"
+    },
+    "green": {
+      "path": "/tmp/rune-drop-reject-native-20261015-monauf1z/audit-required-json-green.json",
+      "bytes": 1468,
+      "sha256": "421035a1e2787ce435db4d4ed0bb68d5f3917c003ebfbe07b0ae5f858585f8a3"
+    },
+    "tests_run": 5,
+    "scope": "Shadow inputs only; no native/REA evidence created"
+  },
+  "limits": [
+    "Image reviewed by root for notice and draft visibility; no-send authority is the retained host regression suite.",
+    "The actual X11 gesture verifies rejection, not import, upload or Wayland support.",
+    "REA process IDs are normalized aliases; native ownership is supported by separate PID/executable/start-tick helper records."
+  ]
+}

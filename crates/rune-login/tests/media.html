@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; media-src blob:">
+<title>RUNE · Prueba local de inicialización multimedia</title>
+<p>Prueba sintética sin red, sin entrada de datos y sin reproducción.</p>
+<script>
+// Ten milliseconds of original, silent PCM; no file or network access.
+const bytes = new Uint8Array(204);
+const data = new DataView(bytes.buffer);
+const text = (offset, value) => [...value].forEach((c, i) => {
+  bytes[offset + i] = c.charCodeAt(0);
+});
+text(0, 'RIFF'); data.setUint32(4, 196, true); text(8, 'WAVE');
+text(12, 'fmt '); data.setUint32(16, 16, true); data.setUint16(20, 1, true);
+data.setUint16(22, 1, true); data.setUint32(24, 8000, true);
+data.setUint32(28, 16000, true); data.setUint16(32, 2, true);
+data.setUint16(34, 16, true); text(36, 'data'); data.setUint32(40, 160, true);
+const source = URL.createObjectURL(new Blob([bytes], {type: 'audio/wav'}));
+const audio = new Audio();
+audio.preload = 'metadata';
+audio.muted = true;
+audio.volume = 0;
+audio.addEventListener('loadedmetadata', () => {
+  if (!audio.paused || audio.readyState < audio.HAVE_METADATA ||
+      !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+  // Success requires the native media pipeline, not just document loading.
+  window.__runeMediaFixtureReady = true;
+  const request = new XMLHttpRequest();
+  request.open('GET', '/api/v10/users/@me');
+  request.setRequestHeader('Authorization', 'SYNTHETIC_MEDIA_SESSION');
+  // Deliberately never send the request and never call audio.play().
+}, {once: true});
+// Keep the element alive until the helper closes its ephemeral document.
+window.syntheticAudio = audio;
+audio.src = source;
+audio.load();
+</script>

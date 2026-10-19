@@ -1,0 +1,23 @@
+[package]
+name = "rune-ui"
+description = "RUNE's window: the view of the state and what the person's actions ask for"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+limn.workspace = true
+rune-components.workspace = true
+rune-media.workspace = true
+rune-model.workspace = true
+rune-provider.workspace = true
+rune-state.workspace = true
+# Validate explicitly pasted HTTPS media links before inserting text; no fetch.
+url = "2"

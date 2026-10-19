@@ -1,0 +1,1135 @@
+{
+  "schema": 1,
+  "project": "RUNE",
+  "slice": "07.3 / limn published incoming Selection text v4 checkpoint: directed matrix, local checks and scoped native smoke; Draft PR63",
+  "created_at_utc": "2026-10-16T01:07:14.607687+00:00",
+  "status": "ACCEPTED_PUBLISHED_DRAFT_INCOMING_TEXT_V4",
+  "publication_status": "CANONICAL_EVIDENCE_FOR_RUNE_DOCS",
+  "canonical_destination": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-matrix-2026-10-15.json",
+  "worktree": "/home/nihuel/projects/personal/limn-wayland-clipboard",
+  "branch": "feat/shared-wayland-clipboard-text",
+  "base_commit": "06a08883634c5e5c2abe5afb4a5d624a68e98aef",
+  "history": {
+    "previous_checkpoint_ref": "history_public174",
+    "immutable_canonical_refs": [
+      "history_a1",
+      "history_a2",
+      "history_bc",
+      "history_public174"
+    ],
+    "policy": "174 and older canonicals remain byteexact, including then-current limitations and failure history. Inherit accepted behavior and evidence interpretation through those references; this new checkpoint supersedes no historical bytes.",
+    "preserved_private_draft_v1": {
+      "path": "/tmp/rune-clipboard-matrix-draft-20261015-t6ojr_8o/limn-text-clipboard-matrix-2026-10-15.draft-v1.json",
+      "bytes": 134732,
+      "sha256": "b278685826ca0bf6bd055b706105dfbe5a824dd2ae52c9740aeacc651e277224"
+    },
+    "preserved_private_draft_v2": {
+      "path": "/tmp/rune-clipboard-matrix-draft-20261015-t6ojr_8o/limn-text-clipboard-matrix-2026-10-15.draft-v2.json",
+      "bytes": 43132,
+      "sha256": "f2f330df7c0540c89f818d0994f165edfd3bb6c84c8ed9b072f84884b9c634a3"
+    }
+  },
+  "evidence_records": {
+    "history_a1": {
+      "path": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-admission-2026-10-15.json",
+      "bytes": 12573,
+      "sha256": "d5bffbed6785d28a6e9488e4c0519622e380efa8becdec2e4f5be7ef1c1df5c5"
+    },
+    "history_a2": {
+      "path": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-body-2026-10-15.json",
+      "bytes": 12596,
+      "sha256": "b25d7d18f6b281e3a86ae0cb41440115e943bf3d0ddd67e095171a3406e68295"
+    },
+    "history_bc": {
+      "path": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-runtime-2026-10-15.json",
+      "bytes": 23665,
+      "sha256": "353b6f787d0d35ce33f1e2bf510e4965397f239e4320b5a8250f66ef70b87168"
+    },
+    "history_public174": {
+      "path": "/home/nihuel/projects/personal/rune/docs/evidence/limn-text-clipboard-public-runtime-2026-10-15.json",
+      "bytes": 21515,
+      "sha256": "737cbdb690ab14c0e876224eb50f4360797d0a5b1f4285b9ed7f8c1304efacb4"
+    },
+    "contract_v4": {
+      "path": "/tmp/limn-shared-clipboard-next-20261015-yox7rzs3/selection-text-contract-v4.md",
+      "bytes": 13459,
+      "sha256": "4eb237783e45fd710e73c682767df9b7dcea8e2fd6e31dc509e5885aa37004b7"
+    },
+    "private_contract_v2": {
+      "path": "/tmp/limn-clipboard-bc-private-20261015-ew774vad/selection-text-bc-private-interface-proposal-v2.md",
+      "bytes": 32068,
+      "sha256": "cf4e0cf7d88d530683837dd2b088d437e64896c565c288d7d8288c8f734c1df8"
+    },
+    "all184": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-tombstone-all-dnd.json",
+      "bytes": 21336,
+      "sha256": "d9a42b7a4d4b798d365a88e61cde3f3aaa68f91fad875ed583b4f75e2028bea7"
+    },
+    "all184_log": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-tombstone-all-dnd.log",
+      "bytes": 21718,
+      "sha256": "71a768927689e5a6d75477314c9c469f18491e73a1fe86cbd94f9ee6ab421fc7"
+    },
+    "format": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-format-summary.json",
+      "bytes": 9053,
+      "sha256": "41bc4255863d4d427fb26a566c6223fb56b12984619783a1e0ea5ade9d5e68e6"
+    },
+    "lint_hygiene": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-lint-hygiene-summary.json",
+      "bytes": 1193,
+      "sha256": "6e3b7a1df0b0257920a8a108dd49ca2ed4ac336cd24e5ff2149fb43fa52d06e3"
+    },
+    "postlint_fmt_check": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-lint-import-format-check.json",
+      "bytes": 21649,
+      "sha256": "bed9b09b8ee357d9c21a68a3e2b729801e9757f7f1ba4abe02ca29b8a6cedf25"
+    },
+    "clippy_workspace": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-strict-workspace-clippy-final.json",
+      "bytes": 22002,
+      "sha256": "233880332ddb813001529e6ac95da36c898ba5b11866f432c270697a29d36b71"
+    },
+    "clippy_gallery_hot": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-strict-gallery-hot-clippy.json",
+      "bytes": 21773,
+      "sha256": "df21592b1ed9700e5419e778a90f2d0fbd880e8b9d41f81241598be2c08da6f0"
+    },
+    "final_functional_audit": {
+      "path": "/tmp/limn-clipboard-final-review-20261015-n2yyxqhg/final-v4-source-audit.json",
+      "bytes": 45629,
+      "sha256": "e1cc67f89582a124f6f275208035935c81884e0ca2535ecef74e7648792c3a89"
+    },
+    "catalog_review": {
+      "path": "/tmp/limn-clipboard-final-review-20261015-n2yyxqhg/catalog-addendum/review.json",
+      "bytes": 5081,
+      "sha256": "6519ed454579a204f99ea58f73ee4fac1c861d032dd626e69591e7b925998c4b"
+    },
+    "catalog_generation": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-gallery-build-and-catalog.json",
+      "bytes": 8736,
+      "sha256": "94a07e634bd0c82cb002313e117dd6784671fcad72c948d677587c38d9faf72a"
+    },
+    "catalog_delta": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-gallery-build-and-catalog.diff",
+      "bytes": 1581,
+      "sha256": "c5079232e65c4041ba7b345a65c1395c2a740ed4f52b7979cb99e7ba8b1cc1b9"
+    },
+    "catalog_applied": {
+      "path": "/home/nihuel/projects/personal/limn-wayland-clipboard/site/src/data/pages.json",
+      "bytes": 45226,
+      "sha256": "ec0bc179cc3c60b40469ba1ecd1828a487bac1be570f28c84020a2e068204791"
+    },
+    "docs_gallery_v2": {
+      "path": "/tmp/limn-clipboard-docs-gallery-20261015-8r5x5bzt/clipboard-docs-gallery.v2.freeze.json",
+      "bytes": 7883,
+      "sha256": "5625a7b209e1da9d580cf7794e205cc99c4b164f10f4faeb07720718806de2c7"
+    },
+    "workspace_first_failed": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-shipping-workspace-tests.json",
+      "bytes": 23199,
+      "sha256": "b166b29ea936984c2174354e715951868a9f24914b2f4f4bc8298467d4f210c2"
+    },
+    "workspace_catalog_fixed": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-shipping-workspace-tests-catalog-fixed.json",
+      "bytes": 24668,
+      "sha256": "b3313062ceea28ba1ce16d14af59dc1ad5341a343616f1d917da7782af85da1d"
+    },
+    "workspace_final_log": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-shipping-workspace-tests-catalog-fixed.log",
+      "bytes": 164210,
+      "sha256": "4e1787d9869cc21f69618f77c495dc81a00dc326b2d43b36cdee9d6a23dd061a"
+    },
+    "execution_history": {
+      "path": "/tmp/rune-clipboard-matrix-draft-20261015-t6ojr_8o/execution-history.v2.json",
+      "bytes": 35960,
+      "sha256": "93e51ac5f070d35b5c443bf2474831b9f8ae7214485325ae733064af760f6d68"
+    },
+    "accepted_boundaries": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-boundaries-accepted.json",
+      "bytes": 1579,
+      "sha256": "bd90501d177c44309287d131d1b9ba18e085d49526f2d078c1e1ba7b523af0be"
+    },
+    "accepted_public_published_cuts": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-public-cuts-accepted.json",
+      "bytes": 1257,
+      "sha256": "396b8b5f24e55646af6d80f03547e4e101d6cbcf452303ae6deb73b95ab42fd6"
+    },
+    "accepted_fairness": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-fairness-fix-accepted.json",
+      "bytes": 1170,
+      "sha256": "afcb0efff5069f6619a3eefb613cd9e2cf6119da155cc8a1bce2967f0bdb854f"
+    },
+    "accepted_cleanup": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-cleanup-accepted.json",
+      "bytes": 800,
+      "sha256": "ad28a5ef5588ed1a3dc36ade6ed29eafa1daf889a7e33a3ff5efe9c38c490f88"
+    },
+    "accepted_read_tag": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-read-tags-accepted.json",
+      "bytes": 1134,
+      "sha256": "3963fbec53c16ecec1585e3abc93a75b332659c6a113f0457d8c7565811890da"
+    },
+    "accepted_callback_cuts": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-callback-cuts-accepted.json",
+      "bytes": 1666,
+      "sha256": "b1b7cb4fe79a7aac324998cac8d7dbefc3e34f01b48c27bc57d69f972d59210c"
+    },
+    "accepted_tombstone_deadline": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-tombstone-accepted.json",
+      "bytes": 1637,
+      "sha256": "c75cc5a3661cb70c0d71b5a57af4322dc8bef99a15059d51ee93202c4fa7d646"
+    },
+    "barrier_fail1": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-boundaries-all-dnd.json",
+      "bytes": 19580,
+      "sha256": "acbd3b90436d85bb462881e0bc1b217552e289373e8c1174e382cc28e5594969"
+    },
+    "barrier_fail2": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-boundaries-all-dnd-diagnostic-2.json",
+      "bytes": 20321,
+      "sha256": "19befb11764f599c336d9c132856fc37ecd090411c8e5d93ed6c968fb1fb0f0f"
+    },
+    "barrier_v2": {
+      "path": "/tmp/limn-clipboard-barrier-recovery-20261015-8eijjg9h/clipboard-barrier-recovery.v2.proposed.freeze.json",
+      "bytes": 3249,
+      "sha256": "4adcd5401ed92c352a1430d036dfd446c0a07175317cea691764199c375d81b4"
+    },
+    "barrier_root_applied": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-barrier-v2.root-applied.json",
+      "bytes": 1045,
+      "sha256": "4b5d482c9e2e744b4a16d0dcb5f4e80c75f66187653ed410c37f68262b18589f"
+    },
+    "zero_body_public": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-public-cuts-first-runtime.json",
+      "bytes": 19984,
+      "sha256": "0eb39898af70106873e15fa2768705834b0b6a37771fe3984f6181616ff3def6"
+    },
+    "failure_triage": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-boundaries-failure-triage.json",
+      "bytes": 674,
+      "sha256": "2de015b21d7f8316cb15efbcbbb72599de21a65a3054b99ce708a46a8cf29ed8"
+    },
+    "fairness_red": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-fairness-behavior-red-accepted.json",
+      "bytes": 906,
+      "sha256": "4356939841ac736500748f20cc88b10e2da874249e70861e78177a43ae7e3099"
+    },
+    "fairness_candidate": {
+      "path": "/tmp/limn-clipboard-fairness-fix-20261015-367se409/candidate.json",
+      "bytes": 1955,
+      "sha256": "a8e2c32ab2d39131574c9bcd2a82d4ea06e1836a1261a0361b68678ff58dfe06"
+    },
+    "fairness_diff": {
+      "path": "/tmp/limn-clipboard-fairness-fix-20261015-367se409/fairness-cursor.diff",
+      "bytes": 820,
+      "sha256": "02d1b88380bad870972aa618bc461d6df2bb7c18fd798840513b3dd2cccc16a4"
+    },
+    "enospc": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-fairness-fixed-all-dnd-environment-interrupted.json",
+      "bytes": 643,
+      "sha256": "760aaf9e66f4edc35a84d0ed0239063abbf26caeed1e376f6eb31cc7ff5b013a"
+    },
+    "cache_recovery": {
+      "path": "/tmp/rune-build-cleanup-20261016-r9vogqyk/cleanup-summary.json",
+      "bytes": 978,
+      "sha256": "f4b4e8ee883852fdf2ce35b0bc9cad20dc75263b3291025e92f6cc99ee6358a1"
+    },
+    "native_probe_prepared": {
+      "path": "/tmp/limn-text-native-probe-20261015-sb7iroai/source-freeze.json",
+      "bytes": 3907,
+      "sha256": "0d5018df1163a22833b364d7ad95606ac5c752206ac91cc1695dbb838c503b5a"
+    },
+    "native_probe_seal": {
+      "path": "/tmp/limn-text-native-probe-20261015-sb7iroai/source-seal.json",
+      "bytes": 818,
+      "sha256": "9c9421255d11e9efa4c49b180a66491336b4bff2ef8e25f74f5cadb2f49295ac"
+    },
+    "gallery_helper": {
+      "path": "/tmp/limn-owner-text-gallery-native-20261015-58t1yn1k/helper-manifest.json",
+      "bytes": 6073,
+      "sha256": "fbeb6a5c064998f0c83e87f27a70bc6e37bd0bb1f122c3264215efdd41c2a6d5"
+    },
+    "gallery_binary_manifest": {
+      "path": "/tmp/limn-owner-text-gallery-native-20261015-58t1yn1k/native-binary.json",
+      "bytes": 190,
+      "sha256": "064e2458621fcaa2bfe099a8e43c05fba930f7b087a54fb21db899d61207c430"
+    },
+    "gallery_binary": {
+      "path": "/tmp/limn-owner-text-gallery-native-20261015-58t1yn1k/limn-gallery-owned",
+      "bytes": 71034184,
+      "sha256": "bd1c2b2893ed042c0736991961c51441a9539822cf691e7d7e459bffb42b9666"
+    },
+    "source_snapshot_manifest": {
+      "path": "/tmp/rune-clipboard-matrix-draft-20261015-t6ojr_8o/source-anchors-postformat.v2.json",
+      "bytes": 31931,
+      "sha256": "3a38293d8df51aa89eafea5212af9f21b46bb23f2b5d6cbfd2e3a2b474970fc9"
+    },
+    "shipping_accepted": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-local-shipping-accepted.json",
+      "bytes": 6886,
+      "sha256": "48148ab87529d03d7bd996c8847c342d4cf5021d11f321f5b55f8158311e8718"
+    },
+    "final_fmt_check": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-final-scoped-format-check.json",
+      "bytes": 21711,
+      "sha256": "6996fef93389193d900042e5c678e62a83ab9f9e91136bae078f359240535477"
+    },
+    "no_default_tests": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-shipping-no-default-tests.json",
+      "bytes": 22864,
+      "sha256": "8ec624b40b2b3fac7cb5b8fc315a7062fcd496fb8c3daca5bb9d8496ef69c219"
+    },
+    "strict_rustdoc": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-shipping-rustdoc.json",
+      "bytes": 21202,
+      "sha256": "64c8f3fc2f0c15bcf20149f1197cc519e13c2dcd47e85fc28b32d7dc634394a3"
+    },
+    "native_root_accepted": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/native-root-accepted.json",
+      "bytes": 5676,
+      "sha256": "8a1aef3294b9159ea10763de2a6777f65c40103d0fa73086b6259955757f64fe"
+    },
+    "native_v2_freeze": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/source-freeze.json",
+      "bytes": 5060,
+      "sha256": "a831e9950269f1b3647d83a7c8065e6ad4874f26d9446aa4c669391ec2f97389"
+    },
+    "native_v2_provenance": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/binary-provenance.json",
+      "bytes": 11131,
+      "sha256": "c9fd25235bfa327672d5b3ff5b6c615c256bb69472168da16597a57d70fe3ae5"
+    },
+    "native_v2_debugfix_review": {
+      "path": "/tmp/limn-text-native-probe-v2-review-20261015-6dd0rje3/native-probe-v2-readonly-review.json",
+      "bytes": 3778,
+      "sha256": "723c4b8c2806c44b6a9af013a9fa57185aaf07498d3229329d64d51f28ce513a"
+    },
+    "native_v2_delta": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/v1-to-v2.diff",
+      "bytes": 1989,
+      "sha256": "48b040e6d6c4ff85c214ac185889fdac7bd22a2066780f1c00b86be2b89329c3"
+    },
+    "native_v1_failed_build": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-native-probe-build.json",
+      "bytes": 21345,
+      "sha256": "c282b9799e0c2e418d6d768e735e747442e92d832cb578e58eebec865f3f50e8"
+    },
+    "native_v1_failed_build_log": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-native-probe-build.log",
+      "bytes": 1992,
+      "sha256": "6c153a92bb2e53eb1969609ee73827958582caac98b3990d5685fbdbb7af330f"
+    },
+    "native_v2_build": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-native-probe-v2-build.json",
+      "bytes": 21538,
+      "sha256": "8b19bf8fd13c730b8e2085f702b58139f1f9c7e7ddcefe789897a4d197bc1551"
+    },
+    "native_v2_lock": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/Cargo.lock",
+      "bytes": 12555,
+      "sha256": "eafc7be7076881055636cb3ed8d91c62379cb79cc076ccf55145a63f85e7c503"
+    },
+    "native_empty_result": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/native-empty-pfbfjj1m/result.json",
+      "bytes": 7906,
+      "sha256": "4761b1031eec53d0016197c372203c7d049950909e42dbcf27d161c44becbb78"
+    },
+    "native_raw_result": {
+      "path": "/tmp/limn-text-native-probe-v2-20261015-843pj5rh/native-raw-q5jhz2eh/result.json",
+      "bytes": 7884,
+      "sha256": "6fd6a3e77f444e8ad658b623e00f19947519afec7feec30aea073c91b8ddcdda"
+    },
+    "gallery_visual_accepted": {
+      "path": "/tmp/limn-owner-text-gallery-native-20261015-58t1yn1k/gallery-root-visual-qa.json",
+      "bytes": 3732,
+      "sha256": "b1bdde377fbdccb94281b77b3c200bf91ab8e55f49eab1f2d7265233331eb424"
+    },
+    "v3_input_validation": {
+      "path": "/tmp/rune-clipboard-matrix-draft-20261015-t6ojr_8o/v3-results-input-validation.json",
+      "bytes": 5193,
+      "sha256": "1effd362bbe5054985bfea32096ec06f763e9e1f2aeb16bb0c9e05e0c80cef9e"
+    },
+    "docs_upstream_v3": {
+      "path": "/tmp/limn-clipboard-docs-native-v3-20261015-54q7a0gf/clipboard-docs-native-smoke.v3.freeze.json",
+      "bytes": 4735,
+      "sha256": "f9b35a32d58f34321cab37ef3cc98d9e0de79ad5acf9a9774112160d1d827064"
+    },
+    "draft_v2_review": {
+      "path": "/tmp/limn-clipboard-matrix-draft-review-20261015-vszdswdc/draft-v2-readonly-review.json",
+      "bytes": 6510,
+      "sha256": "264bdc626a2753fb5e46b960ff3b48b1d945a9b4c7c4541e9895855a9fa55c69"
+    },
+    "native_results_review": {
+      "path": "/tmp/limn-clipboard-native-final-review-20261015-lt_x3541/native-runtime-readonly-review.json",
+      "bytes": 25232,
+      "sha256": "af42095ea124fc1dcedbd77d26169492ae98b77fecb1c3fdcc5086a9b1e8377a"
+    },
+    "docs_v3_review": {
+      "path": "/tmp/limn-clipboard-native-final-review-20261015-lt_x3541/docs-native-v3-readonly-review.json",
+      "bytes": 5300,
+      "sha256": "634e1e25bd38b2dbbd762377738b1f2a56fb3141ea1a85494226f0b7bc75fda4"
+    },
+    "upstream_delivery": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-upstream-delivery-accepted.json",
+      "bytes": 3929,
+      "sha256": "51101d16c658e1cf741cddffdd978fc96b98f74b0beea6f4a9b35dfa04fd0a2b"
+    },
+    "upstream_CI": {
+      "path": "/tmp/limn-wayland-clipboard-20261015-7fzisrd_/clipboard-upstream-ci-0105.json",
+      "bytes": 4578,
+      "sha256": "392e2b52cb4513bea0599e2fbe8067bce76a72cf0b37756ae454e9b6b3d179f5"
+    }
+  },
+  "contracts": {
+    "public_v4_ref": "contract_v4",
+    "private_bc_v2_ref": "private_contract_v2",
+    "unchanged": true
+  },
+  "source_anchor_state": "61 current limn-dnd sources unchanged through final scoped format, strict Clippy/docs/tests and accepted standalone native builds; one source list, separate snapshot manifest.",
+  "source_anchors": [
+    {
+      "path": "crates/limn-dnd/src/lib.rs",
+      "bytes": 5366,
+      "sha256": "62429502f86b61be0cdfa88b089693bb793927a55745f8c53711febbc9b46ac7"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_barrier_runtime_tests.rs",
+      "bytes": 7296,
+      "sha256": "63600b023ee967f9e56457381b5c416a24b016642837f1869d0c444cabc219e7"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_body_tests.rs",
+      "bytes": 28203,
+      "sha256": "a071515add98b1546a4fff2d04bfee8c6c2e8ba0ac617339f18e7404a82b9ad4"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_callback_cut_runtime_tests.rs",
+      "bytes": 18374,
+      "sha256": "b80c83b9ea9efce10a4dcd8ac68f74cbbe616dd2e7a7bdc88a070f3812320637"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_cleanup_runtime_tests.rs",
+      "bytes": 9489,
+      "sha256": "ec644cad260b88abd5e44d2344ad3e6bd64a9b12b64e5fbf4de342e6b650d026"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_context_runtime_tests.rs",
+      "bytes": 16328,
+      "sha256": "614fe3c4c0467cd1418614ec7157acf4fcb51c4eef7932bbb546f197a7b8360c"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_control.rs",
+      "bytes": 31743,
+      "sha256": "91fc572d161c19c966dc5c523fd707ce84d6e08502bfd043dd94cc4a82c281fc"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_control_tests.rs",
+      "bytes": 26976,
+      "sha256": "7e8ddd433a5b0f4cfe5c70c5c8e145e206a9b56899588fe86919f0027ae11642"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_dnd_runtime_tests.rs",
+      "bytes": 16012,
+      "sha256": "d5865c0d60002c79a4d4055131f42fe33a2a5c24ab71916813c1e0df018546dc"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_fairness_runtime_tests.rs",
+      "bytes": 10992,
+      "sha256": "26f890fb18b612913dda0bd36a479e489c4190841317a8092059611582379053"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_fence_runtime_tests.rs",
+      "bytes": 3219,
+      "sha256": "6fcce8012206b8f90e51682c37ee4dd7704fe5774c778f45750783ea6ca6fb80"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_fixture_tests.rs",
+      "bytes": 6333,
+      "sha256": "e4999933dbdd383e0529bdc790df16eff4e6a2fdbfa5b75f124df1bd6369b50a"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_payload_runtime_tests.rs",
+      "bytes": 10540,
+      "sha256": "6b1ce9d2fff3a63252f8e5fdd44ad3dd78aa828a41ee83ba613fed964177ec2f"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_prefix_runtime_tests.rs",
+      "bytes": 7144,
+      "sha256": "37006412c47961f431c9da277b137f63b27a43162fe95c545c361cedf739c72f"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_quota_runtime_tests.rs",
+      "bytes": 8483,
+      "sha256": "a1586a33abc07f5a39abb8ba23d2d2dfa37fd76f1a8c83321af9e29039f1cd14"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_read_tag_tests.rs",
+      "bytes": 12821,
+      "sha256": "9d38e69bcd34394e0ea654104e537335c81fecebcc495f3672a958cf9a0ba623"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_runtime_tests.rs",
+      "bytes": 12669,
+      "sha256": "898edeb1dda4b12ede30d65d7eed665388c387da516a7f620f52c7069911d233"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_seat_runtime_tests.rs",
+      "bytes": 6291,
+      "sha256": "6b5efa05030d2f425ee720b2b04d75a159a98fd08ef120e9e7ba632be220bd54"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/clipboard_tombstone_runtime_tests.rs",
+      "bytes": 10462,
+      "sha256": "9bae1391c08f503acbcc95676352524fa393792114fa1444c2db5820661f0489"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/control.rs",
+      "bytes": 14233,
+      "sha256": "ad7556d1ad1fa68916675aba3811374aa1413f545ab542cd8a20858652aa58d9"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/control_tests.rs",
+      "bytes": 18578,
+      "sha256": "a6af54d02661944b8fa3e086c004b8c720a58b1790042cab7a1fac189274b9d8"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/coordinator.rs",
+      "bytes": 19863,
+      "sha256": "6b1a2691eb5be17509acefa78a54c3fa42e2aaa45e798e6d203a5b077bdba8b9"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/coordinator_tests.rs",
+      "bytes": 18415,
+      "sha256": "53937b9f2156b3334d5bb2173e9333e76639c8a0efc98e9e25531292f8499b72"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/data_owner.rs",
+      "bytes": 18858,
+      "sha256": "d860b1a7f235607e359431ed55af7bf9673e75c03f24049a3afeb45b75085541"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/data_owner_api_tests.rs",
+      "bytes": 3548,
+      "sha256": "0055365b2846f6aaeb28c706dfef32cd81662872a0b4732594a2a4de213eea25"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/events.rs",
+      "bytes": 2067,
+      "sha256": "6eb955974bd445317c479ca0c74626eea36eb0976ebb6d02cd0142109a028738"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/events_tests.rs",
+      "bytes": 6858,
+      "sha256": "a3fe9e34215b43b9bcea170329147a3414b0b137bba233d0b38fb18b3e99ecce"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/file_drop_receiver.rs",
+      "bytes": 6230,
+      "sha256": "7e0cc3e5d438b3b05a12a29c98139108b4e5a1bbb88b7dab15d71fa97e56e677"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/offer_tests.rs",
+      "bytes": 29150,
+      "sha256": "e19aa66a057233c76380c12b06c0f70d230dbdc88e18267c5abc559dc9fb18c0"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/owner_incoming_runtime_tests.rs",
+      "bytes": 5466,
+      "sha256": "11460f2503e6e96b2fd4f4e0b74721113123c5a464a98afc2ed16f41b48ae44c"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/owner_runtime_tests.rs",
+      "bytes": 19961,
+      "sha256": "a80026be3f3e921725fad8362bb1c2ef4fdcbb9f5811e1065ffd1c5bd80c92d7"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/owner_wayland_tests.rs",
+      "bytes": 32074,
+      "sha256": "ca5b02569227bc6bec1216156de3eb08eca95371a94334cbc6e59cc9cd5ae1e1"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/pipe.rs",
+      "bytes": 2833,
+      "sha256": "5fb9fd42877d5d6ae2583027f18af8966256c7e6888135348851afea6b634e2f"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/pipe_tests.rs",
+      "bytes": 9861,
+      "sha256": "9dca35e152e61b012b2c2b84b3f8404f9ff4c3b8928e84241e267712fb086ee9"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/public_owner_tests.rs",
+      "bytes": 13266,
+      "sha256": "180adc241bbc6c0cf36401df368ce413b6261d7cae4e3fa10202c0aa17311ba0"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/public_text_cut_runtime_tests.rs",
+      "bytes": 8634,
+      "sha256": "ad5498257fdb6bd65792cec540b9f10296943b50e35276719562d5fb289f147e"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/public_text_owner_api_tests.rs",
+      "bytes": 4541,
+      "sha256": "72159ea89bf1481b526e28477211ac1aa50e0d54ea91be1f76ecbc7569b19cb7"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/public_text_owner_tests.rs",
+      "bytes": 14385,
+      "sha256": "83db424923635a3ee327365ab0278fb69cecfb51fce1ec7cdcf54724269ddc14"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/public_text_ttl_runtime_tests.rs",
+      "bytes": 5628,
+      "sha256": "ecd9cd31390dacae6c390a0ed9f729e77bb3da6b4525c7b2dd9d4557a673190e"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/read_tag.rs",
+      "bytes": 517,
+      "sha256": "9ef8e8e22cf94a09c32ccae73f58b477087e7351e6244c22c3c2c31c3129012d"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/receiver_api_tests.rs",
+      "bytes": 13915,
+      "sha256": "73852b404d2a609d07ce5b1645c735713583f9edefa29ee87fb40cf24cbf893b"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/runtime.rs",
+      "bytes": 17099,
+      "sha256": "c2913f7bcf46ba6a8fd88291c9b63091ae7ef1f4347982cdc46630b205217fa7"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/runtime_tests.rs",
+      "bytes": 26626,
+      "sha256": "10e4af454595ce11fb1ee07d38bdfe1cda6e81e49eb493c7ce2e933ef056e274"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/transfer_tests.rs",
+      "bytes": 10174,
+      "sha256": "da598ed479ed73babf3f776e2370f8af4bec0e65e563e4f3530805784e1b5009"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/wayland.rs",
+      "bytes": 32983,
+      "sha256": "a26089379bab2283b50b89dc95b216a03b210b8504cabe0db930633b87368016"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/wayland_clipboard.rs",
+      "bytes": 30804,
+      "sha256": "ff6c04773260f3aa254ea8c49028f0a8d556d25bf27fa7bb89607c41a326551b"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/wayland_endpoints.rs",
+      "bytes": 8601,
+      "sha256": "8c66c2ca8d1bd35bf64440e534e49577f2e6182d462778d886a255f5aac1e67b"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/wayland_offers.rs",
+      "bytes": 19011,
+      "sha256": "cd3fcb0aed56163d56d5b9610c2335e48e697d3c1a7d5824a8d0bdcedb50d2f6"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/wayland_tests.rs",
+      "bytes": 17164,
+      "sha256": "1ecac2ba2476b4d502c9d981f8dc22eaa9a45549dbc44d795031f1fe85150ad5"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/worker_pool.rs",
+      "bytes": 32419,
+      "sha256": "375b7f15c0b5ffccd908e8be76a12874f4d7dec4a24466789e5cb3e63d152c2f"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/worker_pool_failure_tests.rs",
+      "bytes": 6289,
+      "sha256": "3c6e615a6d9b8f8e9a770f09654af29aef36f1b5a30b3153062e3c5dc71c7037"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/worker_pool_owner_tests.rs",
+      "bytes": 22181,
+      "sha256": "3b2133c2bfb6ad7b96173dfe8e7404a37d435b6a22b93b6d48a30a729541683e"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive/worker_pool_tests.rs",
+      "bytes": 15729,
+      "sha256": "b7dcc5ed916339ee096aedfce1f575400f7e7324db4202b313e947a38523b6c4"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive.rs",
+      "bytes": 4675,
+      "sha256": "17e6f3eaece91d673169d35ac35f1b8bc5ec37fb17908ab30259a84ee790729c"
+    },
+    {
+      "path": "crates/limn-dnd/src/receive_limits.rs",
+      "bytes": 3687,
+      "sha256": "b26d36b581c4a825a2631931e751c59950071aeba7801c97a835e02af5d71297"
+    },
+    {
+      "path": "crates/limn-dnd/src/text_clipboard_limits.rs",
+      "bytes": 4665,
+      "sha256": "7a0a3222dcf715b445735a7f887f5ff2cd8b7d79dc6b68131d379972daf4859d"
+    },
+    {
+      "path": "crates/limn-dnd/src/text_clipboard_limits_tests.rs",
+      "bytes": 3156,
+      "sha256": "7962ff8a225b65fa0d4522299bac2edf586f88fda3bbcbffdbe012854d925c5a"
+    },
+    {
+      "path": "crates/limn-dnd/src/uri_list/receive_tests.rs",
+      "bytes": 8330,
+      "sha256": "3f754df476336913ab5204e9b03a6c3bdf5fec34c36f9b317e659ec488e4b43c"
+    },
+    {
+      "path": "crates/limn-dnd/src/uri_list.rs",
+      "bytes": 6884,
+      "sha256": "4dc7d493158897f4dd9460bf71a929b8a4441009289a6a5794b41b2391743ccb"
+    },
+    {
+      "path": "crates/limn-dnd/src/wayland/legacy_tests.rs",
+      "bytes": 12967,
+      "sha256": "6979ba99fd7e73e0de2d26dbee74479a44f1b5658b596355d2ab7b3a03927da7"
+    },
+    {
+      "path": "crates/limn-dnd/src/wayland.rs",
+      "bytes": 18022,
+      "sha256": "1899aec08c331eead4c235bbd7400f6b65f6996cb1eef984543d251d82efba9f"
+    }
+  ],
+  "source_snapshot_manifest_ref": "source_snapshot_manifest",
+  "source_changes": {
+    "format_ref": "format",
+    "formatted_dnd_files": 26,
+    "format_scope": "cargo fmt -p limn-dnd + scoped check; one Gallery page standalone rustfmt, unchanged; no workspace-global fmt claim",
+    "postlint_format_check_ref": "postlint_fmt_check",
+    "lint_ref": "lint_hygiene",
+    "lint_files": 2,
+    "lint_changed_source_lines": 3,
+    "lint_behavior_change": false,
+    "suppressions_added": false,
+    "raw184_to_format26_to_lint2_chain_verified": true,
+    "note": "Remove production-only unnecessary import and qualify test usage; negative Clone/Default inference retains universal ?Sized, Clone already implies Sized. Both exact deltas independently GO."
+  },
+  "tests": {
+    "baseline_body_count": 174,
+    "added_bodies": 10,
+    "total_limn_dnd_passed": 184,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0,
+    "all184_record_ref": "all184",
+    "all184_log_ref": "all184_log",
+    "preformat_library_run": {
+      "test_seconds": 2.64,
+      "wall_seconds": 5.14
+    },
+    "all174_old_passing_names_preserved": true,
+    "ten_new_passing_names": [
+      "receive::wayland::tests::offers::owner_wayland::read_tags::replayed_old_drop_and_text_tags_cannot_read_the_current_real_pipe",
+      "receive::wayland::tests::offers::receiver_api::shared_owner::text::cuts::public_cuts_discard_published_text_once_and_isolate_the_current_successor",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::barrier::invalidate_cuts_the_resolved_seal_and_open_reader_until_a_fresh_clipboard_barrier",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::callback_cut::a_b_a_quarantine_done_preserves_current_selection_without_reviving_old_a",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::callback_cut::old_clipboard_done_cannot_seal_after_intake_epoch_or_sid_change",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::cleanup::paused_host_text_cleanup_closes_normally_or_retains_uncertain_native_resources",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::fairness::removing_x_with_its_clipboard_callback_in_flight_seals_waiting_a_before_b",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::quota::eight_mixed_native_offers_remain_intact_and_the_ninth_is_destroyed_before_cleanup",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::seats::two_sealed_seats_are_ambiguous_and_losing_one_preserves_the_other_selection",
+      "receive::wayland::tests::offers::runtime::shared_owner::clipboard::tombstone::a_tombstoned_clipboard_callback_times_out_without_renewal_while_the_host_is_paused"
+    ],
+    "count_policy": "174+10 unique library bodies; focused and repeated177/179/180/181/183/184 are snapshots, never additive. Final workspace1706 includes184; neither adds to RUNE."
+  },
+  "additional_groups": [
+    {
+      "group": "boundaries",
+      "new_bodies": 3,
+      "acceptance_ref": "accepted_boundaries",
+      "behavior": "Two actual sealed seats reject AmbiguousSeat; real keyboard loss retires only the lost selection and actual survivor bytes complete with current generations. Epoch invalidation cancels actual open Reading; DnD Arm alone cannot admit text, own fresh Clipboard fence recovers same Selection/focus without new Enter. Eight shared Selection/Drop/Pending resources survive actual open Copy reader; ninth is destroyed first then ResourceLimit cleanup and exact terminal. Pending pressure is adversarial; internal mutation ordering additionally source-reviewed."
+    },
+    {
+      "group": "public_published_cuts",
+      "new_bodies": 1,
+      "acceptance_ref": "accepted_public_published_cuts",
+      "behavior": "One body/four cuts after source-witnessed unpolled Published: cancel, owner close, keyboard loss/recovery and Selection replacement. A is not polled before actual cut witnesses and successor reservation; old handles cannot affect real B open reader/own EOF."
+    },
+    {
+      "group": "fairness",
+      "new_bodies": 1,
+      "acceptance_ref": "accepted_fairness",
+      "behavior": "Actual X,A,B registry order, X pending physical Clipboard callback then native removal; first continuous survivor must seal A before B. Genuine exact-pair RED preceded independent nine-line remove_global cursor fix; focused/all179 green then included in184."
+    },
+    {
+      "group": "cleanup",
+      "new_bodies": 1,
+      "acceptance_ref": "accepted_cleanup",
+      "behavior": "One body/two real text+paused-host subcases: normal Closed certifies cleanup+join and actual window/display-owner Weak death, releases checked only after server resume. Synthetic panic_cleanup uncertain variant has FD dead/Incoming free before hook by source order, while native guest/window/display/permits/exclusion remain retained, root Closing and no Closed wake."
+    },
+    {
+      "group": "read_tag",
+      "new_bodies": 1,
+      "acceptance_ref": "accepted_read_tag",
+      "behavior": "PRIVATE sequential replay for DropA→TextB, TextA→DropB, TextA→TextB uses actual captured A/B tags and real FD+queued bytes/FIONREAD. Retire A fully before B; old tag/None cannot drain B or mutate results, current tag/own EOF delivers B once. Fixture NEVER installs Generic; no native tardy Calloop event or forced numeric collision is claimed."
+    },
+    {
+      "group": "callback_cuts",
+      "new_bodies": 2,
+      "acceptance_ref": "accepted_callback_cuts",
+      "behavior": "Two bodies/five scenarios: actual old emitted Clipboard Done cannot seal post-intake SID, changed epoch or replacement SID; fresh callbacks permit real transfer. Real A→B→A plus old Quarantine Done preserves current Selection, never revives old request, with old source writer open. Source-backed native-prefix identity plus exact Quarantine match witness; no Cartesian matrix."
+    },
+    {
+      "group": "tombstone_deadline",
+      "new_bodies": 1,
+      "acceptance_ref": "accepted_tombstone_deadline",
+      "behavior": "Actual emitted Clipboard callback remains unserved with host/server paused. Ready/armed preconditions and later pumps exclude initial clocks; T2s emission bracket<T/8, epoch cut at t1+T/2, post-cut two pumps and no request/reader. Header Timeout decision observed before t1+T+T/4<c0+T; only afterwards separate WAIT for Closed/join and resumed Releases/host Sync. Source-backed conservative bound, no exact hidden deadline or SDK teardown SLA."
+    }
+  ],
+  "retained_failure_history": [
+    {
+      "kind": "barrier_v1_test_coordination",
+      "refs": [
+        "barrier_fail1",
+        "barrier_fail2",
+        "failure_triage",
+        "barrier_v2",
+        "barrier_root_applied"
+      ],
+      "observation": "Both full runs176/1; an intervening diagnostic177/0 and initial focused14/0 also retained. Existing retirement gate saw pipe retirement before fresh Arm had necessarily been emitted/flushed; sole server pass could precede actual request.",
+      "resolution": "v2 samples completed_pumps at existing gate, waits for later actual completed pump before same single Arm server pass. Every original assertion/name/WAIT/limit intact; no extra server progress, seam or production change. Focused1 and three consecutive all177 passed. Coordination fix, not algorithm RED."
+    },
+    {
+      "kind": "zero_body_orchestration",
+      "refs": [
+        "zero_body_public",
+        "failure_triage"
+      ],
+      "functional_evidence": false,
+      "observation": "Pre-wiring public filter0passed/177filtered executed after prior admission failure; excluded, not a pass of a body."
+    },
+    {
+      "kind": "fairness_genuine_algorithm_RED",
+      "refs": [
+        "fairness_red",
+        "fairness_candidate",
+        "fairness_diff",
+        "accepted_fairness"
+      ],
+      "observation": "Compiled independent native body failed exact(A=false,B=true) versus(true,false); not missing API or timeout.",
+      "resolution": "Independent nine-line remove_global fix preserves next surviving seat after vector removal: decrement preceding index, empty0/modulo normalize. Deadlines/tags unchanged;39tests and19otherproduction sources byteexact at candidate. Focused1/all179 green, retained in184."
+    },
+    {
+      "kind": "ENOSPC_environment_interruption",
+      "refs": [
+        "enospc",
+        "cache_recovery"
+      ],
+      "functional_evidence": false,
+      "observation": "JSON/log for interrupted all179 attempt both zero bytes; no recoverable result. Later separately named post-space-recovery179/0 is evidence."
+    },
+    {
+      "kind": "strict_lint_initial_failures",
+      "ref": "lint_hygiene",
+      "observation": "Both original failed Clippy records/logs retained and referenced by lint summary/execution_history; exact three-line addendum resolved them without allow/suppression."
+    },
+    {
+      "kind": "workspace_generated_catalog_failure",
+      "refs": [
+        "workspace_first_failed",
+        "catalog_generation",
+        "catalog_delta",
+        "catalog_review",
+        "workspace_catalog_fixed"
+      ],
+      "observation": "First workspace exit101 at original gallery catalog equality:30pass/1fail; its separate dnd184/0/0 passed2.62s.",
+      "resolution": "Existing --pages headless exporter regenerated one section in one existing page; test unchanged. Exact generated/applied JSON reviewed GO. Final independent workspace rerun1706/0/5 passed; never sum failed pre-run."
+    },
+    {
+      "kind": "native_probe_V1_helper_build_E0599",
+      "refs": [
+        "native_v1_failed_build",
+        "native_v1_failed_build_log",
+        "native_probe_prepared",
+        "native_v2_freeze",
+        "native_v2_delta",
+        "native_v2_debugfix_review",
+        "native_v2_build"
+      ],
+      "observation": "V1 standalone helper compile exit101: ReceiveError lacks Display, register_surface_owned map_err called to_string. V1 sources/lock/mtime and failure retained; no production error.",
+      "resolution": "V2 independent GO exact one-expression map_err Debug-format fix plus three own README path replacements; Cargo/runner/own53-entry lock byteexact V1. Rebuild --locked exit0, then accepted actual raw29B/empty0B runs. No library/source change."
+    }
+  ],
+  "functional_review": {
+    "ref": "final_functional_audit",
+    "reviewer": "/root/bc_contract_challenge",
+    "verdict": "GO_FOR_IN_SCOPE_V4_IMPLEMENTATION_AND_TARGETED_COVERAGE",
+    "material_blockers": [],
+    "required_implementation_or_targeted_test_work_identified": [],
+    "conclusion": "No remaining concrete security, lifecycle, routing, deadline, admission, fairness, focus/NoneSID or public API clause was found unimplemented or lacking necessary targeted/source-backed evidence within this incoming-text slice. This is a scoped review judgment, not proof of every possible interleaving or complete host integration.",
+    "areas_reviewed": [
+      "public API and privacy",
+      "single admitted runtime",
+      "Incoming exclusion and exact retirement",
+      "claim and guards",
+      "bounded resources and data",
+      "focus, keyboard and ambiguity",
+      "selection retention and MIME",
+      "irreversible callback prefix and stale context",
+      "None SID, invalidation and replacement",
+      "physical scheduler and fairness",
+      "physical deadlines and tombstones",
+      "typed real reader and byte policy",
+      "stage, watcher removal and publication",
+      "public poll, TTL and late cuts",
+      "shutdown, failed cleanup and native lifetimes",
+      "docs and static gallery"
+    ],
+    "postformat": "Reviewer verified all61 preformat→format26→two lint changes, exact three-line addendum GO; original75-input audit remains immutable.",
+    "limits": [
+      "Public Ping emission after guards is source-backed; ordinary20ms Tick progress is not isolated proof of Ping-only wake. No new Ping seam required.",
+      "Under-lock real Instant sampling is verified in source. Existing mutex tests do not guarantee a precise scheduler arrival instant for every conceivable prelock mutant.",
+      "Private ReadTag replay uses tags/FD captured from real pipes and FIONREAD, never fabricated numeric IDs; it neither forces namespace numeric collision nor proves an actual old native Calloop callback reached B. Native real Generic retirement is independently exercised.",
+      "Weak/Incoming samples plus source ownership/order support the boundary; no allocator-level String destruction/thread instrumentation is claimed.",
+      "Late MIME and pending-offer pressure are explicitly adversarial fixture sequences. Fixture protocol proofs do not imply live compositor/OS clipboard compatibility.",
+      "Tombstone absolute-clock test uses a conservative real emission bracket, source-backed absence of other timers and a pre-renewal root Timeout observation; no exact hidden deadline timestamp, arbitrary-mutant coverage or SDK wall-time guarantee.",
+      "Class alternation/round-robin bounds are source-reviewed and actual removed-seat order is tested; an exhaustive churn matrix is neither performed nor required for this judgment.",
+      "Retired Arm tombstones keep unchanged existing DnD clock/lifecycle semantics. Only emitted Clipboard callbacks carry the added owner-wide physical timeout policy.",
+      "Stable unique endpoint/focus/Selection plus post-Receive wake baseline, EOF wake, actual FD death, Ready and reserveBusy identify Published by source review. TTL real interval admitsB without Apoll/cancel/reemit; no generic phase observer or allocator/destructor-thread instrument."
+    ],
+    "draft_v2_and_results_followup": {
+      "status": "GO_NO_MATERIAL_BLOCKERS_OR_REQUIRED_ADDITIONAL_WORK",
+      "draft_v2_review_ref": "draft_v2_review",
+      "native_runtime_review_ref": "native_results_review",
+      "docs_delta_review_ref": "docs_v3_review",
+      "local_shipping_acceptance_ref": "shipping_accepted"
+    }
+  },
+  "docs_gallery_catalog": {
+    "scope": "Static synthetic owner lifecycle plus synthetic text paste; no actual native owner attach or OS clipboard operation. Lifecycle prefix/standalone demo preserved.",
+    "fifth_generated_file": {
+      "path": "site/src/data/pages.json",
+      "artifact_ref": "catalog_applied",
+      "generation_ref": "catalog_generation",
+      "delta_ref": "catalog_delta",
+      "review_ref": "catalog_review",
+      "status": "GO",
+      "pages_before": 93,
+      "pages_after": 93,
+      "changed_page_ids": [
+        "wayland-data-owner"
+      ],
+      "other92_pages_exact": true,
+      "existing_sections_metadata_exact": true,
+      "one_added_section": "Synthetic text paste",
+      "generated_output_equals_applied_bytes": true,
+      "tests_and_entrypoint_unchanged": true
+    },
+    "render_status": "ACCEPTED_FOUR_PRIVATE_WESTON_VIEWS_ROOT_VISUAL_PASS",
+    "visual_qa_ref": "gallery_visual_accepted",
+    "visual_summary": "dark/light top/end,1180x820; all execution_ok, app0/watchdogfalse/no cleanup errors/processes gone; Root viewed all4 PNGs PASS for wrapping/contrast/no clipping. Synthetic page attaches no native owner; captures add nothing to historical18 RUNE Mock captures.",
+    "visual_limits": [
+      "No owner attached by page",
+      "No OS clipboard interoperability or SDK/RUNE proof",
+      "No full accessibility audit or other viewport/compositor proof",
+      "These4captures do not increase historical18Mock RUNE captures"
+    ],
+    "upstream_docs_v3": {
+      "status": "ROOT_AND_INDEPENDENT_GO",
+      "freeze_ref": "docs_upstream_v3",
+      "review_ref": "docs_v3_review",
+      "delta": "Only two current validation mentions in docs/file-drop.md and CHANGELOG.md add the two private Weston smoke results; all other text/tail, Gallery, README and generated catalog preserved."
+    },
+    "docs4_freeze_v2_historical_ref": "docs_gallery_v2"
+  },
+  "shipping": {
+    "status": "PASSED_ALL_REQUIRED_LOCAL_CHECKS",
+    "scoped_format": "PASSED",
+    "strict_workspace_clippy": {
+      "status": "PASSED",
+      "ref": "clippy_workspace",
+      "wall_seconds": 20.764
+    },
+    "strict_gallery_hot_clippy": {
+      "status": "PASSED",
+      "ref": "clippy_gallery_hot",
+      "wall_seconds": 10.849
+    },
+    "workspace_tests": {
+      "status": "PASSED",
+      "ref": "workspace_catalog_fixed",
+      "log_ref": "workspace_final_log",
+      "wall_seconds": 14.808,
+      "suite_result_lines": 21,
+      "passed": 1706,
+      "failed": 0,
+      "ignored": 5,
+      "ignored_scope": "Pre-existing ignored cases; no new suppression/ignore introduced.",
+      "totals_computed_from_all21_lines": true,
+      "limn_dnd_included": {
+        "passed": 184,
+        "failed": 0,
+        "ignored": 0,
+        "test_seconds": 2.71
+      }
+    },
+    "no_default_tests": {
+      "status": "PASSED",
+      "ref": "no_default_tests",
+      "package": "limn",
+      "workspace": false,
+      "command": "cargo test -p limn --no-default-features --locked --offline",
+      "suite_result_lines": 11,
+      "passed": 1331,
+      "failed": 0,
+      "ignored": 2,
+      "wall_seconds": 35.965,
+      "count_policy": "Separate no-default configuration; never add to workspace1706 or limn-dnd184."
+    },
+    "strict_rustdoc": {
+      "status": "PASSED",
+      "ref": "strict_rustdoc",
+      "command": "RUSTDOCFLAGS=-D warnings cargo doc --workspace --no-deps --locked --offline",
+      "wall_seconds": 19.834,
+      "scope": "Generated API docs with warnings denied; not a separate doctest execution claim."
+    },
+    "native_and_gallery_QA": "PASSED_SCOPED_PRIVATE_WESTON_AND_SYNTHETIC_VISUAL_QA",
+    "publication": "PUBLISHED_DRAFT_PR63_CI_SUCCESS_NOT_MERGED",
+    "accepted_ref": "shipping_accepted",
+    "final_scoped_format": {
+      "status": "PASSED",
+      "ref": "final_fmt_check",
+      "wall_seconds": 2.537,
+      "scope": "limn-dnd --check after both lint fixes; separate earlier Gallery standalone formatter returned unchanged"
+    }
+  },
+  "native": {
+    "status": "ACCEPTED_PRIVATE_WESTON_PUBLIC_API_RAW_AND_EMPTY_SMOKE",
+    "accepted_ref": "native_root_accepted",
+    "input_validation_ref": "v3_input_validation",
+    "source_freeze_ref": "native_v2_freeze",
+    "binary_provenance_ref": "native_v2_provenance",
+    "scope": "Public incoming text API, private headless Weston15.0.1/Pixman/desktop-shell with synthetic fake seat; two independent app connections, actual xdg configure/keyboard focus/native source Send FDs, one owner on exact receiver display.",
+    "cases": [
+      {
+        "case": "empty",
+        "result_ref": "native_empty_result",
+        "bytes": 0,
+        "expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "raw_equal": true,
+        "send_baseline_before_attach": 1,
+        "send_after_ACK": 2,
+        "poll_after_success_none": true,
+        "endpoint_Detached_None": true,
+        "owner_Closed_None": true,
+        "app_exit": 0,
+        "watchdog": false,
+        "cleanup_errors": 0,
+        "owned_processes_gone": true,
+        "elapsed_seconds": 0.3142136280075647,
+        "payload_description": "Successful empty String on EOF,0bytes."
+      },
+      {
+        "case": "raw",
+        "result_ref": "native_raw_result",
+        "bytes": 29,
+        "expected_sha256": "565cc2b883265285693e4404cdabb17c0b0751e4eaca9cccab0294b799db64e2",
+        "raw_equal": true,
+        "send_baseline_before_attach": 1,
+        "send_after_ACK": 2,
+        "poll_after_success_none": true,
+        "endpoint_Detached_None": true,
+        "owner_Closed_None": true,
+        "app_exit": 0,
+        "watchdog": false,
+        "cleanup_errors": 0,
+        "owned_processes_gone": true,
+        "elapsed_seconds": 0.3131012829981046,
+        "payload_description": "Fixed synthetic UTF-8 accents/emoji and CRLF,29rawbytes without normalization."
+      }
+    ],
+    "baseline": "Immutable manager SourceSend1 completed/FDclosed BEFORE receiver attach. Reserve had no extra sampled Send; ACK triggered exactly Send2 once with both FDs closed. Finite preACK sample complements deterministic private-server admission coverage.",
+    "lifetimes": "Endpoint Detached(None), then owner Closed(None), while original source/native surfaces and coordinated host reader remained alive; own app/compositor/descendants subsequently confirmed gone. Source proxy is_alive indicates object lifetime, not independent Selection authority.",
+    "standalone_dependency_scope": {
+      "lock_ref": "native_v2_lock",
+      "lock_package_entries": 53,
+      "dependencies_excluding_probe": 52,
+      "locked": true,
+      "library_source_hashes": 61,
+      "same_workspace_graph_claimed": false
+    },
+    "limits": [
+      "Finite pre-ACK smoke sample, deterministic private-server tests independently cover no early Receive",
+      "Single configured Weston synthetic-seat focus/serial policy only; no universal compositor/Hyprland guarantee",
+      "No SDK clipboard backend or UI text edit, Primary/outgoing copy/image/URI support, RUNE integration, provider or account traffic",
+      "Source proxy is_alive supports object lifetime, not independent Selection authority during cleanup"
+    ],
+    "private_Weston_interoperability_verified": true,
+    "arbitrary_desktop_compositor_or_Hyprland_verified": false,
+    "SDK_clipboard_backend_or_UI_text_edit_verified": false,
+    "RUNE_integrated": false,
+    "independent_review_ref": "native_results_review",
+    "stderr": {
+      "application": "empty in both cases",
+      "Weston": "198 bytes in each case: repeated missing dnd-move/dnd-copy/dnd-none cursor notices; retained and independently read",
+      "all_stderr_empty_claimed": false
+    }
+  },
+  "environment_recovery": {
+    "ref": "cache_recovery",
+    "reclaimed_bytes": 57965182976,
+    "decimal_GB": 57.97,
+    "GiB": 53.98,
+    "scope": "Obsolete build profiles/generated incremental caches under Root recorded locks; source/worktrees/git/evidence/native archives/active target preserved. Only small summary imported, no cache or unrelated data contents.",
+    "functional_evidence": false
+  },
+  "not_implemented_or_proven": [
+    "PR63 remains Draft OPEN, not merged; stack/basePR62 and later dependency pin integration remain separate delivery steps.",
+    "Stock SDK/backend adapter, Primary, CopyText/CopyImage/URI and RUNE consumer/UI integration.",
+    "Universal compositor/Hyprland or exhaustive Cartesian/interleaving coverage; finite native preACK sample and source-backed timing/ownership limits remain.",
+    "Provider/account traffic or official client analysis; none performed."
+  ],
+  "progress_unchanged": {
+    "closed_flows": 5,
+    "total_flows": 21,
+    "rune_historical_tests_passed": 1128,
+    "rune_historical_native_mock_captures": 18,
+    "note": "07.3 remains globally partial at SDK/RUNE integration,5/21 flows. Incoming text v4 has scoped local functional/shipping/private-Weston acceptance; limn184/workspace1706/no-default1331 are separate configurations and never added to RUNE1128/18.",
+    "rune_limn_pin": "6ae42859f86f5d255e107a23142aca3c19c86590"
+  },
+  "author_actions": {
+    "writes_only_private_tmp": true,
+    "rune_docs_modified": false,
+    "canvas_modified": false,
+    "repository_edits": false,
+    "cargo_or_gui": false,
+    "native_runner_executed": false
+  },
+  "next": "Implement and review the stock SDK/backend adapter, outgoing text, Primary, images/URI clipboard and the deferred-paste RUNE consumer; preserve the accepted incoming-text contract and lifecycle.",
+  "delivery": {
+    "status": "PUBLISHED_DRAFT_OPEN_CI_SUCCESS_EXACT_HEAD",
+    "evidence_ref": "upstream_delivery",
+    "CI_evidence_ref": "upstream_CI",
+    "commit": "d254180819252a653c1d6e27aeb35dc8dc86c591",
+    "push_confirmed": true,
+    "worktree_clean_observed": true,
+    "repository": "Niiihuel/limn",
+    "head_branch": "feat/shared-wayland-clipboard-text",
+    "base_branch": "feat/shared-wayland-data-owner",
+    "stacked_on_PR": 62,
+    "pull_request_url": "https://github.com/Niiihuel/limn/pull/63",
+    "pull_request_number": 63,
+    "draft": true,
+    "state": "OPEN",
+    "body_published_byteexact_as_reported_by_Root": true,
+    "CI": {
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "head_sha": "d254180819252a653c1d6e27aeb35dc8dc86c591",
+      "workflow": "CI",
+      "job_name": "check",
+      "job_url": "https://github.com/Niiihuel/limn/actions/runs/38832943514/job/116755557558",
+      "run_url": "https://github.com/Niiihuel/limn/actions/runs/38832943514",
+      "started_at": "2026-10-16T01:02:46Z",
+      "completed_at": "2026-10-16T01:05:13Z"
+    },
+    "merged": false,
+    "RUNE_dependency_pin_updated": false,
+    "RUNE_current_limn_pin": "6ae42859f86f5d255e107a23142aca3c19c86590",
+    "note": "Upstream Draft PR delivery is separate from merge and SDK/RUNE integration."
+  }
+}

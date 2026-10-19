@@ -1,0 +1,85 @@
+[package]
+name = "rune-platform"
+description = "RUNE's native system services, independent of its window and providers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+# The caller's runtime drives cancellable portal requests; no extra executor.
+tokio.workspace = true
+# Parse local file URIs with percent encoding and native filename support.
+url = "2"
+# Erase loaded credentials on drop, like the provider's own session value.
+zeroize = "1"
+# The local Rich Presence protocol's frames are JSON.
+serde_json.workspace = true
+# RUNE's icon in the tray (barra-e-icono), from its PNGs: the decoder eframe's
+# `image` and rune-core already build, so nothing new is compiled.
+png = "0.18"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Use the existing D-Bus implementation with Tokio for FileChooser/Request.
+zbus = { version = "=5.19.0", default-features = false, features = ["tokio"] }
+# Drain bounded D-Bus signal streams while method calls are still pending.
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+# Unpredictable tokens correlate each owned portal request.
+getrandom = "0.3"
+# Open a read-only nonblocking descriptor and inspect its actual file type;
+# peer credentials and the user ID keep the local sockets to this user.
+rustix = { version = "1.1.5", features = ["fs", "net", "process"] }
+# Owner-authorized (2026-10-16) session restore through the freedesktop Secret
+# Service: async on the zbus/Tokio already used here, DH-encrypted transfer
+# with pure-Rust crypto (no OpenSSL or libdbus), and attribute search per
+# provider/account. `keyring` would add a blocking API over this same crate.
+secret-service = { version = "5.2", default-features = false, features = ["rt-tokio-crypto-rust"] }
+# The window's Wayland toplevel exported (xdg-foreign v2) as the parent of the
+# portal's dialogs, on winit's own connection: the versions and features winit
+# and its toolkit already build, so nothing new is compiled.
+wayland-client = { version = "0.31", features = ["system"] }
+wayland-protocols = { version = "0.32", features = ["client", "unstable"] }
+
+# Copied files and pictures to attach: the clipboard library egui-winit
+# already builds (X11 on Linux), with the same features, so nothing new is
+# compiled.
+[target.'cfg(any(target_os = "linux", windows))'.dependencies]
+arboard = { version = "3.6", default-features = false, features = ["image-data"] }
+
+# Windows (windows-base): the system's own services through the `windows`
+# bindings cpal, wgpu and AccessKit already build (0.62), with the parts each
+# service calls: Credential Manager, the registry, the shell (links, folders,
+# the file dialogs, the tray icon), toasts (WinRT), global hotkeys and a
+# named pipe for the single instance. No other crate.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = [
+    "Data_Xml_Dom",
+    "Foundation",
+    "UI_Notifications",
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_Security_Credentials",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Com",
+    "Win32_System_IO",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Pipes",
+    "Win32_System_Registry",
+    "Win32_System_RemoteDesktop",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+# Private filesystem and D-Bus fixtures never use personal files or the session bus.
+tempfile = "3"

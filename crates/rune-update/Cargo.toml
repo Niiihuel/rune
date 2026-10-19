@@ -1,0 +1,51 @@
+[package]
+name = "rune-update"
+description = "RUNE's own updates: a signed manifest per release, its download and its installation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# The loopback file server of the tests, for the test feed example.
+serve = []
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+# The manifest is a small JSON document.
+serde.workspace = true
+serde_json.workspace = true
+# Versions compared as SemVer says (pre-releases included); already in the
+# tree as rustc_version's, so nothing new is compiled.
+semver = { version = "1.0.28", features = ["serde"] }
+# The manifest's Ed25519 signature: the version DAVE already builds, so
+# nothing new is compiled and no second signature format is invented.
+ed25519-dalek = { version = "2.2", default-features = false }
+# The artifact's digest, and the signature and key as text: the versions
+# rune-core already builds.
+sha2 = "0.10"
+base64 = "0.22"
+# HTTPS requests off the interface's thread, as rune-core's.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tokio = { workspace = true, features = ["fs", "io-util", "net"] }
+# The Linux artifact is the program gzip-compressed: the decoder `png`
+# already builds.
+flate2 = "1.1"
+
+[dev-dependencies]
+# A throwaway signing key per test, and temporary installations.
+getrandom = "0.3"
+tempfile = "3"
+
+[[example]]
+name = "release"
+
+[[example]]
+name = "test_feed"
+required-features = ["serve"]

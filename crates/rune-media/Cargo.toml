@@ -1,0 +1,78 @@
+[package]
+name = "rune-media"
+description = "RUNE's local audio capture, speech preprocessing and screen/camera preview"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+# The WebRTC audio processor: high-pass filter, noise suppression, echo
+# cancellation and automatic gain (AGC2, digital only), each as the user picks.
+sonora = "0.2.0"
+# RNNoise, the open neural noise suppressor (pure Rust port, BSD-3): the
+# stronger choice where Discord offers Krisp, which is proprietary. Default
+# features would pull its command-line tool (clap, hound).
+nnnoiseless = { version = "0.5.2", default-features = false }
+# A fixed-capacity SPSC queue keeps the real-time callback free of locks and
+# allocation while a separate worker processes microphone samples.
+rtrb = "0.4.0"
+# Latest desired state and coherent snapshots cross the UI/worker boundary
+# without a command backlog or a mutex that could block the interface.
+arc-swap = "1.9.2"
+# Calls carry Opus, the codec voice services use. Bundles libopus 1.6 (built
+# with cmake, see shell.nix), so no system library is needed on any platform.
+opus = "0.4.0"
+# The same libopus bindings opus builds on (not a new library): its decoder
+# of several streams, which the safe API lacks, for a voice message with
+# more than two channels (Ogg Opus channel mapping family 1).
+opusic-sys = "0.7.5"
+# The sound of audio and video attachments: pure Rust readers of the files
+# Discord carries (MP4/M4A, Ogg, WebM, WAV, FLAC) and their decoders (MP3,
+# AAC, Vorbis, FLAC, PCM). Opus goes to the libopus above. No system codec
+# library; ADPCM, the default extra, is left out.
+symphonia = { version = "0.5.5", default-features = false, features = ["aac", "flac", "isomp4", "mkv", "mp3", "ogg", "pcm", "vorbis", "wav"] }
+
+# cpal lists devices and opens streams on every platform RUNE targets. On
+# Linux its PipeWire backend is preferred over ALSA (see docs/MEDIA.md).
+[target.'cfg(target_os = "linux")'.dependencies]
+cpal = { version = "0.18.2", features = ["pipewire"] }
+# Screen and camera preview: reads the video node of the remote the desktop
+# portal grants. The same 0.10 bindings cpal already links; no new library.
+pipewire = "0.10.1"
+# The portal requests and sessions that grant those remotes.
+rune-platform.workspace = true
+# Drives the portal's async requests on each video source's own thread.
+tokio = { workspace = true }
+# H264, the codec of Discord's screen streams: decodes a watched stream on
+# its own thread. Cisco's OpenH264 built from source (`source` feature),
+# so Cisco's patent license does not cover it: see docs/MEDIA.md.
+openh264 = "=0.9.8"
+# The same OpenH264 bindings openh264 builds on (not a new library): its
+# runtime bit-rate option, which the safe API lacks, so a new rate needs no
+# new encoder and no key frame, as in WebRTC's use of OpenH264.
+openh264-sys2 = "0.9.9"
+# The GPU's H264 encoder and decoder, OpenH264 staying as the fallback:
+# GStreamer's VA-API (Mesa, the integrated GPU) and NVENC/NVDEC (nvcodec)
+# elements, as Serein uses them. Bindings MIT/Apache-2.0; GStreamer is
+# LGPL-2.1+, linked dynamically, plugins found at run time (see shell.nix
+# and docs/VIDEO.md). glib 0.22 is already in the tree through rune-login.
+gstreamer = "0.25.4"
+gstreamer-app = "0.25.2"
+gstreamer-video = "0.25.4"
+# A camera that only gives MJPEG: each picture is one JPEG, decoded in pure
+# Rust. Not a new library: the JPEG decoder `image` already uses (rune-core).
+zune-jpeg = "0.5.15"
+zune-core = "0.5.3"
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+cpal = "0.18.2"
+
+[[example]]
+name = "devices"

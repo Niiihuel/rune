@@ -1,0 +1,24 @@
+[package]
+name = "rune-model"
+description = "RUNE's domain types: users, servers, channels, messages, presence, voice"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Interface text in the language the person chose.
+rune-i18n.workspace = true
+# Messages are cached in SQLite as JSON; see rune-storage.
+serde.workspace = true
+# AutoMod's regular expressions are Rust's: a pattern is parsed as the
+# service will before it is sent (already in the tree through `regex`).
+regex-syntax = "0.8"
+
+[dev-dependencies]
+# Checks that rows kept by an older RUNE still read.
+serde_json.workspace = true

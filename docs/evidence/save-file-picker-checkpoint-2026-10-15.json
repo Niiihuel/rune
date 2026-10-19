@@ -1,0 +1,323 @@
+{
+  "date": "2026-10-15",
+  "scope": "08.1 Linux SaveFile destination selection only; 08.2 Core/UI download and 08.3 replacement remain pending",
+  "status": "platform-selector-verified",
+  "contract": "tasks/save-as-contract.md",
+  "verification": {
+    "workspace_passed": 1112,
+    "workspace_ignored": 6,
+    "workspace_suites": 25,
+    "workspace_seconds": 5.56,
+    "platform_passed": 65,
+    "platform_unit_passed": 64,
+    "platform_doctest_passed": 1,
+    "rea_replay_passed": 64,
+    "rea_replay_ignored": 0,
+    "fmt": "passed",
+    "strict_clippy": "passed",
+    "release": "passed",
+    "initial_checks": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/verification-initial.json",
+      "bytes": 676,
+      "sha256": "10f9c59bd75c699fbe508854173c9ff21e1b3cb75d1b1bfec6a92ce133682e44"
+    },
+    "final_checks": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/verification-final.json",
+      "bytes": 1031,
+      "sha256": "993e6edc7d349ce5c3946cbd96c83439d59370fbcfce072bcde27cdfe020309f"
+    }
+  },
+  "previous_checkpoints": {
+    "07.1": {
+      "path": "docs/evidence/uploads-checkpoint-2026-10-15.json",
+      "bytes": 24442,
+      "sha256": "f1906a5feae5746467affce8e209c1c4541919d30444e1b15923d2123dd43583"
+    },
+    "07.2": {
+      "path": "docs/evidence/uploads-multiple-checkpoint-2026-10-15.json",
+      "bytes": 33729,
+      "sha256": "2d6ebfca062509c561f12d59b7eba2f99ed171a124f5ebb763d3d582e08c3491"
+    },
+    "07.3.1": {
+      "path": "docs/evidence/uploads-drop-checkpoint-2026-10-15.json",
+      "bytes": 27691,
+      "sha256": "98bf69e09231669063a6372c7f2f2cd9d42dc8f23869703f5b22e142c829c4a5"
+    }
+  },
+  "artifact_manifest": {
+    "path": "/tmp/rune-save-native-20261015-gw8qijjd/artifacts.json",
+    "bytes": 520,
+    "sha256": "d942d06dca2c19557e59db9bd69a92f0c1d15046e8d104475e4e212b46311a59"
+  },
+  "artifacts": {
+    "example": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/save-example-checkpoint",
+      "bytes": 5188392,
+      "sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8"
+    },
+    "platform-tests": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/test-platform-checkpoint",
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_platform-f1f099bebeedd5a1",
+      "bytes": 23489616,
+      "sha256": "4a3fc5bc9de73d2ba97ea57161e13d7bf6656e73626a3b047eb5e96489195fce"
+    }
+  },
+  "records": {
+    "platform-tests": {
+      "path": "docs/evidence/save-file-platform-tests-2026-10-15.json",
+      "bytes": 65319,
+      "sha256": "fef21b8e917be98781d06c2edd2be29e2876bdcdd46f8699548fe4ef14313657",
+      "evidence_id": "ev_39f27fc724eb7b372621ef976da46114e3630c7637909dda8b7e29cd8aedc749",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "4a3fc5bc9de73d2ba97ea57161e13d7bf6656e73626a3b047eb5e96489195fce",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "",
+        "running 64 tests",
+        "................................................................",
+        "test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s",
+        ""
+      ],
+      "arguments": [
+        "--quiet",
+        "--test-threads=1"
+      ],
+      "tests": {
+        "passed": 64,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 2.15
+      }
+    },
+    "native-cancel": {
+      "path": "docs/evidence/save-file-native-cancel-2026-10-15.json",
+      "bytes": 11962,
+      "sha256": "8958bc2e3a9c77f656d0a9cb10b3d0f85585d4b0c735b4d49294a9c7a4e9f708",
+      "evidence_id": "ev_072015a94539db1fc6f0dafd6011f56a7fdc7ffddb826330b8f254fab2b74209",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "Selección cancelada."
+      ],
+      "arguments": [
+        "--folder",
+        "/tmp/rune-save-native-20261015-gw8qijjd/fixtures",
+        "--suggested-name",
+        "guardado.txt",
+        "--cancel-after-ms",
+        "8000"
+      ]
+    },
+    "native-choice": {
+      "path": "docs/evidence/save-file-native-choice-2026-10-15.json",
+      "bytes": 12751,
+      "sha256": "9babf8af3645d566268c626b963a09ef985da0038bc1dc6e36b1de4dfa2c3d03",
+      "evidence_id": "ev_4d57b4f1945546fdb2f00bfab1f722168983c38362f3c2b436687ae2816f8d5e",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "4df9e844f1c0321af8e22aed1f325aa2dfaa4758d7a49b252b44e300368317d8",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "Destino seleccionado. No se abrió ni escribió el archivo.",
+        "Coincide con el destino de prueba esperado."
+      ],
+      "arguments": [
+        "--folder",
+        "/tmp/rune-save-native-20261015-gw8qijjd/fixtures",
+        "--suggested-name",
+        "guardado.txt",
+        "--expect-destination",
+        "/tmp/rune-save-native-20261015-gw8qijjd/fixtures/guardado.txt",
+        "--cancel-after-ms",
+        "240000"
+      ]
+    }
+  },
+  "images": {
+    "name": {
+      "path": "docs/img/save-file-name-2026-10-15.png",
+      "bytes": 7829,
+      "sha256": "178a40cf40aea1a9ebf5c3ab93cfa2c6552ac741e33fd0e4fa3d440113e46bc7",
+      "width": 1778,
+      "height": 76,
+      "record": "native-choice",
+      "review": "Exact owned fixture filename guardado.txt and fixture folder visually verified before Save; cropped GTK strips only, no file list or unrelated window."
+    },
+    "folder": {
+      "path": "docs/img/save-file-folder-2026-10-15.png",
+      "bytes": 15935,
+      "sha256": "5f7cc3887cbe28661b0a55fa744af50091da59fab827b1af4171fc7141aea089",
+      "width": 1774,
+      "height": 80,
+      "record": "native-choice",
+      "review": "Exact owned fixture filename guardado.txt and fixture folder visually verified before Save; cropped GTK strips only, no file list or unrelated window."
+    }
+  },
+  "source_archive": {
+    "path": "/tmp/rune-save-native-20261015-gw8qijjd/source-08.1.tar.gz",
+    "bytes": 838256,
+    "sha256": "c73f13f2ef21b182322366aa0319cd594f7ea7fbb0244d2c2d3c132ae453cdcc",
+    "files": 226,
+    "limn_revision": "1ad33eb224b6b4fb48de9423b23a89d6230e087f",
+    "scope": "Final full workspace source after Platform SaveFile and fail-closed legacy-drop host. No save-as Core/UI integration yet."
+  },
+  "source_archive_manifest": {
+    "path": "/tmp/rune-save-native-20261015-gw8qijjd/source-08.1.json",
+    "bytes": 389,
+    "sha256": "1c90db71cd1fd4d4d09e752f78b6fa3d31ffd01ac7c484a557862813591a607e"
+  },
+  "native_auxiliary": {
+    "fixture_manifest": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/fixtures.json",
+      "bytes": 353,
+      "sha256": "3a176d16475c4b534e9b35a4a4e626e09d96f48085dc06fa067413ec3b07bd64"
+    },
+    "controller": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/observe-save.py",
+      "bytes": 14496,
+      "sha256": "6907c53563c9c8f8e2a21121b1ee1113cbc8e6126a147d85ee8fed9bdafb7232"
+    },
+    "attempt01": {
+      "before.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/before.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "fixture-scope.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/fixture-scope.json",
+        "bytes": 999,
+        "sha256": "a3736fb835b7c41d9b4492adad6a9b27af17bf8f5a9da0887853dac3e895f378"
+      },
+      "inspect-02-name-entry.png": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/inspect-02-name-entry.png",
+        "bytes": 7829,
+        "sha256": "178a40cf40aea1a9ebf5c3ab93cfa2c6552ac741e33fd0e4fa3d440113e46bc7"
+      },
+      "inspect-02-navigation-bar.png": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/inspect-02-navigation-bar.png",
+        "bytes": 15935,
+        "sha256": "5f7cc3887cbe28661b0a55fa744af50091da59fab827b1af4171fc7141aea089"
+      },
+      "inspect-02-ready.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/inspect-02-ready.json",
+        "bytes": 76,
+        "sha256": "dc36e2861fec219e0519bdc0d1257f6fb18c1c9dc03212196ae8b87d3219828e"
+      },
+      "inspect-02-result.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/inspect-02-result.json",
+        "bytes": 949,
+        "sha256": "b1c8cdd6881b45de0759c924b13d9b6adab4409461f14020646392c3028f138c"
+      },
+      "observe-01-ready.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/observe-01-ready.json",
+        "bytes": 76,
+        "sha256": "8cd5bf9a194e192d26ace33c3e2b5f80901d31f3ee207f8a81ae57cb6df966fd"
+      },
+      "observe-01-result.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/observe-01-result.json",
+        "bytes": 359,
+        "sha256": "0bccf58441cb3df5226b6bfb1c794d487243d88cea71734e9ac6d0b1e26f8680"
+      },
+      "owned-window.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/owned-window.json",
+        "bytes": 276,
+        "sha256": "b380228d0aed33bc49f2af7a9477d69d124d7a9e0d60acd997e71a42b0a1a52b"
+      },
+      "save-03-ready.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/save-03-ready.json",
+        "bytes": 76,
+        "sha256": "7391c32596c5240273ef2ef26be1417cf94671756a56aebee9bccf36bb0ee76e"
+      },
+      "save-03-result.json": {
+        "path": "/tmp/rune-save-native-20261015-gw8qijjd/attempt-01/save-03-result.json",
+        "bytes": 666,
+        "sha256": "c26a3ab499fdc4383cdb58b92af62c50cc68c2e99c146bb66c0043544bb43062"
+      }
+    },
+    "cancellation_before": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/baseline-cancel.json",
+      "bytes": 27,
+      "sha256": "cbf029a0cd46c021efd2b795867a4e4995a4bba8b381340ea7228f2d42883d69"
+    },
+    "cancellation_observation": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/cancel-dialog-observed.json",
+      "bytes": 75,
+      "sha256": "dbe964d97eceba290cc0677be6cb9f7ff509d710b192f585b64411336522635b"
+    },
+    "cancellation_after": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/cancel-after.json",
+      "bytes": 134,
+      "sha256": "b60153712d672cfbf4621693521c16f7be6c83dd80b807bf231587c517c54139"
+    },
+    "cancellation_limit": "Real session-bus cancellation returned Cancelled after8s, but the separate observer sampled too late to observe its dialog. Do not claim visual cancellation proof.",
+    "attribution_limit": "Exact new GTK address/title/class/PID/start/exe and active-window checks are temporal attribution, not cryptographic D-Bus-request binding. Retained CLI separately verified exact returned destination.",
+    "filesystem_limit": "Own-fixture path absence and original file identity/content were checked before/after; REA did not trace filesystem syscalls or all external portal effects."
+  },
+  "bundle": {
+    "path": "/tmp/rune-save-native-20261015-gw8qijjd/save-file-evidence.json",
+    "bytes": 3274750,
+    "sha256": "ca8149072ef01270f40def7fb171cf157cbfba77c7a76d620655fcac127e0089",
+    "records": 68,
+    "unknowns": 4
+  },
+  "implementation": [
+    "SaveRequest validates bounded exact suggested filename; no trimming or rewrite; private destination consuming into_path; no Clone/Serialize and redacted Debug.",
+    "SaveFile and OpenFile share owner/handle/early-response protocol, RuntimeBound, cancellation/deadlines and same fixed worker/cleanup.",
+    "Service performs no open/create/truncate or symlink resolution of selected destination; external portal side effects are not universally guaranteed.",
+    "Response must contain exactly one strict local file URI; root/trailing-slash destinations rejected."
+  ],
+  "regressions": {
+    "api_boundary_red": {
+      "path": "/tmp/rune-save-native-20261015-gw8qijjd/api-boundary-red.json",
+      "bytes": 315,
+      "sha256": "61e53cbcf41b3ccc785fde2356581618e99641a2f5001247e4a5ae874909894a"
+    },
+    "kind": "Contractual missing-public-API compilation failure; not presented as a behavioral RED.",
+    "covered": [
+      "SaveFile options and exact suggested name/folder",
+      "Early response waits valid handle; foreign owner/path ignored",
+      "Malformed/zero/multiple/nonlocal URI rejected",
+      "Cancel/watch ownerDrop and futureDrop retire/close exact request before next Open",
+      "Existing destination/symlink unchanged by service; selected path never opened",
+      "NoClone compile-fail doctest; redacted names/folders/path"
+    ]
+  },
+  "limits": [
+    "No SaveAs download, Core shared-dialog coordinator, conversation menu wiring or destination publication is credited by this checkpoint.",
+    "CreateNewOnly policy belongs to future Core08.2; SaveDestination is not an open descriptor or an overwrite grant.",
+    "Default downloads, real providers, account operations and upload capabilities were not changed.",
+    "Wayland parent export and native DND remain separate pending integrations.",
+    "The full source also contains fail-closed legacy DND host correction, whose native rejection QA is tracked separately.",
+    "Prelaunch binary digests and unchanged path metadata do not prove atomic OS-image binding; ambient inherited environment remains unknown.",
+    "GTK strips are selector evidence, not additional canonical Mock conversation captures."
+  ]
+}

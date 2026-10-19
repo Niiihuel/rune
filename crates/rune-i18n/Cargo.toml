@@ -1,0 +1,15 @@
+[package]
+name = "rune-i18n"
+description = "RUNE's interface languages: the active one and the English catalog of its Spanish text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+# No dependencies: two languages that share their plural rule need a lookup
+# table and a placeholder filler, not Fluent or ICU.
+[dependencies]

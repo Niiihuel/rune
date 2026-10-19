@@ -1,0 +1,99 @@
+{
+  "recorded_at": "2026-10-14T23:25:20.545Z",
+  "scope": "Controlled execution of RUNE user-settings tests, with synthetic microphone state and levels. No physical microphone was requested by these tests.",
+  "evidence_id": "ev_8e149e27f7798179bd5f867e776fa527da8584b77e936b0f07906192fdaa0b07",
+  "authority": "controlled-replay",
+  "confidence": "observed",
+  "provider": {
+    "id": "rea-process",
+    "name": "REA process capture",
+    "version": "3"
+  },
+  "executable": {
+    "path": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_ui-46275ada6300c708",
+    "sha256": "d5e142e45314e9adcccd4930c54694a590cbc74ce3b9a4da4534f4427dca771b",
+    "identity": {
+      "state": "path_metadata_unchanged",
+      "reason": null
+    }
+  },
+  "scenario": {
+    "arguments": [
+      "tests::user_settings::",
+      "--test-threads=1"
+    ],
+    "working_directory": "/home/nihuel/projects/personal/rune",
+    "timeout_ms": 15000,
+    "finalization_ms": 1000,
+    "output_bytes": 15000
+  },
+  "result": {
+    "exit": {
+      "code": 0,
+      "signal": 0,
+      "reason": "exited"
+    },
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 199,
+    "test_summary": "18 passed; 0 failed; 0 ignored; 0 measured; 199 filtered out; finished in 0.70s"
+  },
+  "checks": [
+    "Noise reduction defaults off, is searchable, changes through a SaveSetting intent, and survives restoring preferences.",
+    "Opening microphone state is distinct from running; raw and processed level bars have accessible status IDs and different rendered heights for controlled inputs.",
+    "Leaving the audio settings stops the local test and clears both histories.",
+    "Changing microphone clears old levels and requests the selected device; the fixed default sensitivity is not described as adaptive.",
+    "Existing settings navigation, focus, responsive layout, theme, zoom and preference tests passed."
+  ],
+  "coverage": {
+    "raw_terminal": {
+      "budget_bytes": 15000,
+      "observed_bytes": 1973,
+      "retained_bytes": 1973,
+      "observed_frames": 20,
+      "retained_frames": 20
+    },
+    "rendered_terminal": {
+      "budget_bytes": 15000,
+      "observed_bytes": 37847,
+      "retained_bytes": 13930,
+      "observed_frames": 20,
+      "retained_frames": 12
+    }
+  },
+  "limitations": [
+    "Artifact identity is unavailable for this observation.",
+    "The executable digest is a prelaunch file sample; matching path metadata immediately after spawn does not prove an atomic operating-system image binding.",
+    "Process trees are sampled and may omit short-lived descendants.",
+    "Filesystem observations are before/after snapshots, not syscall traces.",
+    "Inherited host environment variables are not recorded and may affect results.",
+    "No filesystem observation paths were selected; filesystem effects remain unknown.",
+    "Cumulative rendered state and visible-line bytes exceeded output_bytes; whole rendered frames were omitted. Raw PTY coverage is reported separately. See truncation_details.rendered_terminal.",
+    "REA observed test output and process exit, not pixels of a running native window.",
+    "These UI tests do not evaluate microphone hardware, audio transport, audible noise suppression quality, echo cancellation or speaker playback.",
+    "The capture does not monitor network calls or device access; no-network/no-microphone scope is established by the selected test implementation rather than runtime tracing."
+  ],
+  "residual_unknowns": [
+    {
+      "scope": "process",
+      "reason": "Process trees are sampled and may omit short-lived descendants."
+    },
+    {
+      "scope": "process",
+      "reason": "The executable digest is a prelaunch file sample; operating-system image binding is not atomically observed."
+    },
+    {
+      "scope": "environment",
+      "reason": "Inherited host environment variables are not recorded."
+    },
+    {
+      "scope": "network",
+      "reason": "Network activity is not observed by this capture."
+    },
+    {
+      "scope": "filesystem",
+      "reason": "No filesystem observation paths were selected; filesystem effects remain unknown."
+    }
+  ]
+}

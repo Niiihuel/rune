@@ -1,0 +1,749 @@
+{
+  "date": "2026-10-15",
+  "scope": "07.2 complete local Mock flow: native Linux two-file selection, all-or-error Core preparation, explicit send and acknowledgement; full flows 07 and 08 remain open",
+  "status": {
+    "multiple_file_platform_api": "implemented and tested with owned fixtures/private D-Bus",
+    "core_batch_preparation_and_retry": "implemented and tested locally",
+    "ui_batch_metadata_and_bounded_list": "implemented and tested locally",
+    "native_multiple_file_selection": "observed; two regular descriptor metadata identities match owned fixtures",
+    "native_multiple_file_send": "observed and visually reviewed; two Mock attachments confirmed, composer cleared",
+    "real_provider_uploads": "disabled",
+    "drag_drop_and_file_paste": "pending; separate 07.3 work",
+    "full_flow_07": "open",
+    "full_flow_08": "open",
+    "checkpoint_07_2": "closed for local Linux/Mock scope only"
+  },
+  "contracts": [
+    "tasks/uploads-contract.md",
+    "tasks/uploads-next.md"
+  ],
+  "previous_checkpoint": "docs/evidence/uploads-checkpoint-2026-10-15.json",
+  "implementation": [
+    "The single-file API was replaced in its consumers: PickRequest carries max_files/max_file_bytes/max_total_bytes; FileChooser::choose_files returns Vec<SelectedFile>; Prepared carries Result<Vec<PendingAttachment>, UploadError>. No parallel v1/v2 picker APIs remain.",
+    "One portal request and fixed file worker validate every URI before I/O, reject duplicate decoded paths, then open sequentially and enforce file count/individual/aggregate byte limits. Empty selection is invalid; max_total_bytes zero admits only empty files.",
+    "Core reserves an entire monotonic token range with checked arithmetic. Picker capacity accounts for current unclaimed draft slots, global entries and live byte-owner leases; files claimed by a pending send are not counted as another draft.",
+    "One preparation job reserves all byte and entry leases atomically before reading. Files are read sequentially with descriptor identity/size/mtime/ctime and EOF validation. Failure or cancellation rejects the complete batch; each sealed Bytes owner retains its own lease.",
+    "Actor publication revalidates the full scope and batch before inserting any token. A missing/revoked token before UI polling releases every sibling. Rejected payloads and final buffers are dropped in services outside the lightweight UI mutex.",
+    "Explicit retry preserves ordered files, original immutable bytes, text/reply and logical nonce; it changes the attempt request. Mock rejects repeated tokens or changed retry bodies. ACKs require distinct nonzero remote attachment identities and expected ordered metadata.",
+    "UI applies metadata as one batch revision, preserves previous text/reply/files, rejects empty/partial/obsolete batches and releases all newly returned tokens. Replayed callbacks cannot remove tokens already owned by drafts or pending sends. Prepared list height is bounded using existing limn scroll controls.",
+    "Account change/sign-out still delivers one cancellation terminal for the original picker scope, with no file metadata, so the old UI cancellation hold can end. Encoded path separators cannot conceal dot segments from strict URI validation."
+  ],
+  "policy": {
+    "mock": {
+      "max_files": 8,
+      "max_file_bytes": 20971520,
+      "max_message_bytes_including_text": 26214400,
+      "authority": "local simulation policy; not a verified real-provider limit"
+    },
+    "core": {
+      "max_entries": 8,
+      "memory_bytes": 33554432,
+      "job_queue_capacity": 8,
+      "simultaneous_preparations": 1
+    },
+    "real_adapters": "uploads disabled; no real-account upload operations"
+  },
+  "verification": {
+    "authority": "Final workspace/format/Clippy/release results reported by root integrator; six retained test-binary replays below independently identify their executables and terminal summaries.",
+    "workspace_all_features": {
+      "passed": 1073,
+      "ignored": 6,
+      "suites": 25,
+      "seconds": 6.49
+    },
+    "format": "cargo fmt --all formatted two compact State tests; subsequent cargo fmt --all -- --check passed",
+    "clippy": "cargo clippy --workspace --all-targets --all-features --offline -- -D warnings passed",
+    "release": {
+      "result": "passed",
+      "crates": 10,
+      "seconds": 49.72
+    },
+    "release_examples": {
+      "result": "passed",
+      "crates": 4,
+      "seconds": 7.21
+    },
+    "rea_replay_passed": 709,
+    "rea_replay_ignored": 1,
+    "native": "Linux/Wayland GTK picker returned two 48-byte descriptors with matching device/inode; native limn prepared/sent images reviewed by root and documentation reviewer. Explicit composer Enter followed exact retained executable/PID/active-window validation after portal close.",
+    "project_canonical_capture_count": {
+      "reported_by": "root integrator",
+      "count": 17,
+      "scope": "Canonical workflow captures across checkpoints, not total files or this checkpoint alone"
+    },
+    "record_classification": {
+      "accepted_checkpoint_cases": 9,
+      "historical_qa_attempts": 2,
+      "scope": "Six test replays plus native picker/prepared/sent; attempts01/03 retained separately."
+    }
+  },
+  "artifact_manifest": {
+    "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/artifacts.json",
+    "bytes": 2426,
+    "sha256": "34de17eede9b78c40858a9a28ef2d35447f0b66b61165b0366f8e7d8e6cedcb2"
+  },
+  "artifacts": {
+    "core": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_core-169382fc5161a41c",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/core-checkpoint",
+      "bytes": 50891168,
+      "sha256": "93a9805a249ad0de460ae06258068b3e921f79bbbfc7560e3a4bd018175bba66"
+    },
+    "state": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_state-52aa5dc0ad3d8a7b",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/state-checkpoint",
+      "bytes": 14736984,
+      "sha256": "4db515d797161764df41cf9085d6b5a13ea6276e0de12bc12f037fc09ecb4b4b"
+    },
+    "ui": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_ui-84434e9b68b57796",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/ui-checkpoint",
+      "bytes": 38020376,
+      "sha256": "9e9a3c0b3401529b71182abf598c8d3868846b4661900151e2543afb0ae60ec3"
+    },
+    "provider": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_provider-d3bd17d0e6713674",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/provider-checkpoint",
+      "bytes": 15632760,
+      "sha256": "8b185d3f36e0a057ede98166fb1996fe7d641cb13ddd16120760c35474117096"
+    },
+    "platform": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune_platform-19c9e27ce43601b2",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/platform-checkpoint",
+      "bytes": 23378688,
+      "sha256": "d4f4296026979535f4d34ffbdfb2382d4c4c64f5a862c9fb75c2c7d877f3c125"
+    },
+    "desktop-tests": {
+      "original": "/home/nihuel/projects/personal/rune/target/debug/deps/rune-284378af28be3fcd",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-tests-checkpoint",
+      "bytes": 82724296,
+      "sha256": "3e91ff9552bc8dcb03d26446398234dce2e0c1ce69755aa9771ff7a86126df4f"
+    },
+    "desktop": {
+      "original": "/home/nihuel/projects/personal/rune/target/release/rune",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-checkpoint",
+      "bytes": 56843608,
+      "sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc"
+    },
+    "picker-example": {
+      "original": "/home/nihuel/projects/personal/rune/target/release/examples/pick_file",
+      "retained": "/tmp/rune-multiple-native-20261015-5qzkrplj/picker-example-checkpoint",
+      "bytes": 5939520,
+      "sha256": "7637c11ceccbd74a59b5c6e28b770390e525bb77199660a1924a45aa31bbff58"
+    }
+  },
+  "records": {
+    "core": {
+      "path": "docs/evidence/uploads-multiple-core-tests-2026-10-15.json",
+      "bytes": 86314,
+      "sha256": "82a9fb9d65fd96121d9886f5311ab009ad2c70ba49a9b3514a0b2fd1d8e797bc",
+      "evidence_id": "ev_31cee24cf5b2c23259332d4a34d24b3982883bc3320505de2c4c1a24ec51f3fc",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "93a9805a249ad0de460ae06258068b3e921f79bbbfc7560e3a4bd018175bba66",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 161,
+        "failed": 0,
+        "ignored": 1,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 0.37
+      },
+      "terminal_summary": "test result: ok. 161 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.37s"
+    },
+    "state": {
+      "path": "docs/evidence/uploads-multiple-state-tests-2026-10-15.json",
+      "bytes": 15638,
+      "sha256": "7ad67535e7fd00e7ce8158d53c1ba476654016367cd75795be0f9505d6297d99",
+      "evidence_id": "ev_55112588207e0972030624159948d0516bd35a4a0ed80cc2a7c82df75422a4d7",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "4db515d797161764df41cf9085d6b5a13ea6276e0de12bc12f037fc09ecb4b4b",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 109,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 0.01
+      },
+      "terminal_summary": "test result: ok. 109 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s"
+    },
+    "ui": {
+      "path": "docs/evidence/uploads-multiple-ui-tests-2026-10-15.json",
+      "bytes": 406619,
+      "sha256": "fce9daa60f353c93b637ace965fa89717af2085374ed7302334adfbc8cef013b",
+      "evidence_id": "ev_e3343a9b9d2e422991519706a11539791c3222b924fb46daa2ad8158cd9189a6",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "9e9a3c0b3401529b71182abf598c8d3868846b4661900151e2543afb0ae60ec3",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 307,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 1.47
+      },
+      "terminal_summary": "test result: ok. 307 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s"
+    },
+    "provider": {
+      "path": "docs/evidence/uploads-multiple-provider-tests-2026-10-15.json",
+      "bytes": 13851,
+      "sha256": "2c768cd5003cedf6be03cc33d510b722cde8350103f5a6c75717a88df4429f12",
+      "evidence_id": "ev_1b96db0a48da4829e22d03993d1f211594a2e71aaa97606cb13d369c8b378f67",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "8b185d3f36e0a057ede98166fb1996fe7d641cb13ddd16120760c35474117096",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 54,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 0.02
+      },
+      "terminal_summary": "test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s"
+    },
+    "platform": {
+      "path": "docs/evidence/uploads-multiple-platform-tests-2026-10-15.json",
+      "bytes": 24213,
+      "sha256": "74758a6bcba5fc2889e1d689cab820c25aa12b761223c513a7df35bc7765fbfc",
+      "evidence_id": "ev_c551ff56b57d3d5b0c06d7d8f46979dd3f98909a61f2552f5fb4a5d8ea593d43",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "d4f4296026979535f4d34ffbdfb2382d4c4c64f5a862c9fb75c2c7d877f3c125",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 45,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 2.02
+      },
+      "terminal_summary": "test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s"
+    },
+    "desktop-tests": {
+      "path": "docs/evidence/uploads-multiple-desktop-tests-tests-2026-10-15.json",
+      "bytes": 19245,
+      "sha256": "adfd2336cb6e730d9def7130af1889d5d9905044dec31858a6ecc53782becad0",
+      "evidence_id": "ev_e39255343870735dcd8248ec357002ec8c4dc81554e30a0c0cf9c2262b96cc58",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "3e91ff9552bc8dcb03d26446398234dce2e0c1ce69755aa9771ff7a86126df4f",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "tests": {
+        "passed": 33,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0,
+        "seconds": 0.16
+      },
+      "terminal_summary": "test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s"
+    },
+    "native-picker": {
+      "path": "docs/evidence/uploads-multiple-native-picker-2026-10-15.json",
+      "bytes": 12633,
+      "sha256": "d930718b5433312938c99e9366370cf9208b3b66c0e66537bd2a38b453dd5a9d",
+      "evidence_id": "ev_c2cef7541ac859c907ede5871df39a905fc4fc9ba21e5745b69d14618561bf48",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "7637c11ceccbd74a59b5c6e28b770390e525bb77199660a1924a45aa31bbff58",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "Archivo preparado: 48 bytes; dispositivo 66309; inodo 19707961.",
+        "Archivo preparado: 48 bytes; dispositivo 66309; inodo 19707960."
+      ],
+      "arguments": [
+        "--max-files",
+        "2",
+        "--folder",
+        "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures",
+        "--cancel-after-ms",
+        "180000"
+      ]
+    },
+    "native-prepared": {
+      "path": "docs/evidence/uploads-multiple-native-prepared-2026-10-15.json",
+      "bytes": 17675,
+      "sha256": "526c01ed745510195c0cfc3235a7afa4cd07ccdd243fff9bc2792ca4f84772ad",
+      "evidence_id": "ev_30627abdc9dc5cef31daaecdb92b2a2a80246c49a74d4341902e4b1d33762cbc",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "rune: first frame painted 97.0ms after start",
+        "rune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/prepared.png"
+      ],
+      "arguments": [
+        "--provider",
+        "mock",
+        "--screenshot",
+        "/tmp/rune-multiple-native-20261015-5qzkrplj/prepared.png",
+        "--channel",
+        "general",
+        "--capture-draft",
+        "Borrador con dos archivos",
+        "--action",
+        "composer:plus",
+        "--action",
+        "composer:attach"
+      ]
+    },
+    "native-sent": {
+      "path": "docs/evidence/uploads-multiple-native-sent-2026-10-15.json",
+      "bytes": 13357,
+      "sha256": "f3cabb17426a053a3b02e032b00bf0e3c33a539aee864250259c189f3e4bdfc9",
+      "evidence_id": "ev_2357e0ba5117c41c756925470a592c36053c9c2c3ea3f58eb6a37c4678ee065f",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "rune: first frame painted 109.1ms after start",
+        "rune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/sent.png"
+      ],
+      "arguments": [
+        "--provider",
+        "mock",
+        "--screenshot",
+        "/tmp/rune-multiple-native-20261015-5qzkrplj/sent.png",
+        "--channel",
+        "general",
+        "--capture-draft",
+        "Borrador con dos archivos",
+        "--action",
+        "composer:plus",
+        "--action",
+        "composer:attach"
+      ]
+    },
+    "native-picker-attempt-01": {
+      "path": "docs/evidence/uploads-multiple-native-picker-attempt-01-2026-10-15.json",
+      "bytes": 16934,
+      "sha256": "151406bc5655d0411a2c16434d0d8df719c4c33d88decca69106c63eb0adb4b8",
+      "evidence_id": "ev_98e17eda5b73f5bea66d996c233d1465e53509fede2b122a22432e1cee4aff40",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "7637c11ceccbd74a59b5c6e28b770390e525bb77199660a1924a45aa31bbff58",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "Selección cancelada."
+      ],
+      "arguments": [
+        "--max-files",
+        "2",
+        "--folder",
+        "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures",
+        "--cancel-after-ms",
+        "55000"
+      ]
+    },
+    "native-prepared-attempt-03": {
+      "path": "docs/evidence/uploads-multiple-native-prepared-attempt-03-2026-10-15.json",
+      "bytes": 14036,
+      "sha256": "396f551c21c5dfd4763028ef55b28beac74979826973b159f09ddf289f4e4dee",
+      "evidence_id": "ev_5bfdc6085f5d222a55a12b52850c2b9c13796e28627bc7b371f21c2aa7175fde",
+      "exit": {
+        "code": 0,
+        "signal": 0,
+        "reason": "exited"
+      },
+      "truncated": false,
+      "selected_executable_sha256": "c11d7e1da19243d013420a3896211f5fe2493aa92003976a0c50fcf16ce03ddc",
+      "executable_identity": {
+        "state": "path_metadata_unchanged",
+        "reason": null
+      },
+      "ambient_environment": "unknown",
+      "terminal": [
+        "rune: first frame painted 236.1ms after start",
+        "rune: saved /tmp/rune-multiple-native-20261015-5qzkrplj/prepared.png"
+      ],
+      "arguments": [
+        "--provider",
+        "mock",
+        "--screenshot",
+        "/tmp/rune-multiple-native-20261015-5qzkrplj/prepared.png",
+        "--channel",
+        "general",
+        "--capture-draft",
+        "Borrador con dos archivos",
+        "--action",
+        "composer:plus",
+        "--action",
+        "composer:attach"
+      ]
+    }
+  },
+  "images": {
+    "prepared": {
+      "path": "docs/img/upload-multiple-prepared-2026-10-15.png",
+      "bytes": 309479,
+      "sha256": "ba9b9e2c940a36e79ece6fb166000ee70c03b5a070c429e90b29aa3a47559686",
+      "width": 1396,
+      "height": 1660,
+      "record": "native-prepared",
+      "review": "Two selected local fixtures (segundo.txt then primero.txt), 48 B each, and intact Borrador con dos archivos; no composer Enter was delivered."
+    },
+    "sent": {
+      "path": "docs/img/upload-multiple-sent-2026-10-15.png",
+      "bytes": 295652,
+      "sha256": "0bd1edd6c4bd0ee7dd76d9361fb20d8670f65b091f4637fb7e118da1066e1b1f",
+      "width": 1396,
+      "height": 1660,
+      "record": "native-sent",
+      "review": "Mock-confirmed Borrador con dos archivos with both named 48 B attachments, editor empty and no pending attachment; this is not real-provider delivery."
+    }
+  },
+  "native_auxiliary": {
+    "authority": "Supplementary shell/Hyprland IPC observation; separate from REA process capture",
+    "fixture_manifest": {
+      "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures.json",
+      "bytes": 347,
+      "sha256": "d1d8b760f7bc50119028018a2983321d06a76ba4edd0fc819d7565f91a7ba4c0",
+      "observation": [
+        {
+          "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures/primero.txt",
+          "bytes": 48,
+          "device": 66309,
+          "inode": 19707960,
+          "synthetic": true
+        },
+        {
+          "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures/segundo.txt",
+          "bytes": 48,
+          "device": 66309,
+          "inode": 19707961,
+          "synthetic": true
+        }
+      ]
+    },
+    "picker_selection": {
+      "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-02/select-window.json",
+      "bytes": 391,
+      "sha256": "c8121e7e2cf03d0eb7f3a448d8262f2405f5241bfeb1f60e8cce9026773ae941",
+      "observation": {
+        "mode": "select",
+        "observed": {
+          "address": "0x5ea854367dc0",
+          "class": "xdg-desktop-portal-gtk",
+          "pid": 5321,
+          "title": "Seleccionar archivos",
+          "appeared_seconds": 8.448
+        },
+        "input_sent": true,
+        "disappeared": true,
+        "elapsed_seconds": 4.941,
+        "scope": "Only the same newly observed active GTK portal dialog; two owned fixtures; no clipboard or screenshots."
+      }
+    },
+    "prepared_selection": {
+      "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-04/select-01-result.json",
+      "bytes": 474,
+      "sha256": "4717c569aa3bb17fe78576b762c26fdd25106c89bf5c40ff7104545043086290",
+      "observation": {
+        "observed": {
+          "address": "0x5ea8542061c0",
+          "pid": 5321,
+          "class": "xdg-desktop-portal-gtk",
+          "title": "Seleccionar archivos"
+        },
+        "selection_sent": true,
+        "dialog_closed_observed_ns": 1792055995808641919,
+        "app": {
+          "address": "0x5ea8541a3fb0",
+          "pid": 2512136,
+          "title": "RUNE — general",
+          "executable": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-checkpoint"
+        },
+        "composer_enter_sent": false,
+        "elapsed_seconds": 2.931
+      }
+    },
+    "sent_selection": {
+      "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-05/select-send-01-result.json",
+      "bytes": 515,
+      "sha256": "8239e7b6886eedde7cef52c3d5eb7895eba3814f43211e7d4611ebe4a3bc2996",
+      "observation": {
+        "observed": {
+          "address": "0x5ea854377270",
+          "pid": 5321,
+          "class": "xdg-desktop-portal-gtk",
+          "title": "Seleccionar archivos"
+        },
+        "selection_sent": true,
+        "dialog_closed_observed_ns": 1792056130418099470,
+        "app": {
+          "address": "0x5ea8542aca60",
+          "pid": 2516841,
+          "title": "RUNE — general",
+          "executable": "/tmp/rune-multiple-native-20261015-5qzkrplj/desktop-checkpoint"
+        },
+        "composer_enter_sent": true,
+        "composer_enter_delay_seconds": 0.2504,
+        "elapsed_seconds": 4.103
+      }
+    },
+    "helpers": {
+      "observe.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/observe.py",
+        "bytes": 7627,
+        "sha256": "e11a7d67c11593d30d28ac98e961758653cdd084dab25ad538b7732e072ea667"
+      },
+      "observe-v2.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/observe-v2.py",
+        "bytes": 11022,
+        "sha256": "58f95d63a00e0c3efda648787489bd70db11a19035d4046aca485ed466159804"
+      },
+      "observe-v3.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/observe-v3.py",
+        "bytes": 10448,
+        "sha256": "116b41782a138631b978a3e988c72e37cfc99f4dc8e8c4e491f295410699930c"
+      },
+      "correct-folder.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/correct-folder.py",
+        "bytes": 4522,
+        "sha256": "289187059f1194706a4f5398ccadbd10ba6f7aabed11fbe4646d445d6cd8fbdf"
+      },
+      "verify-evidence.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/verify-evidence.py",
+        "bytes": 12333,
+        "sha256": "1e56222d6a3abe6194b72413615b637386f1e8eb16da65863e45140f0af879e5"
+      },
+      "verify-evidence-07.2.py": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/verify-evidence-07.2.py",
+        "bytes": 14048,
+        "sha256": "ca4869921299a3957d6fe31f8d44bcd8d097355127e6164b32b50e8958affada"
+      }
+    },
+    "final_observer_ready": {
+      "prepared": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-04/observe-01-ready.json",
+        "bytes": 96,
+        "sha256": "642e7ca748fcdcfe00f1fe5fcfe9de720882c6419f935cb9050e8c4ebe2ad18f",
+        "observation": {
+          "ready": true,
+          "time_ns": 1792055883489422073,
+          "baseline_time_ns": 1792055883371921840
+        }
+      },
+      "sent": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-05/observe-01-ready.json",
+        "bytes": 96,
+        "sha256": "cdd691e334003b0803e54554f8adf338599a85506cda096b5d8a68c971450648",
+        "observation": {
+          "ready": true,
+          "time_ns": 1792056017805956674,
+          "baseline_time_ns": 1792056017689527782
+        }
+      }
+    },
+    "input_scope": "Phased controller checks the exact new active GTK dialog, owned directory identity and visible navigation entry/list before selecting only two synthetic fixtures. Final send checks the retained RUNE executable, PID, address, RUNE — general title and active window after the portal closes; composer Enter delay 0.2504 seconds. No clipboard was read. Narrow navigation-strip QA images do not capture unrelated windows.",
+    "attribution_limit": "Compositor PID/class/title/address/timing and /proc executable-path checks provide temporal attribution, not cryptographic binding of the window to the portal request or atomically to the launched OS image."
+  },
+  "regressions": [
+    {
+      "recall": "5643202d9e87",
+      "red": "Picker reserved only one token, admitted another selection into a full draft and accepted a token range that would overflow.",
+      "green": "Reserve checked token capacity before enqueue and bound selection by actual draft/global availability."
+    },
+    {
+      "recall": "d671a622eb51",
+      "red": "A multiple-file acknowledgement could repeat a remote AttachmentId and incorrectly consume the pending send.",
+      "green": "Require distinct nonzero remote attachment identities before correlation; retain logical send after incompatible ACK."
+    },
+    {
+      "recall": "ce4211a173ca",
+      "red": "Completion of the old account picker returned None after sign-out/ReadyB, leaving UI waiting for its terminal.",
+      "green": "Deliver exactly one old-scope Prepared cancellation without metadata, freeing UI hold and allowing the new account picker."
+    },
+    {
+      "recall": "c5b70a530a4b",
+      "red": "Percent-encoded path separators hid dot segments and a URI validation test unexpectedly returned SelectedFile.",
+      "green": "Reject percent-encoded slash separators before URL decoding and keep complete dot-segment checks; preserve encoded literal percent filenames."
+    }
+  ],
+  "bundle": {
+    "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/uploads-multiple-evidence.json",
+    "bytes": 1384477,
+    "sha256": "f6543edea108141694201c604e69fb111e43478ec6137f0eae12ffebe4deb937",
+    "records": 55,
+    "captures": 51,
+    "unknowns": 4,
+    "unknown_ids": [
+      "unk_22be913d3be18ecdb11c1f9784a3c6d7a00514a421c98207b8e315c3109cba46",
+      "unk_625c2d6cfb387c8926aaaf4dd0bb905628549f835e202e9ff37a7d5804aa75e6",
+      "unk_6c8b4107edc1ce6c0a4b95264157ffa537c0af497569af7f36a624e04a81dd20",
+      "unk_7b81cc7431ae3e08759b85c393e153a6e9747d8befa7950bc75914a556a58a2a"
+    ],
+    "scope": "Root REA session includes earlier checkpoints, auxiliary records and failed QA attempts; record count is not upload test count."
+  },
+  "limits": [
+    "Native multiple-file selection/preparation/send were observed on Linux/Wayland with GTK, two owned 48-byte fixtures and Mock only. Screenshots do not verify real transport, all geometries, physical input, screen-reader behavior or OS drag/drop.",
+    "Mock policy is eight files, 20 MiB/file and 25 MiB/message including text; Core sealed payload budget remains 32 MiB/eight entries. These do not accredit Discord limits or real transport.",
+    "A batch is atomic at publication, not a simultaneous filesystem snapshot: each buffer is frozen after its sequential validated read. An already-running filesystem syscall cannot be forcibly interrupted.",
+    "Prepared bytes/descriptors remain in services and RAM only. Clones/slices retain credit; transport-owned bytes still count after a UI token is gone. Retry never reopens paths.",
+    "Only Linux portal is implemented; Wayland remains unparented without an exported xdg_foreign token. No Windows/macOS or modality claim.",
+    "Drag/drop, file clipboard, Save As, OS notifications and other full 08 services are separate pending work. No limn pin update or 07.3 support is implied by this checkpoint.",
+    "REA inherits unrecorded ambient caller environment (unknown), samples processes and snapshots opt-in files; it is not a full syscall/network trace. Prelaunch hash and unchanged path metadata are not atomic OS image proof.",
+    "Real uploads remain disabled. No new authenticated upload, invitation acceptance or real read-state operation was performed.",
+    "Initial unsuccessful native attempts 01 and 03 remain in the record set. Process exit 0 alone does not establish successful selection/preparation/send; only successful final observations and canonical images support those claims."
+  ],
+  "qa_attempts": [
+    {
+      "record": "native-picker-attempt-01",
+      "outcome": "The example cancelled without establishing multi-selection. The controller stopped before Escape after its exact-dialog focus guard no longer matched; this is retained as unsuccessful QA, not product failure or a successful selection.",
+      "observation": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/navigate-focus-failure.json",
+        "bytes": 211,
+        "sha256": "cfa96846d3075a4066ee87094184ef72a7b1edd0f68f3629e3b65071f79079d3",
+        "observation": {
+          "owned_dialogs": [],
+          "expected_address": "0x5ea8541bace0",
+          "expected_still_active": false,
+          "active_address_only": "0x5ea8541f8c90",
+          "phase": "QA helper stopped before Escape because focus changed"
+        }
+      },
+      "exit_zero_is_not_selection_success": true
+    },
+    {
+      "record": "native-prepared-attempt-03",
+      "outcome": "The navigation helper did not complete a verified final selection. The process saved a screenshot, but this attempt is not canonical preparation evidence; the phased controller completed selection in attempt 04.",
+      "navigation": {
+        "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/attempt-03/navigate-window.json",
+        "bytes": 375,
+        "sha256": "e1f95dfbc06ce7c6bdd131fbb6c0116554b77845c6f5cbb7b694d338a55a1f69",
+        "observation": {
+          "mode": "navigate",
+          "observed": {
+            "address": "0x5ea8541cdb70",
+            "class": "xdg-desktop-portal-gtk",
+            "pid": 5321,
+            "title": "Seleccionar archivos",
+            "appeared_seconds": 13.99
+          },
+          "input_sent": true,
+          "navigation_sent": true,
+          "folder": "/tmp/rune-multiple-native-20261015-5qzkrplj/fixtures",
+          "selection_sent": false,
+          "elapsed_seconds": 19.827
+        }
+      },
+      "exit_zero_is_not_preparation_success": true,
+      "reused_output_path_limit": "Both attempt 03 and canonical attempt 04 wrote ROOT/prepared.png. The retained REA record for 03 remains distinct; the current PNG and canonical docs image are attributed only to successful attempt 04."
+    }
+  ],
+  "native_verified_artifacts": {
+    "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/native-verified-artifacts.json",
+    "bytes": 551,
+    "sha256": "48629d5fc7e665bd004df771c50ebfd2d71c9c9b8d5d618d0b83257116285826"
+  },
+  "limn_integration": {
+    "pr": "https://github.com/Niiihuel/limn/pull/49",
+    "pr_commit": "a1a51af9c593d7e633ef7c9d75b78c1813137708",
+    "local_integration_commit": "b91772bbb486291a5e0d272987b83aa04ef22971",
+    "rune_lock_commit": "2618b37d1c17b73ef70c43e67f5641ec4da41a3a",
+    "scope": "PR49 is a separately tested upstream prerequisite for 07.3. Root updated the workspace lock to b91772b only after preserving this 07.2 source/binaries at 2618b37; later workspace tests/pins are a separate checkpoint."
+  },
+  "source_archive": {
+    "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/source-07.2.tar.gz",
+    "bytes": 826669,
+    "sha256": "7725ee6a8b3dabbb19bb3e523b5db1fa8b3b2c3550ea180130cd7b20b7f28dc4",
+    "file_count": 222,
+    "scope": "Retained 07.2 Rust sources/manifests before the limn update for 07.3; Cargo.lock contains 2618b37. Documentation/evidence written afterward is not claimed as part of this source archive."
+  },
+  "source_archive_manifest": {
+    "path": "/tmp/rune-multiple-native-20261015-5qzkrplj/source-07.2.json",
+    "bytes": 308,
+    "sha256": "1a4340c0431071d8b18f186466961de76718f18d803e3539342a739a90726b24"
+  }
+}
