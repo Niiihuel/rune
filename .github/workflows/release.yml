@@ -50,7 +50,7 @@ jobs:
       # committed one, or the release stops before anything is built.
       - name: avisos de terceros al día
         run: |
-          cargo install cargo-about --locked --version 0.9.0
+          cargo install cargo-about --locked --version 0.9.0 --features cli
           cargo fetch --locked
           cargo about generate --locked --offline --all-features about.hbs -o THIRD_PARTY_NOTICES.md
           git diff --exit-code -- THIRD_PARTY_NOTICES.md
