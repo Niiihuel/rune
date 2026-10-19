@@ -872,6 +872,29 @@ y en RUNE (`image_cache_tests.rs`). PR #91 desde `fix/raster-cache-on-screen`
 (`0cee5a2`, el mismo cambio sobre `main`). `rune/emoji-parpadeo` vive en el
 clon local; desde el 2026-10-19 está en `rune/integration-2026-10-19` (avance rápido a `a99d980`), que falta subir.
 
+### Visor de imágenes: `Element::zoom_view` e `ImageViewer` nuevo (2026-10-19)
+
+`rune/visor-de-medios` (desde `1407eef`, la cabeza de
+`rune/integration-2026-10-19`) rehace el visor con Loupe, Discord, Telegram,
+iced, egui, Zed y Oculante como referencia ([VISOR.md](VISOR.md)).
+`Element::zoom_view` guarda el zoom en el árbol, como un desplazamiento:
+rueda anclada, pellizco (`UiEvent::Zoom`), arrastre con inercia, doble clic,
+teclas, límites y animaciones con movimiento reducido;
+`UiAction::Zoomed` informa la escala. `ImageViewer` lo usa a pantalla
+completa sobre un fondo oscuro, con barra, porcentaje (`zoom_level`),
+`subtitle`, `picture_size`, `placeholder`, `thumbnail`, `footer` e
+`initial_focus`; `ImageViewer::zoom` y `MAX_ZOOM` quedan deprecados y RUNE
+dejó de guardar el nivel. limn-egui dibuja la imagen completa agrandada,
+con vecino más cercano desde 2 píxeles por píxel, una copia reducida al
+achicar, damero detrás de píxeles transparentes y giro por cuartos.
+`Icon::Forward`. Tests de limn en la rama: 1915 aprobados.
+
+RUNE apunta temporalmente a `file:///home/nihuel/projects/personal/lienzo`
+con esa rama (`14c2a6e`); falta subirla y volver `Cargo.toml` a GitHub.
+PR #112 desde `feat/visor-de-medios` (el mismo `14c2a6e`), apilada sobre
+`rune/integration-2026-10-19`, porque usa teclas de la #86, `ScaleDown` de
+la #84 y `ImageViewer::action`, que todavía no están en `main`.
+
 ### Carencias encontradas en la tercera iteración
 
 Al reproducir los flujos de Discord, RUNE compuso estas piezas con lo que

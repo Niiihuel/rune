@@ -4844,3 +4844,55 @@ Pendiente y por qué:
   código no se pierde; el reset es una caída, reconecta y una sesión
   rechazada vuelve a cerrarse con 4004, que la detiene. Prueba nueva en
   `gateway_tests.rs`. [PLATFORM.md](../docs/PLATFORM.md#qué-se-verificó-y-cómo).
+## Visor de imágenes y videos (2026-10-19, rama `visor-de-medios`)
+
+Pedido del dueño: «el componente donde puedo ver las imágenes y videos y
+hacer zoom, pulirlo y mejorarlo muchísimo». Investigación (iced, gpui/Zed,
+egui y Oculante/simp, GNOME Loupe, Discord, Telegram Desktop, Fotos de
+Windows), decisiones y capturas antes/después en
+[VISOR.md](../docs/VISOR.md). limn en la rama `rune/visor-de-medios`
+(`Element::zoom_view`, `ImageViewer` nuevo, limn-egui).
+
+- [x] Zoom que guarda el árbol (limn): rueda ×1,3 anclada al puntero,
+  pellizco y Ctrl+touchpad, desplazar arrastrando o con el touchpad con
+  inercia, doble clic a 2,5× y de vuelta, `+ = - 0 1 2 3`, Ctrl+flechas,
+  Ctrl+R; de encaje a 20×, sin perder la imagen fuera de la vista; 200 ms,
+  nada con movimiento reducido; porcentaje en una insignia y en la barra.
+- [x] Imágenes chicas a su tamaño, centradas, sobre un fondo oscuro que
+  deja ver la ventana (como Loupe, Discord y Telegram); antes el zoom de una
+  imagen chica no mostraba nada.
+- [x] Nitidez: vecino más cercano desde 2 píxeles de pantalla por píxel;
+  copia reducida al achicar; damero sólo detrás de píxeles transparentes.
+- [x] Galería: los archivos de un mismo mensaje (antes sólo las tarjetas),
+  flechas, ←/→, Inicio/Fin y tira de miniaturas.
+- [x] Acciones: copiar imagen (Ctrl+C), guardar como (Ctrl+S), abrir en el
+  navegador, reenviar (con permiso), resolución original, girar; cerrar con
+  Esc, el botón o un clic al costado.
+- [x] Carga progresiva: ThumbHash → vista previa al tamaño final → original,
+  que se pide solo al hacer zoom más allá de la vista previa.
+- [x] Video en el mismo visor (antes un modal aparte), con sus controles,
+  Espacio y ←/→ ±5 s; GIF animados siguen siendo superficies del host.
+- [x] PDF: las páginas usan el mismo zoom.
+- [x] `--capture-viewer` y `--action after:key:{tecla}` para capturas.
+- [x] Miniaturas de la galería (rama `visor-miniaturas`): la captura del
+  álbum mostraba el mismo paisaje en las tres; eran sus datos simulados
+  (las tres tarjetas usaban la imagen animada de la tarjeta de GIF), no la
+  tira. El álbum de `--capture-media` tiene ahora tres imágenes propias, y
+  un test compara cada miniatura con la imagen que abre.
+- [x] Tests: geometría y estado del zoom en limn (sin ventana), visor y
+  limn-egui; en `rune-ui`, galería, teclas, zoom informado y original,
+  reenviar, clic afuera, PDF y video.
+
+Pendiente y por qué:
+
+- Probar con la cuenta real: una imagen chica, una foto grande (el
+  original al hacer zoom), un PNG transparente, un GIF, un video y un PDF.
+- Ocultar los controles tras unos segundos quieto, rebote elástico en los
+  bordes y giro animado: limn no tiene inactividad del puntero ni resortes
+  para esto todavía.
+- Pellizco en Linux: winit 0.30 no lo entrega (sí en macOS; en Windows
+  llega como Ctrl+rueda).
+- limn: PR #112 (`feat/visor-de-medios`, `14c2a6e`) apilada sobre
+  `rune/integration-2026-10-19`: depende de las PR sin mezclar #84 y #86 y
+  de `ImageViewer::action`. Falta subir `rune/visor-de-medios` y volver
+  `Cargo.toml` a GitHub.

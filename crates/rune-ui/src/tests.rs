@@ -1180,3 +1180,5 @@ mod events;
 mod automod;
 // The window's own title bar (barra-e-icono).
 mod title_bar;
+// The image and video viewer (visor-de-medios).
+mod media_viewer;

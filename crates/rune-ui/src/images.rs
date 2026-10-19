@@ -104,7 +104,7 @@ pub fn wanted_images(ui: &Ui, store: &Store, tree: &UiTree) -> Vec<RemoteImage> 
         add(Some(&image));
     }
     // The modal keeps its source wanted even if the timeline scrolls away.
-    for source in crate::attachments::viewer_sources(ui, store) {
+    for source in crate::attachments::viewer_sources(ui, store, true) {
         add(Some(&source));
     }
     add(crate::invitations::image(ui, store));
@@ -463,7 +463,7 @@ pub fn playable_images(
     }
     // The viewer covers the conversation: only the picture it shows plays.
     if ui.attachment_viewer.is_some() {
-        playable.extend(crate::attachments::viewer_sources(ui, store));
+        playable.extend(crate::attachments::viewer_sources(ui, store, false));
         return playable;
     }
     // The provider's GIFs play in their tab (P5).

@@ -168,11 +168,11 @@ fn animations_play_in_view_or_in_their_viewer_without_reduced_motion() {
             _ => None,
         })
         .collect();
-    // Never past its pixels in the viewer, as the still picture it replaces.
+    // Filling the rectangle the viewer's zoom gives it, at its proportions.
     assert!(
         surfaces.contains(&(
             animation_surface(image().sha256()),
-            limn::SurfaceFit::ScaleDown
+            limn::SurfaceFit::Contain
         )),
         "the viewer draws the playing surface: {surfaces:?}"
     );

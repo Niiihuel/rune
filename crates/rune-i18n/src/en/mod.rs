@@ -70,6 +70,8 @@ mod updates;
 mod windows;
 // Windows' media and desktop (windows-medios).
 mod windows_media;
+// The image and video viewer (visor-de-medios).
+mod media_viewer;
 
 /// Each file's entries, by the file's name.
 pub(crate) const ALL: &[(&str, Entries)] = &[
@@ -116,4 +118,6 @@ pub(crate) const ALL: &[(&str, Entries)] = &[
     ("updates", updates::ENTRIES),
     ("windows", windows::ENTRIES),
     ("windows_media", windows_media::ENTRIES),
+    // The image and video viewer (visor-de-medios).
+    ("media_viewer", media_viewer::ENTRIES),
 ];

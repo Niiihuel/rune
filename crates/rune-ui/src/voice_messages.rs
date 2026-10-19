@@ -4,7 +4,7 @@
 //! the account asked of it, where each clip was left, the speed of voice
 //! messages and the volume.
 
-use limn::{Component, Element, Key, Modal, UiAction, UiEvent, UiTree};
+use limn::{Component, Element, ImageViewer, Key, UiAction, UiEvent, UiTree};
 use rune_components::message::{
     attachment_ids, media_controls, media_surface, playable, Playable, VoiceNow, VOICE_SPEEDS,
 };
@@ -255,6 +255,10 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         }
         return Some(Vec::new());
     }
+    // The viewer's zoom buttons: it zooms itself.
+    if id.starts_with(CLOSE) {
+        return Some(Vec::new());
+    }
     let (message, attachment, verb) = attachment_ids::parse(id)?;
     if !matches!(
         (verb, slid),
@@ -365,16 +369,36 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
     Some(intents)
 }
 
+/// How far Left and Right seek a video in its viewer, in seconds.
+const SEEK_STEP: f32 = 5.0;
+
 /// Esc leaves the full window; the viewer's own keys stay with it.
 pub(crate) fn intercept(ui: &mut Ui, event: &UiEvent) -> Option<Vec<Intent>> {
     let player = ui
         .voice_player
         .as_mut()
         .filter(|player| player.fullscreen)?;
-    let UiEvent::Key { key, .. } = event else {
+    let UiEvent::Key { key, ctrl, .. } = event else {
         return None;
     };
     match key {
+        // Back or on five seconds, as a video player does.
+        Key::ArrowLeft | Key::ArrowRight if !ctrl => {
+            let by = if *key == Key::ArrowLeft {
+                -SEEK_STEP
+            } else {
+                SEEK_STEP
+            };
+            let end = player.duration.unwrap_or(f32::MAX);
+            player.position = (player.position + by).clamp(0.0, end);
+            player.seek = Some(player.position);
+            Some(Vec::new())
+        }
+        // The viewer's own keys zoom and move the picture (limn's zoom view).
+        Key::Plus | Key::Equals | Key::Minus | Key::Num0 | Key::Num1 | Key::Num2 | Key::Num3 => {
+            None
+        }
+        Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight if *ctrl => None,
         Key::Escape => {
             player.fullscreen = false;
             Some(vec![Intent::Focus(attachment_ids::action(
@@ -411,17 +435,17 @@ pub(crate) fn overlay(
     else {
         return root;
     };
-    let width = (context.window.width - 16.0).max(240.0);
-    let height = (context.window.height - 16.0).max(200.0);
-    let inner = Modal::fitted_body_width(width);
-    let picture = Element::surface(media_surface(player.attachment), &found.filename)
-        .surface_fit(limn::SurfaceFit::Contain)
-        .size(Some(inner), Some((height - 180.0).max(80.0)))
-        .background(limn::Color::rgb(0, 0, 0));
-    Modal::new(root, true, &found.filename, "", CLOSE, look.menu_palette())
-        .width(width)
-        .height(height)
-        .body(picture)
+    // The viewer's margins and padding, around the controls.
+    let inner = (context.window.width - 40.0).max(240.0);
+    let mut details = Vec::new();
+    if let Some((width, height)) = found.dimensions {
+        details.push(format!("{width} × {height}"));
+    }
+    details.push(rune_components::file_size(found.size_bytes));
+    let viewer = ImageViewer::new(root, true, &found.filename, CLOSE, look.menu_palette())
+        .viewport(context.window)
+        .subtitle(details.join(" · "))
+        .surface(media_surface(player.attachment), &found.filename)
         .footer(media_controls(
             found,
             player.message,
@@ -440,7 +464,8 @@ pub(crate) fn overlay(
             player.message,
             player.attachment,
             "fullscreen",
-        ))
-        .backdrop_dismiss(true)
-        .render()
+        ));
+    // Without its size it fills the window at its proportions, as the full
+    // window asked for: a small video is not left small.
+    viewer.render()
 }

@@ -116,6 +116,12 @@ mostrarla. Hay **una a la vez**, fuera del presupuesto de 16 MiB de las
 vistas previas para que ninguna saque a la otra; la vista previa sigue a la
 vista hasta que llega. Cambiar de imagen vuelve a la vista previa.
 
+Desde el 2026-10-19 el original también se pide solo cuando el zoom pasa de
+lo que tiene la vista previa (su lado en el cuadro de 768×512), y la vista
+previa se muestra al tamaño final mientras llega. El visor completo
+(zoom, galería de los archivos de un mensaje, acciones, teclas y video) está
+en [VISOR.md](VISOR.md).
+
 ## Descargas explícitas
 
 `Intent::DownloadFile` llega al servicio `rune-core::files`, fuera del hilo

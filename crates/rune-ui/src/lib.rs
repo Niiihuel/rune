@@ -1452,7 +1452,7 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
     if let Some(intents) = voice_messages::update(ui, store, action) {
         return intents;
     }
-    if let Some(intents) = attachments::update(ui, store, action) {
+    if let Some(intents) = attachments::update(ui, store, action, now) {
         return intents;
     }
     if let Some(intents) = save_as::update(ui, action) {

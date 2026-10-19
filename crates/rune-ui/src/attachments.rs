@@ -1,17 +1,18 @@
 //! The received-image viewer resolves current entities instead of retaining URLs.
 
 use crate::{editor_id, Intent, Ui, ViewContext};
-use limn::{Component, Element, ImageViewer, Key, UiAction, UiEvent};
+use limn::{Component, Element, ImageViewer, Key, Size, UiAction, UiEvent};
 use rune_components::{
     message::{attachment_ids, Copied},
     Look,
 };
-use rune_i18n::t;
+use rune_i18n::{t, tr};
 use rune_model::{
     Attachment, AttachmentId, ChannelId, ImageKind, Message, MessageId, RemoteFile, RemoteImage,
     UserId,
 };
 use rune_state::Store;
+use std::time::Instant;
 
 pub(crate) const CLOSE: &str = "attachment-viewer:close";
 const ZOOM_IN: &str = "attachment-viewer:zoom-in";
@@ -20,6 +21,10 @@ const FIT: &str = "attachment-viewer:fit";
 const PREVIOUS: &str = "attachment-viewer:previous";
 const NEXT: &str = "attachment-viewer:next";
 pub(crate) const ORIGINAL: &str = "attachment-viewer:original";
+/// `attachment-viewer:show:{n}`: a thumbnail of the strip, the `n`th picture.
+const SHOW: &str = "attachment-viewer:show:";
+/// Close the viewer and forward the message the picture is in.
+const FORWARD: &str = "attachment-viewer:forward";
 /// A preview is decoded to fit this box; a larger picture has more to show.
 const PREVIEW_BOX: (u32, u32) = (768, 512);
 
@@ -44,8 +49,12 @@ pub struct AttachmentViewer {
     pub channel: ChannelId,
     pub message: MessageId,
     pub viewed: Viewed,
-    pub zoom: f32,
-    /// The account asked for the picture at its own size, not its preview's.
+    /// What the viewer last reported of its zoom: the scale (screen pixels
+    /// for each of the picture's) and whether it is fitted. The tree keeps
+    /// the zoom; this only shows it in the header.
+    pub zoom: Option<(f32, bool)>,
+    /// The account asked for the picture at its own size, not its preview's,
+    /// or zoomed in past what its preview has.
     pub original: bool,
 }
 
@@ -57,9 +66,15 @@ pub(crate) struct Shown<'a> {
     pub original: Option<RemoteImage>,
     /// The file to save, for a file.
     pub file: Option<(&'a Attachment, &'a RemoteFile)>,
-    /// Its place among the pictures of its cards.
+    /// Its place among the pictures of its message or its cards.
     pub index: usize,
     pub total: usize,
+    /// Its own size in pixels, when the service said it.
+    pub dimensions: Option<(u32, u32)>,
+    /// A blurred stand-in for it while its preview loads.
+    pub placeholder: Option<&'a RemoteImage>,
+    /// Every picture of the gallery: its preview and its name.
+    pub pictures: Vec<(&'a RemoteImage, String)>,
 }
 
 fn message(store: &Store, channel: ChannelId, message: MessageId) -> Option<&Message> {
@@ -106,6 +121,17 @@ fn original(source: &RemoteImage, dimensions: Option<(u32, u32)>) -> Option<Remo
         })
 }
 
+/// The files of `found` the viewer shows, in order: pictures with a preview
+/// that are not hidden behind a spoiler or the account's filter.
+fn viewable_files<'a>(ui: &Ui, store: &Store, found: &'a Message) -> Vec<&'a Attachment> {
+    found
+        .files()
+        .filter(|file| {
+            file.preview.is_some() && !hidden(ui, file) && !obscured(ui, store, found, file)
+        })
+        .collect()
+}
+
 /// The cards of `found` the viewer may show the pictures of: the message's
 /// own, or the copy's it forwards, when their pictures are not hidden.
 fn card_pictures<'a>(
@@ -140,16 +166,23 @@ pub(crate) fn shown<'a>(ui: &Ui, store: &'a Store) -> Option<Shown<'a>> {
     match viewer.viewed {
         Viewed::File(id) => {
             let message = message(store, viewer.channel, viewer.message)?;
-            let found = attachment(store, viewer.channel, viewer.message, id)
-                .filter(|found| !hidden(ui, found) && !obscured(ui, store, message, found))?;
+            let files = viewable_files(ui, store, message);
+            let index = files.iter().position(|file| file.id == id)?;
+            let found = files[index];
             let preview = found.preview.as_ref()?;
             Some(Shown {
                 title: found.filename.clone(),
                 preview,
                 original: original(preview, found.dimensions),
                 file: found.download.as_ref().map(|file| (found, file)),
-                index: 0,
-                total: 1,
+                index,
+                total: files.len(),
+                dimensions: found.dimensions,
+                placeholder: found.placeholder.as_ref(),
+                pictures: files
+                    .iter()
+                    .filter_map(|file| Some((file.preview.as_ref()?, file.filename.clone())))
+                    .collect(),
             })
         }
         Viewed::Card {
@@ -175,18 +208,32 @@ pub(crate) fn shown<'a>(ui: &Ui, store: &'a Store) -> Option<Shown<'a>> {
                 file: None,
                 index: picture,
                 total: pictures.len(),
+                dimensions: Some(image.dimensions),
+                placeholder: None,
+                pictures: pictures
+                    .iter()
+                    .enumerate()
+                    .map(|(at, picture)| (&picture.source, tr!("Imagen {n}", n = at + 1)))
+                    .collect(),
             })
         }
     }
 }
 
 /// The source the viewer wants loaded: its preview, and the picture at its
-/// own size once the account asked for it.
-pub(crate) fn viewer_sources(ui: &Ui, store: &Store) -> Vec<RemoteImage> {
+/// own size once the account asked for it; with `around`, also its stand-in
+/// while the preview loads and the strip's thumbnails.
+pub(crate) fn viewer_sources(ui: &Ui, store: &Store, around: bool) -> Vec<RemoteImage> {
     let Some(shown) = shown(ui, store) else {
         return Vec::new();
     };
     let mut wanted = vec![shown.preview.clone()];
+    if around {
+        if !ui.images.contains_key(shown.preview) {
+            wanted.extend(shown.placeholder.cloned());
+        }
+        wanted.extend(shown.pictures.iter().map(|(preview, _)| (*preview).clone()));
+    }
     if ui
         .attachment_viewer
         .as_ref()
@@ -249,7 +296,7 @@ fn open(
         channel,
         message,
         viewed,
-        zoom: 1.0,
+        zoom: None,
         original: false,
     });
     intents.push(Intent::Focus(CLOSE.into()));
@@ -290,43 +337,105 @@ pub(crate) fn open_card(
     )
 }
 
-/// Show the picture before or after, among its cards' pictures.
+/// Show the picture before or after, among its message's or its cards'
+/// pictures.
 fn step(ui: &mut Ui, store: &Store, by: isize) {
-    let total = shown(ui, store).map_or(1, |shown| shown.total);
-    if let Some(AttachmentViewer {
-        viewed: Viewed::Card { picture, .. },
-        zoom,
-        original,
-        ..
-    }) = ui.attachment_viewer.as_mut()
+    let Some(shown) = shown(ui, store) else {
+        return;
+    };
+    if let Some(next) = shown
+        .index
+        .checked_add_signed(by)
+        .filter(|next| *next < shown.total)
     {
-        if let Some(next) = picture.checked_add_signed(by).filter(|next| *next < total) {
-            *picture = next;
-            *zoom = 1.0;
-            *original = false;
-        }
+        go(ui, store, next);
     }
 }
 
-pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Vec<Intent>> {
+/// Show the `index`th picture of the gallery, fitted and from its preview.
+fn go(ui: &mut Ui, store: &Store, index: usize) {
+    if shown(ui, store).is_none_or(|shown| index >= shown.total) {
+        return;
+    }
+    let Some(viewer) = ui.attachment_viewer.as_ref() else {
+        return;
+    };
+    let file = match viewer.viewed {
+        Viewed::File(_) => message(store, viewer.channel, viewer.message).and_then(|found| {
+            viewable_files(ui, store, found)
+                .get(index)
+                .map(|file| file.id)
+        }),
+        Viewed::Card { .. } => None,
+    };
+    let Some(viewer) = ui.attachment_viewer.as_mut() else {
+        return;
+    };
+    match &mut viewer.viewed {
+        Viewed::File(id) => match file {
+            Some(file) => *id = file,
+            None => return,
+        },
+        Viewed::Card { picture, .. } => *picture = index,
+    }
+    viewer.zoom = None;
+    viewer.original = false;
+}
+
+/// The share of its own size a picture's preview has: what the viewer may
+/// enlarge it to before its own pixels are wanted.
+fn preview_share((width, height): (u32, u32)) -> f32 {
+    let share = |box_side: u32, side: u32| box_side as f32 / side.max(1) as f32;
+    share(PREVIEW_BOX.0, width)
+        .min(share(PREVIEW_BOX.1, height))
+        .min(1.0)
+}
+
+pub(crate) fn update(
+    ui: &mut Ui,
+    store: &mut Store,
+    action: &UiAction,
+    now: Instant,
+) -> Option<Vec<Intent>> {
+    if let UiAction::Zoomed { id, scale, fitted } = action {
+        if !id.starts_with(CLOSE) {
+            return None;
+        }
+        // An animation plays its preview; its own size is not offered.
+        let wanted = shown(ui, store)
+            .filter(|shown| shown.original.is_some())
+            .filter(|shown| {
+                ui.images
+                    .get(shown.preview)
+                    .is_none_or(|ready| !ui.animated.contains(ready.sha256()))
+            })
+            .and_then(|shown| shown.dimensions)
+            .is_some_and(|dimensions| *scale > preview_share(dimensions));
+        if let Some(viewer) = ui.attachment_viewer.as_mut() {
+            viewer.zoom = Some((*scale, *fitted));
+            // Zoomed past what its preview has: its own pixels load.
+            viewer.original |= wanted;
+        }
+        return Some(Vec::new());
+    }
     let UiAction::Clicked { id } = action else {
         return None;
     };
     match id.as_str() {
         CLOSE => return Some(close(ui, store)),
-        ZOOM_IN | ZOOM_OUT | FIT => {
-            if let Some(viewer) = ui.attachment_viewer.as_mut() {
-                viewer.zoom = match id.as_str() {
-                    ZOOM_IN => (viewer.zoom * 1.5).min(ImageViewer::MAX_ZOOM),
-                    ZOOM_OUT => (viewer.zoom / 1.5).max(1.0),
-                    _ => 1.0,
-                };
-            }
-            return Some(Vec::new());
-        }
+        // The viewer zooms itself; it reports the result as `Zoomed`.
+        ZOOM_IN | ZOOM_OUT | FIT => return Some(Vec::new()),
         PREVIOUS | NEXT => {
             step(ui, store, if id == PREVIOUS { -1 } else { 1 });
             return Some(Vec::new());
+        }
+        FORWARD => {
+            let viewer = ui.attachment_viewer.as_ref()?;
+            let (channel, message) = (viewer.channel, viewer.message);
+            ui.attachment_viewer = None;
+            return crate::message_actions::message_action(
+                ui, store, channel, message, "forward", now,
+            );
         }
         ORIGINAL => {
             if let Some(viewer) = ui.attachment_viewer.as_mut() {
@@ -336,33 +445,51 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         }
         _ => {}
     }
-    let (message, id, verb) = attachment_ids::parse(id)?;
-    let Some(channel) = ui.channel() else {
+    if let Some(index) = id.strip_prefix(SHOW) {
+        if let Ok(index) = index.parse() {
+            go(ui, store, index);
+        }
         return Some(Vec::new());
+    }
+    let (message, id, verb) = attachment_ids::parse(id)?;
+    Some(file_verb(ui, store, message, id, verb))
+}
+
+/// What a file's action does: `reveal`, `preview`, `save-as`, `copy-image`,
+/// `copy-video`, `open`, `copy` and `download`. It resolves the file again.
+fn file_verb(
+    ui: &mut Ui,
+    store: &Store,
+    message: MessageId,
+    id: AttachmentId,
+    verb: &str,
+) -> Vec<Intent> {
+    let Some(channel) = ui.channel() else {
+        return Vec::new();
     };
     let Some(found) = attachment(store, channel, message, id) else {
-        return Some(Vec::new());
+        return Vec::new();
     };
     if verb == "reveal" {
         // A spoiler, or an explicit picture (contenido-de-mensajes).
         if found.spoiler || found.explicit {
             ui.messages.revealed_files.insert(id);
         }
-        return Some(Vec::new());
+        return Vec::new();
     }
     if verb == "preview" {
         let shown = self::message(store, channel, message)
             .is_some_and(|row| !hidden(ui, found) && !obscured(ui, store, row, found));
         if found.preview.is_some() && ui.prefs.image_previews && shown {
-            return Some(open(ui, store, channel, message, Viewed::File(id)));
+            return open(ui, store, channel, message, Viewed::File(id));
         }
-        return Some(Vec::new());
+        return Vec::new();
     }
     let Some(source) = &found.download else {
-        return Some(Vec::new());
+        return Vec::new();
     };
     if verb == "save-as" {
-        return Some(crate::save_as::start(ui, store, channel, message, found));
+        return crate::save_as::start(ui, store, channel, message, found);
     }
     // The picture or the video itself, not while it is hidden
     // (contenido-de-mensajes).
@@ -376,19 +503,17 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
             && !hidden(ui, found)
             && self::message(store, channel, message)
                 .is_some_and(|row| !obscured(ui, store, row, found));
-        return Some(
-            allowed
-                .then(|| Intent::CopyFile {
-                    source: source.clone(),
-                    filename: found.filename.clone(),
-                    size_bytes: found.size_bytes,
-                    image: copied == Copied::Image,
-                })
-                .into_iter()
-                .collect(),
-        );
+        return allowed
+            .then(|| Intent::CopyFile {
+                source: source.clone(),
+                filename: found.filename.clone(),
+                size_bytes: found.size_bytes,
+                image: copied == Copied::Image,
+            })
+            .into_iter()
+            .collect();
     }
-    Some(match verb {
+    match verb {
         "open" => vec![Intent::OpenUrl(source.url.clone())],
         "copy" => vec![Intent::Copy(source.url.clone())],
         "download" => vec![Intent::DownloadFile {
@@ -397,29 +522,77 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
             size_bytes: found.size_bytes,
         }],
         _ => Vec::new(),
-    })
+    }
 }
 
 pub(crate) fn intercept(ui: &mut Ui, store: &Store, event: &UiEvent) -> Option<Vec<Intent>> {
-    ui.attachment_viewer.as_ref()?;
-    let UiEvent::Key { key, .. } = event else {
+    let viewer = ui.attachment_viewer.as_ref()?;
+    let UiEvent::Key { key, ctrl, .. } = event else {
         return None;
     };
+    let (message, ctrl) = (viewer.message, *ctrl);
     match key {
         Key::Escape => return Some(close(ui, store)),
-        Key::ArrowLeft | Key::ArrowRight => {
+        Key::ArrowLeft | Key::ArrowRight if !ctrl => {
             step(ui, store, if *key == Key::ArrowLeft { -1 } else { 1 });
             return Some(Vec::new());
         }
+        Key::Home | Key::End => {
+            let last = shown(ui, store).map_or(0, |shown| shown.total.saturating_sub(1));
+            go(ui, store, if *key == Key::Home { 0 } else { last });
+            return Some(Vec::new());
+        }
+        // The same as the header's: copy the picture, save it as.
+        Key::C | Key::S if ctrl => {
+            let file = shown(ui, store)
+                .and_then(|shown| shown.file)
+                .map(|(file, _)| file.id);
+            let verb = if *key == Key::C {
+                "copy-image"
+            } else {
+                "save-as"
+            };
+            return Some(
+                file.map_or_else(Vec::new, |file| file_verb(ui, store, message, file, verb)),
+            );
+        }
         _ => {}
     }
-    // Let the modal's focus trap and activation work. Conversation shortcuts
-    // must not edit or switch the workspace behind the picture.
-    if matches!(key, Key::Tab | Key::Enter | Key::Space) {
+    // The viewer's own keys zoom, move and turn the picture (limn's zoom
+    // view); the modal's focus trap and activation work too. Conversation
+    // shortcuts must not edit or switch the workspace behind the picture.
+    let zoom = matches!(
+        key,
+        Key::Plus | Key::Equals | Key::Minus | Key::Num0 | Key::Num1 | Key::Num2 | Key::Num3
+    ) || ctrl
+        && matches!(
+            key,
+            Key::R | Key::ArrowLeft | Key::ArrowRight | Key::ArrowUp | Key::ArrowDown
+        );
+    if zoom || matches!(key, Key::Tab | Key::Enter | Key::Space) {
         None
     } else {
         Some(Vec::new())
     }
+}
+
+/// The line under the viewer's title: the picture's size, its weight and
+/// its kind, as far as they are known.
+fn details(shown: &Shown<'_>) -> String {
+    let mut said = Vec::new();
+    if let Some((width, height)) = shown.dimensions {
+        said.push(format!("{width} × {height}"));
+    }
+    if let Some((file, _)) = shown.file {
+        said.push(rune_components::file_size(file.size_bytes));
+        let kind = file
+            .filename
+            .rsplit_once('.')
+            .map(|(_, extension)| extension.to_uppercase())
+            .filter(|extension| extension.len() <= 5);
+        said.extend(kind);
+    }
+    said.join(" · ")
 }
 
 pub(crate) fn overlay(
@@ -437,19 +610,46 @@ pub(crate) fn overlay(
     };
     let mut image = ImageViewer::new(root, true, &found.title, CLOSE, look.menu_palette())
         .viewport(context.window)
+        .subtitle(details(&found))
         .return_focus(opener(viewer))
-        .zoom(viewer.zoom)
         .zoom_actions(ZOOM_OUT, FIT, ZOOM_IN)
         .gallery(found.index, found.total)
         .previous_action(PREVIOUS)
         .next_action(NEXT);
-    // The same action as the attachment's menu: it resolves the entity again.
+    if let Some((width, height)) = found.dimensions {
+        image = image.picture_size(Size::new(width as f32, height as f32));
+    }
+    if let Some((scale, fitted)) = viewer.zoom {
+        image = image.zoom_level(scale, fitted);
+    }
+    // The same actions as the attachment's menu: they resolve the entity again.
     if let Some((file, _)) = found.file {
-        image = image.action(
-            attachment_ids::action(viewer.message, file.id, "save-as"),
-            limn::Icon::ArrowDown,
-            t("Guardar como…"),
-        );
+        let action = |verb| attachment_ids::action(viewer.message, file.id, verb);
+        if rune_components::message::copyable(file) == Some(Copied::Image) {
+            image = image.action(action("copy-image"), limn::Icon::Copy, t("Copiar imagen"));
+        }
+        image = image
+            .action(action("save-as"), limn::Icon::ArrowDown, t("Guardar como…"))
+            .action(
+                action("open"),
+                limn::Icon::ExternalLink,
+                t("Abrir en navegador"),
+            );
+    }
+    let forward = store
+        .abilities(viewer.channel)
+        .is_some_and(|abilities| abilities.forward.allowed());
+    if forward {
+        image = image.action(FORWARD, limn::Icon::Forward, t("Reenviar"));
+    }
+    if found.pictures.len() > 1 {
+        for (at, (preview, label)) in found.pictures.iter().enumerate() {
+            image = image.thumbnail(
+                format!("{SHOW}{at}"),
+                ui.images.get(*preview).cloned(),
+                label,
+            );
+        }
     }
     let preview = ui.images.get(found.preview).cloned();
     // An animation plays as the timeline plays it; its own size is its
@@ -458,13 +658,10 @@ pub(crate) fn overlay(
         .as_ref()
         .filter(|ready| ui.animated.contains(ready.sha256()));
     if playing.is_none() && found.original.is_some() {
+        // Its own icon: the header's fit is the arrows that close in.
         image = image.action(
             ORIGINAL,
-            if viewer.original {
-                limn::Icon::Collapse
-            } else {
-                limn::Icon::Expand
-            },
+            limn::Icon::Image,
             if viewer.original {
                 t("Ver la vista previa")
             } else {
@@ -472,7 +669,8 @@ pub(crate) fn overlay(
             },
         );
     }
-    // The picture at its own size replaces its preview once it is here.
+    // The picture at its own size replaces its preview once it is here;
+    // the preview shows at that size meanwhile.
     let large = found
         .original
         .as_ref()
@@ -489,6 +687,8 @@ pub(crate) fn overlay(
         image = image.image(ready);
     } else if ui.image_failures.contains(found.preview) {
         image = image.error(t("No se pudo cargar la imagen"));
+    } else if let Some(stand_in) = found.placeholder.and_then(|source| ui.images.get(source)) {
+        image = image.placeholder(stand_in.clone());
     }
     image.render()
 }

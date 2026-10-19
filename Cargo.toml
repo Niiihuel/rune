@@ -3,7 +3,7 @@ resolver = "2"
 members = ["apps/desktop", "crates/rune-i18n", "crates/rune-model", "crates/rune-provider", "crates/rune-discord", "crates/rune-discord-session", "crates/rune-login", "crates/rune-state", "crates/rune-storage", "crates/rune-core", "crates/rune-media", "crates/rune-components", "crates/rune-ui", "crates/rune-platform", "crates/rune-update"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"
@@ -45,6 +45,8 @@ publish = false
 # rune/integration-2026-10-19.
 # The exact revision stays in Cargo.lock; a git dependency keeps workspace fmt
 # from rewriting third-party sources. Upstream work is published separately.
+# And the zoom view the tree keeps with the immersive image viewer around it
+# (Element::zoom_view, PR #112; branch rune/visor-de-medios, 2026-10-19).
 limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
 limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
 eframe = { version = "0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }

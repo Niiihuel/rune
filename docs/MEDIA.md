@@ -620,9 +620,11 @@ cubre lo que Discord lleva, sin decodificadores del sistema:
 - **Interfaz**: tarjeta de audio con nombre, tamaño, reproducir/pausar,
   barra de tiempo (`Slider` de limn: busca al soltar), `m:ss / m:ss`,
   silenciar y volumen; un video muestra su imagen en la caja de la tarjeta
-  (16:9 si no se conoce su tamaño) y suma «Pantalla completa»: un `Modal`
-  de limn del tamaño de la ventana con la imagen y los mismos controles
-  (Espacio pausa, Esc sale). Uno por vez; el volumen se recuerda en la
+  (16:9 si no se conoce su tamaño) y suma «Pantalla completa»: desde el
+  2026-10-19 el mismo visor de las imágenes (`ImageViewer` de limn), con la
+  imagen llenando la ventana, los mismos controles abajo y su zoom
+  (Espacio pausa, ←/→ ±5 s, Esc o un clic al costado sale; ver
+  [VISOR.md](VISOR.md)). Antes era un `Modal` aparte. Uno por vez; el volumen se recuerda en la
   sesión y la posición de cada clip como en los mensajes de voz.
 - **Descarga y memoria**: sólo al pulsar reproducir, a memoria, hasta
   **50 MiB** (`Attachment::MAX_PLAYED_BYTES`; más grande, la tarjeta lo

@@ -144,6 +144,21 @@ fn a_video_fills_the_window_and_pauses_out_of_view_unless_it_does() {
     assert!(player(&host).fullscreen);
     host.frame();
     assert!(host.painted().iter().any(|text| text == "demo.mp4"));
+    // In the image viewer (visor-de-medios): its picture zooms as a
+    // picture's does, its controls under it, and Left and Right seek.
+    let frame = host.frame();
+    assert!(frame
+        .access
+        .iter()
+        .any(|node| node.id == "media-viewer:close:dialog"));
+    assert!(frame
+        .regions
+        .iter()
+        .any(|region| region.kind == limn::HitKind::Zoom));
+    host.key(Key::ArrowRight, false, false);
+    assert_eq!(player(&host).seek, Some(5.0));
+    host.key(Key::ArrowLeft, false, false);
+    assert_eq!(player(&host).seek, Some(0.0));
     // Space pauses it there; Esc leaves the full window.
     host.key(Key::Space, false, false);
     assert_eq!(player(&host).state, VoiceState::Paused);

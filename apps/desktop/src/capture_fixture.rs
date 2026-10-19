@@ -266,6 +266,175 @@ pub fn attachment(store: &Store, ui: &Ui) -> Option<(Event, RemoteImage, limn::R
     ))
 }
 
+/// The message `--capture-viewer` adds: three pictures to open in the viewer,
+/// a small drawing, a large photo and a logo with transparency.
+pub const VIEWER_MESSAGE: MessageId = MessageId(9_000_000_000_000_086);
+
+/// [`VIEWER_MESSAGE`], after the latest message of the open conversation;
+/// [`simulated`] draws its pictures. Nothing reaches a provider.
+pub fn viewer(store: &Store, ui: &Ui) -> Option<Event> {
+    let channel = ui.channel()?;
+    let timeline = store.timeline(channel)?;
+    if !timeline.latest {
+        return None;
+    }
+    let mut message = timeline.messages().last()?.as_ref().clone();
+    message.id = VIEWER_MESSAGE;
+    message.kind = rune_model::MessageKind::Default;
+    message.delivery = rune_model::Delivery::Sent;
+    message.timestamp = rune_provider::mock::wall_clock();
+    message.content = "Tres imágenes para el visor (simuladas)".into();
+    message.reply_to = None;
+    message.reactions.clear();
+    message.mentions.clear();
+    message.stickers.clear();
+    message.text_references.clear();
+    message.embeds.clear();
+    let picture = |id: u64, filename: &str, size_bytes: u64, dimensions: (u32, u32)| {
+        let url = format!("https://simulacion.invalid/visor/{filename}");
+        Attachment {
+            id: AttachmentId(id),
+            filename: filename.into(),
+            size_bytes,
+            content_type: Some("image/png".into()),
+            dimensions: Some(dimensions),
+            preview: Some(RemoteImage {
+                url: url.clone(),
+                kind: ImageKind::AttachmentPreview,
+            }),
+            download: Some(RemoteFile { url }),
+            spoiler: false,
+            voice: None,
+            explicit: false,
+            placeholder: None,
+        }
+    };
+    message.attachments = vec![
+        picture(86, "dibujo.png", 48_213, VIEWER_SMALL),
+        picture(87, "foto.png", 3_912_448, VIEWER_LARGE),
+        picture(88, "logo.png", 21_904, VIEWER_LOGO),
+    ];
+    Some(Event::MessageCreated {
+        message,
+        nonce: None,
+    })
+}
+
+const VIEWER_SMALL: (u32, u32) = (300, 340);
+const VIEWER_LARGE: (u32, u32) = (2400, 1600);
+const VIEWER_LOGO: (u32, u32) = (512, 512);
+
+/// The `index`th picture of [`media`]'s album, which [`simulated`] draws.
+fn album_picture(index: usize) -> rune_model::EmbedImage {
+    rune_model::EmbedImage {
+        source: RemoteImage {
+            url: format!("https://simulacion.invalid/visor/album-{index}.png"),
+            kind: ImageKind::AttachmentPreview,
+        },
+        dimensions: ALBUM,
+    }
+}
+
+const ALBUM: (u32, u32) = (960, 540);
+
+/// The pixels of a picture of [`viewer`] or of [`media`]'s album: the large
+/// one is served at the preview's 768 by 512 unless its own size is asked
+/// for.
+fn viewer_picture(name: &str, original: bool) -> Option<image::RgbaImage> {
+    // The album's: the same hills at dawn, at noon and at dusk.
+    if let Some(index) = name
+        .strip_prefix("album-")
+        .and_then(|rest| rest.strip_suffix(".png"))
+        .and_then(|index| index.parse::<u32>().ok())
+        .filter(|index| *index < 3)
+    {
+        let (width, height) = ALBUM;
+        let skies = [[250, 170, 120], [110, 180, 240], [120, 70, 150]];
+        let sky = skies[index as usize];
+        return Some(image::RgbaImage::from_fn(width, height, |x, y| {
+            let (fx, fy) = (x as f32, y as f32);
+            let hill = fy > 330.0 + 60.0 * (fx / 120.0 + index as f32).sin();
+            let sun = (fx - 240.0 - 240.0 * index as f32).hypot(fy - 140.0) < 50.0;
+            let t = fy / height as f32;
+            let [r, g, b] = if hill {
+                [60, (110 + 30 * index) as u8, 70]
+            } else if sun {
+                [250, 230, 140]
+            } else {
+                sky.map(|channel: u32| (channel as f32 * (1.0 - 0.3 * t)) as u8)
+            };
+            image::Rgba([r, g, b, 255])
+        }));
+    }
+    match name {
+        // A flat drawing: sky, sun, two hills and a path, every pixel opaque.
+        "dibujo.png" => {
+            let (width, height) = VIEWER_SMALL;
+            Some(image::RgbaImage::from_fn(width, height, |x, y| {
+                let (fx, fy) = (x as f32, y as f32);
+                let sun = (fx - 210.0).hypot(fy - 90.0) < 38.0;
+                let back = fy > 200.0 + 30.0 * (fx / 60.0).sin();
+                let front = fy > 250.0 + 18.0 * (fx / 45.0 + 1.0).cos();
+                let path =
+                    front && (fx - 150.0 - (fy - 250.0) * 0.6).abs() < 6.0 + (fy - 250.0) * 0.2;
+                let [r, g, b] = if path {
+                    [214, 190, 140]
+                } else if front {
+                    [72, 140, 84]
+                } else if back {
+                    [104, 160, 120]
+                } else if sun {
+                    [250, 210, 90]
+                } else {
+                    let t = fy / 200.0;
+                    [(120.0 + 90.0 * t) as u8, (170.0 + 50.0 * t) as u8, 235]
+                };
+                image::Rgba([r, g, b, 255])
+            }))
+        }
+        // A photo: a dusk gradient, a ridge, and a fine grid to judge sharpness.
+        "foto.png" => {
+            let (width, height) = if original { VIEWER_LARGE } else { (768, 512) };
+            let scale = width as f32 / VIEWER_LARGE.0 as f32;
+            Some(image::RgbaImage::from_fn(width, height, |x, y| {
+                let (fx, fy) = (x as f32 / scale, y as f32 / scale);
+                let ridge = 980.0 + 140.0 * (fx / 310.0).sin() + 60.0 * (fx / 97.0).cos();
+                let grid = (fx as u32 % 80 < 2 || fy as u32 % 80 < 2) && fy > ridge;
+                let t = fy / 1600.0;
+                let [r, g, b] = if grid {
+                    [235, 228, 210]
+                } else if fy > ridge {
+                    [(40.0 + 30.0 * t) as u8, (52.0 + 20.0 * t) as u8, 70]
+                } else {
+                    [
+                        (250.0 - 120.0 * t) as u8,
+                        (150.0 - 60.0 * t) as u8,
+                        (110.0 + 90.0 * t) as u8,
+                    ]
+                };
+                image::Rgba([r, g, b, 255])
+            }))
+        }
+        // A dark star on nothing: transparent around it, half-transparent at its glow.
+        "logo.png" => {
+            let (width, height) = VIEWER_LOGO;
+            Some(image::RgbaImage::from_fn(width, height, |x, y| {
+                let (dx, dy) = (x as f32 - 256.0, y as f32 - 256.0);
+                let radius = dx.hypot(dy);
+                let edge = 150.0 + 60.0 * (dy.atan2(dx) * 5.0).cos();
+                if radius < edge {
+                    image::Rgba([36, 30, 64, 255])
+                } else if radius < edge + 24.0 {
+                    image::Rgba([120, 90, 220, (255.0 * (1.0 - (radius - edge) / 24.0)) as u8])
+                } else {
+                    image::Rgba([0, 0, 0, 0])
+                }
+            }))
+        }
+        _ => None,
+    }
+}
+
 /// Simulated records, a forward, an app's card with a picture, a voted poll
 /// and one still to vote after the latest message, to see rich content
 /// drawn; nothing reaches a provider. Returns the picture to serve locally.
@@ -582,7 +751,8 @@ pub fn media(
             dimensions: (960, 540),
         })
     };
-    // Three cards of one link, as a post with three pictures arrives.
+    // Three cards of one link, as a post with three pictures arrives: three
+    // pictures of their own, not the GIF card's (which the capture animates).
     let mut album = blank(4, "Fotos del taller (simuladas)");
     album.embeds = (0..3)
         .map(|index| Embed {
@@ -590,7 +760,7 @@ pub fn media(
             title: (index == 0).then(|| "Álbum del taller (simulado)".into()),
             description: (index == 0).then(|| "Tres fotos de la misma publicación.".into()),
             color: Some(0x5865F2),
-            image: picture(),
+            image: Some(album_picture(index)),
             ..Embed::default()
         })
         .collect();
@@ -850,6 +1020,15 @@ pub fn simulated(source: &rune_model::RemoteImage) -> Option<limn::RasterImage> 
     {
         return None;
     }
+    if let Some(name) = path.strip_prefix("visor/") {
+        let picture = viewer_picture(name, source.kind == ImageKind::Original)?;
+        let mut png = std::io::Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(picture)
+            .write_to(&mut png, image::ImageFormat::Png)
+            .ok()?;
+        let data = rune_core::normalize_image(png.get_ref(), source)?;
+        return super::preview(&data, rune_i18n::t("Imagen simulada"));
+    }
     // An animated vector sticker: RUNE's own sample, drawn as one from the service.
     if path.ends_with(".json") {
         let lottie = include_bytes!("../../../assets/sticker-sample.json");
@@ -906,4 +1085,28 @@ pub fn simulated(source: &rune_model::RemoteImage) -> Option<limn::RasterImage> 
         .ok()?;
     let data = rune_core::normalize_image(png.get_ref(), source)?;
     super::preview(&data, rune_i18n::t("Imagen simulada"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_albums_pictures_are_three_of_their_own_each_drawn_for_the_capture() {
+        let drawn: Vec<_> = (0..3)
+            .map(|index| {
+                let picture = album_picture(index);
+                assert_eq!(picture.dimensions, ALBUM);
+                simulated(&picture.source)
+                    .expect("the capture draws it")
+                    .sha256()
+                    .to_owned()
+            })
+            .collect();
+        assert!(
+            drawn[0] != drawn[1] && drawn[1] != drawn[2] && drawn[0] != drawn[2],
+            "{drawn:?}"
+        );
+        assert!(viewer_picture("album-3.png", false).is_none());
+    }
 }

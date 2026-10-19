@@ -95,10 +95,23 @@ fn a_gallery_opens_each_of_its_pictures_in_the_viewer_and_steps_through_them() {
             picture: 1
         })
     );
-    assert!(host
-        .painted()
-        .iter()
-        .any(|text| text == "2 de 3" || text == "2 of 3"));
+    // Its place in the strip of the three, which one opens directly.
+    let strip = |host: &mut Host, at: usize| {
+        let frame = host.frame();
+        let id = format!("attachment-viewer:show:{at}");
+        frame
+            .access
+            .iter()
+            .find(|node| node.id == id)
+            .and_then(|node| node.selected)
+    };
+    assert_eq!(
+        (strip(&mut host, 0), strip(&mut host, 1)),
+        (Some(false), Some(true))
+    );
+    host.click("attachment-viewer:show:0");
+    assert_eq!(strip(&mut host, 0), Some(true));
+    host.click("attachment-viewer:show:1");
     host.key(Key::ArrowRight, false, false);
     host.key(Key::ArrowRight, false, false);
     let shown = |host: &Host| match host.ui.attachment_viewer.as_ref().unwrap().viewed {
@@ -117,6 +130,18 @@ fn a_gallery_opens_each_of_its_pictures_in_the_viewer_and_steps_through_them() {
         host.tree.focused_id(),
         Some(card_picture(&base, false, 0, 1).as_str())
     );
+}
+
+#[test]
+fn each_thumbnail_of_a_gallery_is_the_picture_it_opens() {
+    let (mut host, id) = posted(|message| message.embeds = album());
+    let pictures: Vec<_> = (1..=3).map(super::media_viewer::numbered).collect();
+    for (index, drawn) in pictures.iter().enumerate() {
+        let source = picture(&index.to_string()).unwrap().source;
+        host.ui.images.insert(source, drawn.clone());
+    }
+    host.click(&card_picture(&format!("msg:{id}"), false, 0, 0));
+    super::media_viewer::strip_shows_what_it_opens(&mut host, &pictures);
 }
 
 #[test]

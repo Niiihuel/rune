@@ -41,7 +41,9 @@ pub struct DocumentViewer {
     message: MessageId,
     attachment: AttachmentId,
     request: u64,
-    zoom: f32,
+    /// What the viewer last reported of its zoom, to show in its header;
+    /// the tree keeps the zoom.
+    zoom: Option<(f32, bool)>,
     /// The page shown, counting from 1.
     pub page: u32,
     /// 1 until the first page arrives with the document's count.
@@ -369,7 +371,7 @@ fn go(ui: &mut Ui, page: i64) -> Vec<Intent> {
         return Vec::new();
     }
     viewer.page = page as u32;
-    viewer.zoom = 1.0;
+    viewer.zoom = None;
     viewer.error = None;
     viewer.ask()
 }
@@ -419,6 +421,14 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         search.query = value.chars().take(256).collect();
         return Some(Vec::new());
     }
+    if let UiAction::Zoomed { id, scale, fitted } = action {
+        let viewer = ui
+            .document_viewer
+            .as_mut()
+            .filter(|_| id.starts_with(CLOSE))?;
+        viewer.zoom = Some((*scale, *fitted));
+        return Some(Vec::new());
+    }
     let UiAction::Clicked { id } = action else {
         return None;
     };
@@ -444,16 +454,8 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         SEARCH_CLOSE => return Some(close_search(ui)),
         PREVIOUS => return Some(turn(ui, -1)),
         NEXT => return Some(turn(ui, 1)),
-        IN | OUT | FIT => {
-            if let Some(viewer) = ui.document_viewer.as_mut() {
-                viewer.zoom = match id.as_str() {
-                    IN => (viewer.zoom * 1.5).min(ImageViewer::MAX_ZOOM),
-                    OUT => (viewer.zoom / 1.5).max(1.0),
-                    _ => 1.0,
-                };
-            }
-            return Some(Vec::new());
-        }
+        // The viewer zooms itself and reports it as `Zoomed`.
+        IN | OUT | FIT => return Some(Vec::new()),
         _ => {}
     }
     let (message, id, verb) = attachment_ids::parse(id)?;
@@ -479,7 +481,7 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         message,
         attachment: id,
         request,
-        zoom: 1.0,
+        zoom: None,
         page: 1,
         pages: 1,
         rendered: Vec::new(),
@@ -510,11 +512,20 @@ pub(crate) fn intercept(ui: &mut Ui, event: &UiEvent) -> Option<Vec<Intent>> {
     }
     match key {
         Key::Escape => return Some(close(ui)),
-        Key::ArrowLeft => return Some(turn(ui, -1)),
-        Key::ArrowRight => return Some(turn(ui, 1)),
+        Key::ArrowLeft if !ctrl => return Some(turn(ui, -1)),
+        Key::ArrowRight if !ctrl => return Some(turn(ui, 1)),
         _ => {}
     }
-    if matches!(key, Key::Tab | Key::Enter | Key::Space) {
+    // The viewer's own keys zoom, move and turn the page (limn's zoom view).
+    let zoom = matches!(
+        key,
+        Key::Plus | Key::Equals | Key::Minus | Key::Num0 | Key::Num1 | Key::Num2 | Key::Num3
+    ) || *ctrl
+        && matches!(
+            key,
+            Key::R | Key::ArrowLeft | Key::ArrowRight | Key::ArrowUp | Key::ArrowDown
+        );
+    if zoom || matches!(key, Key::Tab | Key::Enter | Key::Space) {
         None
     } else {
         Some(Vec::new())
@@ -550,7 +561,6 @@ pub(crate) fn overlay(
         viewer.attachment,
         "pdf",
     ))
-    .zoom(viewer.zoom)
     .zoom_actions(OUT, FIT, IN)
     .gallery(viewer.page as usize - 1, viewer.pages as usize)
     .previous_action(PREVIOUS)
@@ -558,6 +568,9 @@ pub(crate) fn overlay(
     .navigation_labels(t("Página anterior"), t("Página siguiente"));
     // Searching needs the sandboxed tools that render the pages, too.
     image = image.action(SEARCH, Icon::Search, t("Buscar en el documento · Ctrl+F"));
+    if let Some((scale, fitted)) = viewer.zoom {
+        image = image.zoom_level(scale, fitted);
+    }
     image = match (viewer.shown(), &viewer.error) {
         (Some(ready), _) => image.image(ready.clone()),
         (None, Some(error)) => image.error(error),

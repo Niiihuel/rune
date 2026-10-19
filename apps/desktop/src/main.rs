@@ -90,6 +90,8 @@ struct Arguments {
     capture_hover_id: Option<String>,
     capture_drop: bool,
     capture_attachments: bool,
+    /// Three pictures to open in the viewer after the latest message.
+    capture_viewer: bool,
     /// The attachments' picture plays a local two-frame animation.
     capture_animation: bool,
     capture_invitation: bool,
@@ -286,6 +288,7 @@ fn parse_arguments(
             }
             "--capture-drop" => parsed.capture_drop = true,
             "--capture-attachments" => parsed.capture_attachments = true,
+            "--capture-viewer" => parsed.capture_viewer = true,
             "--capture-animation" => {
                 parsed.capture_attachments = true;
                 parsed.capture_animation = true;
@@ -357,6 +360,7 @@ fn parse_arguments(
         || parsed.capture_hover_id.is_some()
         || parsed.capture_drop
         || parsed.capture_attachments
+        || parsed.capture_viewer
         || parsed.capture_invitation
         || parsed.capture_onboarding
         || parsed.capture_rich
@@ -829,6 +833,8 @@ struct Capture {
     /// Wait for a native drop and capture its rejection after the usual interval.
     file_drop: Option<DropCapture>,
     attachments: bool,
+    /// Add [`capture_fixture::viewer`] after the latest message.
+    viewer: bool,
     animation: Option<Arc<rune_core::Animation>>,
     invitation: bool,
     /// Invitation cards answer from the fixture, without a provider.
@@ -1251,6 +1257,7 @@ impl App {
                 hover_id: arguments.capture_hover_id,
                 file_drop: arguments.capture_drop.then_some(DropCapture::Waiting),
                 attachments: arguments.capture_attachments,
+                viewer: arguments.capture_viewer,
                 animation: (arguments.capture_animation || arguments.capture_media)
                     .then(capture_fixture::animation),
                 invitation: arguments.capture_invitation,
@@ -3198,6 +3205,40 @@ impl App {
             self.tree.reveal_at_start(target, 16.0);
             return;
         }
+        // `key:{name}` or `key:ctrl+{name}` presses a key as the window
+        // would deliver it (visor-de-medios: the viewer's zoom keys).
+        if let Some(name) = id.strip_prefix("key:") {
+            let (ctrl, name) = name
+                .strip_prefix("ctrl+")
+                .map_or((false, name), |name| (true, name));
+            let Some(key) = limn::Key::from_name(name) else {
+                eprintln!("rune: capture key {name} is not a key");
+                return;
+            };
+            let event = UiEvent::Key {
+                key,
+                shift: false,
+                ctrl,
+                alt: false,
+            };
+            let focused = self.tree.focused_id().map(str::to_owned);
+            let intents =
+                match rune_ui::intercept(&mut self.ui, &mut self.store, &event, focused.as_deref())
+                {
+                    Some(intents) => intents,
+                    None => {
+                        let actions = self.tree.handle_event(event);
+                        actions
+                            .iter()
+                            .flat_map(|action| {
+                                rune_ui::update(&mut self.ui, &mut self.store, action, now)
+                            })
+                            .collect()
+                    }
+                };
+            self.run(ctx, intents);
+            return;
+        }
         let mut part = |custom_id: &str| {
             let channel = self.ui.channel()?;
             let messages = self.store.timeline(channel)?.messages();
@@ -3291,6 +3332,7 @@ impl App {
                     .map(|channel| (channel.id, channel.server))
             });
             let actions = if capture.attachments
+                || capture.viewer
                 || capture.invitation
                 || capture.rich
                 || capture.media
@@ -3458,6 +3500,40 @@ impl App {
                     let intents = rune_ui::update(&mut self.ui, &mut self.store, &action, now);
                     self.run(ctx, intents);
                 }
+            }
+        }
+        let viewer = self
+            .capture
+            .as_ref()
+            .filter(|capture| capture.viewer)
+            .and_then(|_| capture_fixture::viewer(&self.store, &self.ui));
+        if let Some(event) = viewer {
+            let capture = self.capture.as_mut().unwrap();
+            capture.viewer = false;
+            capture.ready = Some(now);
+            // `after:` ones wait for the viewer to be laid out.
+            let (later, actions): (Vec<String>, Vec<String>) = std::mem::take(&mut capture.actions)
+                .into_iter()
+                .partition(|id| id.starts_with("after:"));
+            capture.later = later
+                .iter()
+                .filter_map(|id| id.strip_prefix("after:"))
+                .map(str::to_owned)
+                .collect();
+            let applied = self.store.apply(event, now);
+            let intents = rune_ui::on_applied(&mut self.ui, &mut self.store, &applied, now);
+            self.run(ctx, intents);
+            if let Some(channel) = self.ui.channel() {
+                self.tree.scroll_to_end(&rune_ui::timeline_id(channel));
+            }
+            for id in actions {
+                let intents = rune_ui::update(
+                    &mut self.ui,
+                    &mut self.store,
+                    &limn::UiAction::Clicked { id },
+                    now,
+                );
+                self.run(ctx, intents);
             }
         }
         let rich = self
@@ -3730,6 +3806,7 @@ impl App {
         if !capture.requested
             && capture.file_drop != Some(DropCapture::Waiting)
             && !capture.attachments
+            && !capture.viewer
             && !capture.invitation
             && capture.onboarding.is_none()
             && !capture.rich
@@ -5189,6 +5266,7 @@ mod tests {
             vec!["--capture-hover"],
             vec!["--capture-drop"],
             vec!["--capture-attachments"],
+            vec!["--capture-viewer"],
             vec!["--capture-animation"],
             vec!["--capture-invitation"],
             vec!["--capture-onboarding"],
