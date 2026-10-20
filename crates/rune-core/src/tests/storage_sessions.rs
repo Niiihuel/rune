@@ -147,6 +147,7 @@ fn a_failed_read_restore_keeps_new_choices_in_ram_until_the_baseline_is_known() 
         client.read_marks().is_err(),
         "occupied answer slots make this restore fail explicitly"
     );
+    assert!(client.storage_error().unwrap().contains("sólo en memoria"));
     let newer = ReadMark {
         unread_from: Some(MessageId(90)),
         revision: 21,
@@ -161,6 +162,7 @@ fn a_failed_read_restore_keeps_new_choices_in_ram_until_the_baseline_is_known() 
         "an unknown baseline cannot admit new marker writes"
     );
     assert_eq!(client.read_marks().unwrap(), vec![(channel, old)]);
+    assert!(client.storage_error().is_none());
     client.set_read_mark(UserId(1), channel, newer).unwrap();
     assert_eq!(client.read_marks().unwrap(), vec![(channel, newer)]);
     drop(client);

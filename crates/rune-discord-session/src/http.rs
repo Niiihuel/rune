@@ -356,13 +356,13 @@ impl Http {
             // In particular, 401 must clear the session without reading it.
             return Err(status_error(status, mutating));
         }
-        let either = either
+        let optional_body = either
             && matches!(
                 status,
                 StatusCode::OK | StatusCode::CREATED | StatusCode::NO_CONTENT
-            )
-            || search && status == StatusCode::ACCEPTED;
-        if status != expected && !(typing && status == StatusCode::OK) && !either {
+            );
+        let accepted = optional_body || search && status == StatusCode::ACCEPTED;
+        if status != expected && !(typing && status == StatusCode::OK) && !accepted {
             return Err(RestError::response(wire::invalid(), mutating));
         }
         if status == StatusCode::NO_CONTENT || typing {
@@ -371,6 +371,12 @@ impl Http {
         let bytes = read_bounded(response, max_response)
             .await
             .map_err(|reason| RestError::response(reason, mutating))?;
+        // Some writes confirm the change with an empty 200/201 instead of
+        // 204. Only routes that explicitly allow no answer may omit JSON;
+        // ordinary reads and a search's 202 still require their document.
+        if optional_body && bytes.is_empty() {
+            return Ok(Value::Null);
+        }
         serde_json::from_slice(&bytes).map_err(|_| RestError::response(wire::invalid(), mutating))
     }
 

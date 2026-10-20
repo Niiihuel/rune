@@ -1466,6 +1466,10 @@ impl DiscordSessionProvider {
                     let limits = active.limits.observe(&event);
                     match handle_gateway(active, event) {
                         Ok(updates) => {
+                            // A confirmed acceptance queued behind another
+                            // request is complete too; it must not be sent again.
+                            queue.retain(|queued| !friend_request_confirmed(&queued.command, &updates));
+                            retry.take_if(|(command, _)| friend_request_confirmed(command, &updates));
                             // A read loses its scope at revocation, even while
                             // another channel's HTTP request holds the worker.
                             // Confirmed deletion also invalidates queued writes.
@@ -1487,6 +1491,12 @@ impl DiscordSessionProvider {
                                 for command in cancelled {
                                     fail_invitation(events, &command, InvitationJoinError::Unavailable).await?;
                                 }
+                            }
+                            // The Gateway can confirm acceptance before PUT's
+                            // reply. Its new Friend state is the success, not
+                            // a lost precondition for the in-flight request.
+                            if let Some(work) = rest.take_if(|work| friend_request_confirmed(&work.command, &updates)) {
+                                retrying.take_if(|retried| *retried == work.command);
                             }
                             // Permission/removal dispatches can invalidate a
                             // request while HTTP is in flight. Drop it before
@@ -2327,6 +2337,16 @@ fn invitation_pending(queue: &VecDeque<Queued>, rest: &Option<RestOperation>) ->
             .is_some_and(|rest| matches!(rest.command, Command::AcceptInvitation { .. }))
 }
 
+fn friend_request_confirmed(command: &Command, updates: &[Event]) -> bool {
+    let Command::AcceptFriendRequest { user } = command else {
+        return false;
+    };
+    updates.iter().any(|event| {
+        matches!(event, Event::RelationshipChanged(known)
+            if known.user == *user && known.kind == rune_model::RelationshipKind::Friend)
+    })
+}
+
 fn invalidated(active: &Session, work: &RestOperation) -> Option<LoginError> {
     match work.phase {
         RestPhase::ContextRead { account } => {
@@ -2848,6 +2868,12 @@ async fn fail(
         .await;
     }
     if let Some(failure) = Failure::of(command) {
+        // Both labels are fixed local text: never log a command's payload,
+        // account identifiers, credentials or a remote response body.
+        eprintln!(
+            "rune: action failed: {}: {reason} (ambiguous={ambiguous})",
+            failure.action()
+        );
         emit(
             events,
             Event::Failed {

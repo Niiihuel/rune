@@ -32,6 +32,8 @@ const SYSTEM_IDLE_FRAMES: u32 = 50;
 const STALE_AFTER: Duration = Duration::from_millis(250);
 const MAX_RATE: u32 = 192_000;
 const MAX_CHANNELS: u16 = 8;
+/// Worker-side diagnostics only: aggregate levels, never samples.
+const DIAGNOSTIC_INTERVAL: Duration = Duration::from_secs(5);
 
 /// The complete desired configuration. Identical requests are a no-op.
 #[derive(Clone, Debug, PartialEq)]
@@ -409,8 +411,10 @@ trait InputStream {
 
 impl InputStream for cpal::Stream {
     fn play(&self) -> Result<(), MediaError> {
-        StreamTrait::play(self)
-            .map_err(|_| MediaError(t("No se pudo activar el micrófono.").into()))
+        StreamTrait::play(self).map_err(|error| {
+            eprintln!("rune: microphone: start failed: {error}");
+            MediaError(t("No se pudo activar el micrófono.").into())
+        })
     }
 }
 
@@ -476,6 +480,14 @@ impl Backend for CpalBackend {
                 .ok_or_else(|| MediaError(t("No hay un micrófono disponible.").into()))?,
         };
         let config = input_config(&device)?;
+        eprintln!(
+            "rune: microphone: opening backend={:?} device={:?} rate={} channels={} format={:?}",
+            host.id(),
+            device.to_string(),
+            config.sample_rate(),
+            config.channels(),
+            config.sample_format()
+        );
         let rate = config.sample_rate();
         let (ingress, consumer) = ring(rate, config.channels(), shared)?;
         let signals = ingress.signals.clone();
@@ -493,7 +505,7 @@ impl Backend for CpalBackend {
             _ => {
                 return Err(MediaError(
                     t("El formato de audio del micrófono no es compatible.").into(),
-                ))
+                ));
             }
         };
         Ok(Opened {
@@ -522,26 +534,92 @@ fn input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig, Me
     let default = device
         .default_input_config()
         .map_err(|_| MediaError(t("No se pudo consultar el micrófono.").into()))?;
-    if default.sample_rate() == PLAYBACK_RATE {
+    if default.sample_rate() == PLAYBACK_RATE && input_config_supported(&default) {
         return Ok(default);
     }
     let offered = device
         .supported_input_configs()
         .map(|configs| configs.take(64).collect::<Vec<_>>())
         .unwrap_or_default();
-    let same = |range: &cpal::SupportedStreamConfigRange| {
-        (range.channels(), range.sample_format()) == (default.channels(), default.sample_format())
+    Ok(preferred_input_config(default, &offered))
+}
+
+/// Only choose formats the input callback can convert. WASAPI also offers
+/// packed 24-bit samples, which cannot use the integer callbacks below.
+fn input_format_supported(format: SampleFormat) -> bool {
+    matches!(
+        format,
+        SampleFormat::F32
+            | SampleFormat::F64
+            | SampleFormat::I8
+            | SampleFormat::I16
+            | SampleFormat::I32
+            | SampleFormat::I64
+            | SampleFormat::U8
+            | SampleFormat::U16
+            | SampleFormat::U32
+            | SampleFormat::U64
+    )
+}
+
+fn input_rate_supported(rate: u32) -> bool {
+    (8_000..=MAX_RATE).contains(&rate) && rate.is_multiple_of(100)
+}
+
+fn input_config_supported(config: &cpal::SupportedStreamConfig) -> bool {
+    input_rate_supported(config.sample_rate())
+        && (1..=MAX_CHANNELS).contains(&config.channels())
+        && input_format_supported(config.sample_format())
+}
+
+fn preferred_input_config(
+    default: cpal::SupportedStreamConfig,
+    offered: &[cpal::SupportedStreamConfigRange],
+) -> cpal::SupportedStreamConfig {
+    if default.sample_rate() == PLAYBACK_RATE && input_config_supported(&default) {
+        return default;
+    }
+    let compatible = |range: &&cpal::SupportedStreamConfigRange| {
+        (1..=MAX_CHANNELS).contains(&range.channels())
+            && input_format_supported(range.sample_format())
     };
-    let at_rate = offered
+    let original = (default.channels(), default.sample_format());
+    let at_rate = |rate| {
+        if !input_rate_supported(rate) {
+            return None;
+        }
+        offered
+            .iter()
+            .filter(compatible)
+            .filter(|range| (range.channels(), range.sample_format()) == original)
+            .chain(offered.iter().filter(compatible))
+            .find_map(|range| range.try_with_sample_rate(rate))
+    };
+    if let Some(preferred) = at_rate(PLAYBACK_RATE) {
+        return preferred;
+    }
+    if input_config_supported(&default) {
+        return default;
+    }
+    // An unsupported default format may have a compatible alternative at
+    // the same rate. The worker already resamples non-48 kHz capture.
+    if let Some(at_default_rate) = at_rate(default.sample_rate()) {
+        return at_default_rate;
+    }
+    // Otherwise stay inside both the offered range and our ingress bounds.
+    // Its highest admitted whole-frame rate is enough; no device is opened
+    // while choosing it. With no compatible offer, the normal open path
+    // reports why the original configuration cannot be used.
+    offered
         .iter()
-        .filter(|range| same(range))
-        .chain(
-            offered
-                .iter()
-                .filter(|range| (1..=MAX_CHANNELS).contains(&range.channels())),
-        )
-        .find_map(|range| range.try_with_sample_rate(PLAYBACK_RATE));
-    Ok(at_rate.unwrap_or(default))
+        .filter(compatible)
+        .find_map(|range| {
+            let rate = range.max_sample_rate().min(MAX_RATE) / 100 * 100;
+            input_rate_supported(rate)
+                .then(|| range.try_with_sample_rate(rate))
+                .flatten()
+        })
+        .unwrap_or(default)
 }
 
 fn open_stream<T>(
@@ -563,7 +641,10 @@ where
             },
             Some(Duration::from_secs(2)),
         )
-        .map_err(|_| MediaError(t("No se pudo abrir el micrófono seleccionado.").into()))
+        .map_err(|error| {
+            eprintln!("rune: microphone: open failed: {error}");
+            MediaError(t("No se pudo abrir el micrófono seleccionado.").into())
+        })
 }
 
 struct Active<S> {
@@ -593,6 +674,58 @@ struct Active<S> {
     snapshot: CaptureSnapshot,
     last_complete: Instant,
     stale: bool,
+    diagnostics: CaptureDiagnostics,
+}
+
+/// Peaks and counter deltas since the worker's previous diagnostic line.
+/// Nothing in the real-time callback reads or writes this state.
+struct CaptureDiagnostics {
+    at: Instant,
+    frames: u64,
+    dropped: u64,
+    raw_peak: f32,
+    processed_peak: f32,
+}
+
+#[derive(Debug, PartialEq)]
+struct CaptureReport {
+    frames: u64,
+    dropped: u64,
+    raw_peak: f32,
+    processed_peak: f32,
+}
+
+impl CaptureDiagnostics {
+    fn new(now: Instant) -> Self {
+        Self {
+            at: now,
+            frames: 0,
+            dropped: 0,
+            raw_peak: 0.0,
+            processed_peak: 0.0,
+        }
+    }
+
+    fn observe(&mut self, raw: f32, processed: f32) {
+        self.raw_peak = self.raw_peak.max(raw);
+        self.processed_peak = self.processed_peak.max(processed);
+    }
+
+    fn take(&mut self, now: Instant, snapshot: &CaptureSnapshot) -> Option<CaptureReport> {
+        if now.saturating_duration_since(self.at) < DIAGNOSTIC_INTERVAL {
+            return None;
+        }
+        let report = CaptureReport {
+            frames: snapshot.processed_frames.saturating_sub(self.frames),
+            dropped: snapshot.dropped_samples.saturating_sub(self.dropped),
+            raw_peak: std::mem::take(&mut self.raw_peak),
+            processed_peak: std::mem::take(&mut self.processed_peak),
+        };
+        self.at = now;
+        self.frames = snapshot.processed_frames;
+        self.dropped = snapshot.dropped_samples;
+        Some(report)
+    }
 }
 
 impl<S> Active<S> {
@@ -622,6 +755,7 @@ impl<S> Active<S> {
             },
             last_complete: Instant::now(),
             stale: false,
+            diagnostics: CaptureDiagnostics::new(Instant::now()),
         })
     }
 
@@ -656,6 +790,7 @@ impl<S> Active<S> {
         };
         self.last_complete = Instant::now();
         self.stale = false;
+        self.diagnostics = CaptureDiagnostics::new(self.last_complete);
     }
 
     /// Open or close the system's loopback as `request` asks: with echo
@@ -768,6 +903,8 @@ impl<S> Active<S> {
         self.processor
             .set_input_volume(f32::from_bits(shared.input_volume.load(Ordering::Relaxed)));
         let metrics = self.processor.process(&mut self.frame)?;
+        self.diagnostics
+            .observe(metrics.raw_level, metrics.processed_level);
         self.loop_back(links);
         self.frame.clear();
         self.snapshot.echo_cancelling = self.processor.echo_cancellation();
@@ -846,6 +983,18 @@ impl<S> Active<S> {
             .saturating_sub(self.dropped_at_start);
         changed |= self.snapshot.dropped_samples != dropped;
         self.snapshot.dropped_samples = dropped;
+        if let Some(report) = self.diagnostics.take(now, &self.snapshot) {
+            eprintln!(
+                "rune: microphone: frames={} dropped={} raw_peak={:.3} processed_peak={:.3} stale={} echo={} system_echo={}",
+                report.frames,
+                report.dropped,
+                report.raw_peak,
+                report.processed_peak,
+                self.stale,
+                self.snapshot.echo_cancelling,
+                self.snapshot.system_echo
+            );
+        }
         Ok(changed)
     }
 }
@@ -873,6 +1022,9 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
     let mut links = Links::default();
     loop {
         if shared.shutdown.load(Ordering::Acquire) {
+            if active.is_some() {
+                eprintln!("rune: microphone: capture stopped (shutdown)");
+            }
             break;
         }
         if let Ok(mut offered) = shared.links.try_lock() {
@@ -891,6 +1043,9 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
             generation = desired.generation;
             shared.ready.store(0, Ordering::Release);
             let Some(request) = &desired.request else {
+                if active.is_some() {
+                    eprintln!("rune: microphone: capture stopped");
+                }
                 active = None;
                 shared.publish(generation, CaptureSnapshot::default());
                 continue;
@@ -901,6 +1056,14 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                     state: CaptureState::Starting,
                     ..CaptureSnapshot::default()
                 },
+            );
+            eprintln!(
+                "rune: microphone: configured mode={:?} muted={} echo={} automatic_gain={} speech_gate={}",
+                request.mode,
+                request.muted,
+                request.echo_cancellation,
+                request.automatic_gain,
+                request.speech_gate
             );
             let result = if active.as_ref().is_some_and(|active| {
                 active.device == request.device
@@ -928,6 +1091,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                         }
                         next.opened.stream.play()?;
                         if shared.current(generation) {
+                            eprintln!("rune: microphone: capture started");
                             active = Some(next);
                         }
                         Ok(())
@@ -949,6 +1113,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                     );
                 }
                 Err(error) => {
+                    eprintln!("rune: microphone: capture failed: {error}");
                     active = None;
                     shared.publish(
                         generation,
@@ -966,6 +1131,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                 Ok(true) => shared.publish(generation, current.snapshot.clone()),
                 Ok(false) => {}
                 Err(error) => {
+                    eprintln!("rune: microphone: capture failed: {error}");
                     shared.ready.store(0, Ordering::Release);
                     active = None;
                     shared.publish(

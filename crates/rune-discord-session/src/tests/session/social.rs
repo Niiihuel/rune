@@ -118,3 +118,150 @@ async fn a_friend_request_waits_for_the_gateway_to_say_what_changed() {
         }
     ));
 }
+
+/// A synthetic READY with one incoming request; no account traffic.
+async fn incoming_request(app: &mut Harness) {
+    app.dispatch
+        .send((
+            "READY",
+            json!({"user":{"id":"42"}, "session_id":"friend-request-fixture",
+                "resume_gateway_url":"wss://gateway.discord.gg", "guilds":[],
+                "private_channels":[{"id":"20","type":1,
+                    "recipients":[{"id":"43","username":"Peer"}]}],
+                "relationships":[{"id":"77","type":3,
+                    "user":{"id":"77","username":"Requests"}}]}),
+        ))
+        .await
+        .unwrap();
+    assert!(matches!(app.next_data().await, Event::Ready(snapshot)
+        if snapshot.relationships.as_ref().is_some_and(|known|
+            known.iter().any(|r| r.user == UserId(77)
+                && r.kind == rune_model::RelationshipKind::IncomingRequest))));
+}
+
+async fn relationship_update(app: &mut Harness, user: u64, kind: u8) {
+    app.dispatch
+        .send((
+            "RELATIONSHIP_UPDATE",
+            json!({"id":user.to_string(),"type":kind}),
+        ))
+        .await
+        .unwrap();
+}
+
+/// Skip READY's account notices, but never hide a failed command.
+async fn next_relationship(app: &mut Harness) -> Event {
+    loop {
+        if let event @ (Event::RelationshipChanged(_) | Event::Failed { .. }) =
+            app.next_data().await
+        {
+            return event;
+        }
+    }
+}
+
+#[tokio::test]
+async fn accepted_friendship_before_http_reply_does_not_report_a_failed_acceptance() {
+    let mut app = Harness::new().await;
+    incoming_request(&mut app).await;
+    app.running
+        .commands
+        .send(Command::AcceptFriendRequest { user: UserId(77) })
+        .await
+        .unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(request.starts_with("PUT /api/v10/users/@me/relationships/77 "));
+    // The HTTP response stays pending until the authoritative update arrives.
+    relationship_update(&mut app, 77, 1).await;
+    assert!(matches!(next_relationship(&mut app).await,
+        Event::RelationshipChanged(known) if known.user == UserId(77)
+            && known.kind == rune_model::RelationshipKind::Friend));
+    reply.send(response(204, "")).unwrap();
+    // A subsequent read is a command-order barrier and also proves that no
+    // duplicate acceptance was issued after the request was retired.
+    app.running.commands.send(rest::history(91)).await.unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(request.starts_with("GET /api/v10/channels/20/messages?limit="));
+    reply.send(response(200, "[]")).unwrap();
+    loop {
+        match app.next_data().await {
+            Event::HistoryLoaded { request: 91, .. } => break,
+            Event::Failed {
+                failure, reason, ..
+            } => panic!("{failure:?}: {reason}"),
+            _ => {}
+        }
+    }
+}
+
+#[tokio::test]
+async fn another_friendship_does_not_hide_a_request_that_became_blocked() {
+    let mut app = Harness::new().await;
+    incoming_request(&mut app).await;
+    app.running
+        .commands
+        .send(Command::AcceptFriendRequest { user: UserId(77) })
+        .await
+        .unwrap();
+    let (_, _reply) = app.pending().await;
+    relationship_update(&mut app, 78, 1).await;
+    assert!(matches!(next_relationship(&mut app).await,
+        Event::RelationshipChanged(known) if known.user == UserId(78)));
+    relationship_update(&mut app, 77, 2).await;
+    assert!(matches!(
+        next_relationship(&mut app).await,
+        Event::Failed {
+            failure: rune_provider::Failure::Relationship {
+                user: Some(UserId(77))
+            },
+            ..
+        }
+    ));
+}
+
+#[tokio::test]
+async fn a_queued_acceptance_confirmed_while_another_read_waits_is_not_sent_or_failed() {
+    let mut app = Harness::new().await;
+    incoming_request(&mut app).await;
+    app.running.commands.send(rest::history(92)).await.unwrap();
+    let (_, blocked) = app.pending().await;
+    app.running
+        .commands
+        .send(Command::AcceptFriendRequest { user: UserId(77) })
+        .await
+        .unwrap();
+    // An invalid later command is a local command-order barrier: the valid
+    // acceptance is queued before the Gateway confirmation is dispatched.
+    app.running
+        .commands
+        .send(Command::AcceptFriendRequest { user: UserId(999) })
+        .await
+        .unwrap();
+    assert!(matches!(
+        next_relationship(&mut app).await,
+        Event::Failed {
+            failure: rune_provider::Failure::Relationship {
+                user: Some(UserId(999))
+            },
+            ..
+        }
+    ));
+    relationship_update(&mut app, 77, 1).await;
+    assert!(matches!(next_relationship(&mut app).await,
+        Event::RelationshipChanged(known) if known.user == UserId(77)
+            && known.kind == rune_model::RelationshipKind::Friend));
+    blocked.send(response(200, "[]")).unwrap();
+    app.running.commands.send(rest::history(93)).await.unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(request.starts_with("GET /api/v10/channels/20/messages?limit="));
+    reply.send(response(200, "[]")).unwrap();
+    loop {
+        match app.next_data().await {
+            Event::HistoryLoaded { request: 93, .. } => break,
+            Event::Failed {
+                failure, reason, ..
+            } => panic!("{failure:?}: {reason}"),
+            _ => {}
+        }
+    }
+}
