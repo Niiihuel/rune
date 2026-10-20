@@ -59,6 +59,30 @@ impl IActivateAudioInterfaceCompletionHandler_Impl for Activated_Impl {
     }
 }
 
+/// A borrowed view of the handler's parameters, never an owner of its blob.
+/// `PROPVARIANT::drop` calls `PropVariantClear`, which would free the same
+/// allocation the handler's Rust box owns. Its outer destructor must not run.
+fn borrowed_activation_blob(
+    parameters: &mut AUDIOCLIENT_ACTIVATION_PARAMS,
+) -> ManuallyDrop<PROPVARIANT> {
+    ManuallyDrop::new(PROPVARIANT {
+        Anonymous: PROPVARIANT_0 {
+            Anonymous: ManuallyDrop::new(PROPVARIANT_0_0 {
+                vt: VT_BLOB,
+                wReserved1: 0,
+                wReserved2: 0,
+                wReserved3: 0,
+                Anonymous: PROPVARIANT_0_0_0 {
+                    blob: BLOB {
+                        cbSize: std::mem::size_of::<AUDIOCLIENT_ACTIVATION_PARAMS>() as u32,
+                        pBlobData: parameters as *mut AUDIOCLIENT_ACTIVATION_PARAMS as *mut u8,
+                    },
+                },
+            }),
+        },
+    })
+}
+
 /// An audio client of everything played but this process's tree.
 fn loopback() -> windows::core::Result<IAudioClient> {
     let mut parameters = Box::new(AUDIOCLIENT_ACTIVATION_PARAMS {
@@ -70,23 +94,7 @@ fn loopback() -> windows::core::Result<IAudioClient> {
             },
         },
     });
-    let blob = PROPVARIANT {
-        Anonymous: PROPVARIANT_0 {
-            Anonymous: ManuallyDrop::new(PROPVARIANT_0_0 {
-                vt: VT_BLOB,
-                wReserved1: 0,
-                wReserved2: 0,
-                wReserved3: 0,
-                Anonymous: PROPVARIANT_0_0_0 {
-                    blob: BLOB {
-                        cbSize: std::mem::size_of::<AUDIOCLIENT_ACTIVATION_PARAMS>() as u32,
-                        pBlobData: &mut *parameters as *mut AUDIOCLIENT_ACTIVATION_PARAMS
-                            as *mut u8,
-                    },
-                },
-            }),
-        },
-    };
+    let blob = borrowed_activation_blob(&mut parameters);
     let (done, activated) = mpsc::sync_channel(1);
     let handler: IActivateAudioInterfaceCompletionHandler = Activated {
         done,
@@ -99,7 +107,7 @@ fn loopback() -> windows::core::Result<IAudioClient> {
         ActivateAudioInterfaceAsync(
             VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK,
             &IAudioClient::IID,
-            Some(&blob),
+            Some(&*blob),
             &handler,
         )
     }?;
@@ -232,6 +240,65 @@ pub(super) fn work(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_activation_blob_leaves_its_parameters_owned_by_rust() {
+        const CHILD: &str = "RUNE_TEST_BORROWED_ACTIVATION_BLOB";
+        const COMPLETE: &str = "rune: activation ownership fixture completed";
+        if std::env::var_os(CHILD).is_some() {
+            // No activation or audio capture: only the two ownership scopes.
+            // A regression calls PropVariantClear on Rust's allocation and
+            // aborts this child with heap corruption when the box frees it.
+            for _ in 0..128 {
+                let mut parameters = Box::new(AUDIOCLIENT_ACTIVATION_PARAMS {
+                    ActivationType: AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK,
+                    Anonymous: AUDIOCLIENT_ACTIVATION_PARAMS_0 {
+                        ProcessLoopbackParams: AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS {
+                            TargetProcessId: 42,
+                            ProcessLoopbackMode: PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE,
+                        },
+                    },
+                });
+                let owned = parameters.as_mut() as *mut AUDIOCLIENT_ACTIVATION_PARAMS as *mut u8;
+                {
+                    let borrowed = borrowed_activation_blob(&mut parameters);
+                    // SAFETY: the helper sets VT_BLOB and the box is alive.
+                    let value = unsafe { &borrowed.Anonymous.Anonymous };
+                    assert_eq!(value.vt, VT_BLOB);
+                    // SAFETY: the discriminant above identifies this field.
+                    let view = unsafe { value.Anonymous.blob };
+                    assert_eq!(
+                        view.cbSize as usize,
+                        std::mem::size_of::<AUDIOCLIENT_ACTIVATION_PARAMS>()
+                    );
+                    assert_eq!(view.pBlobData, owned);
+                }
+                // The box is the sole owner after the borrowed view ends.
+                drop(parameters);
+            }
+            println!("{COMPLETE}");
+            return;
+        }
+        // libtest omits the crate name from test names, including when this
+        // source module is compiled in the standalone Windows harness.
+        let qualified = concat!(
+            module_path!(),
+            "::the_activation_blob_leaves_its_parameters_owned_by_rust"
+        );
+        let (_, name) = qualified.split_once("::").unwrap();
+        let child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", name, "--nocapture"])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(
+            child.status.success() && String::from_utf8_lossy(&child.stdout).contains(COMPLETE),
+            "borrowed activation parameters must be freed only by Rust: {}\n{}\n{}",
+            child.status,
+            String::from_utf8_lossy(&child.stdout),
+            String::from_utf8_lossy(&child.stderr)
+        );
+    }
 
     #[test]
     fn sixteen_bit_samples_become_the_mix_s() {

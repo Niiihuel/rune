@@ -108,6 +108,39 @@ async fn relationship_writes_use_the_routes_serein_uses_and_wait_for_the_gateway
 }
 
 #[tokio::test]
+async fn relationship_success_without_a_document_is_not_reported_as_a_failure() {
+    for status in [200, 201, 204] {
+        let (result, _, _) = exchange(
+            Command::AcceptFriendRequest { user: UserId(7) },
+            response(status, ""),
+        )
+        .await;
+        assert_eq!(result, Ok(Vec::new()), "HTTP {status} confirms the write");
+    }
+    // A nonempty malformed answer remains ambiguous, rather than hiding a
+    // protocol failure behind the optional-body route's success status.
+    let (result, _, _) = exchange(
+        Command::AcceptFriendRequest { user: UserId(7) },
+        response(200, "not JSON"),
+    )
+    .await;
+    assert!(result.unwrap_err().ends_with("(ambiguous)"));
+}
+
+#[tokio::test]
+async fn a_required_document_still_rejects_an_empty_success() {
+    let (result, _, _) = exchange(
+        Command::OpenDirect {
+            request: 3,
+            user: UserId(7),
+        },
+        response(200, ""),
+    )
+    .await;
+    assert!(result.unwrap_err().ends_with("(ambiguous)"));
+}
+
+#[tokio::test]
 async fn a_groups_people_change_by_the_official_clients_routes_and_wait_for_the_gateway() {
     let (channel, user) = (ChannelId(31), UserId(7));
     for (command, route) in [

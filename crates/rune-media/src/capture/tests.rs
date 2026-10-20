@@ -4,6 +4,97 @@ use std::sync::mpsc::{self, Receiver, Sender};
 
 use super::*;
 
+fn config(rate: u32, format: SampleFormat) -> cpal::SupportedStreamConfig {
+    cpal::SupportedStreamConfig::new(2, rate, cpal::SupportedBufferSize::Unknown, format)
+}
+
+fn offered(format: SampleFormat) -> cpal::SupportedStreamConfigRange {
+    cpal::SupportedStreamConfigRange::new(
+        2,
+        PLAYBACK_RATE,
+        PLAYBACK_RATE,
+        cpal::SupportedBufferSize::Unknown,
+        format,
+    )
+}
+
+#[test]
+fn preferred_rate_skips_formats_the_callback_cannot_convert() {
+    let ranges = [offered(SampleFormat::I24), offered(SampleFormat::I16)];
+    let chosen = preferred_input_config(config(44_100, SampleFormat::F32), &ranges);
+    assert_eq!(chosen.sample_rate(), PLAYBACK_RATE);
+    assert_eq!(chosen.sample_format(), SampleFormat::I16);
+    // Some endpoints even report packed 24-bit as their own format.
+    let chosen = preferred_input_config(config(PLAYBACK_RATE, SampleFormat::I24), &ranges);
+    assert_eq!(chosen.sample_format(), SampleFormat::I16);
+}
+
+#[test]
+fn preferred_rate_keeps_the_devices_format_or_its_supported_default() {
+    let ranges = [offered(SampleFormat::I16), offered(SampleFormat::F32)];
+    let chosen = preferred_input_config(config(44_100, SampleFormat::F32), &ranges);
+    assert_eq!(chosen.sample_format(), SampleFormat::F32);
+    let chosen = preferred_input_config(config(PLAYBACK_RATE, SampleFormat::F32), &ranges);
+    assert_eq!(chosen.sample_format(), SampleFormat::F32);
+    let chosen = preferred_input_config(config(44_100, SampleFormat::F32), &ranges[..0]);
+    assert_eq!(chosen.sample_rate(), 44_100);
+}
+
+#[test]
+fn microphone_diagnostics_are_periodic_peaks_and_counter_deltas() {
+    let start = Instant::now();
+    let mut diagnostics = CaptureDiagnostics::new(start);
+    let mut snapshot = CaptureSnapshot {
+        processed_frames: 500,
+        dropped_samples: 4,
+        ..CaptureSnapshot::default()
+    };
+    diagnostics.observe(0.7, 0.1);
+    diagnostics.observe(0.4, 0.2);
+    assert!(diagnostics
+        .take(
+            start + DIAGNOSTIC_INTERVAL - Duration::from_millis(1),
+            &snapshot
+        )
+        .is_none());
+    assert_eq!(
+        diagnostics.take(start + DIAGNOSTIC_INTERVAL, &snapshot),
+        Some(CaptureReport {
+            frames: 500,
+            dropped: 4,
+            raw_peak: 0.7,
+            processed_peak: 0.2,
+        })
+    );
+    snapshot.processed_frames += 500;
+    snapshot.dropped_samples += 2;
+    assert_eq!(
+        diagnostics.take(start + DIAGNOSTIC_INTERVAL * 2, &snapshot),
+        Some(CaptureReport {
+            frames: 500,
+            dropped: 2,
+            raw_peak: 0.0,
+            processed_peak: 0.0,
+        }),
+        "no audio samples or old peaks survive the reporting interval"
+    );
+}
+
+#[test]
+fn microphone_diagnostics_report_an_open_but_silent_device() {
+    let start = Instant::now();
+    let mut diagnostics = CaptureDiagnostics::new(start);
+    assert_eq!(
+        diagnostics.take(start + DIAGNOSTIC_INTERVAL, &CaptureSnapshot::default()),
+        Some(CaptureReport {
+            frames: 0,
+            dropped: 0,
+            raw_peak: 0.0,
+            processed_peak: 0.0,
+        })
+    );
+}
+
 fn shared() -> Arc<Shared> {
     let shared = Arc::new(Shared::new());
     shared.requested.store(1, Ordering::Release);

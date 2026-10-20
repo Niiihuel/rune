@@ -1192,6 +1192,8 @@ impl App {
             }
         }
         if let Some(error) = client.storage_error() {
+            // An opening error can include SQLite data: log only the category.
+            eprintln!("rune: local storage notice: unavailable at startup");
             ui.notify(
                 t("Sin almacenamiento local"),
                 Some(error.to_owned()),
@@ -3108,6 +3110,8 @@ impl App {
             .or(local_error);
         if error != self.pending_storage.error {
             if let Some(error) = &error {
+                // Do not put SQLite errors or row values in the log.
+                eprintln!("rune: local storage notice: persistence unavailable");
                 self.ui.notify(
                     t("No se pudo guardar en este equipo"),
                     Some(error.clone()),

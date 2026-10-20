@@ -224,6 +224,25 @@ enum PendingStorage {
     Forget(String),
 }
 
+/// A read revision baseline may still be arriving; only a known failure
+/// should warn that new choices cannot be kept.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ReadMarksState {
+    Pending,
+    Writable,
+    Unavailable,
+}
+
+impl ReadMarksState {
+    fn restored(succeeded: bool) -> Self {
+        if succeeded {
+            Self::Writable
+        } else {
+            Self::Unavailable
+        }
+    }
+}
+
 /// How long startup waits for the key of an account known from the start.
 const STARTUP_KEY: Duration = Duration::from_secs(2);
 
@@ -264,7 +283,7 @@ pub struct Client {
     account: String,
     storage_identity: Option<StorageIdentity>,
     storage_active: bool,
-    read_marks_writable: bool,
+    read_marks_state: ReadMarksState,
     pending_storage: Option<PendingStorage>,
     storage_paused_at: Option<Instant>,
     cache_epoch: u64,
@@ -451,7 +470,7 @@ impl Client {
             storage_identity,
             // Not before its key is in.
             storage_active: false,
-            read_marks_writable: false,
+            read_marks_state: ReadMarksState::Pending,
             pending_storage: None,
             storage_paused_at: None,
             cache_epoch: 0,
@@ -1123,8 +1142,8 @@ impl Client {
                 {
                     // Like startup's read: without the marks kept, new ones
                     // stay in memory, so an older one cannot hide a newer.
-                    self.read_marks_writable = restored.read_marks.is_ok();
-                    self.storage_notice = (!self.read_marks_writable).then_some(t(
+                    self.read_marks_state = ReadMarksState::restored(restored.read_marks.is_ok());
+                    self.storage_notice = (self.read_marks_state == ReadMarksState::Unavailable).then_some(t(
                         "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia.",
                     ));
                     // Its drafts' files come back as each conversation
@@ -1231,7 +1250,7 @@ impl Client {
                 save.clear();
                 self.invalidate_cached_reads();
                 self.storage_active = false;
-                self.read_marks_writable = false;
+                self.read_marks_state = ReadMarksState::Unavailable;
                 self.invalidate_local_history(rune_model::LocalReadError::Unavailable);
                 // An account named by event ends with its session.
                 if self.storage_identity != self.static_identity {
@@ -1358,15 +1377,17 @@ impl Client {
                     .is_some_and(|identity| me == Some(identity.account));
                 self.storage_active = self.storage.is_some() && self.unlocked && same;
                 if self.storage_active {
-                    self.storage_notice = (!self.read_marks_writable).then_some(
-                        t("Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia."),
-                    );
+                    // The worker may still be restoring its revision baseline.
+                    // READY alone cannot turn that pending read into a failure.
+                    if self.read_marks_state == ReadMarksState::Unavailable {
+                        self.storage_notice = Some(t("Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia."));
+                    }
                     self.pending_storage = Some(PendingStorage::Snapshot(snapshot.clone()));
                 } else if same && self.fetching {
                     // Its key is on its way: the snapshot is kept once it is in.
                     self.unsaved_ready = Some(snapshot.clone());
                 } else if self.storage.is_some() && self.storage_identity.is_some() && !same {
-                    self.read_marks_writable = false;
+                    self.read_marks_state = ReadMarksState::Unavailable;
                     self.storage_notice = Some(t("La cuenta recibida no coincide con la caché local; la sesión queda en memoria."));
                 }
             }
@@ -1894,7 +1915,7 @@ impl Client {
                 self.gifs.clear();
                 self.invalidate_cached_reads();
                 self.storage_active = false;
-                self.read_marks_writable = false;
+                self.read_marks_state = ReadMarksState::Unavailable;
                 self.invalidate_local_history(rune_model::LocalReadError::Unavailable);
             }
         }
@@ -1966,10 +1987,10 @@ impl Client {
             .read_marks();
         // Without a restored revision baseline, acknowledging a new revision
         // could hide a write that the disk correctly ignores as older.
-        self.read_marks_writable = result.is_ok();
-        if self.read_marks_writable {
-            self.storage_notice = None;
-        }
+        self.read_marks_state = ReadMarksState::restored(result.is_ok());
+        self.storage_notice = (self.read_marks_state == ReadMarksState::Unavailable).then_some(t(
+            "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia.",
+        ));
         result
     }
 
@@ -1981,7 +2002,9 @@ impl Client {
         channel: ChannelId,
         mark: rune_model::ReadMark,
     ) -> Result<(), StorageWriteError> {
-        if !self.read_marks_writable || self.storage_account() != Some(account) {
+        if self.read_marks_state != ReadMarksState::Writable
+            || self.storage_account() != Some(account)
+        {
             return Ok(());
         }
         if self.pending_storage.is_some() {
@@ -2058,7 +2081,7 @@ impl Client {
                     .map_err(|error| error.kind)?;
             }
             if self.storage_active {
-                self.read_marks_writable = true;
+                self.read_marks_state = ReadMarksState::Writable;
                 self.storage_notice = None;
             }
         }
@@ -2086,7 +2109,7 @@ impl Client {
         self.unlocked = false;
         self.fetching = false;
         self.storage_active = false;
-        self.read_marks_writable = false;
+        self.read_marks_state = ReadMarksState::Pending;
         self.ready_account = None;
         self.unsaved_ready = None;
         // Another account's drafts never get these files.

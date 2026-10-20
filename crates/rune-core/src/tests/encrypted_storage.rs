@@ -248,6 +248,81 @@ fn an_account_named_after_its_verification_shows_what_was_kept_before_ready() {
 }
 
 #[test]
+fn ready_waits_for_the_read_marks_result_before_reporting_a_storage_failure() {
+    for corrupt in [false, true] {
+        let directory = directory(if corrupt {
+            "ready-before-failed-marks"
+        } else {
+            "ready-before-restored-marks"
+        });
+        let path = directory.join("rune.db");
+        let (provider, _script) = scripted();
+        let snapshot = provider.inner.snapshot();
+        let account = snapshot.me.as_ref().unwrap().id;
+        let channel = text_channels(&snapshot.channels)[0];
+        let identity = identity(account.0);
+        let namespace = namespace(identity);
+        let mark = ReadMark {
+            through: Some(MessageId(10)),
+            unread_from: None,
+            revision: 4,
+        };
+        {
+            let mut disk = unlocked(&path, &namespace);
+            disk.set_read_mark(&namespace, channel, mark).unwrap();
+        }
+        if corrupt {
+            rusqlite::Connection::open(&path)
+                .unwrap()
+                .execute("UPDATE read_marks SET body='broken'", [])
+                .unwrap();
+        }
+        let mut client = start(provider, &path, None);
+        wait(&mut client, |update| {
+            matches!(
+                update,
+                Update::Provider(Event::Connection(ConnectionState::Connecting))
+            )
+            .then_some(())
+        });
+        // Deliver the test key directly, then READY before Core consumes the
+        // worker's answer. No timing or keyring speed decides this ordering.
+        client.adopt(Some(identity));
+        client.unlock(derived_key(&namespace), false, true);
+        client.flush_pending_storage().unwrap();
+        assert_eq!(client.storage_account(), Some(account));
+        assert!(client.storage_error().is_none());
+        client.accept(
+            Envelope {
+                generation: client.generation,
+                event: Event::Ready(Box::new(snapshot)),
+            },
+            &mut Vec::new(),
+        );
+        assert!(
+            client.storage_error().is_none(),
+            "a pending restore is not a failed restore"
+        );
+        let restored = wait(&mut client, |update| match update {
+            Update::Restored(restored) => Some(restored.clone()),
+            _ => None,
+        });
+        if corrupt {
+            assert_eq!(restored.read_marks, Err(rune_model::LocalReadError::Failed));
+            assert!(
+                client.storage_error().unwrap().contains("sólo en memoria"),
+                "a confirmed restore failure must still warn"
+            );
+        } else {
+            assert_eq!(restored.read_marks, Ok(vec![(channel, mark)]));
+            assert!(client.storage_error().is_none());
+        }
+        drop(client);
+        let _ = std::fs::remove_dir_all(directory);
+    }
+}
+
+#[test]
 fn a_ready_that_comes_before_the_key_is_kept_once_the_key_is_in() {
     let directory = directory("ready-first");
     let path = directory.join("rune.db");
