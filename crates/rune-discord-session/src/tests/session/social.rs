@@ -152,7 +152,9 @@ async fn relationship_update(app: &mut Harness, user: u64, kind: u8) {
 /// Skip READY's account notices, but never hide a failed command.
 async fn next_relationship(app: &mut Harness) -> Event {
     loop {
-        if let event @ (Event::RelationshipChanged(_) | Event::Failed { .. }) = app.next_data().await {
+        if let event @ (Event::RelationshipChanged(_) | Event::Failed { .. }) =
+            app.next_data().await
+        {
             return event;
         }
     }
