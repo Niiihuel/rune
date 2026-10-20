@@ -268,7 +268,7 @@ fn ready_waits_for_the_read_marks_result_before_reporting_a_storage_failure() {
             revision: 4,
         };
         {
-            let mut disk = unlocked(&path, &namespace);
+            let disk = unlocked(&path, &namespace);
             disk.set_read_mark(&namespace, channel, mark).unwrap();
         }
         if corrupt {

@@ -41,6 +41,68 @@ fn preferred_rate_keeps_the_devices_format_or_its_supported_default() {
 }
 
 #[test]
+fn unsupported_default_uses_a_compatible_format_at_its_own_rate() {
+    let ranges = [cpal::SupportedStreamConfigRange::new(
+        2,
+        44_100,
+        44_100,
+        cpal::SupportedBufferSize::Unknown,
+        SampleFormat::I16,
+    )];
+    let chosen = preferred_input_config(config(44_100, SampleFormat::I24), &ranges);
+    assert_eq!(chosen.sample_rate(), 44_100);
+    assert_eq!(chosen.sample_format(), SampleFormat::I16);
+    // A valid default still wins when no 48 kHz offer can replace it.
+    let chosen = preferred_input_config(config(44_100, SampleFormat::F32), &ranges);
+    assert_eq!(chosen.sample_format(), SampleFormat::F32);
+}
+
+#[test]
+fn oversized_default_and_offers_do_not_bypass_ingress_bounds() {
+    let default = cpal::SupportedStreamConfig::new(
+        MAX_CHANNELS + 1,
+        PLAYBACK_RATE,
+        cpal::SupportedBufferSize::Unknown,
+        SampleFormat::F32,
+    );
+    assert!(!input_config_supported(&default));
+    let ranges = [
+        cpal::SupportedStreamConfigRange::new(
+            MAX_CHANNELS + 1,
+            PLAYBACK_RATE,
+            PLAYBACK_RATE,
+            cpal::SupportedBufferSize::Unknown,
+            SampleFormat::F32,
+        ),
+        cpal::SupportedStreamConfigRange::new(
+            2,
+            44_100,
+            44_100,
+            cpal::SupportedBufferSize::Unknown,
+            SampleFormat::I16,
+        ),
+    ];
+    let chosen = preferred_input_config(default, &ranges);
+    assert_eq!(chosen.channels(), 2);
+    assert_eq!(chosen.sample_rate(), 44_100);
+    assert!(input_config_supported(&chosen));
+}
+
+#[test]
+fn unsupported_default_can_use_another_rate_within_an_offered_range() {
+    let ranges = [cpal::SupportedStreamConfigRange::new(
+        2,
+        48_001,
+        MAX_RATE * 2,
+        cpal::SupportedBufferSize::Unknown,
+        SampleFormat::F32,
+    )];
+    let chosen = preferred_input_config(config(MAX_RATE * 2, SampleFormat::I24), &ranges);
+    assert_eq!(chosen.sample_rate(), MAX_RATE);
+    assert!(input_config_supported(&chosen));
+}
+
+#[test]
 fn microphone_diagnostics_are_periodic_peaks_and_counter_deltas() {
     let start = Instant::now();
     let mut diagnostics = CaptureDiagnostics::new(start);

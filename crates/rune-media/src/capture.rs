@@ -505,7 +505,7 @@ impl Backend for CpalBackend {
             _ => {
                 return Err(MediaError(
                     t("El formato de audio del micrófono no es compatible.").into(),
-                ))
+                ));
             }
         };
         Ok(Opened {
@@ -534,7 +534,7 @@ fn input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig, Me
     let default = device
         .default_input_config()
         .map_err(|_| MediaError(t("No se pudo consultar el micrófono.").into()))?;
-    if default.sample_rate() == PLAYBACK_RATE && input_format_supported(default.sample_format()) {
+    if default.sample_rate() == PLAYBACK_RATE && input_config_supported(&default) {
         return Ok(default);
     }
     let offered = device
@@ -562,27 +562,64 @@ fn input_format_supported(format: SampleFormat) -> bool {
     )
 }
 
+fn input_rate_supported(rate: u32) -> bool {
+    (8_000..=MAX_RATE).contains(&rate) && rate.is_multiple_of(100)
+}
+
+fn input_config_supported(config: &cpal::SupportedStreamConfig) -> bool {
+    input_rate_supported(config.sample_rate())
+        && (1..=MAX_CHANNELS).contains(&config.channels())
+        && input_format_supported(config.sample_format())
+}
+
 fn preferred_input_config(
     default: cpal::SupportedStreamConfig,
     offered: &[cpal::SupportedStreamConfigRange],
 ) -> cpal::SupportedStreamConfig {
-    if default.sample_rate() == PLAYBACK_RATE && input_format_supported(default.sample_format()) {
+    if default.sample_rate() == PLAYBACK_RATE && input_config_supported(&default) {
         return default;
     }
     let compatible = |range: &&cpal::SupportedStreamConfigRange| {
         (1..=MAX_CHANNELS).contains(&range.channels())
             && input_format_supported(range.sample_format())
     };
-    let same = |range: &cpal::SupportedStreamConfigRange| {
-        (range.channels(), range.sample_format()) == (default.channels(), default.sample_format())
+    let original = (default.channels(), default.sample_format());
+    let at_rate = |rate| {
+        if !input_rate_supported(rate) {
+            return None;
+        }
+        offered
+            .iter()
+            .filter(compatible)
+            .filter(|range| (range.channels(), range.sample_format()) == original)
+            .chain(offered.iter().filter(compatible))
+            .find_map(|range| range.try_with_sample_rate(rate))
     };
-    let at_rate = offered
+    if let Some(preferred) = at_rate(PLAYBACK_RATE) {
+        return preferred;
+    }
+    if input_config_supported(&default) {
+        return default;
+    }
+    // An unsupported default format may have a compatible alternative at
+    // the same rate. The worker already resamples non-48 kHz capture.
+    if let Some(at_default_rate) = at_rate(default.sample_rate()) {
+        return at_default_rate;
+    }
+    // Otherwise stay inside both the offered range and our ingress bounds.
+    // Its highest admitted whole-frame rate is enough; no device is opened
+    // while choosing it. With no compatible offer, the normal open path
+    // reports why the original configuration cannot be used.
+    offered
         .iter()
         .filter(compatible)
-        .filter(|range| same(range))
-        .chain(offered.iter().filter(compatible))
-        .find_map(|range| range.try_with_sample_rate(PLAYBACK_RATE));
-    at_rate.unwrap_or(default)
+        .find_map(|range| {
+            let rate = range.max_sample_rate().min(MAX_RATE) / 100 * 100;
+            input_rate_supported(rate)
+                .then(|| range.try_with_sample_rate(rate))
+                .flatten()
+        })
+        .unwrap_or(default)
 }
 
 fn open_stream<T>(

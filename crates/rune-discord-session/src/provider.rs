@@ -1469,6 +1469,7 @@ impl DiscordSessionProvider {
                             // A confirmed acceptance queued behind another
                             // request is complete too; it must not be sent again.
                             queue.retain(|queued| !friend_request_confirmed(&queued.command, &updates));
+                            retry.take_if(|(command, _)| friend_request_confirmed(command, &updates));
                             // A read loses its scope at revocation, even while
                             // another channel's HTTP request holds the worker.
                             // Confirmed deletion also invalidates queued writes.
