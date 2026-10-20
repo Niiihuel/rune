@@ -4,7 +4,7 @@
 
 use rune_model::{
     permissions, Channel, ChannelId, Member, Overwrite, OverwriteTarget, Permissions, RoleId,
-    Server, ServerId, User, UserId,
+    ServerId, User, UserId,
 };
 use rune_provider::Event;
 
@@ -244,13 +244,5 @@ impl Store {
     /// The account's own user, as the provider last reported it.
     pub fn me_user(&self) -> Option<&User> {
         self.me.and_then(|me| self.user(me))
-    }
-
-    /// Every server the account is in, in the rail's order.
-    pub fn server_ids(&self) -> Vec<ServerId> {
-        self.servers
-            .iter()
-            .map(|server: &Server| server.id)
-            .collect()
     }
 }

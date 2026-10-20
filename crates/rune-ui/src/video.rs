@@ -48,8 +48,9 @@ pub struct Video {
     pub watched: Vec<(UserId, Live)>,
     /// How the screen is sent; kept between shares.
     pub quality: StreamQuality,
-    /// When the picture of each stream in the column was last asked for.
-    pub previews: HashMap<UserId, Instant>,
+    /// When the picture of each stream shown was last asked for, and how
+    /// many times in a row it came without one.
+    pub previews: HashMap<UserId, Asked>,
     /// The stream watched shown alone, the window full screen.
     pub focus: Option<UserId>,
     /// The streams watched shown in a window of their own as well.
@@ -65,6 +66,23 @@ pub struct Video {
     pub sources: Vec<(String, String, bool)>,
     /// The one of them chosen to share; the main screen until one is.
     pub source: Option<String>,
+    // Streams (transmisiones).
+    /// The stream watched that takes the stage, the rest in a strip.
+    pub spotlight: Option<UserId>,
+    /// A stream's menu, opened by a secondary click on it: whose, and the
+    /// corner where it opened.
+    pub menu: Option<(UserId, (f32, f32))>,
+    /// When the picture of the account's own stream goes up next, while it
+    /// shares its screen.
+    pub own_preview: Option<Instant>,
+}
+
+/// A stream's picture asked for: when, and how many answers in a row before
+/// came without one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Asked {
+    pub at: Instant,
+    pub failures: u32,
 }
 
 /// One source: whether it is wanted, and what the host has of it.
@@ -139,8 +157,12 @@ pub fn cameras(ui: &Ui, store: &Store) -> Vec<UserId> {
         .collect()
 }
 
-/// A stream's picture is asked for again this often while it shows.
-const PREVIEW_REFRESH: Duration = Duration::from_secs(60);
+/// A stream's picture is asked for again this long after one came, as the
+/// official client keeps it (REA).
+const PREVIEW_FRESH: Duration = Duration::from_secs(120);
+/// After an answer without one, this long times how many came so in a row,
+/// unless the service said how long (a 429).
+const PREVIEW_BACKOFF: Duration = Duration::from_secs(10);
 /// Pictures asked for at once.
 const PREVIEW_ASKS: usize = 4;
 
@@ -168,25 +190,45 @@ fn previewed(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> 
         .collect()
 }
 
-/// The pictures of the streams the column shows, asked for at most every
-/// [`PREVIEW_REFRESH`] and [`PREVIEW_ASKS`] at once; the host runs these
-/// each frame.
+/// The pictures of the streams the column and the stage show, asked for
+/// as the official client does (REA): again [`PREVIEW_FRESH`] after one
+/// came; after none, [`PREVIEW_BACKOFF`] times how many came so in a row,
+/// or as long as the service asked (a 429); [`PREVIEW_ASKS`] at once. The
+/// host runs these each frame.
 pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
     let shown = previewed(ui, store);
     let asked = &mut ui.video.previews;
     asked.retain(|user, _| shown.iter().any(|(_, state)| state.user == *user));
+    let answer = |state: &rune_model::VoiceState| {
+        store
+            .stream_preview(state.channel, state.user)
+            .map(|image| image.is_some())
+    };
     let due: Vec<_> = shown
         .into_iter()
         .filter(|(_, state)| {
-            asked
-                .get(&state.user)
-                .is_none_or(|at| now.duration_since(*at) >= PREVIEW_REFRESH)
+            let Some(before) = asked.get(&state.user) else {
+                return true;
+            };
+            let wait = match answer(state) {
+                Some(true) => PREVIEW_FRESH,
+                Some(false) => store
+                    .stream_preview_retry(state.user)
+                    .unwrap_or(PREVIEW_BACKOFF * (before.failures + 1)),
+                // Never answered: as a failure.
+                None => PREVIEW_BACKOFF * (before.failures + 1),
+            };
+            now.saturating_duration_since(before.at) >= wait
         })
         .take(PREVIEW_ASKS)
         .collect();
     due.into_iter()
         .map(|(server, state)| {
-            asked.insert(state.user, now);
+            let failures = match (asked.get(&state.user), answer(&state)) {
+                (None, _) | (_, Some(true)) => 0,
+                (Some(before), _) => before.failures + 1,
+            };
+            asked.insert(state.user, Asked { at: now, failures });
             Intent::Command(Command::LoadStreamPreview {
                 server,
                 channel: state.channel,
@@ -194,6 +236,61 @@ pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> 
             })
         })
         .collect()
+}
+
+// Streams (transmisiones).
+/// The account's own picture goes up this long after its stream shows, as
+/// the official client waits (REA)…
+const OWN_PREVIEW_FIRST: Duration = Duration::from_millis(500);
+/// …then this often…
+const OWN_PREVIEW_EVERY: Duration = Duration::from_secs(300);
+/// …or, while paused or after a picture could not be taken, this soon.
+const OWN_PREVIEW_RETRY: Duration = Duration::from_secs(60);
+
+/// Where the picture of the account's own stream goes, when it is time to
+/// take one: its server (`None` in a conversation's call), its channel and
+/// the account. The host runs this each frame, takes the picture off the
+/// interface's thread and sends [`Command::UploadStreamPreview`]; a picture
+/// it could not take is [`own_preview_failed`].
+pub fn own_preview_due(
+    ui: &mut Ui,
+    store: &Store,
+    now: Instant,
+) -> Option<(Option<ServerId>, ChannelId, UserId)> {
+    let offered = store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.capabilities.upload_stream_previews);
+    let sharing = store
+        .sharing()
+        .filter(|sharing| matches!(sharing.phase, StreamPhase::Live | StreamPhase::Paused));
+    let (true, Some(sharing), Some(me), Some(_)) =
+        (offered, sharing, store.me(), ui.video.screen.live.frame())
+    else {
+        ui.video.own_preview = None;
+        return None;
+    };
+    let next = *ui.video.own_preview.get_or_insert(now + OWN_PREVIEW_FIRST);
+    if now < next {
+        return None;
+    }
+    if matches!(sharing.phase, StreamPhase::Paused) {
+        ui.video.own_preview = Some(now + OWN_PREVIEW_RETRY);
+        return None;
+    }
+    ui.video.own_preview = Some(now + OWN_PREVIEW_EVERY);
+    let server = store
+        .channel(sharing.channel)
+        .and_then(|found| found.server);
+    Some((server, sharing.channel, me))
+}
+
+/// The host could not take the picture of the account's own stream (no
+/// frame yet, or only black ones): it tries again sooner.
+pub fn own_preview_failed(ui: &mut Ui, now: Instant) {
+    if ui.video.own_preview.is_some() {
+        ui.video.own_preview = Some(now + OWN_PREVIEW_RETRY);
+    }
 }
 
 /// The images of the pictures the column shows, for the host to load.
@@ -475,6 +572,8 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             stop: (ids::STOP_SCREEN.into(), t("Dejar de compartir")),
             note: screen_note(ui, store),
             actions: pause_action(store).into_iter().collect(),
+            tile: None,
+            focused: false,
         });
     }
     if ui.video.camera.on {
@@ -486,6 +585,8 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             stop: (ids::STOP_CAMERA.into(), t("Apagar la cámara")),
             note: camera_note(ui, store),
             actions: Vec::new(),
+            tile: None,
+            focused: false,
         });
     }
     previews
@@ -553,7 +654,12 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
     };
     let ended = matches!(watching.phase, StreamPhase::Ended(_));
     let owner = watching.owner;
+    let focused = ui.video.spotlight == Some(owner);
     let mut actions = Vec::new();
+    // Streams (transmisiones): the way back from a stream focused.
+    if focused {
+        actions.push((ids::spotlight(owner.0), t("Volver a la grilla")));
+    }
     if !ended {
         actions.push((ids::fullscreen(owner.0), t("Pantalla completa")));
         if !ui.video.windows.contains(&owner) {
@@ -577,6 +683,8 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
         stop: (ids::stop_watching(watching.owner.0), t("Dejar de ver")),
         note,
         actions,
+        tile: Some(ids::stream_tile(owner.0)),
+        focused,
     }
 }
 
@@ -590,6 +698,8 @@ pub(crate) fn focused_view(ui: &Ui, store: &Store, size: limn::Size) -> Option<l
     let shown = Preview {
         stop: (ids::FULLSCREEN_EXIT.into(), t("Salir de pantalla completa")),
         actions: Vec::new(),
+        tile: None,
+        focused: false,
         ..stream(ui, store, watching)
     };
     Some(rune_components::voice::preview(&shown, size, &ui.look()))
@@ -617,16 +727,24 @@ pub(crate) fn unfocus(ui: &mut Ui) -> Vec<Intent> {
     Vec::new()
 }
 
-/// Escape leaves a stream shown alone.
+/// Escape leaves a stream shown alone; else, with no menu or card open
+/// over the stage, a stream focused (transmisiones).
 pub(crate) fn intercept(ui: &mut Ui, event: &limn::UiEvent) -> Option<Vec<Intent>> {
-    ui.video.focus?;
-    match event {
-        limn::UiEvent::Key {
-            key: limn::Key::Escape,
-            ..
-        } => Some(unfocus(ui)),
-        _ => None,
+    let limn::UiEvent::Key {
+        key: limn::Key::Escape,
+        ..
+    } = event
+    else {
+        return None;
+    };
+    if ui.video.focus.is_some() {
+        return Some(unfocus(ui));
     }
+    let over = ui.video.menu.is_some() || ui.voice.menu.is_some() || ui.voice.card.is_some();
+    (ui.video.spotlight.is_some() && ui.voice.stage.is_some() && !over).then(|| {
+        ui.video.spotlight = None;
+        Vec::new()
+    })
 }
 
 /// «Ventana aparte»: `owner`'s stream in a window of its own as well.
@@ -728,6 +846,13 @@ pub(crate) fn stop_watching(ui: &mut Ui, store: &mut Store, owner: UserId) -> Ve
     ui.video.windows.retain(|shown| *shown != owner);
     if ui.video.focus == Some(owner) {
         ui.video.focus = None;
+    }
+    // Streams (transmisiones).
+    if ui.video.spotlight == Some(owner) {
+        ui.video.spotlight = None;
+    }
+    if ui.video.menu.is_some_and(|(shown, _)| shown == owner) {
+        ui.video.menu = None;
     }
     if matches!(watching.phase, StreamPhase::Ended(_)) {
         return Vec::new();
@@ -916,6 +1041,9 @@ pub(crate) fn call_over(ui: &mut Ui) {
     ui.video.watched.clear();
     ui.video.focus = None;
     ui.video.windows.clear();
+    // Streams (transmisiones).
+    ui.video.spotlight = None;
+    ui.video.menu = None;
 }
 
 /// The host lost a source: the system ended it, it went away, or it could

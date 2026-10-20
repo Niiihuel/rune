@@ -47,7 +47,9 @@ rune-update.workspace = true
 # the same version egui already builds to read fonts.
 skrifa = { version = "0.44", default-features = false, features = ["std"] }
 # Saves `--screenshot` captures as PNG; already built for limn-egui's images.
-image = { version = "0.25.10", default-features = false, features = ["png"] }
+# JPEG makes the picture of the account's own stream others see before
+# watching it (transmisiones); rune-core already builds it.
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
 
 [build-dependencies]
 # rune.exe's icon and version information on Windows (build.rs): rc.exe

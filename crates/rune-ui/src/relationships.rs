@@ -136,6 +136,8 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
     let user = UserId(user.parse().ok()?);
     let social = store.social(user);
     ui.friends.menu = None;
+    // Also reached from someone's menu in a voice channel.
+    ui.voice.menu = None;
     let allowed = |permit: &Permit, ui: &mut Ui| {
         if let Permit::Denied(reason) = permit {
             ui.notify(t("No se puede"), Some(reason.clone()), true, now);
@@ -144,6 +146,14 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
     };
     Some(match action {
         "message" => crate::conversations::open_direct(ui, store, user, now),
+        "add" if store.relationship(user).is_none() => store
+            .user(user)
+            .map(|found| {
+                command(Command::SendFriendRequest {
+                    username: found.name.clone(),
+                })
+            })
+            .unwrap_or_default(),
         "more" => {
             ui.friends.menu = Some(user);
             Vec::new()

@@ -165,10 +165,6 @@ impl AutoModPage {
         self.saving.is_some()
     }
 
-    pub fn loading(&self) -> bool {
-        self.loading.is_some()
-    }
-
     /// Close what floats on the page, then the editor; false when nothing
     /// was open.
     pub(super) fn close(&mut self) -> bool {

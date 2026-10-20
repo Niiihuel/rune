@@ -405,6 +405,7 @@ pub fn mandatory(startup: &Startup, capture: Option<PathBuf>) -> Option<eframe::
         options,
         Box::new(move |creation| {
             limn_egui::install_fonts(&creation.egui_ctx);
+            limn_egui::set_icon_pack(rune_components::glyphs::pack);
             let wake_ctx = creation.egui_ctx.clone();
             let wake: Arc<dyn Fn() + Send + Sync> = Arc::new(move || wake_ctx.request_repaint());
             let job = install_job(&release, &install, capture.is_none(), wake.clone());

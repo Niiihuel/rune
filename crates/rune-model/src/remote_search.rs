@@ -1,7 +1,7 @@
 //! Searches a provider runs over a conversation's or a server's whole
 //! history, with the filters services offer, independent of any of them.
 
-use rune_i18n::{t, tr};
+use rune_i18n::t;
 
 use crate::{card_words, ChannelId, Message, ServerId, Timestamp, UserId};
 
@@ -74,7 +74,8 @@ impl Has {
             .find(|has| has.key() == word || has.label() == word)
     }
 
-    fn found(self, message: &Message) -> bool {
+    /// Whether `message` has it, as far as what is loaded of it tells.
+    pub fn found(self, message: &Message) -> bool {
         let typed = |kind: &str| {
             message.files().any(|file| {
                 file.content_type
@@ -353,18 +354,6 @@ pub enum RemoteSearchError {
         retry_after_ms: u64,
     },
     Failed(String),
-}
-
-impl RemoteSearchError {
-    pub fn label(&self) -> String {
-        match self {
-            Self::Indexing { retry_after_ms } => tr!(
-                "El servicio todavía está preparando el índice de búsqueda. Se vuelve a intentar en {seconds} s.",
-                seconds = retry_after_ms.div_ceil(1000).max(1)
-            ),
-            Self::Failed(reason) => reason.clone(),
-        }
-    }
 }
 
 #[cfg(test)]

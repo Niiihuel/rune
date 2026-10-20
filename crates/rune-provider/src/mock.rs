@@ -312,6 +312,8 @@ impl Provider for MockProvider {
                 // Its streams answer with no picture; the column draws a
                 // made-up one and says it is simulated.
                 stream_previews: true,
+                // Streams (transmisiones): taken and dropped; see `UploadStreamPreview`.
+                upload_stream_previews: true,
                 create_groups: true,
                 group_members: true,
                 close_direct: true,
@@ -931,6 +933,7 @@ impl Session {
                             channel,
                             owner,
                             image: None,
+                            retry_after: None,
                         })
                         .into_iter()
                         .collect()
@@ -958,6 +961,9 @@ impl Session {
             // Voice protocol (voz-protocolo): its rooms' start times go with
             // each session, and change as people come and go.
             Command::WatchServer(_) => {}
+            // Streams (transmisiones): nobody else sees a simulated stream,
+            // so its picture goes nowhere; that it was sent is enough.
+            Command::UploadStreamPreview { .. } => {}
             // Reads, search and remote members (P2).
             Command::MarkUnread {
                 account,
@@ -3590,7 +3596,8 @@ mod tests {
             Event::StreamPreview {
                 channel,
                 owner: streamer,
-                image: None
+                image: None,
+                retry_after: None,
             }
         );
     }

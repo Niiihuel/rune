@@ -13,8 +13,8 @@ use rune_model::{EventStatus, ScheduledEvent, ScheduledEventId, Timestamp};
 
 use crate::{gap, icon, line, strong_line, text, Look};
 
-/// A calendar: the events' entry and their dates. limn has none.
-pub const CALENDAR: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="11" rx="1.6"/><path d="M2 6.5h12M5.2 1.8v2.4M10.8 1.8v2.4"/></svg>"#;
+/// A calendar: the events' entry and their dates.
+pub const CALENDAR: &str = crate::glyphs::glyph!("calendar");
 
 /// The actions of the entry and the dialog, by the domain's ids.
 pub mod ids {

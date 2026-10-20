@@ -11,6 +11,9 @@ use rune_provider::{ConnectionState, Failure};
 
 use super::*;
 
+// Streams (transmisiones).
+mod streams;
+
 impl Host {
     /// Answer the voice commands sent from `from` on as the simulation
     /// does, its connection measured at `rtt` milliseconds.
@@ -114,6 +117,10 @@ impl Host {
     }
 
     fn vz_rect(&mut self, id: &str) -> limn::Rect {
+        // Scrolled out of its list, as `Host::click` finds it.
+        if !self.vz_shows(id) {
+            self.tree.reveal(id);
+        }
         self.frame()
             .regions
             .iter()
@@ -317,6 +324,7 @@ fn the_stage_lists_who_is_in_the_call_and_who_speaks_or_is_muted() {
     assert_eq!(people.len(), 4, "three were there before the account");
     for user in &people {
         assert!(host.vz_shows(&ids::tile(user.0)), "a tile for {user:?}");
+        host.tree.reveal(&ids::row(user.0));
         assert!(host.vz_shows(&ids::row(user.0)), "a row for {user:?}");
     }
     // The account's tile comes first.
@@ -1407,11 +1415,11 @@ fn a_stream_s_picture_shows_under_its_owner_in_the_column_asked_for_now_and_then
         Intent::Command(Command::LoadStreamPreview { server: on, channel, owner })
             if (*on, *channel, *owner) == (server, room, other)
     )));
-    // Not again until a minute went by.
+    // Not again for a while: unanswered, ten seconds (see `streams`).
     let later = |seconds| now + Duration::from_secs(seconds);
-    assert!(crate::video_previews(&mut host.ui, &host.store, later(30)).is_empty());
+    assert!(crate::video_previews(&mut host.ui, &host.store, later(5)).is_empty());
     assert_eq!(
-        crate::video_previews(&mut host.ui, &host.store, later(60)).len(),
+        crate::video_previews(&mut host.ui, &host.store, later(10)).len(),
         asked.len()
     );
     // The simulation has none to show: a made-up one, said so; a click
@@ -1422,6 +1430,7 @@ fn a_stream_s_picture_shows_under_its_owner_in_the_column_asked_for_now_and_then
         channel: room,
         owner: other,
         image: None,
+        retry_after: None,
     });
     assert!(host.vz_usable(&preview));
     assert!(host

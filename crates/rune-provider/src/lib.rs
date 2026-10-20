@@ -1067,6 +1067,18 @@ pub enum Command {
         server: ServerId,
         rule: rune_model::AutoModRuleId,
     },
+    // Streams (transmisiones).
+    /// The picture of the account's own stream in `channel` (of `server`,
+    /// `None` in a conversation's call) others see before watching it: a
+    /// JPEG that fits 512×288. `owner` is the account. Needs
+    /// [`Capabilities::upload_stream_previews`]; nothing answers it and
+    /// nobody waits on its failure.
+    UploadStreamPreview {
+        server: Option<ServerId>,
+        channel: ChannelId,
+        owner: UserId,
+        jpeg: Vec<u8>,
+    },
 }
 
 /// Changes to a server; `None` leaves a field as it is.
@@ -1922,6 +1934,8 @@ impl Failure {
             | Command::WatchMemberList { .. }
             | Command::UnwatchMemberList
             | Command::LoadStreamPreview { .. }
+            // Streams (transmisiones).
+            | Command::UploadStreamPreview { .. }
             // Desktop, language and local voice (P6).
             | Command::SetLocalActivity(_)
             | Command::LoadDetectableGames
@@ -2253,6 +2267,9 @@ pub enum Event {
         channel: ChannelId,
         owner: UserId,
         image: Option<RemoteImage>,
+        /// The service asked not to be asked again for so long (a 429), when
+        /// there is no picture because of it.
+        retry_after: Option<std::time::Duration>,
     },
     // Attachments and platform (07/08).
     /// The largest file the account may attach in `server`'s conversations,
@@ -2975,6 +2992,10 @@ pub struct Capabilities {
     /// A server's AutoMod rules can be read, made, changed, turned on and
     /// off and deleted ([`Command::LoadAutoModRules`] and the rest).
     pub automod: bool,
+    // Streams (transmisiones).
+    /// The account's own stream gets a picture others see before watching
+    /// it ([`Command::UploadStreamPreview`]).
+    pub upload_stream_previews: bool,
 }
 
 impl Capabilities {
@@ -3184,6 +3205,14 @@ pub trait Provider: Send + Sync + 'static {
     /// validates references against this list and never follows redirects.
     fn image_origins(&self) -> &'static [&'static str] {
         &[]
+    }
+
+    /// The address of the picture at `url` for a screen of `density`
+    /// pixels per logical one (1, 1.5 or 2), when the service serves it at
+    /// a size asked for; `None` fetches `url` itself. On the same origin
+    /// only; the core validates it as it validates `url`.
+    fn image_at(&self, _url: &str, _density: f32) -> Option<String> {
+        None
     }
 
     /// Recognize an invitation without I/O. Protocol-specific URL rules stay here.

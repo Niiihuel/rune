@@ -136,6 +136,8 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let root = channel_list::overlays(ui, store, root, look, context);
     let root = profile::overlays(ui, store, root, look, context);
     let root = voice::overlays(ui, store, root, look);
+    // Streams (transmisiones).
+    let root = crate::streams::overlays(ui, store, root, look);
     // Private calls: a call coming in, over everything but verifications.
     let root = crate::private_calls::overlay(ui, store, root, look);
     let root = crate::relationships::overlay(ui, store, root, look);
@@ -345,7 +347,7 @@ fn account(
         Element::column(vec![
             Element::row(vec![
                 gap(left, 0.0),
-                Element::column(parts).flex(1.0),
+                Element::column(parts).gap(8.0).flex(1.0),
                 gap(right, 0.0),
             ]),
             gap(0.0, bottom),

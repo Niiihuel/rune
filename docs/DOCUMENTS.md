@@ -3,11 +3,12 @@
 RUNE permite ver **un PDF página por página** desde su tarjeta o menú
 contextual («Ver PDF»). Es una vista rasterizada con el `ImageViewer` de
 limn: zoom, ajuste y cierre mantienen la misma interacción que las imágenes,
-y sus flechas (o ← y →) cambian de página. Desde el 2026-10-17 se puede
-[buscar en su texto](#búsqueda-2026-10-17). No es un lector completo: no
-hay selección de texto, resaltado, formularios, JavaScript ni enlaces del
-documento. Los controles existentes
-para copiar el enlace, abrirlo o guardar el archivo siguen siendo explícitos.
+y sus flechas (o ← y →) cambian de página. Se puede
+[buscar en su texto](#búsqueda) y las coincidencias se resaltan en la
+página. No es un lector completo: no hay selección de texto, formularios,
+JavaScript ni enlaces del documento. Copiar el enlace, abrirlo o guardar el
+archivo siguen siendo acciones explícitas. El visor es el mismo de las
+imágenes ([VISOR.md](VISOR.md)).
 
 ## Flujo y límites
 
@@ -56,7 +57,7 @@ ejecute el parser fuera del sandbox. PDF inválidos, cifrados o que superen
 los límites pueden no tener vista previa; el mensaje de error no muestra
 salida del parser ni la URL del adjunto.
 
-## Búsqueda (2026-10-17)
+## Búsqueda
 
 La lupa de la cabecera del visor («Buscar en el documento», también
 Ctrl+F) abre un `Modal` de limn sobre la página con un campo de búsqueda.
@@ -64,7 +65,7 @@ La primera vez pide `Intent::DocumentText`: el núcleo pasa el PDF que ya
 tiene en memoria a `pdftotext`, del mismo paquete de Poppler que dibuja las
 páginas (su ruta sale de la del renderer, no del PATH), con el **mismo
 aislamiento** (bubblewrap sin red ni hogar, prlimit, directorio temporal
-privado). Desde el 2026-10-18 lo corre con `-bbox`: su informe (XHTML) da
+privado), con `-bbox`: su informe (XHTML) da
 cada palabra con su caja en puntos y el tamaño de cada página, y RUNE lee
 hasta 24 MiB en 15 s (unas 250 000 palabras). Sólo se lee el cuerpo
 (`<doc>`: la cabecera trae el título del PDF); cada palabra queda como
@@ -86,7 +87,7 @@ imágenes (escaneado) dice que no tiene texto para buscar. La comparación es
 letra por letra en minúsculas, así un lugar en el texto de la página (sus
 palabras unidas por un espacio) es el mismo en sus palabras.
 
-**Resaltado en la página (2026-10-18).** Al cerrar la búsqueda, al ir a un
+**Resaltado en la página.** Al cerrar la búsqueda, al ir a un
 resultado o a otra página, la interfaz calcula dónde está la consulta en la
 página que se muestra: una marca por palabra que cubre cada coincidencia,
 recortada a las letras que cubre (tomadas como de igual ancho), hasta 256.
@@ -96,18 +97,14 @@ las marcas como un resaltador: multiplica un amarillo, así el texto queda
 oscuro. El resultado dice con qué marcas se dibujó, y la interfaz guarda
 aparte la última página resaltada: mientras llega se ve la página sin
 resaltar, y sin consulta, la de siempre. limn no cambia: es la misma
-imagen del visor ([captura](img/pdf-highlight-2026-10-18.png), con la
-página de un PDF propio en Courier y las palabras en su lugar).
+imagen del visor.
 
-Probado: un test ignorado lee un PDF propio de dos páginas con texto en el
-sandbox real (`documents::tests::sandbox_reads_the_text_of_each_page_for_a_search`,
-2026-10-17: «Hola taller» en la página 1, «Segunda pagina» en la 2; un PDF
-de colores da páginas vacías; uno inválido falla; 2026-10-18: además las
-cajas de las palabras y el resaltado de «taller» sobre la página
-renderizada, sin pintar fuera de ella; 2026-10-18, corrección: la segunda
-página con `/Rotate 90`, su palabra en su lugar y el resaltado sobre su
-tinta), y la interfaz con texto dado
-([captura](img/pdf-search-2026-10-17.png)).
+![Página de un PDF propio con la búsqueda resaltada](img/pdf-highlight-2026-10-18.png)
+
+Probado con tests ignorados que corren el sandbox real sobre PDF propios
+(`documents::tests::sandbox_reads_the_text_of_each_page_for_a_search`):
+texto por página, un PDF sin texto, uno inválido, las cajas de las palabras,
+el resaltado sin pintar fuera de la página y una página con `/Rotate 90`.
 
 ## Entorno reproducible
 
@@ -126,8 +123,8 @@ cargo test -p rune-core documents::tests::sandbox_counts_and_renders_only_the_re
 
 Una compilación sin ese entorno devuelve «La vista previa de PDF no está
 disponible en este equipo». Los otros archivos conservan las acciones
-existentes. Windows/macOS y un empaquetado del sandbox fuera de Nix quedan
-pendientes; no se afirma soporte en esas plataformas.
+existentes. No hay soporte en Windows/macOS ni un empaquetado del sandbox
+fuera de Nix.
 
 La metadata de los paquetes Nix consultados declara Poppler 25.10.0 como
 `GPL-2.0-or-later`, bubblewrap 0.11.2 como `LGPL-2.0-or-later` y util-linux
@@ -135,25 +132,8 @@ La metadata de los paquetes Nix consultados declara Poppler 25.10.0 como
 no copió ni enlazó su código. Esta lista no reemplaza una auditoría de los
 avisos de cada binario si se redistribuyen dentro de un paquete de RUNE.
 
-## Referencia y evidencia
+## Referencia
 
-En `references/serein/crates/ui/src/attachments.rs` se encontró clasificación
-de PDF, icono y acciones de archivo. La búsqueda acotada en sus crates `ui`
-y `platform` no encontró un rasterizador de PDF. Esto no demuestra ausencia
-en todo el proyecto. No se copió su código.
-
-Se probó un PDF propio de dos páginas, rojo y azul: el resultado es una
-imagen roja de 1200 × 600 px; el PDF inválido se rechaza. El 2026-10-16 el
-mismo test contó 2 páginas con `pdfinfo` aislado, renderizó la página 2 azul
-y rechazó la página 3 (no se repitió la captura REA). REA observó el
-test Rust real, su salida exitosa y procesos bwrap/Poppler en
-`ev_674fabbc607fc408df47d607cb7589496adef5bd4388d504b22adcda30baabdb`.
-El registro completo está en [evidence/pdf-first-page.json](evidence/pdf-first-page.json).
-El binario seleccionado tenía SHA-256
-`ca0900fb46a5bb926d862db599c4d41f7bcc6c579e0acf23864a717e83ffbd76`.
-
-La captura es una ejecución controlada, no una prueba de seguridad del
-parser. REA muestrea procesos y no registra tráfico de red ni syscalls;
-la captura del test no seleccionó rutas para observar efectos de archivos.
-El aislamiento de red se desprende de los argumentos del sandbox y no de
-una captura de paquetes. No se utilizaron cuentas ni documentos del usuario.
+Serein (`crates/ui/src/attachments.rs`) clasifica PDF y ofrece acciones de
+archivo, pero no se encontró un rasterizador; la vista por páginas es propia
+de RUNE.

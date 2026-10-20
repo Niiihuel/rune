@@ -52,7 +52,7 @@ con la interfaz hecha en [limn](https://github.com/Niiihuel/limn). Leer
   Eso incluye usar los componentes de bots (botones, menús, modales) y los
   comandos de aplicación, y el socket local `discord-ipc` y la detección de
   juegos, estos dos apagados por defecto, cada uno con su interruptor.
-  Inventario en [tasks/serein-parity.md](tasks/serein-parity.md).
+  Lo que falta está en [tasks/todo.md](tasks/todo.md#paridad-con-serein).
   El 2026-10-19 el dueño quitó la prohibición de presentar el
   proveedor no oficial como el cliente web de Discord en un navegador, como
   hace Serein: user agent, `X-Super-Properties`, huella y propiedades del

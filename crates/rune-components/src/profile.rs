@@ -1630,9 +1630,8 @@ pub struct Editor {
     pub failure: Option<String>,
     /// Why the profile cannot be changed at all, when it cannot.
     pub denied: Option<String>,
-    /// The servers, for the name the account goes by in each: the action
-    /// that changes it, the server's name and the nickname, if any.
-    pub servers: Vec<(String, String, Option<String>)>,
+    /// The servers, for the name the account goes by in each.
+    pub servers: Vec<EditorServer>,
     pub servers_open: bool,
     /// The bar of unsaved changes, while something differs.
     pub bar: Option<UnsavedBar>,
@@ -1766,6 +1765,42 @@ fn field(title: &str, control: Element, error: Option<&String>, look: &Look) -> 
     Element::column(parts).gap(8.0)
 }
 
+/// A server of the profile choice, marked as the rail marks it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EditorServer {
+    /// What changes the name the account goes by there.
+    pub action: String,
+    pub name: String,
+    pub nick: Option<String>,
+    /// Its icon, once loaded; its initials on `accent` without one.
+    pub image: Option<limn::RasterImage>,
+    pub initials: String,
+    pub accent: Color,
+}
+
+/// A server's icon in a menu row: its picture, or its first initial on its
+/// color, rounded as the rail rounds it.
+fn server_mark(server: &EditorServer) -> Element {
+    match &server.image {
+        Some(image) => Element::raster_image(image.clone().cover()).radius(5.0),
+        None => Element::panel(crate::centered(
+            Element::text(
+                server
+                    .initials
+                    .chars()
+                    .next()
+                    .map(String::from)
+                    .unwrap_or_default(),
+            )
+            .font_family(limn::FontFamily::SansMedium)
+            .font_size(9.0)
+            .foreground(Color::rgb(255, 255, 255)),
+        ))
+        .radius(5.0)
+        .background(server.accent),
+    }
+}
+
 /// A profile choice, shown only when there are editable server profiles.
 fn editor_selector(view: &Editor, look: &Look) -> Element {
     let current = view.scope.as_ref().map_or_else(
@@ -1796,15 +1831,15 @@ fn editor_selector(view: &Editor, look: &Look) -> Element {
         ),
         DropdownMenuEntry::Heading(t("Perfil en cada servidor").into()),
     ];
-    profiles.extend(view.servers.iter().map(|(action, name, nick)| {
-        let item = DropdownMenuItem::new(action.clone(), name.clone())
-            .icon(Icon::Server)
+    profiles.extend(view.servers.iter().map(|server| {
+        let item = DropdownMenuItem::new(server.action.clone(), server.name.clone())
+            .leading(server_mark(server))
             .selected(
                 view.scope
                     .as_ref()
-                    .is_some_and(|scope| scope.server == *name),
+                    .is_some_and(|scope| scope.server == server.name),
             );
-        DropdownMenuEntry::Item(match nick {
+        DropdownMenuEntry::Item(match &server.nick {
             Some(nick) => item.annotation(nick.clone()),
             None => item,
         })
@@ -2911,6 +2946,56 @@ mod tests {
             credentials: None,
             picked: None,
         }
+    }
+
+    #[test]
+    fn each_server_of_the_profile_choice_shows_its_icon_or_its_initial() {
+        let server = |id: u64, name: &str, image: Option<limn::RasterImage>| EditorServer {
+            action: format!("{}{id}", ids::SCOPE),
+            name: name.into(),
+            nick: None,
+            image,
+            initials: name.chars().take(2).collect(),
+            accent: Color::rgb(200, 40, 40),
+        };
+        let mut view = editing(None);
+        view.servers = vec![
+            server(1, "Taller", Some(chosen())),
+            server(2, "Laboratorio", None),
+        ];
+        view.servers_open = true;
+        let window = Size::new(1280.0, 800.0);
+        let (_, laid) = frame(editor(&view, window, &LOOK), window);
+        let icon = laid
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                limn::DrawCommand::RasterImage { rect, image, .. }
+                    if *image == chosen().cover() =>
+                {
+                    Some(*rect)
+                }
+                _ => None,
+            })
+            .expect("the server's own icon");
+        assert_eq!(
+            (icon.width, icon.height),
+            (limn::ICON_SIZE, limn::ICON_SIZE)
+        );
+        assert!(
+            texts(&laid).contains(&"L".to_owned()),
+            "its initial without one"
+        );
+        assert!(
+            !laid.commands.iter().any(|command| matches!(
+                command,
+                limn::DrawCommand::Icon {
+                    icon: Icon::Server,
+                    ..
+                }
+            )),
+            "no generic server glyph"
+        );
     }
 
     #[test]

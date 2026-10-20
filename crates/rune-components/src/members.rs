@@ -22,8 +22,8 @@ pub const RADIUS: f32 = 8.0;
 pub const HEADING: f32 = 50.0;
 /// From the list's left and right edges to its rows.
 pub const INSET: (f32, f32) = (8.5, 8.0);
-/// A crown, after the name of whoever owns the server: Bootstrap has none.
-pub const CROWN: &str = include_str!("../../../assets/crown.svg");
+/// A crown, after the name of whoever owns the server.
+pub const CROWN: &str = crate::glyphs::glyph!("crown");
 
 /// One person of the list.
 #[derive(Clone, Debug, PartialEq)]

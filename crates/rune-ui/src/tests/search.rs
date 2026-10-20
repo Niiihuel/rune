@@ -498,6 +498,13 @@ fn local_calendar_filter_can_be_cleared_without_replacing_the_query_or_draft() {
     );
 }
 
+/// Check «archivo» in what the messages carry, and close the menu.
+fn toggle_files(host: &mut Host) {
+    host.click("message-search:has");
+    host.click("message-search:files");
+    host.key(Key::Escape, false, false);
+}
+
 fn change_query(host: &mut Host, query: &str) {
     host.tree.focus(QUERY);
     host.key(Key::A, false, true);
@@ -791,7 +798,8 @@ fn profile_updates_refresh_result_names_without_changing_the_selected_message() 
     host.key(Key::ArrowDown, false, false);
     let author = host.store.timeline(channel).unwrap().messages()[10].author;
     let mut user = host.store.user(author).unwrap().clone();
-    user.name = "Nombre actualizado".into();
+    // A result says the name shown, as the conversation does.
+    user.display_name = Some("Nombre actualizado".into());
     host.event(Event::UserChanged(user));
     assert!(host
         .painted()
@@ -893,7 +901,7 @@ fn search_filters_work_without_text_and_combine_with_literal_text() {
     host.key(Key::F, false, true);
     assert!(result_ids(&mut host).is_empty());
 
-    host.click("message-search:files");
+    toggle_files(&mut host);
     assert_eq!(result_ids(&mut host).len(), 2);
     host.click("message-search:mine");
     assert_eq!(
@@ -903,7 +911,7 @@ fn search_filters_work_without_text_and_combine_with_literal_text() {
     host.click("message-search:pinned");
     assert_eq!(result_ids(&mut host).len(), 1);
     host.click("message-search:mine");
-    host.click("message-search:files");
+    toggle_files(&mut host);
     assert_eq!(result_ids(&mut host).len(), 2);
 
     change_query(&mut host, "ANOTHER");
@@ -965,27 +973,39 @@ fn search_filters_are_keyboard_accessible_and_fit_the_minimum_window() {
     filter_fixture(&mut host, channel);
     host.key(Key::F, false, true);
     host.frame();
+    // The pill opens what the messages carry; Space checks a kind.
+    host.tree.focus("message-search:has");
+    host.key(Key::Space, false, false);
+    host.frame();
     host.tree.focus("message-search:files");
     host.key(Key::Space, false, false);
     assert_eq!(result_ids(&mut host).len(), 2);
     assert_eq!(host.tree.focused_id(), Some("message-search:files"));
+    assert!(host.painted().iter().any(|text| text == "Tiene: archivo"));
+    // Esc closes the menu first, then the search.
     host.key(Key::Escape, false, false);
+    assert!(host.ui.search.is_some());
+    host.key(Key::Escape, false, false);
+    assert!(host.ui.search.is_none());
     host.key(Key::F, false, true);
     assert!(
         result_ids(&mut host).is_empty(),
         "a new search clears filters"
     );
 
-    host.click("message-search:files");
+    toggle_files(&mut host);
     let mut context = host.context();
     context.window = Size::new(720.0, 480.0);
     host.tree.set_root(view(&host.ui, &host.store, &context));
     let frame = host.tree.layout(context.window);
     for id in [
         QUERY,
+        "message-search:author",
         "message-search:mine",
-        "message-search:files",
+        "message-search:has",
         "message-search:pinned",
+        "message-search:until-open",
+        "message-search:clear-filters",
         "message-search:close",
     ] {
         let rect = frame
@@ -1049,4 +1069,136 @@ fn invitation_preview_discards_search_and_ignores_a_stale_search_open_action() {
         Some("Borrador antes de la invitación")
     );
     assert_eq!(host.tree.focused_id(), Some(editor_id(channel).as_str()));
+}
+
+#[test]
+fn results_show_face_name_time_day_and_the_words_found_marked() {
+    let mut host = Host::new();
+    let channel = host.open_channel("general");
+    let mut found = message(&host, channel, 12, "Un texto con AGUJA marcada");
+    found.attachments = vec![rune_model::Attachment {
+        id: rune_model::AttachmentId(1),
+        filename: "foto.png".into(),
+        size_bytes: 10,
+        content_type: Some("image/png".into()),
+        dimensions: Some((4, 4)),
+        preview: Some(super::attachments::source()),
+        download: None,
+        spoiler: false,
+        voice: None,
+        explicit: false,
+        placeholder: None,
+    }];
+    let author = host.store.user(found.author).unwrap().clone();
+    host.event(Event::MessageUpdated(found.clone()));
+    host.key(Key::F, false, true);
+    host.type_text("aguja");
+    let painted = host.painted();
+    let server = host.store.channel(channel).unwrap().server;
+    let name = host.store.display_name(author.id, server);
+    let initial = name.chars().next().unwrap().to_uppercase().to_string();
+    let wall = host.context().wall;
+    for expected in [
+        name.as_str(),
+        initial.as_str(),
+        "Un texto con ",
+        "AGUJA",
+        " marcada",
+        "Ir",
+        rune_components::time::stamp(found.timestamp, wall).as_str(),
+        rune_components::time::day_label(found.timestamp, wall).as_str(),
+    ] {
+        assert!(
+            painted.iter().any(|text| text == expected),
+            "{expected}: {painted:?}"
+        );
+    }
+    // The picture is asked for while its result is in view.
+    assert!(
+        wanted_images(&host.ui, &host.store, &host.tree).contains(&super::attachments::source())
+    );
+    // The empty dialog says what to do, briefly.
+    host.tree.focus(QUERY);
+    host.key(Key::A, false, true);
+    host.key(Key::Backspace, false, false);
+    let painted = host.painted();
+    assert!(
+        painted.iter().any(|text| text == "Buscá en #general"),
+        "{painted:?}"
+    );
+}
+
+#[test]
+fn what_messages_carry_filters_loaded_ones_and_one_click_clears_every_filter() {
+    let mut host = Host::new();
+    let channel = host.open_channel("general");
+    let mut messages = filter_fixture(&mut host, channel);
+    messages[2].content = "needle en https://example.test/nota".into();
+    messages[2].edited = Some(Timestamp(1_800_000_000_001));
+    host.event(Event::MessageUpdated(messages[2].clone()));
+    host.key(Key::F, false, true);
+    host.click("message-search:has");
+    host.click("message-search:has:link");
+    host.key(Key::Escape, false, false);
+    assert_eq!(
+        result_ids(&mut host),
+        vec![format!("message-search:go:{channel}:{}", messages[2].id)]
+    );
+    assert!(host.painted().iter().any(|text| text == "Tiene: enlace"));
+    host.click("message-search:pinned");
+    assert_eq!(result_ids(&mut host).len(), 1);
+    host.click("message-search:clear-filters");
+    assert!(result_ids(&mut host).is_empty());
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text == "Buscá en #general"));
+    assert!(host.painted().iter().any(|text| text == "Tiene"));
+    // What is kept on this device knows files only.
+    local_available(&mut host, true);
+    host.click("message-search:scope");
+    host.click("message-search:scope:device");
+    host.click("message-search:has");
+    let frame = host.frame();
+    assert!(!frame.regions.iter().any(
+        |region| region.id == "message-search:has:link" && region.kind == limn::HitKind::Button
+    ));
+    assert!(frame
+        .regions
+        .iter()
+        .any(|region| region.id == "message-search:files"));
+}
+
+#[test]
+fn the_results_fill_the_dialog_and_only_their_list_scrolls() {
+    let mut host = Host::new();
+    let channel = host.open_channel("general");
+    for index in 0..30 {
+        let found = message(&host, channel, index, "needle de sobra para la lista");
+        host.event(Event::MessageUpdated(found));
+    }
+    host.key(Key::F, false, true);
+    host.type_text("needle");
+    for size in [
+        Size::new(694.0, 844.0),
+        Size::new(1361.0, 797.0),
+        Size::new(1920.0, 1080.0),
+    ] {
+        let mut context = host.context();
+        context.window = size;
+        host.tree.set_root(view(&host.ui, &host.store, &context));
+        let frame = host.tree.layout(size);
+        assert!(
+            !frame
+                .regions
+                .iter()
+                .any(|region| region.id == "modal_body:message-search:close"
+                    && region.kind == limn::HitKind::Scrollbar),
+            "{size:?}: the dialog's body scrolls"
+        );
+        assert!(frame
+            .regions
+            .iter()
+            .any(|region| region.id == RESULTS && region.kind == limn::HitKind::Scrollbar));
+    }
 }

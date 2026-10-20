@@ -37,8 +37,21 @@ pub fn wanted_images(ui: &Ui, store: &Store, tree: &UiTree) -> Vec<RemoteImage> 
             add(me.default_avatar.as_ref());
         }
     }
+    // The servers' icons of the editor's profile choice, while it is open.
+    if ui
+        .profiles
+        .editor
+        .as_ref()
+        .is_some_and(|editor| editor.servers_open)
+    {
+        for server in store.servers() {
+            add(server.icon.as_ref());
+        }
+    }
     // What the profile shown carries: activities, badges, marks (P5).
     crate::identity::wanted(ui, store, &mut add);
+    // The faces and pictures of the message search's results (busqueda-diseno).
+    crate::search::wanted(ui, store, tree, &mut add);
     // Scheduled events (eventos-programados): the cover of the one shown.
     crate::events::wanted(ui, store, &mut add);
     if let Some(id) = ui.profile {
@@ -290,6 +303,12 @@ pub fn wanted_images(ui: &Ui, store: &Store, tree: &UiTree) -> Vec<RemoteImage> 
             }
             continue;
         }
+        // The faces of the lists of people outside servers and of the @
+        // suggestions (2026-10-19: Amigos drew only those another list had
+        // asked for; the rest kept their initial).
+        if let Some(user) = listed_person(store, &region.id) {
+            add(store.avatar_in(ui.server, user));
+        }
         // The emoji of the custom status under a name in the lists of
         // members, conversations and friends (2026-10-18).
         let listed = match region.id.split_once(':') {
@@ -352,6 +371,34 @@ pub fn wanted_images(ui: &Ui, store: &Store, tree: &UiTree) -> Vec<RemoteImage> 
         }
     }
     wanted
+}
+
+/// The person a control in a list of people names: `friend:{user}:…`,
+/// `group:new:pick:{user}`, `group:{channel}:{add|remove|owner}:{user}`
+/// or `composer:mention=@{handle}`.
+fn listed_person(store: &Store, id: &str) -> Option<UserId> {
+    use rune_components::{composer::ids::MENTION_PICK, group::ids::NEW_PICK};
+    if let Some(handle) = id
+        .strip_prefix(MENTION_PICK)
+        .and_then(|rest| rest.strip_prefix('@'))
+    {
+        return store
+            .users()
+            .find(|user| user.name == handle)
+            .map(|user| user.id);
+    }
+    id.strip_prefix("friend:")
+        .and_then(|rest| Some(rest.split_once(':')?.0))
+        .or_else(|| id.strip_prefix(NEW_PICK))
+        .or_else(|| {
+            let (_, action) = id.strip_prefix("group:")?.split_once(':')?;
+            ["add:", "remove:", "owner:"]
+                .into_iter()
+                .find_map(|kind| action.strip_prefix(kind))
+        })?
+        .parse()
+        .ok()
+        .map(UserId)
 }
 
 /// The pictures of a message's cards and of its forward's, a GIF's clip

@@ -14,6 +14,8 @@ pub mod emoji;
 pub mod folders;
 pub mod forum;
 pub mod friends;
+// RUNE's icon set (íconos).
+pub mod glyphs;
 pub mod group;
 // Commands and interactions (P3).
 pub mod interactions;
@@ -60,6 +62,8 @@ pub mod events;
 pub mod automod;
 // RUNE's own updates (actualizaciones).
 pub mod updates;
+// Message search results (busqueda-diseno).
+pub mod search;
 
 use limn::{Color, Element, FontFamily, Icon};
 
@@ -67,8 +71,8 @@ pub use look::Look;
 
 /// RUNE's mark: an original rune-like glyph drawn with the current color.
 pub const MARK: &str = include_str!("../../../assets/rune-mark.svg");
-/// Headphones with a slash, for a deafened account: Bootstrap has none.
-pub const HEADPHONES_OFF: &str = include_str!("../../../assets/headphones-off.svg");
+/// Headphones with a slash, for a deafened account.
+pub const HEADPHONES_OFF: &str = glyphs::glyph!("headphones-off");
 
 /// Interface text in the sans face.
 pub fn text(value: impl Into<String>, size: f32, color: Color) -> Element {

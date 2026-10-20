@@ -1011,7 +1011,8 @@ pub fn profile_picture(
 /// A picture the simulation names on `simulacion.invalid` (P5), drawn here
 /// for a capture: a ring for a decoration, a stripe for a nameplate, a
 /// disc for the rest, in a color of its name. Nothing is fetched.
-pub fn simulated(source: &rune_model::RemoteImage) -> Option<limn::RasterImage> {
+/// Decoded for a screen of `density`, as the image service decodes.
+pub fn simulated(source: &rune_model::RemoteImage, density: f32) -> Option<limn::RasterImage> {
     let path = source.url.split("simulacion.invalid/").nth(1)?;
     // A size asked for draws the same picture (a jumbo emoji's).
     let path = path.split('?').next()?;
@@ -1026,13 +1027,13 @@ pub fn simulated(source: &rune_model::RemoteImage) -> Option<limn::RasterImage> 
         image::DynamicImage::ImageRgba8(picture)
             .write_to(&mut png, image::ImageFormat::Png)
             .ok()?;
-        let data = rune_core::normalize_image(png.get_ref(), source)?;
+        let data = rune_core::normalize_image(png.get_ref(), source, density)?;
         return super::preview(&data, rune_i18n::t("Imagen simulada"));
     }
     // An animated vector sticker: RUNE's own sample, drawn as one from the service.
     if path.ends_with(".json") {
         let lottie = include_bytes!("../../../assets/sticker-sample.json");
-        let data = rune_core::normalize_image(lottie, source)?;
+        let data = rune_core::normalize_image(lottie, source, density)?;
         return super::preview(&data, rune_i18n::t("Imagen simulada"));
     }
     let hash = path.bytes().fold(0x811c_9dc5u32, |hash, byte| {
@@ -1083,7 +1084,7 @@ pub fn simulated(source: &rune_model::RemoteImage) -> Option<limn::RasterImage> 
     image::DynamicImage::ImageRgba8(picture)
         .write_to(&mut png, image::ImageFormat::Png)
         .ok()?;
-    let data = rune_core::normalize_image(png.get_ref(), source)?;
+    let data = rune_core::normalize_image(png.get_ref(), source, density)?;
     super::preview(&data, rune_i18n::t("Imagen simulada"))
 }
 
@@ -1097,7 +1098,7 @@ mod tests {
             .map(|index| {
                 let picture = album_picture(index);
                 assert_eq!(picture.dimensions, ALBUM);
-                simulated(&picture.source)
+                simulated(&picture.source, 1.0)
                     .expect("the capture draws it")
                     .sha256()
                     .to_owned()

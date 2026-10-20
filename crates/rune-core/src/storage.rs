@@ -10,7 +10,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use rune_i18n::t;
-use rune_model::{ChannelId, Message, MessageId, MessagePatch, ReadMark, UserId};
+use rune_model::{ChannelId, Message, MessagePatch, ReadMark, UserId};
 use rune_provider::Snapshot;
 use rune_storage::{Key, MessageMutation, Storage};
 
@@ -255,7 +255,6 @@ pub struct StorageWorker {
     /// What an unlock restored, with the account's name in the store.
     restored: Receiver<Answer<(String, Restored)>>,
     shared: Arc<Shared>,
-    dropped: AtomicUsize,
     thread: Option<JoinHandle<()>>,
 }
 
@@ -408,7 +407,6 @@ impl StorageWorker {
             local,
             restored,
             shared,
-            dropped: AtomicUsize::new(0),
             thread: Some(thread),
         }
     }
@@ -524,22 +522,8 @@ impl StorageWorker {
             .into_iter()
             .map(|message| MessageMutation::Upsert(Box::new(message)))
             .collect();
-        if self.apply(changes).is_err() {
-            self.dropped.fetch_add(1, Ordering::Relaxed);
-        }
-    }
-
-    pub fn dropped(&self) -> usize {
-        self.dropped.load(Ordering::Relaxed)
-    }
-
-    pub fn delete(
-        &self,
-        channel: ChannelId,
-        message: MessageId,
-    ) -> Result<StorageTicket, StorageWriteError> {
-        self.apply(vec![MessageMutation::Delete { channel, message }])
-            .map_err(|error| error.kind)
+        // A full queue drops the seeding: it is only a cache.
+        let _ = self.apply(changes);
     }
 
     pub fn request_cached(&self, request: CacheRequest, limit: usize) -> bool {

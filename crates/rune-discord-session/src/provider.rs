@@ -1137,6 +1137,20 @@ impl DiscordSessionProvider {
                                 queue.push_back(Queued { command, at: Instant::now() });
                             }
                         }
+                        // Streams (transmisiones): the picture of the account's own
+                        // stream, only while it shares there; a newer one replaces the
+                        // one queued.
+                        command @ Command::UploadStreamPreview { server, channel, owner, .. } => {
+                            let upload = |queued: &Command| matches!(queued, Command::UploadStreamPreview { .. });
+                            queue.retain(|queued| !upload(&queued.command));
+                            let own = session.as_ref().filter(|session| session.online)
+                                .and_then(|session| session.snapshot.me.as_ref())
+                                .is_some_and(|me| me.id == owner)
+                                && calls.own_stream_key() == Some(crate::http::stream_key(server, channel, owner));
+                            if own && crate::http::preview_fits(&command) && queue.len() < COMMAND_QUEUE {
+                                queue.push_back(Queued { command, at: Instant::now() });
+                            }
+                        }
                         // Desktop (P6): the newest activity wins over one queued or
                         // looking up; one that needs no lookup goes to the Gateway at once.
                         Command::SetLocalActivity(wanted) => {
@@ -2584,6 +2598,10 @@ impl Provider for DiscordSessionProvider {
         &IMAGE_ORIGINS
     }
 
+    fn image_at(&self, url: &str, density: f32) -> Option<String> {
+        crate::wire::sized(url, density)
+    }
+
     fn info(&self) -> ProviderInfo {
         ProviderInfo {
             name: "Discord".into(),
@@ -2629,6 +2647,9 @@ impl Provider for DiscordSessionProvider {
                 voice_text: true,
                 // A stream's picture by the route Serein reads; fixtures only.
                 stream_previews: true,
+                // Streams (transmisiones): the account's own picture goes up
+                // as the official client sends it (REA); fixtures only.
+                upload_stream_previews: true,
                 // Files staged to Discord's storage and named by the message,
                 // as Serein sends them; fixtures only, never tried for real.
                 attachments: true,

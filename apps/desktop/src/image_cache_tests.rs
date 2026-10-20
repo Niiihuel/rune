@@ -10,10 +10,13 @@ fn a_screen_with_more_pictures_than_the_texture_limit_decodes_each_once() {
     limn_egui::set_image_cache_entries(rune_core::IMAGE_TEXTURE_ENTRIES);
     let pictures: Vec<_> = (0..rune_core::IMAGE_TEXTURE_ENTRIES + 26)
         .map(|index| {
-            crate::capture_fixture::simulated(&rune_model::RemoteImage {
-                url: format!("https://simulacion.invalid/emojis/{index}.png"),
-                kind: rune_model::ImageKind::Artwork,
-            })
+            crate::capture_fixture::simulated(
+                &rune_model::RemoteImage {
+                    url: format!("https://simulacion.invalid/emojis/{index}.png"),
+                    kind: rune_model::ImageKind::Artwork,
+                },
+                1.0,
+            )
             .unwrap()
         })
         .collect();

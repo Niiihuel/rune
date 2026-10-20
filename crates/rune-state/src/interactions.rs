@@ -428,15 +428,6 @@ impl Store {
             .map(|pending| (pending.since + pending.wait).saturating_duration_since(now))
     }
 
-    /// Forget why the last interaction failed.
-    pub fn clear_interaction_problem(&mut self, now: Instant) {
-        if self.interaction_pending(now).is_none() {
-            self.interactions.pending = None;
-        }
-        self.interactions.problem = None;
-        self.revision += 1;
-    }
-
     /// The modal an app opened, and where.
     pub fn modal(&self) -> Option<(ChannelId, &Modal)> {
         self.interactions

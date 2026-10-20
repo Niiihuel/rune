@@ -276,7 +276,8 @@ mod tests {
     #[test]
     fn a_sticker_s_json_becomes_its_still_and_animation() {
         let at = "/stickers/1.json";
-        let data = super::super::normalize_at(at, SAMPLE, rune_model::ImageKind::Artwork).unwrap();
+        let data =
+            super::super::normalize_at(at, SAMPLE, rune_model::ImageKind::Artwork, 1.0).unwrap();
         assert_eq!((data.width, data.height), (128, 128));
         assert_eq!(data.animation.as_ref().unwrap().frames.len(), 30);
         // Only a sticker's JSON is read as vectors: not artwork from
@@ -285,13 +286,17 @@ mod tests {
         assert!(super::super::normalize_at(
             "/emojis/1.webp",
             SAMPLE,
-            rune_model::ImageKind::Artwork
+            rune_model::ImageKind::Artwork,
+            1.0
         )
         .is_none());
-        assert!(
-            super::super::normalize_at(at, SAMPLE, rune_model::ImageKind::AttachmentPreview)
-                .is_none()
-        );
+        assert!(super::super::normalize_at(
+            at,
+            SAMPLE,
+            rune_model::ImageKind::AttachmentPreview,
+            1.0
+        )
+        .is_none());
     }
 
     #[test]

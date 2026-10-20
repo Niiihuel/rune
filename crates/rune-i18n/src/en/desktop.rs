@@ -66,10 +66,6 @@ pub(super) const ENTRIES: super::Entries = &[
         "Capture search and context in separate runs",
     ),
     (
-        "--capture-search requiere --data para consultar el historial guardado",
-        "--capture-search requires --data to query the saved history",
-    ),
-    (
         "Discord requiere el ID público de tu aplicación: --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID. Registrá el redirect http://127.0.0.1:48731/oauth/callback en el Developer Portal. No ingreses contraseñas ni tokens.",
         "Discord requires your app's public ID: --discord-client-id <id> or RUNE_DISCORD_CLIENT_ID. Register the redirect http://127.0.0.1:48731/oauth/callback in the Developer Portal. Don't enter passwords or tokens.",
     ),

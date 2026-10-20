@@ -1,8 +1,6 @@
-//! Opening a web address or a folder with the handler the person chose
+//! Opening a web address with the handler the person chose
 //! (windows-base): `xdg-open` on Linux, `open` on macOS, the shell on
-//! Windows. Nothing waits for the browser or the file manager.
-
-use std::path::Path;
+//! Windows. Nothing waits for the browser.
 
 /// Whether `url` may be opened: an `http` or `https` address, one line.
 pub fn web_address(url: &str) -> bool {
@@ -15,14 +13,6 @@ pub fn web_address(url: &str) -> bool {
 pub fn web(url: &str) {
     if web_address(url) {
         handle(url.as_ref());
-    }
-}
-
-/// Show `folder` in the file manager; anything but an absolute path to a
-/// folder is ignored. Touches the disk: call it off the interface's thread.
-pub fn folder(folder: &Path) {
-    if folder.is_absolute() && folder.is_dir() {
-        handle(folder.as_os_str());
     }
 }
 

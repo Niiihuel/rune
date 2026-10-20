@@ -830,3 +830,113 @@ async fn a_picture_the_provider_keeps_loads_without_any_origin() {
     );
     assert_eq!(images.failures(&wanted), HashSet::from([elsewhere]));
 }
+
+/// A screen of density 2 gets its pictures decoded twice as large on a side
+/// and in half steps, so a cached one serves nearby scales (pulido-ui).
+#[test]
+fn pictures_are_decoded_for_the_screen_s_density_in_steps() {
+    assert_eq!(density_step(1.0), 1.0);
+    assert_eq!(density_step(1.25), 1.5);
+    assert_eq!(density_step(2.0), 2.0);
+    assert_eq!(density_step(3.0), 2.0, "capped");
+    assert_eq!(density_step(0.5), 1.0);
+    assert_eq!(density_step(f32::NAN), 1.0);
+    let at = |kind, width, height, density| {
+        let data = normalize_at("/a.png", &png(width, height), kind, density).unwrap();
+        (data.width, data.height)
+    };
+    let preview = ImageKind::AttachmentPreview;
+    assert_eq!(at(preview, 2400, 1600, 1.0), (768, 512));
+    assert_eq!(at(preview, 2400, 1600, 2.0), (1536, 1024));
+    assert_eq!(at(preview, 1000, 500, 2.0), (1000, 500), "never enlarged");
+    assert_eq!(at(ImageKind::Banner, 1600, 600, 2.0), (1024, 384));
+    assert_eq!(at(ImageKind::Artwork, 300, 300, 1.5), (192, 192));
+    assert_eq!(at(ImageKind::Artwork, 300, 300, 2.0), (256, 256));
+}
+
+/// What was decoded for another density goes; a picture at its own size
+/// stays, and so does what the same step decoded.
+#[tokio::test]
+async fn a_new_density_forgets_the_previews_decoded_for_the_old_one() {
+    let mut images = Images::new(Handle::current(), &[], Arc::new(|| {}));
+    let preview = source("https://a.test/p.png");
+    let original = RemoteImage {
+        url: preview.url.clone(),
+        kind: ImageKind::Original,
+    };
+    let data = Arc::new(super::normalize(&png(4, 4), ImageKind::Artwork).unwrap());
+    images.insert(preview.clone(), Some(data.clone()));
+    images.insert(original.clone(), Some(data));
+    images.set_density(1.2);
+    assert!(images.cache.contains_key(&original));
+    assert!(!images.cache.contains_key(&preview));
+    assert_eq!(images.bytes, 0);
+    images.insert(
+        preview.clone(),
+        Some(Arc::new(
+            super::normalize(&png(4, 4), ImageKind::Artwork).unwrap(),
+        )),
+    );
+    images.set_density(1.5);
+    assert!(images.cache.contains_key(&preview), "the same step");
+}
+
+/// The provider's address for the screen's size is what is downloaded, on
+/// the same origin, and decoded for that density.
+#[tokio::test]
+async fn the_provider_s_address_for_a_dense_screen_is_what_is_fetched() {
+    use rune_provider::{mock, Provider};
+    struct Sizing(mock::MockProvider);
+    impl Provider for Sizing {
+        fn info(&self) -> rune_provider::ProviderInfo {
+            self.0.info()
+        }
+        fn connect<'a>(
+            &'a self,
+            commands: &'a mut mpsc::Receiver<rune_provider::Command>,
+            events: &'a rune_provider::EventSink,
+        ) -> rune_provider::BoxFuture<'a, Result<(), rune_provider::ProviderError>> {
+            self.0.connect(commands, events)
+        }
+        fn image_at(&self, url: &str, density: f32) -> Option<String> {
+            Some(format!("{url}?size={}", (64.0 * density) as u32))
+        }
+    }
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let wanted = [source(format!(
+        "http://{}/avatar.png",
+        listener.local_addr().unwrap()
+    ))];
+    let (wake, mut woken) = mpsc::channel(8);
+    let mut images = Images::new(
+        Handle::current(),
+        &[],
+        Arc::new(move || {
+            let _ = wake.try_send(());
+        }),
+    );
+    images.loopback = true;
+    images.hosted = Some(Arc::new(Sizing(mock::MockProvider::new(
+        mock::MockConfig::default(),
+    ))));
+    images.set_density(2.0);
+    assert!(images.load(&wanted).is_empty());
+    let (mut socket, _) = listener.accept().await.unwrap();
+    assert!(headers(&mut socket)
+        .await
+        .starts_with("GET /avatar.png?size=128 "));
+    let bytes = png(300, 300);
+    socket
+        .write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", bytes.len()).as_bytes())
+        .await
+        .unwrap();
+    socket.write_all(&bytes).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(5), woken.recv())
+        .await
+        .unwrap();
+    let ready = images.load(&wanted);
+    assert!(
+        matches!(&ready[..], [(_, data)] if data.width == 2 * THUMBNAIL),
+        "{ready:?}"
+    );
+}

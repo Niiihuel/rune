@@ -1870,6 +1870,7 @@ fn a_stream_picture_is_kept_only_while_its_owner_streams_there() {
         channel: VOICE,
         owner: ADA,
         image,
+        retry_after: None,
     };
     let state = |streaming| VoiceState {
         user: ADA,
@@ -1894,6 +1895,20 @@ fn a_stream_picture_is_kept_only_while_its_owner_streams_there() {
     store.apply(preview(None), now);
     assert_eq!(store.stream_preview(VOICE, ADA), Some(None));
     assert_eq!(store.stream_preview(ChannelId(1), ADA), None);
+    // How long a refusal asked to wait is kept with it.
+    let wait = std::time::Duration::from_secs(30);
+    store.apply(
+        Event::StreamPreview {
+            channel: VOICE,
+            owner: ADA,
+            image: None,
+            retry_after: Some(wait),
+        },
+        now,
+    );
+    assert_eq!(store.stream_preview_retry(ADA), Some(wait));
+    store.apply(preview(None), now);
+    assert_eq!(store.stream_preview_retry(ADA), None);
     // Once they stop, the next picture that arrives lets go of theirs.
     store.apply(Event::VoiceChanged(state(false)), now);
     store.apply(preview(Some(image)), now);

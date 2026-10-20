@@ -270,3 +270,95 @@ fn profile_banner_requests_follow_open_profiles_not_visible_accounts() {
     host.frame();
     assert!(banners(&host).is_empty());
 }
+
+/// Everyone a list outside the timeline shows asks for their picture: the
+/// friends' tabs, the group dialogs and the @ suggestions (2026-10-19: in
+/// Amigos only the faces another list had asked for showed; the rest kept
+/// their initial on violet).
+#[test]
+fn every_list_of_people_asks_for_the_faces_it_shows() {
+    use rune_model::{RelationshipKind, UserId};
+    let mut host = populated();
+    // Someone without a picture of their own shows their service's default.
+    let bruno = UserId(11);
+    let mut plain = host.store.user(bruno).unwrap().clone();
+    plain.avatar = None;
+    plain.default_avatar = Some(source(90_011));
+    host.event(Event::UserChanged(plain));
+    let face =
+        |host: &Host, user: UserId| host.store.user(user).unwrap().picture().unwrap().clone();
+    let shown = |host: &mut Host, user: UserId| {
+        host.frame();
+        wanted_images(&host.ui, &host.store, &host.tree).contains(&face(host, user))
+    };
+    let listed = |host: &Host, kind: RelationshipKind| -> Vec<UserId> {
+        host.store
+            .relationships()
+            .unwrap()
+            .into_iter()
+            .filter(|known| known.kind == kind && host.store.user(known.user).is_some())
+            .map(|known| known.user)
+            .collect()
+    };
+    host.click("home");
+    host.click(rune_components::friends::ids::HOME);
+    for (tab, kind) in [
+        ("all", RelationshipKind::Friend),
+        ("pending", RelationshipKind::IncomingRequest),
+        ("pending", RelationshipKind::OutgoingRequest),
+        ("blocked", RelationshipKind::Blocked),
+    ] {
+        host.click(&format!("{}{tab}", rune_components::friends::ids::TAB));
+        let people = listed(&host, kind);
+        assert!(!people.is_empty(), "{tab}");
+        for user in people {
+            assert!(shown(&mut host, user), "{tab}: {user}");
+        }
+    }
+    assert!(wanted_images(&host.ui, &host.store, &host.tree).contains(&source(90_011)));
+    // Choosing friends for a new group.
+    host.click(rune_components::group::ids::NEW);
+    for user in host.store.friends() {
+        assert!(shown(&mut host, user), "new group: {user}");
+    }
+    host.click(rune_components::group::ids::NEW_CLOSE);
+    // A group's members and the first friend that can join it: the rest
+    // wait below the dialog's fold.
+    let group = host
+        .store
+        .directs()
+        .into_iter()
+        .find(|channel| channel.kind == rune_model::ChannelKind::Group)
+        .map(|channel| channel.id)
+        .unwrap();
+    host.click(&format!("channel:{group}"));
+    host.click(&format!("group:{group}:manage"));
+    for user in host
+        .store
+        .direct_members(group)
+        .into_iter()
+        .chain(host.store.group_candidates(group).into_iter().take(1))
+    {
+        assert!(shown(&mut host, user), "group: {user}");
+    }
+    host.click(rune_components::group::ids::CLOSE);
+    // The people an @ offers.
+    let general = host.open_channel("general");
+    host.type_text("@");
+    let offered: Vec<UserId> = host
+        .store
+        .users()
+        .filter(|user| {
+            crate::messages::completions(&host.ui, &host.store, general)
+                .unwrap()
+                .items
+                .iter()
+                .any(|item| item.insert == format!("@{}", user.name))
+        })
+        .map(|user| user.id)
+        .collect();
+    assert!(!offered.is_empty());
+    for user in offered {
+        assert!(shown(&mut host, user), "@: {user}");
+    }
+}

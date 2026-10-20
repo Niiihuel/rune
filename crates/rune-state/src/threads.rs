@@ -279,31 +279,6 @@ impl Store {
         Some(format!("{base}/{server}/{thread}"))
     }
 
-    /// The threads of `server` the account follows and sees, open ones, the
-    /// most recently active first.
-    pub fn followed_threads(&self, server: ServerId) -> Vec<&Channel> {
-        let mut threads: Vec<&Channel> = self
-            .channels
-            .values()
-            .filter(|c| c.server == Some(server) && c.is_thread() && Self::visible(c))
-            .filter(|c| {
-                c.thread
-                    .as_ref()
-                    .is_some_and(|info| info.joined && !info.archived)
-            })
-            .filter(|c| {
-                c.parent
-                    .and_then(|parent| self.channel(parent))
-                    .is_some_and(Self::visible)
-            })
-            .collect();
-        threads.sort_by_key(|c| {
-            let last = c.thread.as_ref().map(|t| t.last_activity);
-            (std::cmp::Reverse(last), std::cmp::Reverse(c.id))
-        });
-        threads
-    }
-
     /// What has been read of `parent`'s threads.
     pub fn thread_pages(&self, parent: ChannelId) -> Option<&ThreadPages> {
         self.thread_pages.get(&parent)

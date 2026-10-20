@@ -17,8 +17,8 @@ use rune_model::{CallPhase, CallQuality, StreamQuality};
 
 use crate::{centered, gap, icon, line, strong_line, text, Look};
 
-/// Signal bars, for the connection: Bootstrap's are a different glyph.
-pub const SIGNAL: &str = include_str!("../../../assets/signal.svg");
+/// Signal bars, for the connection.
+pub const SIGNAL: &str = crate::glyphs::glyph!("signal");
 
 /// The actions these pieces report. Those that name a person are built with
 /// the functions here.
@@ -154,6 +154,18 @@ pub mod ids {
     pub fn camera_surface(user: u64) -> String {
         format!("video:camera:{user}")
     }
+
+    // Streams (transmisiones).
+    /// `user`'s stream watched on the stage: a click focuses it, a
+    /// secondary click opens its menu.
+    pub fn stream_tile(user: u64) -> String {
+        format!("vz:stream:{user}")
+    }
+
+    /// «Enfocar» `user`'s stream, or «Volver a la grilla» while it is.
+    pub fn spotlight(user: u64) -> String {
+        format!("vz:spotlight:{user}")
+    }
 }
 
 /// Why the camera and the screen cannot be used on this system.
@@ -275,6 +287,11 @@ pub struct Preview {
     /// What else it offers beside the way to stop it, and how each reads:
     /// «Pausar».
     pub actions: Vec<(String, &'static str)>,
+    // Streams (transmisiones).
+    /// What a click on it reports, and its menu opens on: a stream watched.
+    pub tile: Option<String>,
+    /// It takes the stage, the rest in a strip under it.
+    pub focused: bool,
 }
 
 /// A preview's tile: the frame as large as fits, its note and the way to
@@ -282,6 +299,12 @@ pub struct Preview {
 /// mirrored, as a webcam shows the person in front of it (as in Serein);
 /// what goes to the call is not.
 pub fn preview(view: &Preview, size: Size, look: &Look) -> Element {
+    preview_tile(view, size, false, look)
+}
+
+/// [`preview`], or `compact` in the strip under a stream focused: its
+/// picture and its title only.
+fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Element {
     let picture = match view.frame {
         Some((width, height)) => {
             let scale = (size.width / width as f32).min(size.height / height as f32);
@@ -313,24 +336,33 @@ pub fn preview(view: &Preview, size: Size, look: &Look) -> Element {
             .variant(ButtonVariant::Secondary)
             .render()
     }));
-    Element::stack(vec![
+    let title = chip(strong_line(&view.title, 14.0, look.text)).shrink_to_fit();
+    let over = if compact {
+        Element::column(vec![
+            Element::spacer().flex(1.0),
+            Element::row(vec![title, Element::spacer().flex(1.0)]),
+        ])
+        .padding(8.0)
+    } else {
+        Element::column(vec![
+            Element::row(top).gap(8.0),
+            Element::spacer().flex(1.0),
+            Element::row(vec![title, Element::spacer().flex(1.0), stop]).gap(8.0),
+        ])
+        .padding(12.5)
+    };
+    let shown = Element::stack(vec![
         Element::panel(picture)
             .size(Some(size.width), Some(size.height))
             .radius(TILE_RADIUS)
             .background(Color::rgb(0, 0, 0))
             .clip_children(),
-        Element::column(vec![
-            Element::row(top).gap(8.0),
-            Element::spacer().flex(1.0),
-            Element::row(vec![
-                chip(strong_line(&view.title, 14.0, look.text)).shrink_to_fit(),
-                Element::spacer().flex(1.0),
-                stop,
-            ])
-            .gap(8.0),
-        ])
-        .padding(12.5),
-    ])
+        over,
+    ]);
+    match &view.tile {
+        Some(id) => Element::clickable(id.clone(), shown).radius(TILE_RADIUS),
+        None => shown,
+    }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
 }
@@ -395,6 +427,12 @@ const ROW_AVATAR: f32 = 25.0;
 const TILE_GAP: f32 = 8.5;
 const TILE_RADIUS: f32 = 8.0;
 const STAGE_INSET: f32 = 17.0;
+// Streams (transmisiones).
+/// The strip under a stream focused: 18 % of the stage, between these.
+const MIN_STRIP: f32 = 72.0;
+const MAX_STRIP: f32 = 124.0;
+/// The least a stream focused keeps; a shorter stage has no strip.
+const MIN_FOCUS: f32 = 180.0;
 /// The bar of the stage: 51 high, 22.5 over the bottom; its buttons 42
 /// across in groups rounded 12; hanging up is 68.5 wide.
 pub const BAR_HEIGHT: f32 = 51.0;
@@ -1118,6 +1156,16 @@ fn tile(
     }
     if person.streaming {
         top.push(live(22.0, look));
+        // Streams (transmisiones): the simulation has no picture to show.
+        if person.thumbnail == Some(Thumbnail::Simulated) {
+            top.push(
+                Element::panel(line(t("Vista previa simulada"), 13.0, look.text).padding(6.0))
+                    .size(None, Some(22.0))
+                    .radius(4.0)
+                    .background(Look::alpha(look.rail, 200))
+                    .shrink_to_fit(),
+            );
+        }
         top.push(Element::spacer().flex(1.0));
         if let Some(permit) = watch {
             let button = Button::new(
@@ -1136,7 +1184,24 @@ fn tile(
             });
         }
     }
+    // Streams (transmisiones): the latest picture of their stream, dimmed so
+    // what is over it reads, as the official client shows it.
+    let streamed = match &person.thumbnail {
+        Some(Thumbnail::Image(image)) if person.streaming => Some(image),
+        _ => None,
+    };
     let picture = match person.camera {
+        _ if streamed.is_some() => Element::panel(Element::stack(vec![
+            Element::raster_image(streamed.cloned().expect("matched").cover())
+                .size(Some(size.width), Some(size.height)),
+            Element::panel(Element::spacer())
+                .size(Some(size.width), Some(size.height))
+                .background(Look::alpha(Color::rgb(0, 0, 0), 96)),
+        ]))
+        .size(Some(size.width), Some(size.height))
+        .radius(TILE_RADIUS)
+        .background(Color::rgb(0, 0, 0))
+        .clip_children(),
         Some((width, height)) => {
             let scale = (size.width / width as f32).min(size.height / height as f32);
             Element::panel(centered(
@@ -1365,12 +1430,7 @@ fn call(view: &Stage, look: &Look) -> Element {
         .private
         .as_ref()
         .map_or(&[][..], |private| &private.ringing[..]);
-    let layout = grid(previews.len() + people.len() + ringing.len(), area);
-    let mut tiles: Vec<Element> = previews
-        .iter()
-        .map(|shown| preview(shown, layout.tile, look))
-        .collect();
-    tiles.extend(people.iter().map(|person| {
+    let person = |person: &Participant, size: Size, watch: bool| {
         let card = view
             .card
             .as_ref()
@@ -1381,41 +1441,89 @@ fn call(view: &Stage, look: &Look) -> Element {
             .as_ref()
             .filter(|(user, _)| *user == person.user)
             .map(|(_, menu)| menu.clone());
-        tile(
-            person,
-            layout.tile,
-            card,
-            menu,
-            Some(&view.watch),
-            view.simulated,
-            look,
-        )
-    }));
-    tiles.extend(
-        ringing
-            .iter()
-            .map(|person| crate::private_call::ringing_tile(person, layout.tile, look)),
-    );
-    let mut rows = Vec::new();
-    let mut tiles = tiles.into_iter().peekable();
-    while tiles.peek().is_some() {
-        let row: Vec<Element> = tiles.by_ref().take(layout.columns).collect();
-        rows.push(Element::row(vec![
-            Element::spacer().flex(1.0),
-            Element::row(row).gap(TILE_GAP),
-            Element::spacer().flex(1.0),
-        ]));
-    }
-    let tiles = Element::column(vec![
-        gap(0.0, STAGE_INSET),
-        Element::column(vec![
-            Element::spacer().flex(1.0),
-            Element::column(rows).gap(TILE_GAP),
-            Element::spacer().flex(1.0),
-        ])
-        .flex(1.0),
-        gap(0.0, below),
-    ]);
+        let watch = watch.then_some(&view.watch);
+        tile(person, size, card, menu, watch, view.simulated, look)
+    };
+    // Streams (transmisiones): a stream focused takes the stage, the rest
+    // in a strip under it, as in the official client and Serein.
+    let tiles = match previews.iter().position(|shown| shown.focused) {
+        Some(index) => {
+            let count = previews.len() - 1 + people.len() + ringing.len();
+            let strip = if count > 0 && area.height >= MIN_STRIP + TILE_GAP + MIN_FOCUS {
+                (area.height * 0.18).clamp(MIN_STRIP, MAX_STRIP)
+            } else {
+                0.0
+            };
+            let main = Size::new(area.width, area.height - strip - TILE_GAP.min(strip));
+            let fits = ((area.width + TILE_GAP) / (strip * 16.0 / 9.0 + TILE_GAP)).floor() as usize;
+            let small = Size::new(strip * 16.0 / 9.0, strip);
+            let mut rest: Vec<Element> = previews
+                .iter()
+                .enumerate()
+                .filter(|(at, _)| *at != index)
+                .map(|(_, shown)| preview_tile(shown, small, true, look))
+                .collect();
+            rest.extend(people.iter().map(|shown| person(shown, small, false)));
+            rest.extend(
+                ringing
+                    .iter()
+                    .map(|shown| crate::private_call::ringing_tile(shown, small, look)),
+            );
+            rest.truncate(fits.max(1));
+            let mut column = vec![
+                gap(0.0, STAGE_INSET),
+                Element::row(vec![
+                    gap(STAGE_INSET, 0.0),
+                    preview(&previews[index], main, look),
+                    gap(STAGE_INSET, 0.0),
+                ]),
+            ];
+            if strip > 0.0 {
+                column.push(gap(0.0, TILE_GAP));
+                column.push(Element::row(vec![
+                    Element::spacer().flex(1.0),
+                    Element::row(rest).gap(TILE_GAP),
+                    Element::spacer().flex(1.0),
+                ]));
+            }
+            column.push(Element::spacer().flex(1.0));
+            column.push(gap(0.0, below));
+            Element::column(column)
+        }
+        None => {
+            let layout = grid(previews.len() + people.len() + ringing.len(), area);
+            let mut tiles: Vec<Element> = previews
+                .iter()
+                .map(|shown| preview(shown, layout.tile, look))
+                .collect();
+            tiles.extend(people.iter().map(|shown| person(shown, layout.tile, true)));
+            tiles.extend(
+                ringing
+                    .iter()
+                    .map(|shown| crate::private_call::ringing_tile(shown, layout.tile, look)),
+            );
+            let mut rows = Vec::new();
+            let mut tiles = tiles.into_iter().peekable();
+            while tiles.peek().is_some() {
+                let row: Vec<Element> = tiles.by_ref().take(layout.columns).collect();
+                rows.push(Element::row(vec![
+                    Element::spacer().flex(1.0),
+                    Element::row(row).gap(TILE_GAP),
+                    Element::spacer().flex(1.0),
+                ]));
+            }
+            Element::column(vec![
+                gap(0.0, STAGE_INSET),
+                Element::column(vec![
+                    Element::spacer().flex(1.0),
+                    Element::column(rows).gap(TILE_GAP),
+                    Element::spacer().flex(1.0),
+                ])
+                .flex(1.0),
+                gap(0.0, below),
+            ])
+        }
+    };
     Element::stack(vec![
         tiles,
         Element::column(vec![
@@ -2348,6 +2456,8 @@ mod tests {
                     stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
                     note: note.into(),
                     actions: vec![(ids::PAUSE.into(), "Pausar")],
+                    tile: None,
+                    focused: false,
                 },
                 Preview {
                     surface: ids::CAMERA_SURFACE.into(),
@@ -2357,6 +2467,8 @@ mod tests {
                     stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                     note: note.into(),
                     actions: Vec::new(),
+                    tile: None,
+                    focused: false,
                 },
             ],
         };
@@ -2400,6 +2512,8 @@ mod tests {
                 stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                 note: "Sólo en esta computadora".into(),
                 actions: Vec::new(),
+                tile: None,
+                focused: false,
             };
             let (_, laid) = frame(
                 preview(&tile, Size::new(480.0, 270.0), &Look::ONYX),
@@ -2533,6 +2647,8 @@ mod tests {
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo · simulado".into(),
             actions: Vec::new(),
+            tile: None,
+            focused: false,
         };
         let (_, laid) = frame(
             stage(view(Ok(()), vec![stream]), &look),
@@ -2560,6 +2676,8 @@ mod tests {
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo".into(),
             actions: Vec::new(),
+            tile: None,
+            focused: false,
         };
         let (_, laid) = frame(
             stream_window(&stream, Size::new(960.0, 540.0), &look),
@@ -2582,6 +2700,148 @@ mod tests {
         );
         assert!(controls(&laid).contains(&ids::preview(2)));
         assert!(texts(&laid)
+            .iter()
+            .any(|text| text == "Vista previa simulada"));
+    }
+
+    // Streams (transmisiones).
+    #[test]
+    fn a_stream_focused_takes_the_stage_and_the_rest_go_in_a_strip_under_it() {
+        let streaming = |user| Participant {
+            streaming: true,
+            ..person(user, false, false, false)
+        };
+        let stream = |user: u64, focused| Preview {
+            surface: ids::stream_surface(user),
+            title: format!("Pantalla de Persona {user}"),
+            frame: Some((1280, 720)),
+            waiting: "Esperando video…".into(),
+            stop: (ids::stop_watching(user), "Dejar de ver"),
+            note: "En vivo".into(),
+            actions: vec![(ids::fullscreen(user), "Pantalla completa")],
+            tile: Some(ids::stream_tile(user)),
+            focused,
+        };
+        let view = |watching| Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![
+                person(1, false, false, false),
+                streaming(2),
+                streaming(3),
+                streaming(4),
+            ],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size: Size::new(980.0, 762.0),
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let surfaces = |laid: &limn::Frame| -> Vec<(String, limn::Rect)> {
+            laid.commands
+                .iter()
+                .filter_map(|command| match command {
+                    limn::DrawCommand::Surface { id, rect, .. } => Some((id.clone(), *rect)),
+                    _ => None,
+                })
+                .collect()
+        };
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        // Side by side, each tile clickable to focus it.
+        let (_, grid) = frame(
+            stage(view(vec![stream(2, false), stream(3, false)]), &look),
+            size,
+        );
+        let shown = surfaces(&grid);
+        assert_eq!(shown.len(), 2);
+        assert!(controls(&grid).contains(&ids::stream_tile(2)));
+        assert!(controls(&grid).contains(&ids::watch(4)));
+        // Focused: it takes the stage, the other and who else streams go
+        // small under it, without their buttons.
+        let (_, focused) = frame(
+            stage(view(vec![stream(2, true), stream(3, false)]), &look),
+            size,
+        );
+        let shown = surfaces(&focused);
+        let big = shown
+            .iter()
+            .find(|(id, _)| *id == ids::stream_surface(2))
+            .unwrap()
+            .1;
+        let small = shown
+            .iter()
+            .find(|(id, _)| *id == ids::stream_surface(3))
+            .unwrap()
+            .1;
+        assert!(big.width > 2.0 * small.width);
+        assert!(small.height <= MAX_STRIP && small.y > big.y + big.height);
+        let ids = controls(&focused);
+        assert!(
+            ids.contains(&ids::stream_tile(3)),
+            "the strip's focus it instead"
+        );
+        assert!(ids.contains(&ids::tile(4)) && !ids.contains(&ids::watch(4)));
+        assert!(ids.contains(&ids::stop_watching(2)) && !ids.contains(&ids::stop_watching(3)));
+        assert!(ids.contains(&ids::fullscreen(2)) && !ids.contains(&ids::fullscreen(3)));
+    }
+
+    #[test]
+    fn someone_streaming_shows_the_latest_picture_of_their_stream_on_their_tile() {
+        let image = limn::RasterImage::new(
+            "1".repeat(64),
+            limn::RasterImageFormat::Png,
+            3,
+            std::sync::Arc::from("AAAA"),
+            "vista previa",
+        )
+        .unwrap();
+        let shown = |thumbnail| Participant {
+            streaming: true,
+            thumbnail,
+            ..person(2, false, false, false)
+        };
+        let look = Look::ONYX;
+        let size = Size::new(480.0, 270.0);
+        let laid = |person: &Participant| {
+            frame(
+                tile(person, size, None, None, Some(&Ok(())), false, &look),
+                size,
+            )
+            .1
+        };
+        let pictured = laid(&shown(Some(Thumbnail::Image(image))));
+        assert!(pictured
+            .commands
+            .iter()
+            .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+        let texts_shown = texts(&pictured);
+        for expected in ["EN VIVO", "Ver transmisión", "Persona 2"] {
+            assert!(
+                texts_shown.iter().any(|text| text == expected),
+                "{expected}"
+            );
+        }
+        // None yet: their mark; the simulation's says it is made up.
+        let plain = laid(&shown(None));
+        assert!(!plain
+            .commands
+            .iter()
+            .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+        let simulated = laid(&shown(Some(Thumbnail::Simulated)));
+        assert!(texts(&simulated)
             .iter()
             .any(|text| text == "Vista previa simulada"));
     }

@@ -128,6 +128,10 @@ macro_rules! classified {
                 | Command::VoiceVerificationCode { .. } => {
                     Some("the call's own connection, not a request: voice tests")
                 }
+                // Streams (transmisiones).
+                Command::UploadStreamPreview { .. } => {
+                    Some("only of the account's own stream: stream preview tests")
+                }
                 $(Command::$name { .. })|+ => None,
             }
         }

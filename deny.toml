@@ -11,7 +11,7 @@ ignore = [
     # instant is unmaintained. It reaches RUNE only through openmls' `js`
     # feature, which davey (Discord's DAVE end-to-end encryption) turns on;
     # nothing calls it outside a browser. Blocked upstream: remove once davey
-    # stops turning it on (tasks/todo.md, «17. calls» and «Profesionalización»).
+    # stops turning it on (tasks/todo.md, «Bloqueado aguas arriba»).
     { id = "RUSTSEC-2024-0384", reason = "unmaintained, reached only through davey -> openmls/js; blocked upstream" },
     # zvariant and zbus_names were merged into zbus 6; no vulnerability. zbus
     # 5 stays while eframe's accessibility (accesskit) and secret-service

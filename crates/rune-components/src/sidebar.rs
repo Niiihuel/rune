@@ -2,7 +2,7 @@
 //! in its voice channels, or the list of direct conversations.
 
 use limn::{
-    Badge, ButtonVariant, Color, Component, ControlSize, CornerRadii, Element, FontFamily, Icon,
+    ButtonVariant, Color, Component, ControlSize, CornerRadii, Element, FontFamily, Icon,
     IconButton,
 };
 use rune_i18n::{t, tr};
@@ -273,8 +273,9 @@ pub fn channel(row: ChannelRow, look: &Look) -> Element {
     let glyph = row
         .glyph
         .unwrap_or(if row.voice { Icon::Volume } else { Icon::Hash });
-    let glyph = icon(glyph, glyph_ink).large_icon(20.0);
-    let glyph = if row.private {
+    let locked = crate::glyphs::locked(glyph).filter(|_| row.private);
+    let glyph = icon(locked.unwrap_or(glyph), glyph_ink).large_icon(20.0);
+    let glyph = if row.private && locked.is_none() {
         // A small padlock over the glyph's top right corner, as the
         // official client's.
         let lock = icon(Icon::Lock, glyph_ink).small_icon(10.0);
@@ -593,17 +594,6 @@ pub fn heading(title: &str, look: &Look) -> Element {
     .size(None, Some(HEADING + HEADING_ROOM))
 }
 
-/// An icon with a red count over it, for a control with something waiting.
-pub fn badged(child: Element, mentions: u32, look: &Look) -> Element {
-    if mentions == 0 {
-        return child;
-    }
-    Badge::new(child, look.palette())
-        .count(mentions)
-        .color(look.danger_fill)
-        .render()
-}
-
 #[cfg(test)]
 mod badge_tests;
 
@@ -700,58 +690,50 @@ mod tests {
 
     #[test]
     fn a_private_channel_shows_a_padlock_and_says_so() {
-        let locks = |row: ChannelRow| {
+        let draw = |row: ChannelRow| {
             let (_, frame) = frame(
                 channel(row, &Look::DARK).size(Some(WIDTH), None),
                 Size::new(WIDTH, 60.0),
             );
-            let drawn = frame
+            let icons: Vec<(Icon, limn::Rect)> = frame
                 .commands
                 .iter()
-                .filter(|command| {
-                    matches!(
-                        command,
-                        limn::DrawCommand::Icon {
-                            icon: Icon::Lock,
-                            ..
-                        }
-                    )
+                .filter_map(|command| match command {
+                    limn::DrawCommand::Icon { icon, rect, .. } => Some((*icon, *rect)),
+                    _ => None,
                 })
-                .count();
+                .collect();
             let said = frame
                 .access
                 .iter()
                 .find(|node| node.name == "secreto")
                 .and_then(|node| node.description.clone());
-            (drawn, said)
+            (icons, said)
         };
         let private = ChannelRow {
             private: true,
             ..row("secreto", false, 0)
         };
-        assert_eq!(
-            locks(private.clone()),
-            (1, Some("Canal privado".to_owned()))
-        );
-        assert_eq!(locks(row("secreto", false, 0)).0, 0);
-        // A small padlock over the top right corner of the glyph.
-        let (_, frame) = frame(
-            channel(private, &Look::DARK).size(Some(WIDTH), None),
-            Size::new(WIDTH, 60.0),
-        );
-        let drawn = |wanted: Icon| {
-            frame
-                .commands
-                .iter()
-                .find_map(|command| match command {
-                    limn::DrawCommand::Icon { icon, rect, .. } if *icon == wanted => Some(*rect),
-                    _ => None,
-                })
-                .unwrap()
-        };
-        let (hash, lock) = (drawn(Icon::Hash), drawn(Icon::Lock));
+        // The padlock is cut into the glyph's top right corner.
+        let (icons, said) = draw(private.clone());
+        let hash_lock = crate::glyphs::locked(Icon::Hash).unwrap();
+        assert!(icons.iter().any(|(icon, _)| *icon == hash_lock));
+        assert!(!icons.iter().any(|(icon, _)| *icon == Icon::Hash));
+        assert_eq!(said.as_deref(), Some("Canal privado"));
+        assert!(!draw(row("secreto", false, 0))
+            .0
+            .iter()
+            .any(|(icon, _)| *icon == hash_lock));
+        // A glyph with no private version gets a small padlock over its
+        // top right corner.
+        let (icons, _) = draw(ChannelRow {
+            glyph: Some(Icon::Chat),
+            ..private
+        });
+        let drawn = |wanted: Icon| icons.iter().find(|(icon, _)| *icon == wanted).unwrap().1;
+        let (chat, lock) = (drawn(Icon::Chat), drawn(Icon::Lock));
         assert_eq!((lock.width, lock.height), (10.0, 10.0));
-        assert_eq!((lock.x + lock.width, lock.y), (hash.x + hash.width, hash.y));
+        assert_eq!((lock.x + lock.width, lock.y), (chat.x + chat.width, chat.y));
     }
 
     #[test]

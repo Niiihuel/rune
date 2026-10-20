@@ -7,13 +7,13 @@ use std::time::Duration;
 
 use rune_i18n::{t, tr};
 use rune_model::{
-    newer, RemoteOrder, RemotePage, RemoteSearch, RemoteSearchError, SearchHit, ServerId,
-    Timestamp, MAX_REMOTE_OFFSET, REMOTE_PAGE,
+    newer, RemoteOrder, RemotePage, RemoteSearch, RemoteSearchError, ServerId, Timestamp,
+    MAX_REMOTE_OFFSET, REMOTE_PAGE,
 };
 use rune_provider::Command;
 use rune_state::Store;
 
-use super::{filters, hits, MessageSearch, Scope, Source};
+use super::{filters, hit, Hit, MessageSearch, Scope, Source};
 use crate::{Intent, Ui};
 
 #[derive(Debug)]
@@ -44,14 +44,15 @@ pub(super) struct RemoteRead {
 /// shown still answers them.
 pub(super) fn signature(search: &MessageSearch) -> String {
     format!(
-        "{}\u{1f}{:?}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{:?}",
+        "{}\u{1f}{:?}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{}\u{1f}{:?}\u{1f}{:?}",
         search.query,
         search.author,
         search.files,
         search.pinned,
         search.from,
         search.until,
-        search.order
+        search.order,
+        search.has
     )
 }
 
@@ -66,6 +67,11 @@ pub(super) fn query(search: &MessageSearch, store: &Store) -> Result<RemoteSearc
     }
     if search.files && !query.has.contains(&rune_model::Has::File) {
         query.has.push(rune_model::Has::File);
+    }
+    for has in &search.has {
+        if !query.has.contains(has) {
+            query.has.push(*has);
+        }
     }
     if search.pinned {
         query.pinned = Some(true);
@@ -213,11 +219,11 @@ pub(super) fn refresh(search: &mut MessageSearch, store: &Store) {
         page.messages.len() == REMOTE_PAGE
             || u64::from(page.offset) + (page.messages.len() as u64) < page.total
     });
-    let mut found: Vec<(SearchHit, Source)> = page
+    let mut found: Vec<Hit> = page
         .map(|page| {
             page.messages
                 .iter()
-                .map(|message| (SearchHit::from_message(message), Source::Remote))
+                .map(|message| hit(message, Source::Remote))
                 .collect()
         })
         .unwrap_or_default();
@@ -237,9 +243,9 @@ pub(super) fn refresh(search: &mut MessageSearch, store: &Store) {
                 if !matches(message) || floor.as_ref().is_some_and(|floor| newer(floor, message)) {
                     continue;
                 }
-                match found.iter_mut().find(|(hit, _)| hit.id == message.id) {
-                    Some((_, source)) => *source = Source::Both,
-                    None => found.push((SearchHit::from_message(message), Source::Loaded)),
+                match found.iter_mut().find(|found| found.data.id == message.id) {
+                    Some(found) => found.source = Source::Both,
+                    None => found.push(hit(message, Source::Loaded)),
                 }
             }
         }
@@ -249,8 +255,8 @@ pub(super) fn refresh(search: &mut MessageSearch, store: &Store) {
     } else {
         &mut found[..]
     };
-    newest_first.sort_by_key(|(hit, _)| std::cmp::Reverse((hit.timestamp, hit.id)));
-    search.hits = hits(found, store);
+    newest_first.sort_by_key(|hit| std::cmp::Reverse((hit.data.timestamp, hit.data.id)));
+    search.hits = std::sync::Arc::new(found);
     search.selected = search.selected.min(search.hits.len().saturating_sub(1));
 }
 

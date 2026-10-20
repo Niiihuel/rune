@@ -1,6 +1,6 @@
 # Formatting, lints, tests and cargo deny on every push to main and every
 # pull request, on Linux and Windows (windows-base); macOS comes later
-# (docs/ROADMAP.md). Releases: release.yml (docs/UPDATES.md).
+# (tasks/todo.md). Releases: release.yml (docs/UPDATES.md).
 name: CI
 
 # A branch is checked through its pull request; pushing to it as well would

@@ -558,3 +558,66 @@ fn moderation_moves_mutes_and_disconnects_within_its_reach() {
     assert!(crate::message_actions::voice_menu_group(&host.store, room, me).is_empty());
     let _ = UserId(0);
 }
+
+#[test]
+fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
+    let mut host = Host::new();
+    let owned = host
+        .store
+        .servers()
+        .iter()
+        .find(|server| server.owner == host.store.me())
+        .unwrap()
+        .id;
+    let someone = host
+        .store
+        .member_groups(owned)
+        .into_iter()
+        .flat_map(|group| group.members)
+        .find(|user| Some(*user) != host.store.me())
+        .unwrap();
+    let entries = crate::server_settings::member_menu_group(&host.store, owned, someone);
+    let mut labels = Vec::new();
+    let mut role = None;
+    for entry in &entries {
+        match entry {
+            rune_components::voice::MenuEntry::Item(_, label, _) => labels.push(label.clone()),
+            rune_components::voice::MenuEntry::Submenu(label, choices) => {
+                labels.push(label.clone());
+                role = choices.first().map(|(id, _)| id.clone());
+            }
+            _ => {}
+        }
+    }
+    for wanted in ["Cambiar apodo", "Roles"] {
+        assert!(labels.contains(&wanted.to_owned()), "{labels:?}");
+    }
+    for wanted in ["Aislar a ", "Expulsar a ", "Vetar a "] {
+        assert!(
+            labels.iter().any(|label| label.starts_with(wanted)),
+            "{labels:?}"
+        );
+    }
+    // A role changes right away, without opening the settings.
+    host.ma_click(&role.expect("a role the owner can give"));
+    assert!(
+        matches!(host.sent.last(), Some(Command::SetMemberRoles { user, .. }) if *user == someone),
+        "{:?}",
+        host.sent.last()
+    );
+    assert!(host.ui.server_settings.is_none());
+    // Kicking opens the members page with the same dialog as there.
+    host.ma_click(&format!("ss:member-of:{owned}:{someone}:kick"));
+    let settings = host.ui.server_settings.as_ref().expect("the settings open");
+    assert!(settings
+        .removal
+        .as_ref()
+        .is_some_and(|removal| removal.user == someone && !removal.ban));
+    // Nobody kicks or bans themselves from here.
+    let me = host.store.me().unwrap();
+    let own = crate::server_settings::member_menu_group(&host.store, owned, me);
+    assert!(!own.iter().any(|entry| matches!(
+        entry,
+        rune_components::voice::MenuEntry::Item(_, label, _) if label.starts_with("Expulsar a ")
+    )));
+}

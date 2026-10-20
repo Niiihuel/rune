@@ -44,7 +44,7 @@ jobs:
           toolchain: 1.95.0
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: el tag es anotado y nombra la versión del workspace
-        run: cargo run --locked --quiet -p rune-update --example release -- tag "$TAG"
+        run: cargo run --locked --quiet -p rune-release -- tag "$TAG"
       # Every artifact carries THIRD_PARTY_NOTICES.md (`rune --licenses`):
       # regenerated from the lock exactly as about.toml says, it must be the
       # committed one, or the release stops before anything is built.
@@ -209,7 +209,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       # Built before the secret is in the environment, so no build script
       # ever runs with it.
-      - run: cargo build --locked --quiet -p rune-update --example release
+      - run: cargo build --locked --quiet -p rune-release --bin rune-release
       - name: artefactos
         run: gh release download "$TAG" --pattern 'rune-x86_64-*' --dir dist
       # The installer in the draft is the one the Windows job built.
@@ -226,17 +226,17 @@ jobs:
           artifacts=()
           [ -f dist/rune-x86_64-linux.gz ] && artifacts+=("linux-x86_64=dist/rune-x86_64-linux.gz")
           [ -f dist/rune-x86_64-windows-setup.exe ] && artifacts+=("windows-x86_64=dist/rune-x86_64-windows-setup.exe")
-          target/debug/examples/release manifest "$TAG" \
+          target/debug/rune-release manifest "$TAG" \
             "https://github.com/$GH_REPO/releases/download/$TAG" "${artifacts[@]}" \
             > dist/rune-update.json
           cat dist/rune-update.json
       - name: firma
         env:
           RUNE_UPDATE_SIGNING_KEY: ${{ secrets.RUNE_UPDATE_SIGNING_KEY }}
-        run: target/debug/examples/release sign dist/rune-update.json
+        run: target/debug/rune-release sign dist/rune-update.json
       # With the key compiled into RUNE: a secret that does not match
       # crates/rune-update/release-key.pub stops the release here.
-      - run: target/debug/examples/release verify dist/rune-update.json
+      - run: target/debug/rune-release verify dist/rune-update.json
       - name: publicar
         run: |
           # The notices beside the program too, for whoever reads the

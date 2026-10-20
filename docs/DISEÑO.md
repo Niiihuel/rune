@@ -1,32 +1,46 @@
 # Diseño general: una interfaz compacta con limn
 
-RUNE conserva su lenguaje visual compacto con limn. Discord y Serein sirven
-como referencias de comportamiento —jerarquía, foco, hover y separación de
-zonas—, no como un diseño que haya que reproducir píxel a píxel. Esta es la
-preferencia explícita del dueño en la revisión del 2026-10-14.
+RUNE conserva su lenguaje visual compacto. Discord y Serein sirven como
+referencias de comportamiento —jerarquía, foco, hover y separación de
+zonas—, no como un diseño que haya que reproducir píxel a píxel
+(preferencia explícita del dueño, 2026-10-14). Los textos, iconos, colores y
+recursos son de RUNE. No se agrega un control sólo porque aparece en la
+referencia: su acción tiene que existir y respetar las capacidades del
+proveedor.
 
-Las medidas de abajo documentan el punto de partida histórico tomado de
-capturas de Discord (tema «Ónix», zoom 67 %, contenido de 1361×797 px
-lógicos). Las pruebas de columnas en `crates/rune-ui/src/tests/layout.rs`
-conservan esas proporciones mientras las correcciones de interacción tienen
-sus propios contratos. No son evidencia de dimensiones internas de Discord.
+Las medidas de abajo salen de capturas de Discord (tema «Ónix», zoom 67 %,
+contenido de 1361×797 px lógicos) y las pruebas de columnas de
+`crates/rune-ui/src/tests/layout.rs` las conservan. No son evidencia de
+dimensiones internas de Discord. Los patrones de interacción adoptados,
+con su fuente, están en [DISCORD_RESEARCH.md](DISCORD_RESEARCH.md).
 
-## Contrato de interacción actual
+## Reglas de interacción
 
-- Composer de una línea de 48 px, con texto e iconos centrados verticalmente.
-  Crece con el texto; los controles se mantienen junto a la primera línea.
-- Separación de 8 px entre el viewport del timeline y el composer. Esa
-  franja no activa mensajes ni muestra sus acciones al pasar el puntero.
-- Las acciones superpuestas no aumentan la altura ni cambian el wrapping
-  del mensaje. La navegación por teclado conserva acceso a las acciones.
-- Las insignias de menciones mantienen sus números centrados dentro de la
-  cápsula, con espacio horizontal para `99+` y sin padding vertical que
-  reduzca el alto disponible para el texto.
-- Los textos, iconos, colores y recursos originales de RUNE se conservan.
-  No se añade un control sólo por aparecer en la referencia: su acción debe
-  existir y respetar las capacidades del proveedor.
-
-Evidencia de la referencia y límites: [UI_BEHAVIOR.md](UI_BEHAVIOR.md).
+- **Composer**: una línea de 48 px como mínimo, con texto, placeholder e
+  iconos centrados en vertical por un único cálculo de primera línea. Crece
+  con el texto y los controles se quedan junto a la primera línea. Un
+  placeholder largo se trunca en una línea y no agranda la tarjeta.
+- **Timeline y composer**: 8 px estables entre los dos. Esa franja no activa
+  mensajes ni muestra sus acciones, tampoco cuando crece el editor. Mostrar
+  u ocultar el indicador de escritura no mueve el último mensaje, y crecer
+  el composer mantiene el final visible sólo si la persona ya lo seguía; al
+  leer historia se conserva el ancla.
+- **Acciones al pasar sobre un mensaje**: van superpuestas, no cambian la
+  altura ni el ajuste de líneas de la fila ni la posición del scroll. Pasar
+  del mensaje a la barra no la hace parpadear; el foco de teclado o un menú
+  abierto la retienen; se quedan dentro del timeline en la primera y la
+  última fila y en ventanas estrechas (lo que no entra va al menú de
+  desborde). El teclado llega a todas las acciones.
+- **Contadores del carril y la lista de canales**: menciones en canales de
+  servidor y no leídos en directos; un canal sin acceso no cuenta. El
+  número queda centrado en la cápsula, con lugar para `99+` y sin padding
+  vertical que le quite alto al texto; la insignia se ancla a la caja del
+  icono y su anillo entra entero. El nombre del canal se trunca antes de la
+  insignia y la fila no cambia de alto.
+- **Bienvenida y acceso**: marca centrada, título de 24 pt, tarjeta de hasta
+  480 y acción de 44, con los tokens del tema; sin campos de credenciales
+  ni QR sin flujo detrás. Las esperas conservan Cancelar, los errores
+  largos se desplazan y el contenido se adapta a ventanas chicas.
 
 Todas las coordenadas son px lógicos. Las «y» de la captura cuentan su barra
 de título (34.5 px); RUNE no la dibuja (ver diferencias), así que lo que
@@ -86,23 +100,18 @@ borde inferior queda igual.
 | `accent` | `#5865f2` | ámbar propio `#e0a43c` |
 | `card` (tarjetas dentro de un mensaje) | `#0a0a0c` con borde gris al 20 % (`--embed-background`, `--border-subtle` del CSS público) | `#0a0a0c` con borde `border` `#1e1e20` |
 
-**Tarjetas dentro de un mensaje (2026-10-19).** Invitaciones, embeds y
-vistas previas de enlaces, adjuntos, encuestas, mensajes de voz,
-contenedores de bots, bloques de código y citas, reacciones y la subida en
-curso se pintan con `card` y un borde de 1 px en `border`. Antes usaban
-`raised`, que en Ónix es igual a la fila bajo el puntero (`#121213` contra
-`#121212`) y en Oscuro y Claro casi igual: la tarjeta desaparecía con el
-puntero encima. Como el cliente oficial, en Ónix la tarjeta queda entre el
-negro y la fila bajo el puntero y la separa el borde. En Oscuro es
-`#12151c` (debajo del chat y distinto de las columnas) y en Claro `#e5e7ed` (debajo de la fila bajo el
-puntero, porque el blanco casi no se distingue del chat). Un test de
-`look.rs` exige en los tres temas ΔL\* ≥ 2,5 entre la tarjeta y el chat y
-entre la tarjeta y la fila bajo el puntero, y ΔL\* ≥ 4 entre el borde y los
-tres. Un spoiler revelado pasó de `raised` a `selected`, el relleno del
-código en línea. Antes y después en Ónix, con el puntero sobre las
-invitaciones simuladas:
-[antes](img/tarjetas-con-contraste-antes-2026-10-19.png),
-[después](img/tarjetas-con-contraste-2026-10-19.png).
+**Tarjetas dentro de un mensaje.** Invitaciones, embeds y vistas previas
+de enlaces, adjuntos, encuestas, mensajes de voz, contenedores de bots,
+bloques de código y citas, reacciones y la subida en curso se pintan con
+`card` y un borde de 1 px en `border`. Como en el cliente oficial, en Ónix
+la tarjeta queda entre el negro y la fila bajo el puntero y la separa el
+borde; con `raised` desaparecía con el puntero encima. En Oscuro es
+`#12151c` y en Claro `#e5e7ed`. Un test de `look.rs` exige en los tres temas
+ΔL\* ≥ 2,5 entre la tarjeta y el chat y entre la tarjeta y la fila bajo el
+puntero, y ΔL\* ≥ 4 entre el borde y los tres. Un spoiler revelado usa
+`selected`, el relleno del código en línea.
+[Captura](img/tarjetas-con-contraste-2026-10-19.png) con el puntero sobre
+las invitaciones simuladas.
 
 Claro y Oscuro siguen disponibles en Ajustes → Apariencia.
 
@@ -113,20 +122,18 @@ Claro y Oscuro siguen disponibles en Ajustes → Apariencia.
   aparte, así que lo centra en la franja de 52 px de las cabeceras para que
   no toque el borde de la ventana. El resto del carril baja 5 px con él.
 
-- **Barra de título en la cabecera** (2026-10-19, rama `barra-e-icono`,
-  como Surco): sin franja propia encima, como la de Discord. Cuando RUNE
+- **Barra de título en la cabecera**: sin franja propia encima. Cuando RUNE
   dibuja su marco, `WindowControls` de limn (minimizar, maximizar o
   restaurar, cerrar; 46 px de ancho cada uno, rojo de Windows al cerrar)
   va al final de la franja superior de cada vista, con 52 px de alto: la
-  cabecera de la conversación o del escenario de voz, que guardan sus 138 px
-  para no tapar nada, y arriba a la derecha en Ajustes, en la pantalla de
-  inicio de sesión y en la de carga. Arrastrar la franja libre de la
-  cabecera mueve la ventana, doble clic la maximiza o la restaura, y un
-  borde de 5 px del color del carril la cambia de tamaño cuando no está
-  maximizada. Pantalla completa no los muestra. Automática: en Windows y en
-  X11; Wayland deja la del sistema. Ajustes › Sistema › Ventana › Barra de
-  título fuerza la de RUNE o la del sistema.
-  [Normal](img/barra-de-titulo-2026-10-19.png) (cerrar bajo el puntero),
+  cabecera de la conversación o del escenario de voz, que guardan sus
+  138 px para no tapar nada, y arriba a la derecha en Ajustes, en el inicio
+  de sesión y en la pantalla de carga. Arrastrar la franja libre mueve la
+  ventana, doble clic la maximiza o la restaura, y un borde de 5 px del
+  color del carril la cambia de tamaño cuando no está maximizada. Pantalla
+  completa no los muestra. Automática: la de RUNE en Windows y X11, la del
+  sistema en Wayland; Ajustes › Sistema › Ventana › Barra de título la
+  fuerza. [Normal](img/barra-de-titulo-2026-10-19.png),
   [maximizada](img/barra-de-titulo-maximizada-2026-10-19.png),
   [el ajuste](img/barra-de-titulo-ajustes-2026-10-19.png).
   Bandeja de entrada y ayuda no existen en RUNE.
@@ -145,20 +152,16 @@ Claro y Oscuro siguen disponibles en Ajustes → Apariencia.
 - **Panel de voz**: va en su propio recuadro sobre el panel de usuario; en
   la captura es el mismo recuadro que crece hacia arriba (sección voz).
 
-## Pendiente en limn
+## Tipografía, tooltips y barras
 
-- Peso seminegrita: resuelto el 2026-10-18 (paquete 10): limn trae
-  `FontFamily::SansSemibold`, con Ubuntu Sans SemiBold porque Ubuntu no
-  tiene ese peso. RUNE la usa sólo donde la REA la pide: el título de los
-  tooltips del carril y el nombre de la tarjeta de actividad (14 px
-  seminegrita). Lo demás sigue en medium.
-- Tooltips del carril (resuelto el 2026-10-18, ramas
-  `limn-tipografia-y-opciones` y `limn-avisos-y-compositor`): abren al
-  instante, con el título a 16 px en seminegrita sobre `#0a0a0c` en los
-  aspectos oscuros y la flecha de siempre (`Tooltip::delay_ms`,
+- **Seminegrita**: `FontFamily::SansSemibold` de limn (Ubuntu Sans
+  SemiBold, porque Ubuntu no tiene ese peso), sólo donde la REA la pide: el
+  título de los tooltips del carril y el nombre de la tarjeta de actividad
+  (14 px). Lo demás va en medium.
+- **Tooltips del carril**: abren al instante, con el título a 16 px en
+  seminegrita sobre `#0a0a0c` en los aspectos oscuros (`Tooltip::delay_ms`,
   `title_font_size`, `title_font_family`, `background`, `arrow`). Los demás
-  tooltips siguen con los 350 ms y los 12 px de limn.
-- Barras de desplazamiento que se ocultan: la del chat aparece al
-  desplazar, al usar la barra y, desde el 2026-10-18, con sólo poner el
-  puntero sobre el chat (`ScrollbarVisibility::AutoHideUnlessHovered`); se
-  queda 600 ms después y se desvanece en 200.
+  tooltips usan los 350 ms y los 12 px de limn.
+- **Barra del chat**: aparece al desplazar, al usarla y al poner el puntero
+  sobre el chat (`ScrollbarVisibility::AutoHideUnlessHovered`); se queda
+  600 ms y se desvanece en 200.

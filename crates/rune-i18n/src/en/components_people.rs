@@ -76,11 +76,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Buscar en los ajustes", "Search settings"),
     ("Editar perfil", "Edit profile"),
     ("Cerrar (Esc)", "Close (Esc)"),
-    ("No hay resultados", "No results"),
-    (
-        "Ningún ajuste coincide con «{query}». Probá con otra palabra.",
-        "No setting matches “{query}”. Try another word.",
-    ),
     ("Ajustes relacionados", "Related settings"),
     ("Nivel del micrófono", "Microphone level"),
     (

@@ -486,9 +486,13 @@ impl View<'_> {
                         nested: slot.parent.is_some(),
                         glyph: match channel.kind {
                             ChannelKind::Category => Icon::ChevronDown,
-                            ChannelKind::Forum => Icon::Chat,
-                            kind if kind.is_voice() => Icon::Volume,
-                            _ => Icon::Hash,
+                            kind => {
+                                crate::channel_list::glyph(kind).unwrap_or(if kind.is_voice() {
+                                    Icon::Volume
+                                } else {
+                                    Icon::Hash
+                                })
+                            }
                         },
                         movable: can,
                         menu: if can { menu } else { Vec::new() },

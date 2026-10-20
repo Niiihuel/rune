@@ -382,6 +382,55 @@ fn go(ui: &mut Ui, store: &Store, index: usize) {
     viewer.original = false;
 }
 
+/// The viewer opens fitted to its box, and the tree reports no zoom until
+/// one: when that fit already shows more of the picture than its preview
+/// has, its own pixels load at once, as a zoom past the preview asks. The
+/// host calls this after layout. The fit it records keeps it from asking
+/// again, so «Ver la vista previa» still goes back to the preview.
+pub fn follow_viewer(ui: &mut Ui, store: &Store, tree: &limn::UiTree) {
+    if ui
+        .attachment_viewer
+        .as_ref()
+        .is_none_or(|viewer| viewer.zoom.is_some() || viewer.original)
+    {
+        return;
+    }
+    let Some(shown) = shown(ui, store) else {
+        return;
+    };
+    // An animation plays its preview; its own size is not offered.
+    let animated = ui
+        .images
+        .get(shown.preview)
+        .is_some_and(|ready| ui.animated.contains(ready.sha256()));
+    let Some((width, height)) = shown
+        .dimensions
+        .filter(|_| shown.original.is_some() && !animated)
+    else {
+        return;
+    };
+    let view = format!("{CLOSE}:view:");
+    let Some(room) = tree
+        .frame()
+        .regions
+        .iter()
+        .find(|region| region.kind == limn::HitKind::Zoom && region.id.starts_with(&view))
+        .map(|region| region.rect)
+    else {
+        return;
+    };
+    // The viewer never enlarges a picture past its own size.
+    let fit = (room.width / width.max(1) as f32)
+        .min(room.height / height.max(1) as f32)
+        .min(1.0);
+    if fit > preview_share((width, height)) {
+        if let Some(viewer) = ui.attachment_viewer.as_mut() {
+            viewer.zoom = Some((fit, true));
+            viewer.original = true;
+        }
+    }
+}
+
 /// The share of its own size a picture's preview has: what the viewer may
 /// enlarge it to before its own pixels are wanted.
 fn preview_share((width, height): (u32, u32)) -> f32 {

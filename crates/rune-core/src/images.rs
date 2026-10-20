@@ -38,7 +38,9 @@ const THUMBHASHES_PER_LOAD: usize = 8;
 const CONCURRENT: usize = 4;
 pub const IMAGE_ENTRIES: usize = 256;
 /// GPU textures have a separate bound from the encoded-byte cache. At the
-/// largest preview size, 64 RGBA textures occupy at most 96 MiB of pixels.
+/// largest preview size, 64 RGBA textures occupy at most 96 MiB of pixels,
+/// four times that on a screen of density 2 (see [`density_step`]); limn
+/// evicts the least recently drawn first.
 pub const IMAGE_TEXTURE_ENTRIES: usize = 64;
 const CACHE_BYTES: usize = 16 * 1024 * 1024;
 const RETRY_DELAY: Duration = Duration::from_secs(30);
@@ -125,6 +127,9 @@ impl DownloadError {
 pub(crate) struct Images {
     #[cfg(test)]
     pub(crate) loopback: bool,
+    /// The screen's pixels for each logical one, in [`density_step`]s:
+    /// what pictures are decoded for.
+    density: f32,
     runtime: Handle,
     client: Option<reqwest::Client>,
     origins: &'static [&'static str],
@@ -162,6 +167,7 @@ impl Images {
         Self {
             #[cfg(test)]
             loopback: false,
+            density: 1.0,
             disk: disk::DiskCache::new(runtime.clone(), wake.clone()),
             runtime,
             origins,
@@ -191,6 +197,27 @@ impl Images {
             retry_at: None,
             hosted: None,
         }
+    }
+
+    /// Decode for a screen of `pixels_per_point`. A new step forgets what was
+    /// decoded for the old one, which loads again from the disk or the
+    /// network at its new size; the pictures at their own size stay.
+    pub fn set_density(&mut self, pixels_per_point: f32) {
+        let step = density_step(pixels_per_point);
+        if step == self.density {
+            return;
+        }
+        self.density = step;
+        self.epoch = self.epoch.wrapping_add(1);
+        for (_, task) in self.pending.drain() {
+            task.abort();
+        }
+        self.cache
+            .retain(|source, _| source.kind == ImageKind::Original);
+        self.order
+            .retain(|source| source.kind == ImageKind::Original);
+        // What is left weighs nothing (see `weight`).
+        self.bytes = 0;
     }
 
     /// Poll completed work, retain only the bounded requested set and start
@@ -315,13 +342,15 @@ impl Images {
                     self.epoch,
                 );
                 let key = source.clone();
+                let density = self.density;
                 let task = self.runtime.spawn(async move {
                     let kind = source.kind;
-                    let data =
-                        tokio::task::spawn_blocking(move || decoded(&bytes, kind).map(Arc::new))
-                            .await
-                            .ok()
-                            .flatten();
+                    let data = tokio::task::spawn_blocking(move || {
+                        decoded(&bytes, kind, density).map(Arc::new)
+                    })
+                    .await
+                    .ok()
+                    .flatten();
                     let done = Completed {
                         epoch,
                         source,
@@ -339,6 +368,22 @@ impl Images {
             let Some(url) = self.url(source) else {
                 self.insert(source.clone(), None);
                 continue;
+            };
+            // The provider's own address for this screen's size, on the same
+            // origin; it is what the disk keeps, so each size is kept apart.
+            let (url, address) = match self
+                .hosted
+                .as_ref()
+                .and_then(|provider| provider.image_at(&source.url, self.density))
+                .and_then(|raw| {
+                    let sized = self.url(&RemoteImage {
+                        url: raw.clone(),
+                        kind: source.kind,
+                    })?;
+                    (sized.origin() == url.origin()).then_some((sized, raw))
+                }) {
+                Some(sized) => sized,
+                None => (url, source.url.clone()),
             };
             let origin = url.origin().ascii_serialization();
             if let Some(at) = self.cooldowns.get(&origin).copied() {
@@ -366,6 +411,7 @@ impl Images {
             );
             let key = source.clone();
             let disk = disk.clone();
+            let density = self.density;
             let task = self.runtime.spawn(async move {
                 let preview_permit = if source.kind != ImageKind::Artwork {
                     let Ok(permit) = preview_gate.acquire_owned().await else {
@@ -383,7 +429,7 @@ impl Images {
                 // Kept from an earlier run: the network is not asked.
                 let kept = match disk.clone() {
                     Some(disk) => {
-                        let wanted = source.url.clone();
+                        let wanted = address.clone();
                         tokio::task::spawn_blocking(move || disk.lock().ok()?.read(kind, &wanted))
                             .await
                             .ok()
@@ -398,12 +444,12 @@ impl Images {
                 };
                 let (data, retry, origin_cooldown) = match bytes {
                     Ok(bytes) => {
-                        let wanted = source.url.clone();
+                        let wanted = address;
                         (
                             tokio::task::spawn_blocking(move || {
                                 let _permit = permit;
                                 let _preview_permit = preview_permit;
-                                let data = normalize_at(&path, &bytes, kind).map(Arc::new);
+                                let data = normalize_at(&path, &bytes, kind, density).map(Arc::new);
                                 // Kept for the next run once it proved to be a picture.
                                 if let (true, Some(_), Some(disk)) = (fetched, &data, disk) {
                                     if let Ok(mut disk) = disk.lock() {
@@ -496,7 +542,9 @@ impl Images {
         self.bytes += data.as_ref().map_or(0, |data| weight(&source, data));
         self.cache.insert(source.clone(), data);
         self.order.push_back(source);
-        while self.cache.len() > IMAGE_ENTRIES || self.bytes > CACHE_BYTES {
+        // A denser screen's pictures take more bytes each: the same count fits.
+        let budget = (CACHE_BYTES as f32 * self.density * self.density) as usize;
+        while self.cache.len() > IMAGE_ENTRIES || self.bytes > budget {
             if let Some(old) = self.order.pop_front() {
                 self.failures.remove(&old);
                 if let Some(Some(data)) = self.cache.remove(&old) {
@@ -653,34 +701,56 @@ async fn download(
 /// [`normalize`] for the picture at `path`: artwork whose path ends in
 /// `.json` is an animated vector (Lottie) sticker, drawn from its vectors.
 /// Only sticker URLs name one; nothing else is read as vectors.
-pub(crate) fn normalize_at(path: &str, bytes: &[u8], kind: ImageKind) -> Option<ImageData> {
-    if kind != ImageKind::Artwork || !path.ends_with(".json") {
-        return normalize(bytes, kind);
-    }
+/// It is decoded for a screen of `density` (a [`density_step`]).
+pub(crate) fn normalize_at(
+    path: &str,
+    bytes: &[u8],
+    kind: ImageKind,
+    density: f32,
+) -> Option<ImageData> {
     if bytes.is_empty() || bytes.len() > byte_limit(kind) {
         return None;
     }
-    let (first, animation) = lottie::decode(bytes, THUMBNAIL, |frame| fit(frame, kind))?;
+    if kind != ImageKind::Artwork || !path.ends_with(".json") {
+        return decoded(bytes, kind, density);
+    }
+    let side = scaled(THUMBNAIL, density);
+    let (first, animation) = lottie::decode(bytes, side, |frame| fit(frame, kind, density))?;
     still(first, animation.map(Arc::new))
 }
 
+/// [`normalize_at`] for a screen of density 1 and a path that is not
+/// vectors: the GIF picker's stills.
 pub(crate) fn normalize(bytes: &[u8], kind: ImageKind) -> Option<ImageData> {
-    if bytes.len() > byte_limit(kind) {
-        return None;
+    normalize_at("", bytes, kind, 1.0)
+}
+
+/// The step of a screen's pixels per logical pixel that pictures are
+/// decoded for: the next half step up, from 1 to 2, so a cached picture
+/// serves nearby scales; denser screens get 2 (shortcut: past 2 the
+/// textures would pass limn's memory bound; raise both together).
+pub fn density_step(pixels_per_point: f32) -> f32 {
+    if !pixels_per_point.is_finite() {
+        return 1.0;
     }
-    decoded(bytes, kind)
+    ((pixels_per_point * 2.0).ceil() / 2.0).clamp(1.0, 2.0)
+}
+
+/// `side` on a screen of `density`.
+fn scaled(side: u32, density: f32) -> u32 {
+    (side as f32 * density).round() as u32
 }
 
 /// [`normalize`] without a download's byte budget: for a file the provider
 /// keeps itself, bounded by `ProfileImage::MAX_ANIMATED_BYTES` instead (a
 /// moving profile picture may pass a still one's budget). Decoding keeps
 /// its own bounds.
-fn decoded(bytes: &[u8], kind: ImageKind) -> Option<ImageData> {
+fn decoded(bytes: &[u8], kind: ImageKind, density: f32) -> Option<ImageData> {
     if bytes.is_empty() {
         return None;
     }
     match kind {
-        ImageKind::Clip => return clip(bytes),
+        ImageKind::Clip => return clip(bytes, density),
         ImageKind::Original => return original(bytes),
         _ => {}
     }
@@ -730,10 +800,14 @@ fn decoded(bytes: &[u8], kind: ImageKind) -> Option<ImageData> {
     }
     // A blurred picture stands still: its frames would only cost memory.
     let animation = (!banner && !obscured)
-        .then(|| animation::decode(bytes, format, kind, limits, fit))
+        .then(|| {
+            animation::decode(bytes, format, kind, limits, |frame, kind| {
+                fit(frame, kind, density)
+            })
+        })
         .flatten()
         .map(Arc::new);
-    let frame = fit(decoded, kind);
+    let frame = fit(decoded, kind, density);
     still(if obscured { obscure(frame) } else { frame }, animation)
 }
 
@@ -771,8 +845,8 @@ fn still(frame: image::RgbaImage, animation: Option<Arc<Animation>>) -> Option<I
 
 /// A clip, such as a GIF site's: its first picture as the still and every
 /// picture as an animation, under the same budgets as an animated preview.
-fn clip(bytes: &[u8]) -> Option<ImageData> {
-    let (first, animation) = animation::clip(bytes, |frame| fit(frame, ImageKind::Clip))?;
+fn clip(bytes: &[u8], density: f32) -> Option<ImageData> {
+    let (first, animation) = animation::clip(bytes, |frame| fit(frame, ImageKind::Clip, density))?;
     still(first, animation.map(Arc::new))
 }
 
@@ -809,28 +883,34 @@ fn original(bytes: &[u8]) -> Option<ImageData> {
     })
 }
 
-/// The size a preview of `kind` is shown at; animation frames use it too.
-fn fit(decoded: image::DynamicImage, kind: ImageKind) -> image::RgbaImage {
+/// The size a preview of `kind` is shown at on a screen of `density`;
+/// animation frames use it too.
+fn fit(decoded: image::DynamicImage, kind: ImageKind, density: f32) -> image::RgbaImage {
     let preview = matches!(
         kind,
         ImageKind::AttachmentPreview | ImageKind::Clip | ImageKind::Obscured
     );
     let banner = kind == ImageKind::Banner;
+    let thumbnail = scaled(THUMBNAIL, density);
+    let (width, height) = if preview {
+        (PREVIEW_WIDTH, PREVIEW_HEIGHT)
+    } else if banner {
+        (BANNER_WIDTH, BANNER_HEIGHT)
+    } else {
+        (THUMBNAIL, THUMBNAIL)
+    };
+    let (width, height) = (scaled(width, density), scaled(height, density));
     let resized = decoded
         .resize(
-            if preview {
-                PREVIEW_WIDTH.min(decoded.width())
-            } else if banner {
-                BANNER_WIDTH.min(decoded.width())
+            if preview || banner {
+                width.min(decoded.width())
             } else {
-                THUMBNAIL
+                width
             },
-            if preview {
-                PREVIEW_HEIGHT.min(decoded.height())
-            } else if banner {
-                BANNER_HEIGHT.min(decoded.height())
+            if preview || banner {
+                height.min(decoded.height())
             } else {
-                THUMBNAIL
+                height
             },
             image::imageops::FilterType::Triangle,
         )
@@ -838,14 +918,14 @@ fn fit(decoded: image::DynamicImage, kind: ImageKind) -> image::RgbaImage {
     if preview || banner {
         return resized;
     }
-    let mut thumbnail = image::RgbaImage::new(THUMBNAIL, THUMBNAIL);
+    let mut canvas = image::RgbaImage::new(thumbnail, thumbnail);
     image::imageops::overlay(
-        &mut thumbnail,
+        &mut canvas,
         &resized,
-        i64::from((THUMBNAIL - resized.width()) / 2),
-        i64::from((THUMBNAIL - resized.height()) / 2),
+        i64::from((thumbnail - resized.width()) / 2),
+        i64::from((thumbnail - resized.height()) / 2),
     );
-    thumbnail
+    canvas
 }
 
 #[cfg(test)]

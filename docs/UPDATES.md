@@ -1,7 +1,7 @@
 # Actualizaciones
 
 RUNE se actualiza solo desde las GitHub Releases de `Niiihuel/rune`
-(decisión del dueño del 2026-10-19, rama `actualizaciones`). Cada tag `v*`
+(decisión del dueño del 2026-10-19). Cada tag `v*`
 publica una release con un manifiesto firmado; una versión es
 **obligatoria** si el mensaje de su tag anotado tiene la palabra
 «obligatoria», y entonces RUNE se actualiza antes de abrir. Si no, la
@@ -11,6 +11,8 @@ Código: `crates/rune-update` (manifiesto, firma, descarga, instalación),
 `apps/desktop/src/update.rs` (búsqueda al iniciar, ventana de la
 obligatoria, instalación desde la ventana principal, `rune --install`),
 `rune-components::updates` y `rune-ui::updates` (interfaz),
+`tools/rune-release` (las herramientas del dueño: `rune-release` firma
+las releases y `rune-test-feed` es el feed local; no van en la app),
 `.github/workflows/release.yml` (CI) y `scripts/update-key.sh` (la clave).
 
 ## Cómo funciona
@@ -70,7 +72,7 @@ obligatoria se descubre recién con **Buscar ahora**.
 ![Ajustes › Actualizaciones con una versión disponible, simulado](img/actualizaciones-ajustes-2026-10-19.png)
 
 Capturas en un Xvfb privado de 1280×800 con el feed local
-(`test_feed --mandatory --slow`, `--mandatory --corrupt` y sin opciones) y
+(`rune-test-feed --mandatory --slow`, `--mandatory --corrupt` y sin opciones) y
 la simulación (`--language es --channel general --action jump:latest
 --action update:notes`; `--action me:settings --action
 click:us:page=updates`).
@@ -92,7 +94,7 @@ instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
 
 3. El workflow **Release** (`.github/workflows/release.yml`):
    - verifica que el tag sea anotado y que nombre la versión del workspace
-     (`release tag`), y que `THIRD_PARTY_NOTICES.md` esté al día: lo
+     (`rune-release tag`), y que `THIRD_PARTY_NOTICES.md` esté al día: lo
      regenera con cargo-about 0.9.0 desde el lock y corta si difiere del
      commiteado ([avisos de terceros](#avisos-de-terceros));
    - crea una release borrador con el mensaje del tag como notas (un tag
@@ -100,10 +102,10 @@ instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
      instaladas no la ven: `releases/latest` la saltea);
    - compila el artefacto de Linux en Ubuntu 24.04 y lo sube al borrador;
      el de Windows también cuando esté encendido ([Windows](#windows));
-   - arma el manifiesto (`release manifest`, con `minimum_version`), lo
-     firma con el secreto (`release sign`, con el programa ya compilado
+   - arma el manifiesto (`rune-release manifest`, con `minimum_version`), lo
+     firma con el secreto (`rune-release sign`, con el programa ya compilado
      para que ningún build script vea el secreto), lo **verifica con la
-     clave compilada en RUNE** (`release verify`: un secreto que no
+     clave compilada en RUNE** (`rune-release verify`: un secreto que no
      coincide con `release-key.pub` corta acá), sube también
      `THIRD_PARTY_NOTICES.md` y `rune-licenses.tar.gz` (ese archivo,
      `LICENSE-*` y `assets/licenses`) y recién entonces publica la release.
@@ -171,8 +173,8 @@ git add crates/rune-update/release-key.pub
 git commit -m "Actualizaciones: clave pública de las releases"
 ```
 
-El script genera la clave con `cargo run -p rune-update --example release
--- keygen` (el sistema da la entropía), deja la privada en
+El script genera la clave con `cargo run -p rune-release -- keygen` (el
+sistema da la entropía), deja la privada en
 `~/.config/rune-release/update-signing.key` (0600, carpeta 0700; nunca la
 imprime), escribe la pública en `release-key.pub` y la carga como secreto
 `RUNE_UPDATE_SIGNING_KEY` de `Niiihuel/rune` con `gh secret set … < archivo`
@@ -187,9 +189,8 @@ copias viejas no aceptarán esa release y hay que reinstalarlas.
 
 ## Probar con el feed local
 
-Mientras el repositorio sea privado, las URLs de las releases piden
-autenticación y RUNE recibe 404: el updater se prueba contra un feed
-local. Todo se puede apuntar a otro lado con variables de entorno:
+El updater se prueba sin GitHub, contra un feed local. Todo se puede
+apuntar a otro lado con variables de entorno:
 
 | Variable | Qué hace | Dónde vale |
 | --- | --- | --- |
@@ -202,7 +203,7 @@ la sirve en `127.0.0.1`:
 
 ```sh
 nix-shell --arg withLogin true --arg withDocs true
-cargo run -p rune-update --features serve --example test_feed -- --mandatory --slow
+cargo run -p rune-release --bin rune-test-feed -- --mandatory --slow
 # imprime RUNE_UPDATE_FEED=… y RUNE_UPDATE_KEY=…; en otra terminal:
 RUNE_UPDATE_FEED=http://127.0.0.1:8765 RUNE_UPDATE_KEY=… RUNE_UPDATE_ROOT=/tmp/rune-app \
   cargo run -p rune-desktop
@@ -313,21 +314,16 @@ environment.sessionVariables = {
 La alternativa de siempre sigue: compilar desde el código en `nix-shell`;
 esa copia no se actualiza sola.
 
-**Probado y no probado.** Probado en NixOS con el feed local: `rune
---install` en un `HOME` de prueba (lanzador, entrada del menú, ícono), la
-obligatoria de punta a punta (ventana, descarga, verificación, cambio de
-`current`, `exec` del programa nuevo, borrado de la descarga) y la opcional
-desde la ventana principal. **Sin probar**: el build del workflow en Ubuntu
-(la primera corrida será la primera prueba), el binario genérico en una
-distribución común y en NixOS con `nix-ld`, y GitHub Releases de verdad.
+Probado en NixOS con el feed local (`rune --install` en un `HOME` de
+prueba, la obligatoria de punta a punta y la opcional). Falta probar el
+binario genérico en una distribución común y en NixOS con `nix-ld`.
 
 ## Windows
 
 **Artefacto**: `rune-x86_64-windows-setup.exe`, en el manifiesto como
 `windows-x86_64`: un instalador de [Inno Setup](https://jrsoftware.org/isinfo.php)
-6 armado con [`packaging/windows/rune.iss`](../packaging/windows/rune.iss)
-(rama `windows-instalador`). Inno Setup ya hace solo lo que pide el
-contrato: instalación por usuario, acceso directo con `AppUserModelID`,
+6 armado con [`packaging/windows/rune.iss`](../packaging/windows/rune.iss).
+Inno Setup ya hace solo lo que hace falta: instalación por usuario, acceso directo con `AppUserModelID`,
 cerrar la aplicación con el Restart Manager, modo silencioso,
 desinstalador, español e inglés, sin código propio dentro del instalador.
 NSIS, el de Serein, necesita llamadas a la API de Windows escritas a mano
@@ -365,8 +361,8 @@ HKCU\…\Uninstall\{9A354FE5-8128-4442-8261-E11202381361}_is1   «Aplicaciones i
   Windows 11 y con las actualizaciones de Windows 10; sin él, el login da
   el enlace de Microsoft). El paso `DLLs` del workflow deja en el log las
   bibliotecas que carga (tendrían que ser sólo las de Windows). El ícono
-  (`assets/icons/rune.ico`, de la rama `barra-e-icono`:
-  [ARTWORK.md](ARTWORK.md)) y la versión van dentro del `.exe`
+  (`assets/icons/rune.ico`, [ARTWORK.md](ARTWORK.md)) y la versión van
+  dentro del `.exe`
   (`apps/desktop/build.rs` con `winresource`, sólo para Windows).
 - Los datos de la persona están en otro lado (`%LOCALAPPDATA%\RUNE`,
   `%APPDATA%\RUNE` y el Administrador de credenciales): actualizar no los
@@ -474,24 +470,12 @@ publica el workflow con `--platform windows-x86_64 --program <setup.exe>`,
 y RUNE (de depuración, el instalado) se abre con `RUNE_UPDATE_FEED` y
 `RUNE_UPDATE_KEY`; bajo Wine, con `WGPU_BACKEND=gl`.
 
-**Probado con Wine** (2026-10-19, Wine 11 WoW64, Xvfb): ISCC arma el
-instalador; instalación silenciosa con los argumentos del updater, encima
-de una anterior también; archivos, licencias, acceso directo, claves del
-registro y la entrada `[Run]` que arranca RUNE; el ícono y la versión en
-`rune.exe` (`wrestool`); `rune.exe --licenses` por una tubería, igual a
-`THIRD_PARTY_NOTICES.md`; **el ciclo entero**: un RUNE instalado encontró
-una 9.9.9 obligatoria en el feed local, bajó el instalador, lo ejecutó y
-salió; el instalador reemplazó `rune.exe`, pasó la versión a 9.9.9 y
-volvió a abrir RUNE; la búsqueda siguiente, ya sin nada nuevo, borró
-`rune-updates`; desinstalación silenciosa: programa, acceso directo,
-entrada de «Aplicaciones», ID de las notificaciones y valor `Run` borrados,
-datos de `%LOCALAPPDATA%\RUNE` y `%APPDATA%\RUNE` intactos.
-
-**Sin probar** (Wine no lo hace o no lo dice): el `AppUserModelID` guardado
-en el acceso directo (el de Wine no guarda esa propiedad), cerrar un RUNE
-abierto con el Restart Manager (el de Wine no encuentra procesos), el
-asistente con ventanas, el build MSVC y el job del workflow, SmartScreen y
-todo en un Windows real.
+Con Wine se probó el ciclo entero (armar, instalar en silencio encima de
+otra, actualizar desde el feed local, volver a abrir, borrar
+`rune-updates`, desinstalar sin tocar los datos). Wine no guarda el
+`AppUserModelID` del acceso directo ni encuentra procesos con el Restart
+Manager: eso, el asistente con ventanas, el build MSVC, SmartScreen y todo
+en un Windows real quedan por probar.
 
 ## Seguridad
 
@@ -509,34 +493,10 @@ todo en un Windows real.
   red).
 - `RUNE_UPDATE_KEY` sólo existe en compilaciones de depuración.
 
-## Lo que tiene que hacer el dueño
+## Lo que queda del dueño
 
-1. Generar la clave y cargar el secreto: `scripts/update-key.sh`
-   ([La clave](#la-clave)); commitear `release-key.pub`; guardar una copia
-   de la privada.
-2. Hacer público `Niiihuel/rune` (hasta entonces las descargas de las
-   releases piden autenticación).
-3. Antes de cada release, si cambió `Cargo.lock`, regenerar y commitear
-   `THIRD_PARTY_NOTICES.md` ([avisos de terceros](#avisos-de-terceros)); si
-   no, el workflow se detiene en el primer job.
-4. Primer tag: con la versión del workspace (hoy `0.1.0`),
-   `git tag -a v0.1.0 -m "Primera versión con actualizaciones"` y
-   `git push origin v0.1.0`. Mirar el workflow: el paso `ldd` dice qué
-   bibliotecas pide el binario.
-5. Instalarla (`./rune --install`); en NixOS, con `nix-ld` como arriba.
-6. Probar una actualización: subir la versión a `0.1.1`, tag, y abrir la
-   instalada; después una obligatoria (`-m "obligatoria: …"`).
-7. Windows: encender el job antes de empujar el tag, con la variable del
-   repositorio `RUNE_WINDOWS_RELEASES` en `true` (GitHub › Settings ›
-   Secrets and variables › Actions › Variables, o
-   `gh variable set RUNE_WINDOWS_RELEASES --body true`). Para probar el job
-   sin que lo vea ninguna copia instalada: una pre-release
-   (`version = "0.1.0-rc.1"` en el workspace, tag `v0.1.0-rc.1`). Mirar en
-   el log los pasos `DLLs` (sólo bibliotecas de Windows) e `instalador por
-   usuario` (tamaño y SHA-256), y que `rune-update.json` tenga
-   `windows-x86_64`. Instalar en Windows con el instalador de la release
-   (SmartScreen: «Más información» › «Ejecutar de todos modos») y seguir
-   la lista de
-   [PLATFORM.md](PLATFORM.md#qué-tiene-que-probar-el-dueño-en-windows);
-   después una actualización como en el paso 6.
-8. Decidir la firma de código de Windows ([opciones](#windows)).
+Encender el job de Windows (variable del repositorio
+`RUNE_WINDOWS_RELEASES` en `true`; para probarlo sin que lo vea ninguna
+copia instalada, una pre-release como `v0.1.0-rc.1`), decidir la
+[firma de código](#windows) y probar en un Windows real: lista en
+[tasks/todo.md](../tasks/todo.md).

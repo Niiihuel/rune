@@ -630,15 +630,6 @@ pub enum Interaction {
 }
 
 impl Interaction {
-    /// The app it goes to, when the interaction says.
-    pub fn app(&self) -> Option<UserId> {
-        match self {
-            Self::Part { .. } => None,
-            Self::Modal { app, .. } => Some(*app),
-            Self::Command(used) => Some(used.app),
-        }
-    }
-
     /// The files a modal's answers carry, field by field.
     pub fn files(&self) -> Vec<UploadToken> {
         let Self::Modal { answers, .. } = self else {

@@ -13,9 +13,6 @@ use rune_i18n::{t, tr};
 
 use crate::{gap, icon, line, strong_line, text, Look};
 
-/// A megaphone, for a channel of announcements: Bootstrap's set has none.
-pub const MEGAPHONE: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5v3h2l6 3.5v-10l-6 3.5z"/><path d="M4.5 9.5 5.5 13H7"/><path d="M13 6.5v3"/></svg>"#;
-
 /// The widest a card gets.
 const CARD_WIDTH: f32 = 760.0;
 

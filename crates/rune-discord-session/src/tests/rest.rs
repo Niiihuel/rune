@@ -620,6 +620,7 @@ fn preview_image(events: &[Event]) -> Option<rune_model::RemoteImage> {
             channel: ChannelId(30),
             owner: rune_model::UserId(2),
             image,
+            ..
         }] => image.clone(),
         other => panic!("{other:?}"),
     }
@@ -633,10 +634,14 @@ async fn a_stream_preview_is_a_get_under_its_key_and_only_a_cdn_picture_of_it_is
         .execute(&secret(), &stream_preview(), "")
         .await
         .unwrap();
-    assert!(captured
-        .await
-        .unwrap()
-        .starts_with("GET /api/v10/streams/guild:40:30:2/preview HTTP/1.1"));
+    // The time asked goes along, as the official client sends it.
+    let asked = captured.await.unwrap();
+    let version = asked
+        .strip_prefix("GET /api/v10/streams/guild:40:30:2/preview?version=")
+        .and_then(|rest| rest.split_once(" HTTP/1.1"))
+        .map(|(version, _)| version.parse::<u64>().unwrap())
+        .unwrap();
+    assert!(version > 1_700_000_000_000, "{asked}");
     let image = preview_image(&events).unwrap();
     assert_eq!(image.url, good);
     assert_eq!(image.kind, rune_model::ImageKind::Banner);
@@ -679,20 +684,83 @@ async fn a_rate_limited_preview_waits_its_retry_after_and_a_rejected_session_end
                 .is_err()
         );
     });
+    // Each answer says how long is left to wait, for the interface to ask
+    // again only then.
     for _ in 0..2 {
         let events = http
             .execute(&secret(), &stream_preview(), "")
             .await
             .unwrap();
         assert_eq!(preview_image(&events), None);
+        let [Event::StreamPreview {
+            retry_after: Some(wait),
+            ..
+        }] = events.as_slice()
+        else {
+            panic!("{events:?}")
+        };
+        assert!(*wait > Duration::from_secs(29) && *wait <= Duration::from_secs(30));
     }
     server.await.unwrap();
+    // Pictures alone are held: a message still goes.
+    assert!(http.preview_hold().is_some());
+    assert!(!http.held_for_everything());
     let (http, _) = fixture(response(401, "{}")).await;
     let error = http
         .execute(&secret(), &stream_preview(), "")
         .await
         .unwrap_err();
     assert!(error.ends_session);
+}
+
+// Streams (transmisiones).
+#[tokio::test]
+async fn the_own_streams_picture_goes_up_as_a_jpeg_data_url_under_its_key() {
+    let jpeg = vec![0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3];
+    let upload = |server| Command::UploadStreamPreview {
+        server,
+        channel: ChannelId(30),
+        owner: rune_model::UserId(42),
+        jpeg: jpeg.clone(),
+    };
+    assert!(crate::http::preview_fits(&upload(None)));
+    let (http, captured) = fixture(response(204, "")).await;
+    let events = http
+        .execute(&secret(), &upload(Some(rune_model::ServerId(40))), "")
+        .await
+        .unwrap();
+    assert!(events.is_empty());
+    let sent = captured.await.unwrap();
+    assert!(
+        sent.starts_with("POST /api/v10/streams/guild:40:30:42/preview HTTP/1.1"),
+        "{sent}"
+    );
+    let body: Value = serde_json::from_str(sent.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(
+        body,
+        json!({"thumbnail": "data:image/jpeg;base64,/9j/4AECAw=="})
+    );
+    // In a conversation's call, its own key; a refusal is nobody's to see.
+    let (http, captured) = fixture(response(403, "{}")).await;
+    assert!(http
+        .execute(&secret(), &upload(None), "")
+        .await
+        .unwrap()
+        .is_empty());
+    assert!(captured
+        .await
+        .unwrap()
+        .starts_with("POST /api/v10/streams/call:30:42/preview HTTP/1.1"));
+    // Not a JPEG, or far too large: never sent.
+    for jpeg in [b"\x89PNG".to_vec(), vec![0xFF; 600 * 1024]] {
+        let command = Command::UploadStreamPreview {
+            server: None,
+            channel: ChannelId(30),
+            owner: rune_model::UserId(42),
+            jpeg,
+        };
+        assert!(!crate::http::preview_fits(&command));
+    }
 }
 
 #[tokio::test]

@@ -247,6 +247,47 @@ fn the_viewer_keeps_its_zoom_reports_it_and_wants_the_original_once_past_its_pre
 }
 
 #[test]
+fn the_viewer_asks_for_the_original_on_opening_when_its_fit_outgrows_the_preview() {
+    let (mut host, _) = three();
+    let viewer = |host: &Host| host.ui.attachment_viewer.as_ref().unwrap().clone();
+    // 300 by 340 has no larger original: nothing to ask for.
+    follow_viewer(&mut host.ui, &host.store, &host.tree);
+    assert_eq!((viewer(&host).zoom, viewer(&host).original), (None, false));
+    host.click("attachment-viewer:show:1");
+    host.ui.images.insert(
+        RemoteImage {
+            url: "https://cdn.example.test/foto.png".into(),
+            kind: rune_model::ImageKind::AttachmentPreview,
+        },
+        image(),
+    );
+    host.frame();
+    let room = host
+        .frame()
+        .regions
+        .iter()
+        .find(|region| region.kind == limn::HitKind::Zoom)
+        .unwrap()
+        .rect;
+    // 2400 by 1600 fitted to the room, against its 768 by 512 preview.
+    let fit = (room.width / 2400.0).min(room.height / 1600.0).min(1.0);
+    assert!(
+        fit > 512.0 / 1600.0,
+        "the test window shows more than the preview"
+    );
+    follow_viewer(&mut host.ui, &host.store, &host.tree);
+    assert_eq!(viewer(&host).zoom, Some((fit, true)));
+    assert!(viewer(&host).original);
+    assert!(wanted_images(&host.ui, &host.store, &host.tree)
+        .iter()
+        .any(|source| source.kind == rune_model::ImageKind::Original));
+    // Back to the preview, it stays there.
+    host.click("attachment-viewer:original");
+    follow_viewer(&mut host.ui, &host.store, &host.tree);
+    assert!(!viewer(&host).original);
+}
+
+#[test]
 fn ctrl_c_and_ctrl_s_copy_and_save_the_picture_and_the_header_offers_both() {
     let (mut host, message) = three();
     let copy = attachment_ids::action(message, AttachmentId(86), "copy-image");

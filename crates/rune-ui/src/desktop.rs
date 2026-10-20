@@ -420,12 +420,6 @@ pub fn local_activity(
     vec![Intent::Command(Command::SetLocalActivity(activity))]
 }
 
-/// The publishing again of what this device does, for a new session.
-pub fn republish(ui: &mut Ui, store: &mut Store) -> Vec<Intent> {
-    let activity = ui.desktop.activity.take();
-    local_activity(ui, store, activity)
-}
-
 /// How the interface shows an activity of this device.
 fn shown(activity: &LocalActivity) -> Activity {
     activity.shown(

@@ -1098,7 +1098,7 @@ fn content(view: &MessageView<'_>, live: &Live<'_>, width: f32, look: &Look) -> 
     ]);
     let mut parts = vec![gap(0.0, if view.continued { 2.0 } else { style.group_gap })];
     if let Some(reply) = &view.reply {
-        parts.push(reply_line(reply, look));
+        parts.push(reply_line(reply, &style, look));
     }
     parts.push(row);
     parts.push(gap(0.0, 2.0));
@@ -1605,34 +1605,45 @@ fn tag(label: &str, look: &Look) -> Element {
     .background(look.accent)
 }
 
-/// The line above a reply: a bent rule from over the avatar to who it
-/// answers, their small mark and the start of what they said.
-fn reply_line(reply: &Reply, look: &Look) -> Element {
-    let from = LEFT + AVATAR / 2.0 - 1.0;
-    let bend = GUTTER - from - 6.0;
-    let rule = |width: f32, height: f32| {
-        Element::panel(Element::spacer())
-            .size(Some(width), Some(height))
-            .background(look.border)
+/// The line above a reply, as the official client draws it (its
+/// `messageSpine`): a rule bent with a 6 px radius from the middle of the
+/// avatar column, at the height of the line's middle, to 4 px before what
+/// it answers, which starts where the author's name does below: their small
+/// mark, name and the start of what they said.
+fn reply_line(reply: &Reply, style: &MessageStyle, look: &Look) -> Element {
+    const HEIGHT: f32 = 22.0;
+    const SPINE: f32 = 2.0;
+    let text = gutter(style);
+    let center = if style.compact {
+        // The middle of the time column, which starts 16 in.
+        16.0 + (text - 16.0) / 2.0
+    } else {
+        LEFT + AVATAR / 2.0
     };
-    let connector = Element::column(vec![
-        gap(0.0, 10.0),
-        Element::row(vec![rule(bend, 2.0)]),
-        Element::row(vec![rule(2.0, 10.0)]),
-    ])
-    .size(Some(bend), Some(22.0));
-    let mut parts = vec![gap(from, 0.0), connector, gap(6.0, 0.0)];
+    let from = center - SPINE / 2.0;
+    let bend = text - 4.0 - from;
+    // A rounded rectangle's top-left corner, its other sides clipped away:
+    // limn has no per-side border.
+    let spine = Element::panel(Element::spacer())
+        .size(Some(bend + 12.0), Some(HEIGHT))
+        .border(look.border, SPINE)
+        .radius(6.0)
+        .translate(limn::Point::new(0.0, HEIGHT / 2.0 - SPINE / 2.0))
+        .clip_to(bend, HEIGHT);
+    let mut parts = vec![gap(from, 0.0), spine, gap(4.0, 0.0)];
     match &reply.author {
         Some(author) => {
             parts.push(
                 crate::avatar_with_image(&author.name, author.accent, 16.0, author.image.clone())
                     .centered_y(),
             );
+            parts.push(gap(4.0, 0.0));
             parts.push(
                 strong_line(&author.name, 14.0, author.ink)
                     .shrink_to_fit()
                     .centered_y(),
             );
+            parts.push(gap(4.0, 0.0));
             parts.push(reply_snippet(reply, look).flex(1.0).centered_y());
         }
         None => parts.push(
@@ -1646,7 +1657,7 @@ fn reply_line(reply: &Reply, look: &Look) -> Element {
         ),
     }
     parts.push(gap(RIGHT, 0.0));
-    Element::row(parts).gap(4.0).size(None, Some(22.0))
+    Element::row(parts).size(None, Some(HEIGHT))
 }
 
 /// What a reply answers, in its one line: its emoji 1.25 times its
@@ -2537,6 +2548,57 @@ mod tests {
         assert_eq!(drawn.len(), 1);
         assert_eq!(drawn[0].width, 17.5);
         assert!(!texts(&frame).iter().any(|text| text.contains("<:wave:1>")));
+    }
+
+    #[test]
+    fn a_reply_starts_where_the_name_does_and_its_spine_at_the_avatar() {
+        for compact in [false, true] {
+            let mut said = (*message(3, 2, 1)).clone();
+            said.content = "sí".into();
+            said.reply_to = Some(MessageId(1));
+            let mut shown = view(&said, ALL);
+            shown.style.compact = compact;
+            shown.author.name = "Ada".into();
+            shown.reply = Some(Reply {
+                author: Some(Author {
+                    name: "Grace".into(),
+                    ..shown.author.clone()
+                }),
+                snippet: "que user?".into(),
+                emoji: Vec::new(),
+            });
+            let frame = laid(live_row(shown, Live::default(), &Look::DARK));
+            let x = |name: &str| {
+                frame
+                    .commands
+                    .iter()
+                    .find_map(|command| match command {
+                        limn::DrawCommand::Text { position, text, .. } if text == name => {
+                            Some(position.x)
+                        }
+                        _ => None,
+                    })
+                    .unwrap()
+            };
+            // The small mark, 16 and 4 of room, then the name it answers.
+            assert_eq!(x("Grace") - 20.0, x("Ada"), "compact={compact}");
+            let spine = frame
+                .commands
+                .iter()
+                .find_map(|command| match command {
+                    limn::DrawCommand::StrokeRect { rect, radius, .. } if *radius == 6.0 => {
+                        Some(*rect)
+                    }
+                    _ => None,
+                })
+                .unwrap();
+            let center = if compact {
+                16.0 + (COMPACT_GUTTER - 16.0) / 2.0
+            } else {
+                LEFT + AVATAR / 2.0
+            };
+            assert_eq!(spine.x + 1.0, center, "compact={compact}");
+        }
     }
 
     #[test]

@@ -25,7 +25,9 @@ resuelve la persona usan una WebView temporal, en otro proceso.
 
 ## Estado
 
-Desarrollo activo, sólo Linux por ahora.
+Desarrollo activo. Linux primero; RUNE también compila para Windows y la
+CI lo prueba ahí, pero nada se probó todavía en un Windows real
+([docs/PLATFORM.md](docs/PLATFORM.md#windows)). macOS, más adelante.
 
 - **Simulación local** (el proveedor por defecto): todo lo de abajo
   funciona con datos inventados y deterministas, y la interfaz lo dice
@@ -35,7 +37,8 @@ Desarrollo activo, sólo Linux por ahora.
   ni la red real en las pruebas. El dueño la usó contra Discord el
   2026-10-17: el acceso, los servidores, los mensajes, los miembros y los
   perfiles funcionaron; la voz conectó a veces. **El resto no se probó
-  contra Discord**; cada recorrido lista qué falta probar en
+  contra Discord**: lo que falta probar está en
+  [tasks/todo.md](tasks/todo.md) y el detalle de cada función en
   [docs/DISCORD_SESSION.md](docs/DISCORD_SESSION.md).
 - **OAuth2 experimental** (`discord`): identidad y servidores; su canje
   público todavía no se validó con una aplicación registrada
@@ -49,7 +52,7 @@ Desarrollo activo, sólo Linux por ahora.
   respuestas, reacciones, menciones, fijados, encuestas, reenvíos, tarjetas
   de enlaces, componentes y comandos de aplicaciones; emoji de servidor en
   la línea; borradores que sobreviven al cierre.
-- **Archivos**: subir hasta ocho por mensaje con progreso y cancelación,
+- **Archivos**: subir hasta diez por mensaje con progreso y cancelación,
   pegar del portapapeles, imágenes y GIF animados, audio y video adjuntos
   dentro de RUNE, PDF multipágina con búsqueda, spoilers y «Guardar como…».
 - **Voz y video**: llamadas en servidores, privados y grupos, con Opus,
@@ -97,7 +100,7 @@ evento (`.ogg`, `.opus`, `.mp3` o `.wav`, hasta 1 MB y 5 s), suena ése.
 | Desconexión o error | `disconnect` |
 | Mensaje nuevo | `message` |
 
-Detalle en [docs/MEDIA.md](docs/MEDIA.md#sonidos-de-la-llamada-y-carpeta-propia-2026-10-17).
+Detalle en [docs/MEDIA.md](docs/MEDIA.md).
 
 ## Instalar y ejecutar
 
@@ -138,7 +141,7 @@ cargo run -p rune-media --example devices -- --meter      # audio local
 `RUNE_GPU=any` desactiva la elección de la GPU integrada. Lo que RUNE
 escribe en stderr (diagnóstico de voz y del Gateway, sin secretos) queda
 también en `~/.local/state/rune/rune.log`, rotado
-([docs/PLATFORM.md](docs/PLATFORM.md#registro-a-archivo-2026-10-18)).
+([docs/PLATFORM.md](docs/PLATFORM.md#registro-a-archivo)).
 
 Las versiones publicadas se instalan por usuario con `./rune --install` y
 se actualizan solas desde las GitHub Releases, con un manifiesto firmado;
@@ -148,7 +151,7 @@ una marcada como obligatoria se instala antes de abrir
 La CI de cada push a `main` y de cada pull request corre `cargo fmt`,
 `cargo clippy -D warnings` con todas las features (también el login de la
 sesión no oficial), `cargo test` y `cargo deny` ([deny.toml](deny.toml)) en
-Linux.
+Linux y Windows.
 
 ## Estructura
 
@@ -168,32 +171,32 @@ crates/rune-platform         servicios del escritorio: portales, bandeja, llaver
 crates/rune-components       piezas de interfaz con limn
 crates/rune-ui               la ventana: vista, acciones, atajos
 crates/rune-update           actualizaciones: manifiesto firmado, descarga e instalación
+tools/rune-release          herramientas del dueño: firmar releases, feed local de prueba
 ```
 
 Detalle en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Lo que RUNE
 necesitaba y limn no tenía se implementó en limn y se envió como pull
-request a [Niiihuel/limn](https://github.com/Niiihuel/limn); RUNE compila
-contra su rama de integración `rune/tooltip-faces`
+request a [Niiihuel/limn](https://github.com/Niiihuel/limn)
 ([docs/LIMN_INTEGRATION.md](docs/LIMN_INTEGRATION.md)).
 
 ## Documentación
 
 | Documento | Contenido |
 | --- | --- |
-| [ROADMAP](docs/ROADMAP.md) | Estado y orden de lo que sigue |
+| [tasks/todo.md](tasks/todo.md) | Lo pendiente y lo que falta probar contra el servicio real |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Crates, flujo de un cuadro, estado, virtualización, idiomas, pruebas |
-| [SECURITY](docs/SECURITY.md) | Reglas, credenciales, datos locales, licencias y `cargo deny` |
-| [DISCORD_SESSION](docs/DISCORD_SESSION.md) | Proveedor no oficial: qué hace, cómo y qué falta probar |
+| [SECURITY](docs/SECURITY.md) | Reglas, autorizaciones del dueño, credenciales, datos locales, licencias |
+| [DISCORD_SESSION](docs/DISCORD_SESSION.md) | Proveedor no oficial: qué hace y cómo |
 | [DISCORD_OAUTH](docs/DISCORD_OAUTH.md) | Configuración y alcance de OAuth2 |
-| [COMPATIBILITY](docs/COMPATIBILITY.md) | API, OAuth2, Gateway y términos; matriz por funcionalidad |
+| [REA](docs/REA.md) | Qué se analizó del cliente oficial y qué se usa |
 | [MEDIA](docs/MEDIA.md) · [VIDEO](docs/VIDEO.md) | Audio, voz, pantalla, cámara y video |
-| [FILES](docs/FILES.md) · [DOCUMENTS](docs/DOCUMENTS.md) · [ARTWORK](docs/ARTWORK.md) | Archivos, PDF, imágenes, emojis y stickers |
-| [PROFILES](docs/PROFILES.md) · [EXPRESSIONS](docs/EXPRESSIONS.md) · [INVITATIONS](docs/INVITATIONS.md) | Perfiles, expresiones e invitaciones |
-| [PLATFORM](docs/PLATFORM.md) | Bandeja, instancia única, atajos, registro a archivo |
+| [FILES](docs/FILES.md) · [VISOR](docs/VISOR.md) · [DOCUMENTS](docs/DOCUMENTS.md) | Adjuntos, descargas, visor de imágenes y videos, PDF |
+| [ARTWORK](docs/ARTWORK.md) · [FONTS](docs/FONTS.md) | Imágenes, emojis, stickers, GIF y fuentes |
+| [PROFILES](docs/PROFILES.md) · [INVITATIONS](docs/INVITATIONS.md) | Perfiles e invitaciones |
+| [DISEÑO](docs/DISEÑO.md) · [DISCORD_RESEARCH](docs/DISCORD_RESEARCH.md) | Diseño de la interfaz y valores tomados de Discord |
+| [PLATFORM](docs/PLATFORM.md) | Bandeja, instancia única, atajos, temas, registro, Windows |
 | [UPDATES](docs/UPDATES.md) | Releases, actualizaciones obligatorias y opcionales, la clave, instalación |
 | [PERFORMANCE](docs/PERFORMANCE.md) | Mediciones y cómo repetirlas |
-| [SEREIN_COMPARISON](docs/SEREIN_COMPARISON.md) | Serein frente a RUNE |
-| [REA](docs/REA.md) | Qué se analizó del cliente oficial y qué resultó |
 | [LIMN_INTEGRATION](docs/LIMN_INTEGRATION.md) | Qué de limn se usa y los PR enviados |
 
 ## Reglas
@@ -202,8 +205,8 @@ RUNE no es un administrador de bots. Su arquitectura separa la simulación,
 el adaptador OAuth2 y la sesión personal no oficial: nada por encima de
 `rune-provider` conoce un servicio concreto. Las credenciales no pasan por
 logs, capturas, archivos de configuración ni SQLite; no se importan
-sesiones de otros navegadores o clientes, no se falsifica la identidad del
-cliente y no se automatizan ni eluden MFA, CAPTCHA ni controles antiabuso.
+sesiones de otros navegadores o clientes, y MFA y CAPTCHA los resuelve
+siempre la persona: nunca se automatizan ni se eluden.
 Ver [docs/SECURITY.md](docs/SECURITY.md).
 
 La marca, los iconos, los colores y los sonidos de RUNE son propios.

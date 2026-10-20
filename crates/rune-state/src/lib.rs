@@ -404,8 +404,16 @@ pub struct Store {
     /// The account's own screen shared in its call; its `owner` is the account.
     sharing: Option<Watching>,
     /// The latest picture of each stream, by its owner, and where: `None`
-    /// when the provider had none. Kept while they stream there.
-    stream_previews: HashMap<UserId, (ChannelId, Option<rune_model::RemoteImage>)>,
+    /// when the provider had none, with how long it asked to wait. Kept
+    /// while they stream there.
+    stream_previews: HashMap<
+        UserId,
+        (
+            ChannelId,
+            Option<rune_model::RemoteImage>,
+            Option<std::time::Duration>,
+        ),
+    >,
     /// Messages being sent, by nonce, and where they are shown meanwhile.
     pending: HashMap<u64, (ChannelId, MessageId)>,
     pending_files: HashMap<u64, uploads::PendingFiles>,
@@ -837,7 +845,8 @@ impl Store {
                 channel,
                 owner,
                 image,
-            } => self.stream_preview_loaded(channel, owner, image),
+                retry_after,
+            } => self.stream_preview_loaded(channel, owner, image, retry_after),
             Event::UploadLimit {
                 server,
                 max_file_bytes,
@@ -1601,6 +1610,7 @@ impl Store {
         channel: ChannelId,
         owner: UserId,
         image: Option<rune_model::RemoteImage>,
+        retry_after: Option<std::time::Duration>,
     ) -> Applied {
         let voice = &self.voice;
         let streaming = |user: UserId, channel: ChannelId| {
@@ -1609,13 +1619,14 @@ impl Store {
                 .any(|state| state.user == user && state.channel == channel && state.streaming)
         };
         self.stream_previews
-            .retain(|user, (at, _)| streaming(*user, *at));
+            .retain(|user, (at, _, _)| streaming(*user, *at));
         let full = self.stream_previews.len() >= MAX_STREAM_PREVIEWS
             && !self.stream_previews.contains_key(&owner);
         if full || !streaming(owner, channel) {
             return Applied::Nothing;
         }
-        self.stream_previews.insert(owner, (channel, image));
+        self.stream_previews
+            .insert(owner, (channel, image, retry_after));
         Applied::Voice(channel)
     }
 
@@ -1628,8 +1639,14 @@ impl Store {
     ) -> Option<Option<&rune_model::RemoteImage>> {
         self.stream_previews
             .get(&owner)
-            .filter(|(at, _)| *at == channel)
-            .map(|(_, image)| image.as_ref())
+            .filter(|(at, _, _)| *at == channel)
+            .map(|(_, image, _)| image.as_ref())
+    }
+
+    /// How long the provider asked to wait before `owner`'s picture is
+    /// asked for again, when its latest answer had none because of that.
+    pub fn stream_preview_retry(&self, owner: UserId) -> Option<std::time::Duration> {
+        self.stream_previews.get(&owner)?.2
     }
 
     /// Start sharing the account's screen in `channel`, before the provider

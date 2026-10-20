@@ -18,15 +18,15 @@ use rune_model::{
     ChannelId, Delivery, Message, MessageId, MessageKind, Reaction, Timestamp, UserId,
 };
 
-use rune_i18n::{t, tr};
+use rune_i18n::t;
 
 use crate::message::{message_row, Abilities, Author, MessageStyle, MessageView};
 use crate::{avatar, gap, icon, line, strong_line, text, with_status, Look};
 
-/// A person, for the account's page: Bootstrap has no outline of one alone.
-pub const PERSON: &str = include_str!("../../../assets/person.svg");
+/// A person, for the account's page.
+pub const PERSON: &str = crate::glyphs::glyph!("person");
 /// A shield with a check, for the page of data and privacy.
-pub const SHIELD: &str = include_str!("../../../assets/shield.svg");
+pub const SHIELD: &str = crate::glyphs::glyph!("shield");
 
 /// Room between the panel and the window, on every side.
 pub const MARGIN: f32 = 43.5;
@@ -135,30 +135,7 @@ pub fn sidebar(
     footnote: &str,
     look: &Look,
 ) -> Element {
-    let mut who = vec![strong_line(&account.name, 16.0, look.text)];
-    if let Some(edit) = &account.edit {
-        who.push(
-            Element::clickable(
-                edit,
-                Element::row(vec![
-                    line(t("Editar perfil"), 15.0, look.muted).centered_y(),
-                    icon(Icon::Edit, look.muted)
-                        .size(Some(14.0), Some(14.0))
-                        .centered_y(),
-                ])
-                .gap(6.0),
-            )
-            .hover_foreground(look.text)
-            .accessible(limn::Access::new(limn::Role::Button).name(t("Editar perfil"))),
-        );
-    }
-    let head = Element::row(vec![
-        gap(26.5, 0.0),
-        crate::avatar_with_image(&account.name, account.accent, 50.0, account.image.clone()),
-        Element::column(who).gap(2.0).flex(1.0).centered_y(),
-    ])
-    .gap(15.0)
-    .size(None, Some(50.0));
+    let head = Element::row(vec![gap(ITEM_INSET, 0.0), account_row(account, look)]);
     let mut rows = vec![gap(0.0, 13.0)];
     for entry in nav {
         match entry {
@@ -196,9 +173,9 @@ pub fn sidebar(
     ]));
     rows.push(gap(0.0, 24.0));
     Element::column(vec![
-        gap(0.0, 32.5),
+        gap(0.0, 28.5),
         head,
-        gap(0.0, 18.5),
+        gap(0.0, 14.5),
         Element::row(vec![gap(ITEM_INSET, 0.0), search]),
         ScrollArea::new("us:nav", Element::column(rows).gap(ITEM_GAP))
             .appearance(ScrollbarAppearance::overlay().buttons(false))
@@ -206,6 +183,43 @@ pub fn sidebar(
             .flex(1.0),
     ])
     .size(Some(SIDEBAR_WIDTH), None)
+}
+
+/// Who the settings are of, as a row of the menu: as wide as «Cuenta», with
+/// its radius and its hover, the avatar and both lines centered on each
+/// other; the whole row opens the profile editor when there is one.
+fn account_row(account: &Account, look: &Look) -> Element {
+    const AVATAR: f32 = 40.0;
+    let mut who = vec![strong_line(&account.name, 16.0, look.text)];
+    if account.edit.is_some() {
+        who.push(Element::row(vec![
+            line(t("Editar perfil"), 14.0, look.muted)
+                .shrink_to_fit()
+                .centered_y(),
+            gap(6.0, 0.0),
+            icon(Icon::Edit, look.muted)
+                .size(Some(14.0), Some(14.0))
+                .centered_y(),
+        ]));
+    }
+    let content = Element::row(vec![
+        gap(8.0, 0.0),
+        crate::avatar_with_image(&account.name, account.accent, AVATAR, account.image.clone())
+            .centered_y(),
+        gap(12.0, 0.0),
+        Element::column(who).gap(2.0).flex(1.0).centered_y(),
+        gap(8.0, 0.0),
+    ]);
+    let size = (Some(ITEM_WIDTH), Some(AVATAR + 16.0));
+    match &account.edit {
+        Some(edit) => Element::clickable(edit, content)
+            .size(size.0, size.1)
+            .radius(8.0)
+            .hover_background(look.hover)
+            .hover_foreground(look.text)
+            .accessible(limn::Access::new(limn::Role::Button).name(t("Editar perfil"))),
+        None => content.size(size.0, size.1),
+    }
 }
 
 fn nav_item(page: &NavPage, look: &Look) -> Element {
@@ -343,22 +357,6 @@ pub fn page(
     )
     .appearance(ScrollbarAppearance::overlay().buttons(false))
     .render()
-}
-
-/// Nothing matches what is searched.
-pub fn nothing_found(query: &str, look: &Look) -> Element {
-    Element::column(vec![
-        strong_line(t("No hay resultados"), 20.0, look.text),
-        text(
-            tr!(
-                "Ningún ajuste coincide con «{query}». Probá con otra palabra.",
-                query
-            ),
-            14.0,
-            look.muted,
-        ),
-    ])
-    .gap(8.0)
 }
 
 /// The line between two sections.
@@ -1022,5 +1020,61 @@ mod tests {
         assert!(ids.contains(&"uno:a".to_owned()) && !ids.contains(&"dos:a".to_owned()));
         assert!(ids.contains(&"profile:edit".to_owned()));
         assert!(!ids.contains(&"q:clear".to_owned()), "nothing to clear");
+        // Who the settings are of is a row of the menu: the same inset,
+        // width and radius as «uno».
+        let rect = |id: &str| {
+            laid.regions
+                .iter()
+                .find(|region| region.id == id)
+                .unwrap()
+                .rect
+        };
+        let (edit, uno) = (rect("profile:edit"), rect("uno"));
+        assert_eq!((edit.x, edit.width), (uno.x, uno.width));
+        let rounded = |at: limn::Rect| {
+            laid.commands.iter().any(|command| {
+                matches!(command, limn::DrawCommand::FillRect { rect, radius, .. }
+                    if *rect == at && *radius == 8.0)
+            })
+        };
+        assert!(rounded(uno), "the selected page's fill");
+        let mut tree = limn::UiTree::new(sidebar(
+            &Account {
+                image: None,
+                name: "Invitado".into(),
+                accent: look.accent,
+                edit: Some("profile:edit".into()),
+            },
+            search_box("q", "", &look),
+            &[page("uno", true)],
+            "RUNE",
+            &look,
+        ));
+        tree.set_reduced_motion(true);
+        tree.layout(Size::new(269.0, 700.0));
+        tree.handle_event(limn::UiEvent::PointerMove(limn::Point::new(
+            edit.x + edit.width - 2.0,
+            edit.y + edit.height / 2.0,
+        )));
+        let hovered = tree.layout_at(
+            Size::new(269.0, 700.0),
+            std::time::Instant::now() + std::time::Duration::from_secs(2),
+        );
+        assert!(
+            hovered.commands.iter().any(|command| matches!(command,
+                limn::DrawCommand::FillRect { rect, radius, .. } if *rect == edit && *radius == 8.0)),
+            "its hover fills the whole row, rounded"
+        );
+        // The avatar and the two lines are centered on each other.
+        let avatar = hovered
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                limn::DrawCommand::FillRect { rect, radius, .. } if *radius == 20.0 => Some(*rect),
+                _ => None,
+            })
+            .unwrap();
+        let middle = |rect: limn::Rect| rect.y + rect.height / 2.0;
+        assert_eq!(middle(avatar), middle(edit));
     }
 }

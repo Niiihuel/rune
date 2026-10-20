@@ -14,6 +14,8 @@ mod storage_sessions;
 mod tallies;
 // AutoMod (automod).
 mod automod;
+// Reads before the session is up (arranque-sin-avisos).
+mod connecting;
 
 #[test]
 fn backoff_doubles_up_to_its_ceiling_and_jitters_by_a_fifth() {

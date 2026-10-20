@@ -377,11 +377,6 @@ fn parse_arguments(
     if parsed.capture_search.is_some() && parsed.capture_context {
         return Err(t("Capturá búsqueda y contexto en ejecuciones separadas").into());
     }
-    if parsed.capture_search.is_some() && !parsed.data {
-        return Err(
-            t("--capture-search requiere --data para consultar el historial guardado").into(),
-        );
-    }
     if parsed.provider == ProviderChoice::Discord
         && parsed
             .discord_client_id
@@ -647,6 +642,7 @@ fn main() -> eframe::Result {
         Box::new(move |creation| {
             limn_egui::install_fonts(&creation.egui_ctx);
             limn_egui::set_color_emoji(Some(rune_components::twemoji::picture));
+            limn_egui::set_icon_pack(rune_components::glyphs::pack);
             let mut app = App::new(&creation.egui_ctx, started, arguments, provider, mock);
             // Linux desktop (escritorio-linux).
             let mut graphics = graphics;
@@ -2203,6 +2199,8 @@ impl App {
         // Ready for the key, which comes through `poll`.
         self.client
             .set_image_cache_limits(image_cache_limits(&self.ui.prefs));
+        // Decoded for this screen's density (pulido-ui, 2026-10-19).
+        self.client.set_image_density(ctx.pixels_per_point());
         self.store = Store::new();
         self.store.provider = Some(provider.info());
         self.mock = mock;
@@ -3727,12 +3725,15 @@ impl App {
             let capture = self.capture.as_mut().unwrap();
             let query = capture.search.take().unwrap();
             capture.ready = Some(now);
-            let mut actions = vec![
-                "message-search:open".to_owned(),
-                "message-search:scope".to_owned(),
-                "message-search:scope:device".to_owned(),
-            ];
+            // With `--data` it searches what is kept on this device; without
+            // it, the loaded messages, or the scope an `--action` chooses.
+            let mut actions = vec!["message-search:open".to_owned()];
+            if self.local_data {
+                actions.push("message-search:scope".to_owned());
+                actions.push("message-search:scope:device".to_owned());
+            }
             actions.extend(std::mem::take(&mut capture.actions));
+            let remote = actions.iter().any(|id| id == "message-search:scope:remote");
             for id in actions {
                 let intents = rune_ui::update(
                     &mut self.ui,
@@ -3747,10 +3748,23 @@ impl App {
             let intents = rune_ui::update(
                 &mut self.ui,
                 &mut self.store,
-                &limn::UiAction::InputChanged { id, value: query },
+                &limn::UiAction::InputChanged {
+                    id: id.clone(),
+                    value: query.clone(),
+                },
                 now,
             );
             self.run(ctx, intents);
+            // The whole history is asked with Enter.
+            if remote {
+                let intents = rune_ui::update(
+                    &mut self.ui,
+                    &mut self.store,
+                    &limn::UiAction::Submitted { id, value: query },
+                    now,
+                );
+                self.run(ctx, intents);
+            }
         }
         if history_ready && self.capture.as_ref().is_some_and(|capture| capture.context) {
             let capture = self.capture.as_mut().unwrap();
@@ -4234,6 +4248,7 @@ impl eframe::App for App {
                 self.client.preview_invitation_card(request, target);
             }
         }
+        rune_ui::follow_viewer(&mut self.ui, &self.store, &self.tree);
         let mut wanted = rune_ui::wanted_images(&self.ui, &self.store, &self.tree);
         let fixture = self
             .capture
@@ -4284,7 +4299,8 @@ impl eframe::App for App {
             {
                 retained.insert(source.clone());
                 if !self.ui.images.contains_key(source) {
-                    if let Some(image) = capture_fixture::simulated(source) {
+                    if let Some(image) = capture_fixture::simulated(source, ctx.pixels_per_point())
+                    {
                         self.ui.images.insert(source.clone(), image);
                         ctx.request_repaint();
                     }
@@ -5283,7 +5299,7 @@ mod tests {
             assert!(args(&capture, None).is_err());
         }
         assert!(args(&["--screenshot", "mock.png", "--capture-draft"], None).is_err());
-        assert!(args(&["--screenshot", "mock.png", "--capture-search", "a"], None).is_err());
+        assert!(args(&["--screenshot", "mock.png", "--capture-search", "a"], None).is_ok());
         let search = [
             "--screenshot",
             "mock.png",

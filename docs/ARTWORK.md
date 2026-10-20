@@ -1,306 +1,308 @@
 # Imágenes y expresiones
 
+Avatares, íconos, vistas previas, emojis, stickers y GIF: cómo se piden,
+se limitan y se dibujan. El catálogo, la selección, el envío y la imagen son
+contratos separados: ver una imagen no concede permiso para enviarla, y
+seleccionar una expresión no envía un mensaje. Los adjuntos (descargas,
+subidas, visor) están en [FILES.md](FILES.md) y [VISOR.md](VISOR.md).
+
 ## Recursos del proveedor
 
-`RemoteImage` es una referencia de dominio independiente del servicio. Los
-usuarios llevan un avatar opcional, los servidores un icono opcional y los
-catálogos de expresiones sus miniaturas. El adaptador traduce identificadores
-y hashes válidos a rutas públicas del CDN y conserva las URLs de adjuntos que
-recibe del servicio. La UI no construye esas rutas ni recibe credenciales de
-cuenta. Las URLs de adjuntos pueden llevar firmas temporales de acceso;
-`RemoteImage` y `RemoteFile` las ocultan en `Debug`. Los campos nuevos de mensajes, usuarios y servidores
-persistidos llevan `serde(default)`: no cambian las tablas de SQLite.
+`RemoteImage` es una referencia de dominio independiente del servicio:
+avatares, íconos de servidor, miniaturas de expresiones y vistas previas.
+El adaptador traduce identificadores y hashes válidos a rutas públicas del
+CDN y conserva las URLs de adjuntos que recibe; la UI no construye rutas ni
+recibe credenciales. `RemoteImage` y `RemoteFile` ocultan en `Debug` las
+firmas temporales de las URLs. Los campos nuevos persistidos llevan
+`serde(default)`.
 
-Después del layout, `rune-ui::wanted_images` enumera recursos visibles: riel,
-conversaciones, miembros, perfil, filas del timeline y celdas del selector.
-`rune-core::Images` mantiene una caché en RAM y despierta la ventana al terminar.
-Los componentes muestran iniciales o un marcador mientras falta la imagen.
-Un fallo de imagen no impide leer la conversación.
+Después del layout, `rune-ui::wanted_images` enumera lo visible (riel,
+conversaciones, miembros, perfil, filas del timeline, celdas del selector,
+las pestañas de Amigos, los diálogos de grupo y las sugerencias de @). Una
+persona sin foto propia se pide con la predeterminada de su servicio
+(`User::picture`), nunca sólo con la inicial.
+`rune-core::Images` mantiene una caché en RAM y despierta la ventana al
+terminar. Mientras falta la imagen se ven iniciales o un marcador; un fallo
+no impide leer la conversación.
 
 | Límite | Implementación |
 | --- | --- |
 | Concurrencia | 4 descargas/decodificaciones; los decoders en curso conservan su permiso al cancelar |
-| Respuesta de artwork | 1 MiB; comprobación antes y durante la descarga |
-| Artwork de origen | PNG, WebP o primer cuadro GIF, hasta 512 × 512; asignación del decoder acotada a 4 MiB |
-| Miniatura de artwork | PNG de 128 × 128, conserva proporción y añade margen transparente |
+| Respuesta de artwork | 1 MiB, comprobado antes y durante la descarga |
+| Artwork de origen | PNG, WebP o GIF, hasta 512 × 512; asignación del decoder acotada a 4 MiB |
+| Miniatura | PNG de 128 × 128, conserva proporción con margen transparente |
 | Caché | 256 entradas y 16 MiB de base64; LRU en memoria, sin disco |
 | Red | Cliente separado sin cabeceras de cuenta ni cookies; HTTPS y origen exacto declarado por el proveedor; sin redirecciones |
-| Reintentos | Fallos transitorios: al menos 30 s; 429/5xx conservan la espera por origen incluso al purgar la caché; `Retry-After` no interpretable bloquea ese origen hasta cerrar sesión |
-| Cierre de sesión | Cancela tareas, cambia generación, vacía recursos de core/UI y texturas de limn |
+| Reintentos | Fallos transitorios: al menos 30 s; 429/5xx conservan la espera por origen aun al purgar la caché; un `Retry-After` ilegible bloquea ese origen hasta cerrar sesión |
+| Cierre de sesión | Cancela tareas, cambia de generación, vacía recursos de core/UI y texturas de limn |
 
-La transformación ocurre con `spawn_blocking`, fuera del hilo de UI. limn
-recibe su tipo público `RasterImage`; su backend mantiene dos trabajadores
-de decodificación, una cola de 32 trabajos/16 MiB y una limpieza explícita de
-caché. El límite de 16 MiB de RUNE contabiliza el base64 retenido, no toda la
-RAM del proceso: existen además miniaturas en curso y texturas GPU.
-El host limita la caché de texturas de limn a 64 entradas fuera de
-pantalla; para los previews de mayor tamaño admitido son, como máximo,
-96 MiB de píxeles RGBA retenidos, más las texturas de lo que está en
-pantalla, además de las colas, los decoders y el resto de recursos de la
-aplicación. limn expulsa primero lo que se dibujó hace más tiempo y nunca
-una imagen dibujada en el paso de pintado actual o en el anterior
-(2026-10-19, rama `emoji-parpadeo`): antes expulsaba la más vieja aunque se
-estuviera dibujando, y con el selector de emoji abierto (hasta 72 emoji de
-servidor, más los íconos del carril y los avatares) la pantalla pasaba de
-64 imágenes, cada paso volvía a decodificar lo que el anterior había
-expulsado, las imágenes se turnaban para aparecer y cada decodificación
-pedía otro cuadro.
+La transformación corre con `spawn_blocking`. limn recibe `RasterImage`; su
+backend tiene dos trabajadores de decodificación y una cola de 32
+trabajos/16 MiB. Los 16 MiB de RUNE cuentan el base64 retenido, no toda la
+RAM: además hay miniaturas en curso y texturas GPU. El host limita la caché
+de texturas de limn a 64 entradas fuera de pantalla (como mucho 96 MiB RGBA
+con las vistas previas más grandes). limn expulsa primero lo dibujado hace
+más tiempo y nunca una imagen dibujada en el paso actual o el anterior: si
+no, con más de 64 imágenes en pantalla (el selector de emoji con 72) las
+imágenes se turnaban para aparecer.
 
-La documentación de Discord aclara que los stickers ignoran el parámetro
-`size`, por eso se admite su tamaño de origen antes de reducirlos. Los emojis
-se solicitan como WebP para admitir también los subidos en WebP/AVIF. Sólo se
-pinta un fotograma; no se afirma reproducción de animaciones.
-[Formatos del CDN](https://docs.discord.com/developers/reference#image-formatting).
+Los stickers ignoran el parámetro `size` del CDN, por eso se admite su
+tamaño de origen antes de reducirlos; los emojis se piden como WebP para
+cubrir los subidos en WebP/AVIF
+([formatos del CDN](https://docs.discord.com/developers/reference#image-formatting)).
 
-## Adjuntos recibidos
+## Vistas previas de adjuntos
 
-`Attachment.preview` contiene un `RemoteImage` de clase `AttachmentPreview`;
-`Attachment.download` contiene el `RemoteFile` original. Ambos campos son
-opcionales y llevan `serde(default)`, al igual que la clase de imagen, cuyo
-valor antiguo es `Artwork`. Un archivo sin preview sigue siendo un archivo:
-no se inventan píxeles ni conectividad. Las dimensiones de los metadatos
-reservan su lugar en el timeline antes de cargarlo; los componentes distinguen
-carga pendiente, imagen disponible y fallo.
+`Attachment.preview` es un `RemoteImage` de clase `AttachmentPreview`;
+`Attachment.download`, el `RemoteFile` original. Un archivo sin vista previa
+sigue siendo un archivo: no se inventan píxeles. Las dimensiones de los
+metadatos reservan el lugar antes de cargar.
 
-| Límite de preview | Implementación |
+| Límite | Implementación |
 | --- | --- |
-| Respuesta | Hasta 8 MiB, tanto por longitud anunciada como por bytes recibidos |
-| Formatos | PNG, JPEG, WebP y primer cuadro GIF comprobados por su contenido, no sólo por extensión |
-| Dimensiones de origen | Hasta 4096 por lado, 16 777 216 píxeles; límite de asignación del decoder de 80 MiB |
-| Salida | PNG de hasta 768 × 512, sin recortar, añadir márgenes ni ampliar imágenes pequeñas |
-| Concurrencia | Hasta dos previews dentro del total de cuatro trabajos de imagen |
-| Caché | Comparte las 256 entradas/16 MiB de base64; no crea otro almacén persistente |
+| Respuesta | Hasta 8 MiB, por longitud anunciada y por bytes recibidos |
+| Formatos | PNG, JPEG, WebP y GIF, comprobados por su contenido |
+| Origen | Hasta 4096 por lado y 16 777 216 píxeles; asignación del decoder de 80 MiB |
+| Salida | PNG de hasta 768 × 512 por la densidad de la pantalla (1, 1,5 o 2: 1536 × 1024 en densidad 2), sin recortar ni ampliar imágenes pequeñas |
+| Concurrencia | Hasta dos vistas previas dentro de los cuatro trabajos de imagen |
+| Caché | La misma de 256 entradas/16 MiB, por el cuadrado de la densidad |
 
-El límite del decoder no representa el consumo total de un trabajo: también
-existen el cuerpo HTTP, los píxeles decodificados y la imagen reducida. Los
-semáforos se conservan durante la decodificación aunque se cancele su tarea;
-al cerrar sesión, cualquier resultado de la generación anterior se descarta.
-`image_failures` comunica a la UI sólo los recursos fallidos visibles, sin
-exponer el cuerpo de errores HTTP ni las firmas de sus URLs.
+Densidad (2026-10-19): el escritorio pasa los píxeles por punto de la
+ventana (`Client::set_image_density`) y todo se decodifica para ese paso
+(1, 1,5 o 2; más denso, 2): vistas previas, banners (512 × 256 por la
+densidad) y las imágenes chicas (128 px por la densidad: avatares, íconos,
+stickers). Un paso nuevo vuelve a decodificar desde el disco o la red. El
+proveedor puede dar la dirección del tamaño dibujado (`Provider::image_at`):
+el no oficial pide al CDN `size=` por la densidad, hasta la potencia de dos
+siguiente (sólo fixtures, sin probar contra el servicio real); los adjuntos
+bajan su archivo como antes.
 
-Mientras la preview carga, o si falla, su ThumbHash (`Attachment.placeholder`,
-`ImageKind::ThumbHash`) cubre la caja reservada: el núcleo lo decodifica al
-instante, sin red, en a lo sumo 32 px. Una imagen explícita que el filtro de
-la cuenta tapa se pide como `ImageKind::Obscured`: la misma preview,
-achicada a 24 px de lado y desenfocada en CPU, quieta, hasta que la persona
-la revela (contenido-de-mensajes, 2026-10-18; ver
-[DISCORD_SESSION.md](DISCORD_SESSION.md#contenido-de-mensajes-2026-10-18-rama-contenido-de-mensajes)).
+`image_failures` comunica a la UI sólo los recursos visibles que fallaron,
+sin el cuerpo del error ni las firmas. Mientras la vista previa carga o si
+falla, su ThumbHash (`ImageKind::ThumbHash`) cubre la caja: se decodifica
+al instante, sin red, en a lo sumo 32 px. Una imagen explícita que el filtro
+de la cuenta tapa se pide como `ImageKind::Obscured`: la misma vista previa
+achicada a 24 px y desenfocada en CPU, hasta que la persona la revela
+([DISCORD_SESSION.md](DISCORD_SESSION.md)).
 
-El adaptador de Discord usa `url` y, como alternativa para preview,
-`proxy_url`, campos documentados del [objeto Attachment](https://docs.discord.com/developers/resources/message#attachment-object).
-Acepta HTTPS en los hosts exactos `cdn.discordapp.com` y
-`media.discordapp.net`, con una ruta de adjunto cuyos ids coincidan con el
-canal y archivo recibidos; rechaza credenciales en la URL, fragmentos,
-puertos no estándar y rutas incompatibles. El cliente de recursos vuelve a
-validar el origen y no sigue redirecciones ni envía cabeceras de cuenta.
-Los parámetros de firma se conservan exactamente como los entregó el servicio.
-Discord documenta que los [enlaces de adjuntos tienen caducidad](https://docs.discord.com/developers/reference#signed-attachment-cdn-urls);
-RUNE no fabrica firmas ni implementa un mecanismo de renovación. Un enlace
-vencido puede fallar hasta recibir datos nuevos del mensaje.
+El adaptador de Discord usa `url` y, para la vista previa, `proxy_url`
+([objeto Attachment](https://docs.discord.com/developers/resources/message#attachment-object)).
+Acepta HTTPS en `cdn.discordapp.com` y `media.discordapp.net`, con una ruta
+cuyos ids coincidan con el canal y el archivo recibidos; rechaza
+credenciales, fragmentos, puertos no estándar y rutas incompatibles. Los
+[enlaces de adjuntos caducan](https://docs.discord.com/developers/reference#signed-attachment-cdn-urls):
+RUNE no fabrica firmas ni las renueva, y un enlace vencido puede fallar
+hasta recibir datos nuevos del mensaje. SVG, AVIF y HEIC no se decodifican
+como vistas previas.
 
-Los spoilers (`IS_SPOILER` o prefijo `SPOILER_`) no se cargan
-automáticamente: la tarjeta ocupa su lugar sin mostrar nada y no pide
-píxeles hasta que la persona pulsa «Hacé clic para mostrar»
-([FILES.md](FILES.md)). GIF, APNG y WebP animados animan en las filas
-visibles del timeline y en el visor, con presupuesto de cuadros y nunca con
-movimiento reducido; el audio y el video adjuntos se reproducen en la línea
-([MEDIA.md](MEDIA.md#implementado-reproducir-audio-y-video-adjuntos-y-gif-de-tarjetas-2026-10-17)).
-SVG, AVIF y HEIC siguen sin decodificarse como previews. Los archivos
-generales se descargan sólo mediante una acción del usuario, por el
-servicio separado de descargas.
+Como Serein, RUNE separa los presupuestos de imagen fija, animación y visor,
+reserva el espacio antes de cargar y separa las descargas explícitas del
+cacheado visual; no tiene su escalera de resoluciones ni su caché en disco.
 
-### Referencia de Serein
+## Selector de expresiones
 
-Se revisó el checkout `d1af883c9d7dda90d1261a2d15fc852a5445204d`, sin copiar
-código ni recursos. Su [modelo de adjuntos](https://github.com/ViceVerse-cz/Serein/blob/d1af883c9d7dda90d1261a2d15fc852a5445204d/crates/model/src/attachments.rs)
-conserva metadatos acotados, y su [adaptador](https://github.com/ViceVerse-cz/Serein/blob/d1af883c9d7dda90d1261a2d15fc852a5445204d/crates/discord-protocol/src/attachments.rs)
-separa su traducción de la autorización de URLs y la decodificación. Esa
-separación aplica a RUNE mediante modelo, proveedor y core.
+El selector tiene pestañas de emojis, stickers y GIF, con búsqueda por
+nombre (recorre hasta 500 elementos y muestra hasta 72 coincidencias). El
+adaptador entrega el texto opaco que se inserta: la UI no conoce la
+sintaxis del protocolo. El autocompletado de `:` sólo sugiere lo que se
+puede usar.
 
-La [caché multimedia de Serein](https://github.com/ViceVerse-cz/Serein/blob/d1af883c9d7dda90d1261a2d15fc852a5445204d/crates/ui/src/avatars/media.rs)
-separa los presupuestos de imagen estática, animación y visor, y selecciona
-resoluciones según el destino. Su [UI de adjuntos](https://github.com/ViceVerse-cz/Serein/blob/d1af883c9d7dda90d1261a2d15fc852a5445204d/crates/ui/src/attachments.rs)
-conserva la proporción de las imágenes y trunca nombres largos dentro de la
-tarjeta. RUNE adopta la separación de presupuestos y la reserva de espacio,
-con componentes propios de limn y un único preview estático acotado; no
-implementa su escalera de resoluciones, sus animaciones ni su caché en disco.
-Las [descargas de Serein](https://github.com/ViceVerse-cz/Serein/blob/d1af883c9d7dda90d1261a2d15fc852a5445204d/apps/desktop/src/downloads.rs)
-son acciones explícitas separadas del cacheado visual, otra distinción que
-se mantiene en RUNE. Esta comparación arquitectónica no acredita autorización
-de Discord para la sesión personal experimental.
+### Qué se puede usar
 
-Validación focal de esta ampliación: 11 pruebas de `rune-core::images`, seis
-del mapeo `rune-discord-session::wire` y 11 de `rune-model` aprobadas. Incluyen
-compatibilidad de datos anteriores, URLs firmadas ocultas en diagnósticos,
-límites de respuesta y resolución, JPEG, proporción, concurrencia y
-cancelación. Las peticiones de prueba van a servidores locales sintéticos;
-no descargan adjuntos de una cuenta real. Los resultados completos del
-workspace se registran aparte cuando termine la integración de la UI.
+- **Plan de la cuenta.** El proveedor informa `Event::Perks` (emojis de
+  otros servidores, animados, stickers de otros servidores y el nombre de
+  lo que los desbloquea). Mientras no lo informó, el selector ofrece sólo
+  el servidor del canal. Con el plan conocido ofrece todos los servidores
+  de la cuenta (el del canal primero) y lo que no se puede usar lleva un
+  candado y el motivo («Necesitás Nitro para usar emojis de otros
+  servidores acá»). A diferencia de Serein, RUNE no cambia un emoji
+  bloqueado por un enlace a su imagen.
+- **Permisos externos.** `EXTERNAL_EMOJI` (bit 18) y `EXTERNAL_STICKERS`
+  (bit 37) llegan a `Abilities::external_emoji`/`external_stickers`.
+  `Store::emoji_perk` y `sticker_perk` preguntan primero por el permiso del
+  canal y después por el plan, como el cliente oficial. El compositor, la
+  edición y los comandos no mandan un texto que nombra un emoji que no se
+  puede usar ahí: avisan por qué y conservan el borrador. Con los
+  beneficios desconocidos (o desde la caché local) no frenan nada: decide
+  el servicio.
+- Los roles restringidos de cada emoji se respetan cuando se conocen.
 
-## Composer y timeline
+### Stickers
 
-El selector tiene pestañas de emojis, stickers y GIF, con búsqueda por nombre
-en los catálogos del servidor actual. Los emojis disponibles respetan las
-restricciones de rol conocidas. El adaptador entrega el texto opaco que se
-inserta: la UI no conoce la sintaxis del protocolo. La búsqueda recorre hasta
-500 elementos y presenta hasta 72 coincidencias, indicando cuándo refinarla.
+Seleccionar un sticker abre una vista previa de 56 px con **Quitar** y
+**Enviar sticker**; el envío es un mensaje aparte y conserva el borrador de
+texto. Capacidades, permisos y catálogo se vuelven a comprobar al enviar.
+Los **paquetes estándar** (capacidad `sticker_packs`) se piden al abrir la
+pestaña (`Command::LoadStickerPacks`) y van al final, uno por sección.
 
-Seleccionar un sticker lo prepara en el composer. **Enviar sticker** produce
-un mensaje separado y conserva el borrador de texto. El comando pasa por
-las capacidades, los permisos y el catálogo vigente; fallos, confirmaciones
-y reintentos conservan su identidad como sticker. Los APNG y GIF animan en
-las filas visibles del timeline como las demás imágenes; desde P5
-(2026-10-17) el selector ofrece los stickers de otros servidores según el
-plan de la cuenta ([EXPRESSIONS.md](EXPRESSIONS.md)). Lottie se dibuja y
-anima desde el 2026-10-18
-([EXPRESSIONS.md](EXPRESSIONS.md#stickers-lottie-2026-10-18-rama-video-y-documentos)).
+**Lottie** (`format_type` 3): el JSON de
+`https://cdn.discordapp.com/stickers/{id}.json` se pide como cualquier
+imagen de expresión (hasta 1 MiB) y sólo una imagen de expresión cuya ruta
+termina en `.json` llega al rasterizador, **rasterlottie** (Rust puro sobre
+tiny-skia, sin GIF, imágenes embebidas ni texto). Lienzo de hasta 1024 px,
+dibujado a 128 px, a 30 cuadros por segundo como mucho, con los
+presupuestos de un GIF. Antes de rasterizar, RUNE revisa el modelo: sin
+ciclos de precomposiciones ni más de 8 niveles (rasterlottie agotaría la
+pila), repetidores de hasta 64 copias, estrellas y polígonos de hasta 64
+puntas y no más de 20 000 capas y formas por cuadro. Lo que no soporta
+(expresiones, efectos, texto) muestra el nombre en la celda y se envía
+igual. Serein dibuja un cuadro quieto; RUNE lo anima.
 
-La pestaña GIF inserta un enlace HTTPS en el borrador y guarda hasta 12 enlaces
-recientes sólo durante la sesión. No consulta un buscador ni descarga una
-vista previa. El envío sigue requiriendo la acción habitual del composer.
+![Stickers de otro servidor con candado y paquetes, simulado](img/sticker-packs-2026-10-17.png)
 
-Los mensajes recibidos conservan el contenido original. El adaptador genera
-referencias tipadas para que el renderizado muestre nombres de usuarios,
-roles y canales, sin cambiar lo que se copia o edita. Los emojis personalizados
-recibidos se muestran como `:nombre:`; las imágenes en línea y las menciones
-salientes con representación visual requieren trabajo adicional. El código y
-los spoilers ocultos no se convierten en enlaces de mención.
+### GIF
 
-## Recursos propios de `assets/`
+- **GIF del servicio** (capacidad `gif_search`): `Command::SearchGifs` →
+  `Event::GifResults`. La pestaña abre en tendencias con categorías como
+  mosaicos; las sugerencias (`Command::SuggestGifs`) aparecen como fichas
+  mientras se escribe. En la sesión no oficial, páginas de 50 hasta la
+  décima con `offset` (el cliente oficial no pagina: si Discord contesta la
+  misma página, la pestaña deja de ofrecer otra). Las vistas previas se
+  animan con el presupuesto común, nunca con movimiento reducido.
+- **GIPHY** (opcional): `rune-core::GifSearch` hace Search y Trending con
+  `GIPHY_API_KEY` del entorno, una clave de una aplicación propia (nunca la
+  de Discord, Serein u otro cliente; nunca en argumentos, configuración ni
+  logs). Sin ella, el buscador no aparece. Una página de hasta 20, offset
+  hasta 480, sin búsqueda en cada pulsación; miniaturas fijas
+  (`fixed_width_small_still`) de los hosts de `giphy.com` exactos, 1 MiB
+  cada una, cuatro a la vez, 25 s por búsqueda. Las
+  [reglas de GIPHY](https://developers.giphy.com/docs/#best-practices)
+  piden URLs sin modificar, atribución visible y autorización para cachear:
+  por eso no usa la caché de imágenes, SQLite ni disco, y la marca está en
+  el pie del selector ([GIPHY.md](../assets/licenses/GIPHY.md)). Las
+  claves beta tienen 100 consultas por hora. Tenor no acepta clientes API
+  nuevos desde enero de 2026. Si hay las dos fuentes, dos botones eligen.
+- **Enlace manual**: sin buscador se puede pegar un enlace HTTPS; los
+  últimos 12 quedan sólo durante la sesión.
+- **Favoritos**: un corazón en cada resultado. Con
+  `synced_gif_favorites` se sincronizan con la cuenta (la sesión no oficial
+  los guarda en el campo 2 de `FrecencyUserSettings`, como Serein); si no,
+  quedan sólo en este equipo, en los ajustes locales (hasta 100). La
+  pestaña dice cuál de los dos. Emojis y stickers no tienen favoritos que
+  sincronizar (Serein tampoco).
 
-Los SVG de `assets/` se dibujaron para RUNE: trazos escritos a mano en una
-grilla de 16 unidades (24 la marca), en `currentColor` para que el tema los
-tiña, junto a los Bootstrap Icons que trae limn. No salen de Discord, de
-Serein ni de otro juego de íconos. Son de RUNE, bajo su licencia (MIT o
-Apache-2.0).
+Elegir un GIF siempre **inserta su enlace en el borrador**; la persona
+confirma el envío. Cada búsqueda se ata a cuenta, canal, pestaña e
+identificador: cambiar de contexto cancela y descarta, y las respuestas
+tardías se ignoran.
 
-| Archivo | Qué dibuja | Dónde |
-| --- | --- | --- |
-| `rune-mark.svg` | La marca: un asta y dos trazos, la runa ᚱ | `rune_components::MARK`, el glifo monocromo de la interfaz (carril, pantalla de carga, perfil) |
-| `crown.svg` | Una corona, tras el nombre de quien es dueño del servidor | `rune_components::members::CROWN` |
-| `headphones-off.svg` | Auriculares tachados, para la cuenta ensordecida | `rune_components::HEADPHONES_OFF` |
-| `person.svg` | El contorno de una persona, para la página de la cuenta | `rune_components::user_settings::PERSON` |
-| `shield.svg` | Un escudo con una tilde, para datos y privacidad | `rune_components::user_settings::SHIELD` |
-| `signal.svg` | Tres barras de señal, para la conexión de voz | `rune_components::voice::SIGNAL` |
-| `icons/rune-small.svg` | El ícono de la aplicación a 16 y 24 px: la marca más gruesa sobre la placa ámbar entera | Origen de `icons/hicolor/16x16` y `24x24` |
-| `icons/rune.png`, `icons/hicolor/*` | El ícono de la aplicación, hecho por el dueño: la marca en blanco sobre una placa del ámbar del acento, en la grilla de íconos de macOS (824 de 1024) | Ventanas y barra de tareas (`with_icon`, 256), bandeja de Linux y Windows (`rune-platform/src/tray/mark.rs`), `rune --install`, notificaciones, entrada de escritorio, inicio automático, README |
-| `icons/rune.ico` | El mismo ícono para Windows: 16, 24, 32, 48, 64 y 128 en BMP de 32 bits y 256 en PNG | Ejecutable e instalador de Windows. Generado (rama `barra-e-icono`) con `icotool -c` de icoutils desde los PNG de `icons/hicolor`, pasados antes a 8 bits por canal con ImageMagick (`magick … -depth 8 PNG32:…`); el de 256 entra con `-r`, sin recomprimir |
+![GIF del servicio con categorías y sugerencias, simulado](img/gifs-service-2026-10-17.png)
 
-Los sonidos de llamada (`assets/sounds/*.ogg`) también son propios: tonos
-sintetizados por `scripts/sounds.sh`, sin grabaciones
-([AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md)). Lo de terceros
-(Twemoji, la marca de GIPHY, las fuentes) tiene sus avisos en
-[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+### Emojis en los mensajes
 
-## Símbolos y licencias
+- Los mensajes conservan el contenido original; el adaptador genera
+  referencias tipadas para mostrar usuarios, roles, canales y emojis sin
+  cambiar lo que se copia o edita.
+- **Jumbo**: un mensaje de sólo emoji (hasta 30) pide la imagen del
+  servidor a 96 px (en una línea, 48); los Unicode se dibujan como imagen de
+  Twemoji a 48 px (22 en modo compacto). El detector usa el índice de
+  Twemoji: un keycap y las flechas del paquete cuentan, como en el cliente
+  oficial; un dígito, ©, ®, ™ o un emoji con VS15, no.
+- **Detalle**: un clic en un emoji de un mensaje (o clic secundario en una
+  reacción) abre una tarjeta con su imagen, nombre, si es de un servidor,
+  el servidor de origen si está en el catálogo y «Copiar emoji». Los emoji
+  del texto son botones enfocables.
+- **Estados**: miembros, amigos y conversaciones muestran el emoji del
+  estado personalizado antes de sus palabras; los fijados dibujan sus
+  emoji. Los extractos de búsqueda dicen `:nombre:` sin imagen (falta en
+  limn un subtítulo de `ListRow` con elementos).
 
-limn añade Noto Sans Symbols 2 y reutiliza el fallback monoespaciado para
-símbolos decorativos y líneas. Noto Emoji amplía la cobertura monocroma del
-catálogo: los escalares visibles de sus 623 entradas tienen glifos, pero
-algunas banderas, keycaps y secuencias compuestas siguen incompletas. Es el
-respaldo de lo que Twemoji no dibuja (ver abajo). Fuentes, versiones y
-avisos: [FONTS.md](FONTS.md).
-El código y los recursos gráficos de Serein no se copiaron; el análisis de
-sus decisiones está en [SEREIN_ANALYSIS.md](SEREIN_ANALYSIS.md).
+![Tarjeta de un emoji del servidor, simulado](img/emoji-y-estados-tarjeta-2026-10-18.png)
 
-Las mejoras de limn se desarrollaron en worktrees independientes:
-[cola de imágenes #39](https://github.com/Niiihuel/limn/pull/39) y
-[símbolos #40](https://github.com/Niiihuel/limn/pull/40) y
-[respaldo emoji #41](https://github.com/Niiihuel/limn/pull/41). RUNE fija la integración
-local `2618b37d1c17b73ef70c43e67f5641ec4da41a3a` en su lock; las PR siguen
-separadas de la rama principal de limn.
+### Subir emojis y stickers
 
-### Emoji a color (Twemoji)
+Desde Ajustes del servidor → Emojis o Stickers, con el selector de archivos
+y `rune-core::expression_images` en un hilo de servicio. Un GIF que ya
+cumple el límite queda animado (emoji hasta 256 KB; sticker 320 × 320 y
+hasta 512 KB); cualquier otra imagen se recorta al cuadrado y se hace PNG de
+128 px (emoji) o 320 × 320 (sticker). `ExpressionImage` vuelve a comprobar
+formato, tamaño y peso, y `NewExpression::problem` el nombre, el emoji
+relacionado y la descripción.
 
-RUNE pinta los emoji Unicode con los gráficos de
-[Twemoji](https://github.com/jdecked/twemoji) 17.0.3 (CC BY 4.0), los mismos
-que Discord acredita en sus [avisos de licencias](https://discord.com/licenses).
-El texto sigue siendo Unicode: limn mide, parte líneas, selecciona, copia y
-anuncia a la accesibilidad los caracteres originales; sólo cambia el dibujo.
+### Simulación
+
+Plan «Plus (simulado)» con emojis en todos lados y stickers sólo en su
+servidor; dos paquetes, uno Lottie (`assets/sticker-sample.json`, una
+animación propia); GIF con cuatro páginas de doce y seis categorías;
+#off-topic niega los permisos externos.
+
+## Emoji a color (Twemoji)
+
+RUNE pinta los emoji Unicode con [Twemoji](https://github.com/jdecked/twemoji)
+17.0.3 (CC BY 4.0), los mismos que acredita Discord. El texto sigue siendo
+Unicode: limn mide, parte líneas, selecciona, copia y anuncia a la
+accesibilidad los caracteres originales; sólo cambia el dibujo, en el
+backend, así que cubre todo el texto que limn pinta (mensajes, nombres,
+reacciones, selector, avisos y el editor).
 
 | Pieza | Dónde |
 | --- | --- |
-| Paquete | `assets/twemoji/pngs.bin`: los 4009 PNG de 72 × 72 de `assets/72x72` del release, sin modificar, uno tras otro (4.248.486 bytes) |
-| Índice | `assets/twemoji/index.tsv`: secuencia sin U+FE0F, posición, largo y presentación por defecto (`t` texto, `e` emoji) según Unicode `emoji-data.txt` 17.0.0 (120.898 bytes) |
-| Generador | `scripts/twemoji.py`: sólo biblioteca estándar; fija el commit `b6b55fef…` y los SHA-256 del archivo y de `emoji-data.txt`, verifica 4009 PNG de 72 px y secuencias únicas, y produce los mismos bytes en cada ejecución |
-| Atribución | [assets/licenses/TWEMOJI.md](../assets/licenses/TWEMOJI.md) y la licencia completa `Twemoji-CC-BY-4.0.txt` |
-| Búsqueda | `crates/rune-components/src/twemoji.rs` (antes en `apps/desktop`), `picture(grafema)`; se instala con `limn_egui::set_color_emoji`. Desde el 2026-10-18 también `emoji_len(texto)`, la tabla de qué es un emoji (secuencia más larga del paquete: un keycap `1️⃣` es uno; `©`, `®` y `™` nunca, como el cliente oficial) e `image(secuencia)`, el PNG como `RasterImage` |
-| Jumbo | Un mensaje de sólo emoji dibuja cada emoji Unicode como imagen en la línea (`TextSpan::image`), 48 px como uno del servidor; antes se agrandaba la letra y el color quedaba en 1–1,2 em (35–42 px) |
-| Dibujo | limn-egui, [PR #67](https://github.com/Niiihuel/limn/pull/67): cada `DrawCommand::Text` |
+| Paquete | `assets/twemoji/pngs.bin`: los 4009 PNG de 72 × 72 del release, sin modificar, uno tras otro |
+| Índice | `assets/twemoji/index.tsv`: secuencia sin U+FE0F, posición, largo y presentación por defecto según `emoji-data.txt` 17.0.0 |
+| Generador | `scripts/twemoji.py`: sólo biblioteca estándar; fija commit y SHA-256, y es reproducible |
+| Atribución | [assets/licenses/TWEMOJI.md](../assets/licenses/TWEMOJI.md) |
+| Código | `crates/rune-components/src/twemoji.rs`: `picture(grafema)`, `emoji_len(texto)` e `image(secuencia)`; se instala con `limn_egui::set_color_emoji` |
 
-Se eligió un paquete de PNG en lugar de un atlas: se decodifica sólo lo que
-aparece en pantalla, al tamaño dibujado, sin reservar los ~83 MiB RGBA que
-ocuparía un atlas de 4009 celdas de 72 px. 72 px cubre el emoji en línea
-(1,2 em, unos 19 px a 16 px) incluso a escala 3 y el selector a escala 2;
-el paquete añade 4,2 MB al binario, menos que la fuente Noto Emoji
-monocroma (1,9 MB) más el SVG que haría falta para tamaños grandes.
+Un paquete de PNG y no un atlas: se decodifica sólo lo que aparece, al
+tamaño dibujado, sin reservar los ~83 MiB RGBA de un atlas; 72 px cubren el
+emoji en línea incluso a escala 3.
 
-Reglas de presentación: el grafema extendido completo es la unidad
-(familias ZWJ, tonos de piel, banderas regionales y de subdivisión, keycaps).
-U+FE0F se ignora al buscar; U+FE0E pide texto y deja el glifo. Un único
-punto de código cuya presentación por defecto es texto (`❤`, `©`, `☀`,
-`↔`) se dibuja en color sólo con U+FE0F. Lo que no está en el paquete
-conserva el glifo de la fuente (Noto Emoji monocromo o el recuadro de
-reemplazo). Mientras un PNG se decodifica (como mucho 24 por cuadro) se ve
-el glifo un cuadro.
-
-Cobertura: todo el texto que limn pinta, porque el reemplazo ocurre en el
-backend y no en cada componente: Markdown de mensajes, nombres de
-servidores, canales, usuarios y apodos, tooltips del riel, reacciones y
-barra de reacciones rápidas, selector de emoji, sugerencias del composer,
-avisos y también el texto editable del composer. No se copió código ni
-recursos de Serein; sólo se tomó la idea de dibujar Twemoji como imagen.
+Reglas: la unidad es el grafema extendido (ZWJ, tonos de piel, banderas,
+keycaps). U+FE0F se ignora al buscar; U+FE0E pide texto. Un punto de código
+con presentación de texto por defecto (`❤`, `©`, `☀`) va en color sólo con
+U+FE0F. Lo que no está en el paquete conserva el glifo de la fuente.
+Mientras un PNG se decodifica (hasta 24 por cuadro) se ve el glifo un
+cuadro. Límite: el ancho lo da la fuente monocroma, así que una secuencia
+que Noto Emoji no compone (familias, banderas regionales) queda centrada con
+aire y un keycap invade un poco al vecino.
 
 ![Reacciones, selector y borrador con Twemoji](img/color-emoji-2026-10-16.png)
 
-Captura con el proveedor simulado (`--channel ayuda`, `--action
-composer:emoji`, `--capture-draft`): mensaje y reacciones, selector y un
-borrador con ZWJ, banderas, keycap, tono de piel y `❤` sin VS16 (queda
-monocromo, como corresponde). Límite conocido: el ancho lo sigue dando la
-fuente monocroma. Una secuencia que Noto Emoji no compone (la familia
-👨‍👩‍👧‍👦, las banderas regionales) ocupa varios glifos y su imagen queda
-centrada con aire a los lados; un keycap ocupa el ancho de su dígito y la
-imagen (mínimo 1 em) invade un poco el espacio vecino. Los nombres de
-servidor, canal y apodos y los tooltips usan el mismo camino de dibujo pero
-el proveedor simulado no tiene emoji en ellos, así que no tienen captura.
+## Íconos de la interfaz
 
-GPUI Kit sigue otro camino: delega al sistema tipográfico de GPUI y a las
-fuentes instaladas o aportadas por la aplicación. El backend Linux actual
-puede rasterizar contornos y bitmaps a color de la fuente mediante
-CosmicTextSystem/Swash; no proporciona por ello un estilo uniforme de Discord.
-La demo web tiene un fallback Canvas propio y no sirve para deducir el
-resultado nativo. Referencias primarias:
-[fuentes de GPUI Kit](https://github.com/longbridge/gpui-kit/blob/main/website/docs/fonts.md),
-[renderer Linux de GPUI](https://github.com/zed-industries/zed/blob/main/crates/gpui_wgpu/src/cosmic_text_system.rs).
+`assets/glyphs/` tiene el set de íconos de RUNE. `rune_components::glyphs::pack`
+lo instala en cada ventana con `limn_egui::set_icon_pack`; un `limn::Icon` que
+el set no tiene sigue siendo Bootstrap Icons (Github, entre otros).
 
-## Validación de código (2026-10-14)
+El sistema sigue al de Discord, que se estudió con REA estático sobre los
+bundles públicos de su cliente web (autorizado el 2026-10-16): una grilla de
+24 px que se muestra a 12, 16, 18, 20, 24 o 32 px; formas sólidas de un solo
+color, cada una un `path` con `fill-rule="evenodd"` y sin trazos; líneas de
+2 px con puntas redondas; esquinas de 3 px; insignias en la esquina inferior
+derecha (círculo de 5 px en 19,19) y tachados recortados del cuerpo con un
+hueco. Las siluetas se acercan a las suyas a pedido del dueño (2026-10-19),
+pero cada ícono se construye con primitivas y coordenadas propias en
+`tools/rune-icons/icons.py`; no se copió ningún trazo ni recurso.
 
-`cargo check --workspace --all-features` y `cargo test --workspace
---all-features` pasaron dentro de `nix-shell --arg withLogin true`: **462
-pruebas aprobadas**, cinco fixtures nativos de login ignorados en la suite
-general. El auxiliar de login no cambió en esta iteración.
+Los tipos de canal que limn no tiene (anuncios, foro, hilo, escenario) son
+`glyphs::{MEGAPHONE, FORUM, THREAD, STAGE}`. Un canal privado usa la versión
+de su ícono con el candado recortado arriba a la derecha (`glyphs::locked`),
+como el cliente oficial. Si un ícono no tiene esa versión, el candado se
+superpone.
 
-Las pruebas nuevas cubren HTTP local sin cabeceras de cuenta, rechazo de
-redirecciones, formatos y límites de imagen, expiración y conservación de
-`Retry-After` al purgar la caché, cancelación y recursos visibles. También
-ejercitan catálogos/permisos, inserción sin envío automático, foco y teclado,
-conservación del borrador, inserción sobre selección Unicode, continuidad de
-foco entre eventos del mismo cuadro, referencias de mensaje y envío/reintento de
-stickers con respuestas sintéticas. No usan la sesión real ni descargan
-recursos de la cuenta del dueño; la compatibilidad de esas nuevas funciones
-contra Discord necesita su comprobación manual.
+Los pares contorno/relleno de limn comparten el dibujo sólido, como en
+Discord, salvo los que son el estado apagado de un interruptor: `Heart`,
+`Play`, `Pause` y `Stop` son contornos de 2 px.
 
-Después de ajustar el espacio alrededor de las pestañas y del botón de
-inserción, pasaron de nuevo las **254 pruebas de `rune-components` y
-`rune-ui`**, incluida una regresión que comprueba la altura del área de clic.
-También pasaron `cargo fmt --all -- --check`, Clippy del workspace con todas
-las features y `-D warnings`, y la compilación release con `session-login`.
-La suite completa de 462 pruebas corresponde a la revisión anterior a ese
-último ajuste visual; no se volvió a ejecutar completa después del ajuste.
+```sh
+nix shell --impure --expr 'with import <nixpkgs> {}; python3.withPackages (p: [ p.skia-pathops p.picosvg ])' \
+  -c python3 tools/rune-icons/icons.py assets/glyphs
+```
 
-REA ejecutó el binario final en Wayland con el proveedor simulado y capturó
-las tres pestañas. Se revisaron las imágenes, el contraste de la selección,
-la cobertura de glifos y el tamaño de los controles. Los identificadores de
-evidencia y el hash del artefacto están en [REA.md](REA.md). Estas capturas no
-validan descargas autenticadas ni envíos reales, y los emojis Unicode
-continúan siendo monocromos hasta integrar los recursos de Twemoji.
+## Recursos propios de `assets/`
+
+Los demás SVG de `assets/` se dibujaron para RUNE en `currentColor`, para
+que el tema los tiña.
+
+| Archivo | Qué dibuja | Dónde |
+| --- | --- | --- |
+| `rune-mark.svg` | La marca: la runa ᚱ | `rune_components::MARK` (carril, pantalla de carga, perfil) |
+| `glyphs/{crown,headphones-off,person,shield,signal,calendar,eye-off}.svg` | Corona del dueño, auriculares tachados, persona, escudo, señal, calendario, ojo tachado | `members::CROWN`, `HEADPHONES_OFF`, `user_settings::PERSON` y `SHIELD`, `voice::SIGNAL`, `events::CALENDAR`, `desktop::EYE_OFF` |
+| `icons/rune-small.svg` | El ícono a 16 y 24 px, más grueso | Origen de `icons/hicolor/16x16` y `24x24` |
+| `icons/rune.png`, `icons/hicolor/*` | El ícono de la aplicación, hecho por el dueño: la marca en blanco sobre una placa ámbar, en la grilla de íconos de macOS | Ventana, bandeja, `rune --install`, notificaciones, entrada de escritorio, README |
+| `icons/rune.ico` | El mismo ícono para Windows (16 a 256 px) | Ejecutable e instalador; generado con `icotool -c` desde los PNG de `icons/hicolor` |
+
+Los sonidos (`assets/sounds/*.ogg`) son tonos sintetizados por
+`scripts/sounds.sh` ([AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md)).
+Las fuentes y los símbolos de respaldo están en [FONTS.md](FONTS.md); lo de
+terceros, en [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

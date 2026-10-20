@@ -7,6 +7,9 @@
 //! change and leaves later provider events in their bounded queue. Only
 //! startup reads wait for the storage thread's answer.
 //!
+//! A read asked before the session is up waits for it instead of being
+//! refused (`connecting`).
+//!
 //! No command is left hanging. One that cannot be queued fails at once; a
 //! page of history or a message that gets no answer in time fails then, and
 //! a message in flight when the connection drops is marked as maybe sent.
@@ -38,6 +41,8 @@ mod folders;
 mod theme_files;
 // AutoMod (automod).
 mod automod;
+// Reads before the session is up (arranque-sin-avisos).
+mod connecting;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
@@ -72,9 +77,19 @@ pub use local_history::LocalReadResult;
 
 /// Decode and fit `bytes` as the image service would the picture `source`
 /// names, for pictures made on this machine (the capture's simulated ones).
-pub fn normalize_image(bytes: &[u8], source: &rune_model::RemoteImage) -> Option<ImageData> {
+/// `pixels_per_point` is the screen's, as [`Client::set_image_density`] takes it.
+pub fn normalize_image(
+    bytes: &[u8],
+    source: &rune_model::RemoteImage,
+    pixels_per_point: f32,
+) -> Option<ImageData> {
     let path = url::Url::parse(&source.url).ok()?;
-    images::normalize_at(path.path(), bytes, source.kind)
+    images::normalize_at(
+        path.path(),
+        bytes,
+        source.kind,
+        images::density_step(pixels_per_point),
+    )
 }
 pub use profile_images::{
     prepare as prepare_profile_image, source as profile_image_source, PickedProfileImage,
@@ -298,6 +313,8 @@ pub struct Client {
     // Own themes (temas-propios).
     /// A theme file being imported or exported.
     theme_files: theme_files::ThemeFiles,
+    // Reads before the session is up (arranque-sin-avisos).
+    connecting: connecting::Connecting,
 }
 
 impl Client {
@@ -465,6 +482,7 @@ impl Client {
             keyring_last: None,
             folders: Default::default(),
             theme_files: Default::default(),
+            connecting: Default::default(),
         };
         client.request_key();
         client
@@ -958,11 +976,6 @@ impl Client {
         self.expression_images.pick(request, kind, parent);
     }
 
-    /// Stop the choice of an expression's picture under way.
-    pub fn cancel_expression_image(&mut self) {
-        self.expression_images.cancel();
-    }
-
     pub fn poll_expression_images(&mut self) -> Vec<PickedExpressionImage> {
         self.expression_images.poll()
     }
@@ -992,6 +1005,13 @@ impl Client {
     /// opened before the first ones, which can come after the key.
     pub fn set_image_cache_limits(&mut self, limits: ImageCacheLimits) {
         self.images.disk.set_limits(limits);
+    }
+
+    /// The screen's pixels for each logical one: pictures are decoded for
+    /// it, in steps, so a high density screen gets them sharp. The host
+    /// passes it every frame; only a new step costs anything.
+    pub fn set_image_density(&mut self, pixels_per_point: f32) {
+        self.images.set_density(pixels_per_point);
     }
 
     /// What each part of the pictures on disk keeps, once the account's
@@ -1407,6 +1427,37 @@ impl Client {
             }
             _ => {}
         }
+        // After the books above: a new session's Ready ended the old reads.
+        let held = self.connecting.observe(&event);
+        if let Event::Connection(ConnectionState::Disconnected { reason }) = &event {
+            for failure in held.iter().filter_map(Failure::of) {
+                self.found.push_back(Event::Failed {
+                    failure,
+                    reason: reason.clone(),
+                    ambiguous: false,
+                });
+            }
+        } else {
+            for command in held {
+                // The interface asks a new session again for the history;
+                // a page asked now has its whole wait from now.
+                if let Command::LoadHistory {
+                    request, channel, ..
+                } = &command
+                {
+                    if !self.live.contains(request) {
+                        continue;
+                    }
+                    if let Some(loading) = self.loading.get_mut(channel) {
+                        loading.since = Instant::now();
+                    }
+                }
+                let failure = Failure::of(&command);
+                if self.commands.try_send(command).is_err() {
+                    self.refused(failure);
+                }
+            }
+        }
         Some(event)
     }
 
@@ -1443,8 +1494,10 @@ impl Client {
         let late: Vec<ChannelId> = self
             .loading
             .iter()
+            // A page held till the session is up was not asked yet.
             .filter(|(_, loading)| {
-                now.saturating_duration_since(loading.since) >= self.deadlines.history
+                self.connecting.connected()
+                    && now.saturating_duration_since(loading.since) >= self.deadlines.history
             })
             .map(|(channel, _)| *channel)
             .collect();
@@ -1801,23 +1854,13 @@ impl Client {
         };
         let failure = Failure::of(&command);
         let vote = tallies::Votes::of(&command);
-        if self.commands.try_send(command).is_err() {
-            if let Some(failure) = failure {
-                if let Failure::Send { nonce, .. } = &failure {
-                    self.sending.remove(nonce);
-                }
-                if let Failure::History { request, channel } = &failure {
-                    self.live.remove(request);
-                    self.loading.remove(channel);
-                }
-                let event = Event::Failed {
-                    failure,
-                    reason: t("la cola de comandos está llena").into(),
-                    ambiguous: false,
-                };
-                self.invitation_acceptance.observe(&event);
-                self.found.push_back(event);
-            }
+        // A read held till the session is up is as good as queued.
+        let refused = self
+            .connecting
+            .hold(command)
+            .is_some_and(|command| self.commands.try_send(command).is_err());
+        if refused {
+            self.refused(failure);
         } else {
             if let Some(scope) = read_scope {
                 self.read_receipts.admitted(scope);
@@ -1838,6 +1881,7 @@ impl Client {
                 });
             }
             if signing_out {
+                self.connecting.clear();
                 self.votes.clear();
                 self.uploads.clear();
                 self.read_receipts.end_session(&mut self.found);
@@ -1853,6 +1897,26 @@ impl Client {
                 self.read_marks_writable = false;
                 self.invalidate_local_history(rune_model::LocalReadError::Unavailable);
             }
+        }
+    }
+
+    /// A command the provider's queue had no room for fails at once.
+    fn refused(&mut self, failure: Option<Failure>) {
+        if let Some(failure) = failure {
+            if let Failure::Send { nonce, .. } = &failure {
+                self.sending.remove(nonce);
+            }
+            if let Failure::History { request, channel } = &failure {
+                self.live.remove(request);
+                self.loading.remove(channel);
+            }
+            let event = Event::Failed {
+                failure,
+                reason: t("la cola de comandos está llena").into(),
+                ambiguous: false,
+            };
+            self.invitation_acceptance.observe(&event);
+            self.found.push_back(event);
         }
     }
 

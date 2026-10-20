@@ -262,6 +262,45 @@ pub struct Video {
     /// this thread (`Some(Some)`), or listed already for this opening.
     #[cfg(any(target_os = "linux", windows))]
     sources: Option<Option<std::sync::mpsc::Receiver<Vec<rune_media::video::ScreenSource>>>>,
+    // Streams (transmisiones).
+    /// The picture of the account's own stream being made off this thread,
+    /// and where it goes.
+    #[cfg(any(target_os = "linux", windows))]
+    thumbnail: Option<(Thumbnail, std::sync::mpsc::Receiver<Option<Vec<u8>>>)>,
+}
+
+/// Where the picture of the account's own stream goes: its server, its
+/// channel and the account.
+type Thumbnail = (Option<rune_model::ServerId>, rune_model::ChannelId, UserId);
+
+/// The picture of a stream that goes up: the frame as large as fits
+/// 512×288, as a JPEG, as the official client makes it (REA); `None` for a
+/// frame with nothing on it yet (all black).
+fn thumbnail_jpeg(frame: &rune_media::video::Frame) -> Option<Vec<u8>> {
+    let lit = frame
+        .rgba
+        .chunks_exact(4)
+        .any(|pixel| pixel[..3].iter().any(|channel| *channel != 0));
+    let picture = image::RgbaImage::from_raw(frame.width, frame.height, frame.rgba.clone())?;
+    if !lit || frame.width == 0 || frame.height == 0 {
+        return None;
+    }
+    let scale = (512.0 / frame.width as f32).min(288.0 / frame.height as f32);
+    let width = ((frame.width as f32 * scale).round() as u32).max(1);
+    let height = ((frame.height as f32 * scale).round() as u32).max(1);
+    let small = image::imageops::resize(
+        &picture,
+        width,
+        height,
+        image::imageops::FilterType::Triangle,
+    );
+    let rgb = image::DynamicImage::ImageRgba8(small).into_rgb8();
+    let mut jpeg = Vec::new();
+    // A browser canvas's own JPEG quality, which the official client keeps.
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 92)
+        .encode_image(&rgb)
+        .ok()?;
+    Some(jpeg)
 }
 
 /// Pixels per point that fill `area` with a frame `width` pixels wide: the
@@ -434,6 +473,7 @@ impl Video {
             self.step_sound(ui, store, now);
             ui.video.streams = self.step_streams(ctx, store, laid_out, now);
             intents.extend(rune_ui::video_previews(ui, store, now));
+            intents.extend(self.step_thumbnail(ui, store, now));
             let wanted = rune_ui::video_cameras(ui, store);
             ui.video.watched = self.step_cameras(ctx, &wanted, simulated(store), laid_out, now);
         }
@@ -455,6 +495,50 @@ impl Video {
                 ui.video.sources.clone(),
             );
         (changed, intents)
+    }
+
+    /// The picture of the account's own stream, when the interface says it
+    /// is time: made off this thread from the screen's latest frame, and
+    /// sent once ready.
+    #[cfg(any(target_os = "linux", windows))]
+    fn step_thumbnail(&mut self, ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
+        use std::sync::mpsc::TryRecvError;
+        if let Some((target, made)) = &self.thumbnail {
+            let jpeg = match made.try_recv() {
+                Err(TryRecvError::Empty) => return Vec::new(),
+                Ok(jpeg) => jpeg,
+                Err(TryRecvError::Disconnected) => None,
+            };
+            let (server, channel, owner) = *target;
+            self.thumbnail = None;
+            return match jpeg {
+                Some(jpeg) => vec![Intent::Command(
+                    rune_provider::Command::UploadStreamPreview {
+                        server,
+                        channel,
+                        owner,
+                        jpeg,
+                    },
+                )],
+                None => {
+                    rune_ui::video_own_preview_failed(ui, now);
+                    Vec::new()
+                }
+            };
+        }
+        let Some(target) = rune_ui::video_own_preview(ui, store, now) else {
+            return Vec::new();
+        };
+        let Some(frame) = self.screen.as_ref().and_then(|held| held.last.clone()) else {
+            rune_ui::video_own_preview_failed(ui, now);
+            return Vec::new();
+        };
+        let (sender, receiver) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = sender.send(thumbnail_jpeg(&frame));
+        });
+        self.thumbnail = Some((target, receiver));
+        Vec::new()
     }
 
     /// While the share's picker is open, list what RUNE's own picker offers
@@ -1123,6 +1207,25 @@ fn engine_note(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Streams (transmisiones).
+    #[test]
+    fn a_streams_picture_fits_512_by_288_as_a_jpeg_and_a_black_frame_has_none() {
+        let frame = |width: u32, height: u32, value: u8| rune_media::video::Frame {
+            width,
+            height,
+            rgba: [value, value / 2, 0, 255].repeat((width * height) as usize),
+        };
+        for (width, height, fits) in [(1920, 1080, (512, 288)), (1000, 1000, (288, 288))] {
+            let jpeg = thumbnail_jpeg(&frame(width, height, 200)).unwrap();
+            assert!(jpeg.starts_with(&[0xFF, 0xD8, 0xFF]));
+            let read =
+                image::load_from_memory_with_format(&jpeg, image::ImageFormat::Jpeg).unwrap();
+            assert_eq!((read.width(), read.height()), fits);
+        }
+        // Black, as a capture that has not started: nothing yet.
+        assert_eq!(thumbnail_jpeg(&frame(64, 36, 0)), None);
+    }
 
     #[cfg(any(target_os = "linux", windows))]
     #[test]

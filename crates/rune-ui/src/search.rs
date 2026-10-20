@@ -9,8 +9,8 @@ use limn::{DatePicker, Key, UiAction};
 use rune_components::time;
 use rune_i18n::t;
 use rune_model::{
-    ChannelId, HistorySource, LocalReadError, Message, MessageId, SearchCursor, SearchHit,
-    SearchPage, SearchQuery, ServerId, UserId,
+    ChannelId, Has, HistorySource, LocalReadError, Message, MessageId, RemoteImage, SearchCursor,
+    SearchHit, SearchPage, SearchQuery, ServerId, UserId,
 };
 use rune_provider::{Command, Failure};
 use rune_state::{Applied, Store};
@@ -21,7 +21,7 @@ mod filters;
 mod remote;
 mod view;
 pub(crate) use remote::{next_tick, tick};
-pub(crate) use view::view;
+pub(crate) use view::{view, wanted};
 
 const QUERY: &str = "message-search:query";
 const RESULTS: &str = "message-search:results";
@@ -30,8 +30,43 @@ const HELD_PAGES: usize = 5;
 #[derive(Debug)]
 struct Hit {
     data: SearchHit,
-    author: String,
     source: Source,
+    media: Media,
+}
+
+/// What a result shows of what it carries: a page kept on this device has
+/// only its text, so none.
+#[derive(Debug, Default)]
+struct Media {
+    pictures: Vec<RemoteImage>,
+    files: Vec<String>,
+}
+
+impl Media {
+    /// A spoiler or an explicit picture is named, never shown.
+    fn of(message: &Message) -> Self {
+        let mut media = Self::default();
+        for attachment in &message.attachments {
+            match &attachment.preview {
+                Some(preview)
+                    if !attachment.spoiler && !attachment.explicit && media.pictures.len() < 4 =>
+                {
+                    media.pictures.push(preview.clone())
+                }
+                _ if media.files.len() < 3 => media.files.push(attachment.filename.clone()),
+                _ => {}
+            }
+        }
+        media
+    }
+}
+
+fn hit(message: &Message, source: Source) -> Hit {
+    Hit {
+        data: SearchHit::from_message(message),
+        source,
+        media: Media::of(message),
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,6 +95,8 @@ enum Menu {
     Until,
     // Reactions, pins and search (2026-10-18).
     Order,
+    // Search design (busqueda-diseno).
+    Has,
 }
 
 #[derive(Debug)]
@@ -111,6 +148,10 @@ pub struct MessageSearch {
     // Reactions, pins and search (2026-10-18).
     /// How the provider orders the whole history's results.
     order: rune_model::RemoteOrder,
+    // Search design (busqueda-diseno).
+    /// What the messages carry besides files, which `files` says: loaded
+    /// messages and the whole history only.
+    has: Vec<Has>,
 }
 
 impl MessageSearch {
@@ -133,6 +174,16 @@ impl MessageSearch {
             from: bound(&self.from, false)?,
             until: bound(&self.until, true)?,
         })
+    }
+    /// Whether nothing is written and no filter is chosen.
+    fn idle(&self) -> bool {
+        self.query.trim().is_empty()
+            && self.author.is_none()
+            && !self.files
+            && !self.pinned
+            && self.has.is_empty()
+            && self.from.is_empty()
+            && self.until.is_empty()
     }
     fn actionable(&self) -> bool {
         self.scope == Scope::Loaded
@@ -190,24 +241,17 @@ fn readable(search: &MessageSearch, ui: &Ui, store: &Store) -> bool {
             .is_some_and(|abilities| abilities.read_history.allowed())
 }
 
-fn hits(found: Vec<(SearchHit, Source)>, store: &Store) -> Arc<Vec<Hit>> {
+/// A page kept on this device, as results.
+fn kept(page: &[SearchHit]) -> Arc<Vec<Hit>> {
     Arc::new(
-        found
-            .into_iter()
-            .map(|(data, source)| Hit {
-                author: store
-                    .user(data.author)
-                    .map(|user| user.name.clone())
-                    .unwrap_or_else(|| t("Usuario desconocido").into()),
-                data,
-                source,
+        page.iter()
+            .map(|data| Hit {
+                data: data.clone(),
+                source: Source::Device,
+                media: Media::default(),
             })
             .collect(),
     )
-}
-
-fn sourced(page: &[SearchHit], source: Source) -> Vec<(SearchHit, Source)> {
-    page.iter().map(|hit| (hit.clone(), source)).collect()
 }
 
 /// The filter suggestions for what the field says now, in the whole
@@ -286,18 +330,21 @@ pub(crate) fn refresh(ui: &mut Ui, store: &Store, force: bool) {
     }
     let selected = search.hits.get(search.selected).map(|hit| hit.data.id);
     let found = match search.model_query() {
-        Ok(query) if query.is_empty() => {
+        Ok(query) if query.is_empty() && search.has.is_empty() => {
             search.form_error = None;
             Vec::new()
         }
-        Ok(query) if query.validate().is_ok() => {
+        // What the messages carry may be the only filter.
+        Ok(query) if query.is_empty() || query.validate().is_ok() => {
             search.form_error = None;
             let matches = query.matcher();
             source
                 .iter()
                 .rev()
-                .filter(|message| matches(message))
-                .map(|message| SearchHit::from_message(message))
+                .filter(|message| {
+                    matches(message) && search.has.iter().all(|has| has.found(message))
+                })
+                .map(|message| hit(message, Source::Loaded))
                 .collect()
         }
         _ => {
@@ -306,10 +353,10 @@ pub(crate) fn refresh(ui: &mut Ui, store: &Store, force: bool) {
         }
     };
     search.selected = selected
-        .and_then(|id| found.iter().position(|hit| hit.id == id))
+        .and_then(|id| found.iter().position(|hit| hit.data.id == id))
         .unwrap_or(0);
     search.source = source;
-    search.hits = hits(sourced(&found, Source::Loaded), store);
+    search.hits = Arc::new(found);
 }
 
 pub(crate) fn dismiss(ui: &mut Ui) -> Vec<Intent> {
@@ -504,7 +551,7 @@ pub fn local_search_result(
     });
     match result {
         Ok(page) => {
-            search.hits = hits(sourced(&page.hits, Source::Device), store);
+            search.hits = kept(&page.hits);
             cached.pages.push_back(page);
             if cached.pages.len() > HELD_PAGES {
                 cached.pages.pop_front();
@@ -527,7 +574,17 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<I
     match applied {
         Applied::SearchResults { request, result } => {
             remote::answered(ui, store, *request, result, crate::server_menu::wall_now());
-            return Vec::new();
+            // A page joins above the loaded results the list held in view:
+            // show the keyboard's choice, its first.
+            return ui
+                .search
+                .as_ref()
+                .map(|search| Intent::ScrollToIndex {
+                    list: RESULTS.into(),
+                    index: search.selected,
+                })
+                .into_iter()
+                .collect();
         }
         Applied::Failed {
             failure: Failure::Search { request },
@@ -550,14 +607,6 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<I
             .is_some_and(|abilities| abilities.read_history.allowed())
     {
         return close(ui);
-    }
-    if matches!(applied, Applied::User(_)) && search.scope == Scope::Device {
-        let data: Vec<_> = search
-            .hits
-            .iter()
-            .map(|hit| (hit.data.clone(), hit.source))
-            .collect();
-        ui.search.as_mut().unwrap().hits = hits(data, store);
     }
     refresh(ui, store, matches!(applied, Applied::User(_)));
     Vec::new()
@@ -623,6 +672,7 @@ pub(crate) fn open(ui: &mut Ui, store: &Store) -> Vec<Intent> {
             suggestions_closed: false,
             lookup: None,
             order: Default::default(),
+            has: Vec::new(),
         });
     }
     refresh(ui, store, false);
@@ -709,10 +759,7 @@ fn page(ui: &mut Ui, store: &Store, forward: bool) -> Vec<Intent> {
         return Vec::new();
     }
     search.selected = 0;
-    search.hits = hits(
-        sourced(&cached.pages[cached.page].hits, Source::Device),
-        store,
-    );
+    search.hits = kept(&cached.pages[cached.page].hits);
     vec![Intent::ScrollToIndex {
         list: RESULTS.into(),
         index: 0,
@@ -778,6 +825,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
                     | "message-search:from-open"
                     | "message-search:until-open"
                     | "message-search:order"
+                    | "message-search:has"
             ) =>
         {
             let search = ui.search.as_mut()?;
@@ -786,6 +834,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
                 "message-search:author" => Menu::Author,
                 "message-search:from-open" => Menu::From,
                 "message-search:order" => Menu::Order,
+                "message-search:has" => Menu::Has,
                 _ => Menu::Until,
             };
             search.menu = (search.menu != Some(menu)).then_some(menu);
@@ -851,6 +900,8 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
             search.scope = scope;
             if scope == Scope::Device {
                 search.source = Arc::default();
+                // A page kept on this device knows files only.
+                search.has.clear();
             }
             search.menu = None;
             search.hits = Arc::default();
@@ -867,11 +918,34 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
         UiAction::Clicked { id }
             if matches!(
                 id.as_str(),
-                "message-search:mine" | "message-search:files" | "message-search:pinned"
-            ) || id.starts_with("message-search:author:") =>
+                "message-search:mine"
+                    | "message-search:files"
+                    | "message-search:pinned"
+                    | "message-search:clear-filters"
+            ) || id.starts_with("message-search:author:")
+                || id.starts_with("message-search:has:") =>
         {
             let search = ui.search.as_mut()?;
             match id.as_str() {
+                "message-search:clear-filters" => {
+                    search.author = None;
+                    search.files = false;
+                    search.pinned = false;
+                    search.has.clear();
+                    search.from.clear();
+                    search.until.clear();
+                    search.menu = None;
+                }
+                _ if id.starts_with("message-search:has:") => {
+                    let has = Has::parse(id.strip_prefix("message-search:has:")?)
+                        .filter(|has| *has != Has::File && search.scope != Scope::Device)?;
+                    match search.has.iter().position(|found| *found == has) {
+                        Some(at) => {
+                            search.has.remove(at);
+                        }
+                        None => search.has.push(has),
+                    }
+                }
                 "message-search:mine" => {
                     search.author = if search.author == store.me() {
                         None

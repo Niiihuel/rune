@@ -109,24 +109,23 @@ fn the_whole_history_merges_with_what_is_loaded() {
         }),
     });
     let painted = host.painted();
-    let meta = |text: &str| painted.iter().filter(|line| line.ends_with(text)).count();
+    // Each card says where it came from.
+    let source = |text: &str| painted.iter().filter(|line| *line == text).count();
     assert_eq!(
-        meta("· Simulación local"),
+        source("Simulación local"),
         1,
         "only the provider found the old one"
     );
     assert_eq!(
-        meta("· Simulación local y cargado"),
+        source("Simulación local y cargado"),
         1,
         "the shared one, once"
     );
-    assert_eq!(meta("· cargado"), 1, "the newest is not indexed yet");
-    assert!(painted
-        .iter()
-        .any(|text| text.contains("2 resultados en Simulación local")));
-    assert!(painted
-        .iter()
-        .any(|text| text.contains("1 cargados aún sin indexar")));
+    assert_eq!(source("cargado"), 1, "the newest is not indexed yet");
+    // The line over the results may wrap: read it whole.
+    let line = painted.concat();
+    assert!(line.contains("2 resultados en Simulación local"));
+    assert!(line.contains("1 cargados aún sin indexar"));
     assert!(local.id > shared.id);
 }
 
@@ -167,9 +166,10 @@ fn polls_sites_and_relevance_go_to_the_provider_in_its_order() {
         }),
     });
     let painted = host.painted();
+    // The word searched is marked apart from the rest of the text.
     let at = |text: &str| painted.iter().position(|line| line == text);
     assert!(
-        at("aguja vieja").unwrap() < at("aguja en https://docs.rs/limn").unwrap(),
+        at(" vieja").unwrap() < at(" en https://docs.rs/limn").unwrap(),
         "the provider's ranking stays: {painted:?}"
     );
 }
@@ -202,9 +202,9 @@ fn a_short_ranked_page_with_more_to_come_leaves_loaded_ones_out() {
         }),
     });
     let painted = host.painted();
-    let meta = |text: &str| painted.iter().filter(|line| line.ends_with(text)).count();
-    assert_eq!(meta("· Simulación local"), 1, "{painted:?}");
-    assert_eq!(meta("· cargado"), 0, "{painted:?}");
+    let source = |text: &str| painted.iter().filter(|line| *line == text).count();
+    assert_eq!(source("Simulación local"), 1, "{painted:?}");
+    assert_eq!(source("cargado"), 0, "{painted:?}");
 }
 
 #[test]
@@ -273,12 +273,10 @@ fn an_index_in_progress_is_asked_again_once_and_pages_go_by_25() {
             partial: true,
         }),
     });
-    let painted = host.painted();
+    // The line over the results may wrap: read it whole.
+    let painted = host.painted().concat();
     assert!(
-        painted.iter().any(|text| text.contains("página 1 de 3"))
-            && painted
-                .iter()
-                .any(|text| text.contains("indexa mensajes viejos")),
+        painted.contains("página 1 de 3") && painted.contains("indexa mensajes viejos"),
         "{painted:?}"
     );
     host.click("message-search:next");
@@ -372,4 +370,58 @@ fn a_server_is_marked_read_from_its_menu_and_a_reminder_reaches_the_provider() {
     assert!(
         matches!(command, Some(Command::MarkUnread { message: found, .. }) if found == message)
     );
+}
+
+#[test]
+fn results_of_several_channels_are_grouped_under_each_channel() {
+    let mut host = Host::new();
+    let channel = host.open_channel("general");
+    let shared = written(&mut host, channel, "aguja aquí", 1);
+    let server = host.store.channel(channel).unwrap().server.unwrap();
+    let other = host
+        .store
+        .channel_tree(server)
+        .into_iter()
+        .flat_map(|(_, channels)| channels)
+        .find(|found| found.id != channel && found.kind.has_messages())
+        .map(|found| (found.id, found.name.clone()))
+        .unwrap();
+    remote_scope(&mut host);
+    host.type_text("aguja has:image");
+    host.key(Key::Enter, false, false);
+    host.key(Key::Enter, false, false);
+    let (request, search, _) = searched(&host);
+    assert_eq!(search.has, vec![rune_model::Has::Image]);
+    let mut elsewhere = shared.clone();
+    elsewhere.id = MessageId(other.0 .0 * 10_000_000);
+    elsewhere.channel = other.0;
+    elsewhere.content = "aguja allá".into();
+    elsewhere.timestamp = Timestamp(1_000);
+    host.event(Event::SearchResults {
+        request,
+        result: Ok(RemotePage {
+            messages: vec![shared.clone(), elsewhere],
+            total: 2,
+            offset: 0,
+            partial: false,
+        }),
+    });
+    let painted = host.painted();
+    let at = |text: &str| painted.iter().position(|line| line == text);
+    let general = at(" aquí").unwrap();
+    let there = at(" allá").unwrap();
+    // The channel's name, last painted, is the heading between the results.
+    let heading = painted.iter().rposition(|line| *line == other.1);
+    assert!(
+        heading.is_some_and(|heading| general < heading && heading < there),
+        "{painted:?}"
+    );
+    // The first result is the keyboard's choice.
+    let first = format!("message-search:go:{channel}:{}", shared.id);
+    let selected = host
+        .frame()
+        .access
+        .iter()
+        .any(|node| node.id == first && node.selected == Some(true));
+    assert!(selected, "{painted:?}");
 }

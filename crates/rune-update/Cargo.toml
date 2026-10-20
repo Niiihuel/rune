@@ -12,7 +12,8 @@ workspace = true
 
 [features]
 default = []
-# The loopback file server of the tests, for the test feed example.
+# The loopback file server of the tests, for the test feed
+# (tools/rune-release).
 serve = []
 
 [dependencies]
@@ -42,10 +43,3 @@ flate2 = "1.1"
 # A throwaway signing key per test, and temporary installations.
 getrandom = "0.3"
 tempfile = "3"
-
-[[example]]
-name = "release"
-
-[[example]]
-name = "test_feed"
-required-features = ["serve"]

@@ -1,5 +1,5 @@
 use super::*;
-use rune_model::{Delivery, MessageKind, Timestamp, UserId};
+use rune_model::{Delivery, MessageId, MessageKind, Timestamp, UserId};
 
 fn read_mark(revision: u64) -> ReadMark {
     ReadMark {

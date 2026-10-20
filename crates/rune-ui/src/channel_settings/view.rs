@@ -113,11 +113,15 @@ impl View<'_> {
             danger: false,
         };
         let (icon, parent) = match self.channel.kind {
-            ChannelKind::Voice => (Icon::Volume, true),
             ChannelKind::Category => (Icon::FolderFill, false),
-            // Server administration, rest (P7).
-            ChannelKind::Forum => (Icon::Chat, true),
-            _ => (Icon::Hash, true),
+            kind => (
+                crate::channel_list::glyph(kind).unwrap_or(if kind.is_voice() {
+                    Icon::Volume
+                } else {
+                    Icon::Hash
+                }),
+                true,
+            ),
         };
         let detail = self
             .channel

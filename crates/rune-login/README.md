@@ -47,9 +47,8 @@ En NixOS, tanto la compilación como la ejecución requieren
 expone los plugins GStreamer base, good y bad mediante
 `GST_PLUGIN_SYSTEM_PATH_1_0`; el RPATH del binario no reemplaza esa
 configuración. La ausencia de `autoaudiosink` provocó una caída reproducible
-al inicializar audio en WebKitGTK 2.52.4. El mismo fixture sobrevivió con
-los plugins disponibles. El diagnóstico, las fuentes y los límites de esa
-prueba están en [DISCORD_SESSION.md](../../docs/DISCORD_SESSION.md#corrección-del-runtime-gstreamer-2026-10-14).
+al inicializar audio en WebKitGTK 2.52.4. Ver
+[DISCORD_SESSION.md](../../docs/DISCORD_SESSION.md#compilar-y-ejecutar).
 El dueño confirmó después el login y la identidad; las pruebas descritas
 aquí siguen siendo fixtures locales y no acreditan nuevas operaciones
 sobre la cuenta.
@@ -87,8 +86,8 @@ borrado forense de memoria del motor, swap o volcados del sistema.
 Pruebas sin credenciales reales:
 
 ```sh
-rtk node crates/rune-login/tests/handoff.cjs
-rtk node crates/rune-login/tests/captcha.cjs
+node crates/rune-login/tests/handoff.cjs
+node crates/rune-login/tests/captcha.cjs
 rtk nix-shell --run 'rtk cargo test -p rune-login'
 rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --features webview'
 rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --features webview -- --include-ignored --test-threads=1'

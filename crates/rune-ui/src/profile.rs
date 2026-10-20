@@ -1463,19 +1463,20 @@ pub fn editor_view(ui: &Ui, store: &Store, context: &ViewContext) -> Option<Elem
     let servers = store
         .servers()
         .iter()
-        .map(|server| {
-            (
-                // Without profiles per server, the server menu still renames.
-                if scoped {
-                    format!("{}{}", ids::SCOPE, server.id)
-                } else {
-                    format!("sm:profile:{}", server.id)
-                },
-                server.shown_name().into(),
-                store
-                    .member_of(server.id, user.id)
-                    .and_then(|member| member.nick.clone()),
-            )
+        .map(|server| rune_components::profile::EditorServer {
+            // Without profiles per server, the server menu still renames.
+            action: if scoped {
+                format!("{}{}", ids::SCOPE, server.id)
+            } else {
+                format!("sm:profile:{}", server.id)
+            },
+            name: server.shown_name().into(),
+            nick: store
+                .member_of(server.id, user.id)
+                .and_then(|member| member.nick.clone()),
+            image: ui.image(&server.icon),
+            initials: server.initials(),
+            accent: look.ink(server.accent),
         })
         .collect();
     let simulated = store

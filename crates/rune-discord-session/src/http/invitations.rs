@@ -175,7 +175,7 @@ impl Http {
         .and_then(|value| value.parse::<f64>().ok())
         .filter(|value| value.is_finite() && *value >= 0.0);
         if let Some(delay) = header_delay {
-            self.defer(delay, false);
+            self.defer(delay, super::Bucket::All);
         }
         if status == StatusCode::TOO_MANY_REQUESTS {
             // If body parsing is cancelled, keep a conservative hold. If it

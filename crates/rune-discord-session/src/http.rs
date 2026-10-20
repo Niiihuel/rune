@@ -64,6 +64,10 @@ pub(crate) struct Http {
     /// The typing indicator's own hold: its route has a bucket of its own
     /// at Discord, so its 429 never holds a message (envios-y-subidas).
     typing_cooldown: Arc<Mutex<Option<Instant>>>,
+    // Streams (transmisiones).
+    /// Stream pictures' own hold, as typing's: a 429 there never holds a
+    /// message, and says how long until the next picture.
+    preview_cooldown: Arc<Mutex<Option<Instant>>>,
     /// A person's answer to a challenge, for the one write it belongs to.
     answer: Arc<Mutex<Option<Answer>>>,
     /// What an administration request adds to itself and leaves behind.
@@ -174,6 +178,7 @@ impl Http {
             base: "https://discord.com/api/v10".into(),
             cooldown: Arc::default(),
             typing_cooldown: Arc::default(),
+            preview_cooldown: Arc::default(),
             answer: Arc::default(),
             admin: Default::default(),
             invitation: Arc::default(),
@@ -190,6 +195,7 @@ impl Http {
             base: format!("{base}/api/v10"),
             cooldown: Arc::default(),
             typing_cooldown: Arc::default(),
+            preview_cooldown: Arc::default(),
             answer: Arc::default(),
             admin: Default::default(),
             invitation: Arc::default(),
@@ -241,12 +247,17 @@ impl Http {
     ) -> Result<Value, RestError> {
         // Documented as 204; a 200 with a cooldown body is accepted too.
         let typing = method == Method::POST && path.ends_with("/typing");
+        // Streams (transmisiones): a stream's picture, read or sent.
+        let preview = path.starts_with("/streams/") && path.contains("/preview");
         let held = |hold: &Mutex<Option<Instant>>| {
             hold.lock()
                 .map(|until| until.is_some_and(|until| until > Instant::now()))
                 .map_err(|_| RestError::rejected(es("El transporte no está disponible.")))
         };
-        if held(&self.cooldown)? || (typing && held(&self.typing_cooldown)?) {
+        if held(&self.cooldown)?
+            || (typing && held(&self.typing_cooldown)?)
+            || (preview && held(&self.preview_cooldown)?)
+        {
             return Err(RestError::rejected(es(
                 "Discord pidió esperar antes de otra solicitud.",
             )));
@@ -297,15 +308,20 @@ impl Http {
             .and_then(|value| value.parse::<f64>().ok());
         // Typing's own bucket, unless Discord says the limit is global.
         let headers = response.headers();
-        let own = typing
+        let own = (typing || preview)
             && headers
                 .get("x-ratelimit-global")
                 .is_none_or(|value| value != "true")
             && headers
                 .get("x-ratelimit-scope")
                 .is_none_or(|value| value != "global");
+        let bucket = match (own, preview) {
+            (false, _) => Bucket::All,
+            (true, false) => Bucket::Typing,
+            (true, true) => Bucket::Preview,
+        };
         if let Some(delay) = header_delay {
-            self.defer(delay, own);
+            self.defer(delay, bucket);
         }
         if status == StatusCode::TOO_MANY_REQUESTS && header_delay.is_none() {
             // A malformed error body still establishes a conservative hold.
@@ -315,7 +331,8 @@ impl Http {
                 .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
                 .unwrap_or_default();
             let delay = body["retry_after"].as_f64().unwrap_or(60.0);
-            self.defer(delay, own && body["global"] != json!(true));
+            let global = body["global"] == json!(true);
+            self.defer(delay, if global { Bucket::All } else { bucket });
             return Err(status_error(status, mutating));
         }
         if !status.is_success() {
@@ -357,17 +374,17 @@ impl Http {
         serde_json::from_slice(&bytes).map_err(|_| RestError::response(wire::invalid(), mutating))
     }
 
-    /// Hold the typing indicator alone (`typing`), or conservatively every
-    /// route; never repeat an ambiguous write.
-    fn defer(&self, seconds: f64, typing: bool) {
+    /// Hold the typing indicator or stream pictures alone, or
+    /// conservatively every route; never repeat an ambiguous write.
+    fn defer(&self, seconds: f64, bucket: Bucket) {
         let delay = Duration::try_from_secs_f64(seconds)
             .ok()
             .and_then(|duration| Instant::now().checked_add(duration))
             .unwrap_or_else(|| Instant::now() + Duration::from_secs(365 * 24 * 60 * 60));
-        let hold = if typing {
-            &self.typing_cooldown
-        } else {
-            &self.cooldown
+        let hold = match bucket {
+            Bucket::Typing => &self.typing_cooldown,
+            Bucket::Preview => &self.preview_cooldown,
+            Bucket::All => &self.cooldown,
         };
         if let Ok(mut cooldown) = hold.lock() {
             *cooldown = Some(cooldown.map_or(delay, |old| old.max(delay)));
@@ -591,6 +608,16 @@ impl Http {
                 channel,
                 owner,
             } => self.stream_preview(secret, *server, *channel, *owner).await,
+            // Streams (transmisiones).
+            Command::UploadStreamPreview {
+                server,
+                channel,
+                owner,
+                jpeg,
+            } => {
+                self.upload_stream_preview(secret, *server, *channel, *owner, jpeg)
+                    .await
+            }
             Command::SendFriendRequest { .. }
             | Command::AcceptFriendRequest { .. }
             | Command::RemoveRelationship { .. }
@@ -631,10 +658,12 @@ impl Http {
     }
 
     /// The latest picture of `owner`'s stream in `channel` of `server`, as
-    /// Serein reads it: `{url}` on Discord's CDN, under that stream's key.
-    /// A 429 holds the transport for its `retry_after`, as most routes; that,
-    /// a missing preview or a malformed answer is no picture, never a
-    /// failure the interface reports. Only a rejected session ends.
+    /// Serein reads it: `{url}` on Discord's CDN, under that stream's key,
+    /// with `version` the time asked, as the official client asks it (REA).
+    /// A 429 holds stream pictures alone for its `retry_after`, which the
+    /// answer carries; that, a missing preview or a malformed answer is no
+    /// picture, never a failure the interface reports. Only a rejected
+    /// session ends.
     pub async fn stream_preview(
         &self,
         secret: &SessionSecret,
@@ -642,21 +671,71 @@ impl Http {
         channel: ChannelId,
         owner: rune_model::UserId,
     ) -> Result<Vec<Event>, RestError> {
-        let key = format!("guild:{server}:{channel}:{owner}");
-        let path = format!("/streams/{key}/preview");
-        let image = match self.request(secret, Method::GET, &path, None, 4096).await {
-            Ok(value) => preview_url(&value, &key).map(|url| rune_model::RemoteImage {
-                url,
-                kind: rune_model::ImageKind::Banner,
-            }),
+        let key = stream_key(Some(server), channel, owner);
+        let version = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_millis());
+        let path = format!("/streams/{key}/preview?version={version}");
+        let (image, retry_after) = match self.request(secret, Method::GET, &path, None, 4096).await
+        {
+            Ok(value) => (
+                preview_url(&value, &key).map(|url| rune_model::RemoteImage {
+                    url,
+                    kind: rune_model::ImageKind::Banner,
+                }),
+                None,
+            ),
             Err(error) if error.ends_session => return Err(error),
-            Err(_) => None,
+            Err(_) => (None, self.preview_hold()),
         };
         Ok(vec![Event::StreamPreview {
             channel,
             owner,
             image,
+            retry_after,
         }])
+    }
+
+    /// Every route is held for a 429.
+    #[cfg(test)]
+    pub(crate) fn held_for_everything(&self) -> bool {
+        self.cooldown
+            .lock()
+            .is_ok_and(|until| until.is_some_and(|until| until > Instant::now()))
+    }
+
+    /// How long stream pictures are held for a 429, if they are.
+    pub(crate) fn preview_hold(&self) -> Option<Duration> {
+        let until = (*self.preview_cooldown.lock().ok()?)?;
+        Some(until.checked_duration_since(Instant::now())?).filter(|left| !left.is_zero())
+    }
+
+    /// The picture of the account's own stream, as the official client
+    /// sends it (REA): `{thumbnail}`, a JPEG as a data URL. Its failure is
+    /// nobody's to see; only a rejected session ends.
+    pub async fn upload_stream_preview(
+        &self,
+        secret: &SessionSecret,
+        server: Option<rune_model::ServerId>,
+        channel: ChannelId,
+        owner: rune_model::UserId,
+        jpeg: &[u8],
+    ) -> Result<Vec<Event>, RestError> {
+        use base64::Engine as _;
+        let key = stream_key(server, channel, owner);
+        let thumbnail = format!(
+            "data:image/jpeg;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(jpeg)
+        );
+        let body = json!({ "thumbnail": thumbnail });
+        let path = format!("/streams/{key}/preview");
+        match self
+            .request_answer(secret, Method::POST, &path, Some(body), 4096, true)
+            .await
+        {
+            Err(error) if error.ends_session => Err(error),
+            _ => Ok(Vec::new()),
+        }
     }
 
     /// `user`'s full profile as seen in `server`; one GET, never repeated,
@@ -798,6 +877,38 @@ impl Http {
 
 /// A preview's URL, only on Discord's CDN, under the stream's `key` and
 /// named by a hex hash, as Serein accepts it.
+/// Which hold a 429 sets.
+#[derive(Clone, Copy)]
+pub(super) enum Bucket {
+    All,
+    Typing,
+    Preview,
+}
+
+/// The largest picture of the account's own stream sent: a JPEG that fits
+/// 512×288 is far smaller.
+const MAX_PREVIEW_JPEG: usize = 512 * 1024;
+
+/// A stream's key, as the official client names it:
+/// `guild:{server}:{channel}:{owner}`, or `call:{channel}:{owner}` in a
+/// conversation's call.
+pub(crate) fn stream_key(
+    server: Option<rune_model::ServerId>,
+    channel: ChannelId,
+    owner: rune_model::UserId,
+) -> String {
+    match server {
+        Some(server) => format!("guild:{server}:{channel}:{owner}"),
+        None => format!("call:{channel}:{owner}"),
+    }
+}
+
+/// The picture of the account's own stream is a JPEG of a sensible size.
+pub(crate) fn preview_fits(command: &Command) -> bool {
+    matches!(command, Command::UploadStreamPreview { jpeg, .. }
+        if jpeg.starts_with(&[0xFF, 0xD8, 0xFF]) && jpeg.len() <= MAX_PREVIEW_JPEG)
+}
+
 fn preview_url(value: &Value, key: &str) -> Option<String> {
     let url = value["url"].as_str()?;
     let path = [

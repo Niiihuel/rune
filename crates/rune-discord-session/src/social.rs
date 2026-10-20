@@ -450,6 +450,45 @@ mod tests {
         snapshot
     }
 
+    /// A friend READY lists with a picture keeps it; one without keeps
+    /// Discord's default, never only an initial (2026-10-19).
+    #[test]
+    fn ready_friends_carry_their_picture_or_the_default_one() {
+        let me = wire::user(&json!({"id":"9","username":"me"})).unwrap();
+        let hash = "0123456789abcdef0123456789abcdef";
+        let snapshot = bootstrap::ready(
+            &json!({
+                "user":{"id":"9"},
+                "relationships":[
+                    {"id":"8","type":1,"user":{"id":"8","username":"deity","avatar":hash}},
+                    {"id":"4194304","type":1,"user":{"id":"4194304","username":"adanger","avatar":null,"discriminator":"0"}},
+                    {"id":"7","type":1,"user":{"id":"7","username":"viejo","discriminator":"1337"}}
+                ]
+            }),
+            &me,
+        )
+        .unwrap();
+        let user = |name: &str| {
+            snapshot
+                .users
+                .iter()
+                .find(|user| user.name == name)
+                .unwrap()
+        };
+        assert_eq!(
+            user("deity").picture().unwrap().url,
+            format!("https://cdn.discordapp.com/avatars/8/{hash}.png?size=128")
+        );
+        // (4194304 >> 22) % 6 = 1; an old tag 1337 % 5 = 2.
+        for (name, index) in [("adanger", 1), ("viejo", 2)] {
+            assert!(user(name).avatar.is_none());
+            assert_eq!(
+                user(name).picture().unwrap().url,
+                format!("https://cdn.discordapp.com/embed/avatars/{index}.png")
+            );
+        }
+    }
+
     #[test]
     fn ready_keeps_valid_rows_once_and_drops_the_rest_without_failing() {
         let snapshot = session();

@@ -15,7 +15,9 @@ use rune_components::profile::ids as profile_ids;
 use rune_components::voice::{self as parts, ids, Details, MenuEntry, Panel, Participant, Stage};
 use rune_components::Look;
 use rune_i18n::t;
-use rune_model::{CallPhase, CallQuality, ChannelId, ServerId, Timestamp, UserId};
+use rune_model::{
+    CallPhase, CallQuality, ChannelId, RelationshipKind, ServerId, Timestamp, UserId,
+};
 use rune_provider::{Command, VoiceSupport};
 use rune_state::{Applied, Store};
 
@@ -725,10 +727,23 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
     if menu.row && writable {
         groups[0].push(item(format!("{}{user}", ids::MENTION), t("Mención"), None));
     }
+    let other = store.me() != Some(menu.user);
+    let social = store.social(menu.user);
+    let person = |action: &str| format!("friend:{user}:{action}");
+    if other && social.message.allowed() {
+        groups[0].push(item(person("message"), t("Mensaje"), None));
+    }
     // Voice moderation (P4): before the volumes, so a short window shows it.
     let moderation = crate::message_actions::voice_menu_group(store, menu.channel, menu.user);
     if !moderation.is_empty() {
         groups.push(moderation);
+    }
+    // The server's own: nickname, roles, timeout, kick and ban.
+    if let Some(server) = store.channel(menu.channel).and_then(|found| found.server) {
+        let members = crate::server_settings::member_menu_group(store, server, menu.user);
+        if !members.is_empty() {
+            groups.push(members);
+        }
     }
     if store.me() != Some(menu.user) {
         let note = || simulated(store).then(|| t("Simulado: la llamada no lleva audio").to_owned());
@@ -782,6 +797,31 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
             own.push(item(profile_ids::EDIT.into(), t("Editar perfil"), None));
         }
         groups.push(own);
+    }
+    if other {
+        let requests = store
+            .provider
+            .as_ref()
+            .is_some_and(|info| info.capabilities.friend_requests);
+        let mut people = Vec::new();
+        match store.relationship(menu.user).map(|known| known.kind) {
+            Some(RelationshipKind::Friend) if social.remove.allowed() => {
+                people.push(item(person("remove"), t("Eliminar amigo"), None));
+            }
+            None if requests => people.push(item(person("add"), t("Añadir amigo"), None)),
+            _ => {}
+        }
+        if store.relationship(menu.user).map(|known| known.kind) == Some(RelationshipKind::Blocked)
+        {
+            if social.unblock.allowed() {
+                people.push(item(person("unblock"), t("Desbloquear"), None));
+            }
+        } else if social.block.allowed() {
+            people.push(item(person("block"), t("Bloquear"), None));
+        }
+        if !people.is_empty() {
+            groups.push(people);
+        }
     }
     let stage = crate::stage::menu_group(store, menu.channel, menu.user);
     if !stage.is_empty() {

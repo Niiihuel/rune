@@ -36,7 +36,7 @@ mkdir -p "$(dirname "$key")"
 chmod 700 "$(dirname "$key")"
 # The private half is written by the tool itself (0600, never over a file
 # that exists); only the public half reaches stdout.
-(cd "$repo" && cargo run --quiet --locked -p rune-update --example release -- keygen "$key") > "$public"
+(cd "$repo" && cargo run --quiet --locked -p rune-release -- keygen "$key") > "$public"
 echo "update-key: public key written to crates/rune-update/release-key.pub: $(cat "$public")"
 echo "update-key: private key in $key"
 

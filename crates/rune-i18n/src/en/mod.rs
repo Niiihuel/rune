@@ -72,6 +72,8 @@ mod windows;
 mod windows_media;
 // The image and video viewer (visor-de-medios).
 mod media_viewer;
+// Streams (transmisiones).
+mod streams;
 
 /// Each file's entries, by the file's name.
 pub(crate) const ALL: &[(&str, Entries)] = &[
@@ -120,4 +122,6 @@ pub(crate) const ALL: &[(&str, Entries)] = &[
     ("windows_media", windows_media::ENTRIES),
     // The image and video viewer (visor-de-medios).
     ("media_viewer", media_viewer::ENTRIES),
+    // Streams (transmisiones).
+    ("streams", streams::ENTRIES),
 ];

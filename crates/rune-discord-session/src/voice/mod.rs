@@ -853,6 +853,19 @@ impl Calls {
         }
     }
 
+    // Streams (transmisiones).
+    /// The key of the account's own stream while it shares its screen:
+    /// what its picture goes up under.
+    pub(crate) fn own_stream_key(&self) -> Option<String> {
+        let call = self.call.as_ref()?;
+        let owner = call.share.as_ref()?.owner;
+        Some(crate::http::stream_key(
+            call.guild.map(rune_model::ServerId),
+            call.channel,
+            UserId(owner),
+        ))
+    }
+
     /// The stream of `owner` watched, or the account's own, is over: it
     /// goes, with why.
     fn watch_ended(&mut self, own: bool, owner: u64, reason: Option<String>) -> Vec<Event> {

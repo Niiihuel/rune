@@ -33,7 +33,7 @@ use std::time::Instant;
 
 use limn::{Key, UiAction, UiEvent};
 use rune_components::server_settings::{hex, parse_hex, permission_of, AUDIT_ACTIONS};
-use rune_i18n::{es, t};
+use rune_i18n::{es, t, tr};
 use rune_model::{
     valid_emoji_name, valid_sticker_name, AuditActionKind, AuditQuery, EmojiId, ExpressionId,
     Permissions, Role, RoleId, Server, ServerId, StickerId, UserId,
@@ -444,6 +444,128 @@ fn movable(store: &Store, server: ServerId, role: RoleId) -> bool {
         .is_some_and(|found| role_lock(store, server, found).is_none() && role != RoleId(server.0))
 }
 
+/// The server's own entries of `user`'s menu outside the settings (a voice
+/// channel): nickname, roles, timeout, kick and ban, only those the account
+/// may use. Each opens the members page with its dialog, as there.
+pub(crate) fn member_menu_group(
+    store: &Store,
+    server: ServerId,
+    user: UserId,
+) -> Vec<rune_components::voice::MenuEntry> {
+    use rune_components::voice::MenuEntry;
+    let (Some(abilities), Some(found), Some(member)) = (
+        store.server_abilities(server),
+        store.server(server),
+        store.member_of(server, user),
+    ) else {
+        return Vec::new();
+    };
+    let id = |what: &str| format!("ss:member-of:{server}:{user}:{what}");
+    let name = store.display_name(user, Some(server));
+    let mut items = Vec::new();
+    if nick_lock(store, server, user).is_none() {
+        items.push(MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None));
+    }
+    if abilities.manage_roles.allowed() {
+        let roles: Vec<(String, String)> = found
+            .roles
+            .iter()
+            .filter(|role| role.id != RoleId(server.0) && grant_lock(store, server, role).is_none())
+            .map(|role| {
+                let mark = if member.roles.contains(&role.id) {
+                    "✓ "
+                } else {
+                    ""
+                };
+                (
+                    id(&format!("role:{}", role.id)),
+                    format!("{mark}{}", role.name),
+                )
+            })
+            .collect();
+        if !roles.is_empty() {
+            items.push(MenuEntry::Submenu(t("Roles").into(), roles));
+        }
+    }
+    if Some(user) != store.me() {
+        if member_lock(store, server, user, &abilities.timeout).is_none() {
+            items.push(if advanced::timed_out(store, server, user) {
+                MenuEntry::Item(
+                    id("untimeout"),
+                    tr!("Quitar el aislamiento a {name}", name),
+                    None,
+                )
+            } else {
+                MenuEntry::Item(id("timeout"), tr!("Aislar a {name}", name), None)
+            });
+        }
+        if member_lock(store, server, user, &abilities.kick).is_none() {
+            items.push(MenuEntry::Item(
+                id("kick"),
+                tr!("Expulsar a {name}", name),
+                None,
+            ));
+        }
+        if member_lock(store, server, user, &abilities.ban).is_none() {
+            items.push(MenuEntry::Item(
+                id("ban"),
+                tr!("Vetar a {name}", name),
+                None,
+            ));
+        }
+    }
+    items
+}
+
+/// `{server}:{user}:{what}` from [`member_menu_group`]: a role changes right
+/// away; the rest open the members page and the same dialog as there.
+fn member_from_outside(ui: &mut Ui, store: &Store, member: &str, now: Instant) -> Vec<Intent> {
+    ui.voice.menu = None;
+    let Some((server, rest)) = member.split_once(':') else {
+        return Vec::new();
+    };
+    let Some(server) = server.parse().ok().map(ServerId) else {
+        return Vec::new();
+    };
+    let Some((user, what)) = rest.split_once(':') else {
+        return Vec::new();
+    };
+    let Some(user) = user.parse().ok().map(UserId) else {
+        return Vec::new();
+    };
+    let mut intents = Vec::new();
+    if let Some(role) = what.strip_prefix("role:") {
+        let role = role.parse().ok().map(RoleId);
+        if let Some(target) = store.server(server).and_then(|found| {
+            found
+                .roles
+                .iter()
+                .find(|candidate| Some(candidate.id) == role)
+        }) {
+            let has = store
+                .member_of(server, user)
+                .is_some_and(|member| member.roles.contains(&target.id));
+            give(store, server, user, target, !has, &mut intents);
+        }
+        return intents;
+    }
+    intents.extend(open(ui, store, server));
+    let Some(mut settings) = ui.server_settings.take() else {
+        return intents;
+    };
+    clicked(&mut settings, ui, store, "page:members", now, &mut intents);
+    clicked(
+        &mut settings,
+        ui,
+        store,
+        &format!("member:{user}:{what}"),
+        now,
+        &mut intents,
+    );
+    ui.server_settings = Some(settings);
+    intents
+}
+
 /// Open the settings of `server`.
 fn open(ui: &mut Ui, store: &Store, server: ServerId) -> Vec<Intent> {
     let Some(found) = store.server(server) else {
@@ -502,6 +624,9 @@ pub fn update(
         _ => return None,
     };
     let rest = id.strip_prefix("ss:")?;
+    if let Some(member) = rest.strip_prefix("member-of:") {
+        return Some(member_from_outside(ui, store, member, now));
+    }
     if let Some(server) = rest.strip_prefix("open:") {
         return Some(
             server

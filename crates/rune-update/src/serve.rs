@@ -1,5 +1,5 @@
 //! A file server on the loopback interface, for the tests and the local
-//! test feed (`examples/test_feed.rs`): HTTP/1.1 `GET`, one request per
+//! test feed (`tools/rune-release/src/test_feed.rs`): HTTP/1.1 `GET`, one request per
 //! connection, `Range: bytes={start}-`, and faults to try a client
 //! against: a connection cut partway through a body, a slow body, no
 //! ranges. Never for anything but this machine.

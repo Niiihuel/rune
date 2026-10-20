@@ -373,10 +373,12 @@ pub(crate) fn rows(
 
 /// The glyph of a kind of channel, when it is not `#` or a loudspeaker.
 pub(crate) fn glyph(kind: ChannelKind) -> Option<limn::Icon> {
+    use rune_components::glyphs;
     match kind {
-        ChannelKind::Forum => Some(limn::Icon::Chat),
-        ChannelKind::Announcement => Some(limn::Icon::Custom(rune_components::forum::MEGAPHONE)),
-        ChannelKind::Thread => Some(limn::Icon::Unread),
+        ChannelKind::Forum => Some(limn::Icon::Custom(glyphs::FORUM)),
+        ChannelKind::Announcement => Some(limn::Icon::Custom(glyphs::MEGAPHONE)),
+        ChannelKind::Thread => Some(limn::Icon::Custom(glyphs::THREAD)),
+        ChannelKind::Stage => Some(limn::Icon::Custom(glyphs::STAGE)),
         _ => None,
     }
 }

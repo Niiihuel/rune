@@ -9,10 +9,7 @@ use rune_i18n::{t, tr};
 use crate::{gap, icon, line, strong_line, text, Look};
 
 /// An eye crossed out: a channel listed that the account cannot open.
-pub const EYE_OFF: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 8s2.4-4.25 6.5-4.25S14.5 8 14.5 8s-2.4 4.25-6.5 4.25S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="1.9"/><path d="M2.5 13.5 13.5 2.5"/></svg>"#;
-
-/// A star: the favorite channels' heading.
-pub const STAR: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M8 1.9 9.8 5.6l4.1.6-3 2.9.7 4.1L8 11.3l-3.6 1.9.7-4.1-3-2.9 4.1-.6z"/></svg>"#;
+pub const EYE_OFF: &str = crate::glyphs::glyph!("eye-off");
 
 /// A channel of a server the account cannot see: dimmed, with the crossed
 /// eye, and nothing happens on a click. Its unread marks are never shown.

@@ -117,6 +117,42 @@ pub(crate) fn image_key(image: &RemoteImage) -> Option<&str> {
 }
 
 /// The public CDN image at `path`/`hash`, once the hash is a valid one.
+/// A CDN picture asked with `size=` (avatars, icons, banners, emoji,
+/// stickers' artwork) at the size a screen of `density` draws it: the size
+/// times the density, up to the next power of two the CDN serves, at most
+/// 4096. Anything else, or the same size, is `None`: fetched as it is.
+pub(crate) fn sized(url: &str, density: f32) -> Option<String> {
+    let mut url = url::Url::parse(url).ok()?;
+    if url.host_str() != Some("cdn.discordapp.com") || !density.is_finite() || density <= 1.0 {
+        return None;
+    }
+    let size: u32 = url
+        .query_pairs()
+        .find(|(key, _)| key == "size")?
+        .1
+        .parse()
+        .ok()?;
+    let wanted = ((size as f32 * density).ceil() as u32)
+        .next_power_of_two()
+        .clamp(16, 4096);
+    if wanted <= size {
+        return None;
+    }
+    let pairs: Vec<(String, String)> = url
+        .query_pairs()
+        .map(|(key, value)| {
+            let value = if key == "size" {
+                wanted.to_string()
+            } else {
+                value.into_owned()
+            };
+            (key.into_owned(), value)
+        })
+        .collect();
+    url.query_pairs_mut().clear().extend_pairs(pairs);
+    Some(url.into())
+}
+
 pub(crate) fn cdn(path: &str, banner: bool, hash: &Value) -> Option<RemoteImage> {
     let hash = hash.as_str()?;
     let digest = hash.strip_prefix("a_").unwrap_or(hash);
@@ -1069,5 +1105,42 @@ mod tests {
         assert!(mapped.components.is_empty(), "the message stays");
         let (patch, _) = message_patch(&json!({"id":"100","channel_id":"20"})).unwrap();
         assert_eq!(patch.components, None, "absent parts keep the old ones");
+    }
+
+    #[test]
+    fn a_cdn_picture_is_asked_at_the_size_a_dense_screen_draws_it() {
+        let avatar = "https://cdn.discordapp.com/avatars/42/a_0123.png?size=128";
+        assert_eq!(
+            super::sized(avatar, 1.0),
+            None,
+            "density 1 asks what it says"
+        );
+        assert_eq!(
+            super::sized(avatar, 2.0).as_deref(),
+            Some("https://cdn.discordapp.com/avatars/42/a_0123.png?size=256")
+        );
+        assert_eq!(
+            super::sized(avatar, 1.5).as_deref(),
+            Some("https://cdn.discordapp.com/avatars/42/a_0123.png?size=256")
+        );
+        let decoration =
+            "https://cdn.discordapp.com/avatar-decoration-presets/a_1.png?size=96&passthrough=true";
+        assert_eq!(
+            super::sized(decoration, 2.0).as_deref(),
+            Some("https://cdn.discordapp.com/avatar-decoration-presets/a_1.png?size=256&passthrough=true")
+        );
+        assert_eq!(
+            super::sized("https://cdn.discordapp.com/banners/1/b.png?size=4096", 2.0),
+            None,
+            "the largest the CDN serves"
+        );
+        // An attachment, the media proxy or another origin: as they are.
+        for other in [
+            "https://cdn.discordapp.com/attachments/1/2/a.png?ex=1",
+            "https://media.discordapp.net/external/a/b.png?width=160&height=160",
+            "https://example.test/a.png?size=128",
+        ] {
+            assert_eq!(super::sized(other, 2.0), None, "{other}");
+        }
     }
 }

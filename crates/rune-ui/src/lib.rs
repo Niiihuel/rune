@@ -58,6 +58,8 @@ mod identity;
 mod account_settings;
 // Private calls.
 mod private_calls;
+// Streams (transmisiones).
+mod streams;
 pub use account_settings::ACCOUNT_SETTINGS;
 pub use private_calls::{
     answer_alert, call_alerts, ring_tick, ringing as call_ringing, ANSWER as CALL_ANSWER,
@@ -107,7 +109,7 @@ use rune_provider::{Command, ConnectionState};
 use rune_state::{Applied, Store};
 
 pub use alerts::{message_alert, open_alert, Alert};
-pub use attachments::{AttachmentViewer, Viewed};
+pub use attachments::{follow_viewer, AttachmentViewer, Viewed};
 pub use channel_list::{ChannelList, ChannelNotify};
 pub use context::open_message;
 pub use documents::{document_result, document_text, DocumentSearch, DocumentViewer};
@@ -150,6 +152,10 @@ pub use video::{
     sound as video_sound, sound_failed as video_sound_failed, stream_previews as video_previews,
     window_closed as video_window_closed, window_view as video_window, windows as video_windows,
     Live, Share, Video,
+};
+// Streams (transmisiones).
+pub use video::{
+    own_preview_due as video_own_preview, own_preview_failed as video_own_preview_failed,
 };
 // The call's sounds and their settings (audio work).
 pub use call_sounds::{
@@ -1169,7 +1175,8 @@ pub fn secondary_click(
     target: &str,
     at: limn::Point,
 ) -> Option<Vec<Intent>> {
-    let opened = voice::secondary_click(ui, store, target, at)
+    let opened = streams::secondary_click(ui, store, target, at)
+        .or_else(|| voice::secondary_click(ui, store, target, at))
         .or_else(|| account::secondary_click(ui, store, target, at))
         .or_else(|| threads::secondary_click(ui, store, target, at))
         .or_else(|| channel_list::secondary_click(ui, store, target, at))
@@ -1530,6 +1537,10 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
         return intents;
     }
     if let Some(intents) = quick_voice::update(ui, store, action, now) {
+        return intents;
+    }
+    // Streams (transmisiones): before the voice's, whose menus it shares.
+    if let Some(intents) = streams::update(ui, store, action) {
         return intents;
     }
     if let Some(intents) = voice::update(ui, store, action, now) {

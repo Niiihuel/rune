@@ -142,11 +142,6 @@ impl Item {
         self.submenu = entries;
         self
     }
-
-    pub fn icon(mut self, icon: Icon) -> Self {
-        self.icon = Some(icon);
-        self
-    }
 }
 
 impl From<Item> for Entry {
