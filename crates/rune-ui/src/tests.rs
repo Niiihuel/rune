@@ -434,6 +434,18 @@ impl Host {
                 return;
             }
         }
+        if let UiEvent::PointerDownEditor {
+            position,
+            click_count: 2,
+            ..
+        } = &event
+        {
+            let target = self.tree.frame().hit_test(*position).map(str::to_owned);
+            if let Some(intents) = double_click(&mut self.ui, &self.store, target.as_deref()) {
+                self.run(intents);
+                return;
+            }
+        }
         if let Some(intents) = intercept(&mut self.ui, &mut self.store, &event, focused.as_deref())
         {
             self.run(intents);

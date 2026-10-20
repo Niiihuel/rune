@@ -205,6 +205,10 @@ const SECTIONS: &[Section] = &[
                 es("cancelación de eco acople altavoces parlantes referencia"),
             ),
             (
+                "system-echo",
+                es("cancelar el sonido de la pc juegos música videos eco referencia del sistema salida"),
+            ),
+            (
                 "automatic-gain",
                 es("control automático de ganancia agc volumen nivel parejo"),
             ),
@@ -983,9 +987,25 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "echo-cancellation" => toggle(
             "us:echo-cancellation",
             t("Cancelación de eco"),
-            Some(t("Evita que el micrófono capte lo que RUNE reproduce. Solo actúa mientras suena algo.")),
+            Some(t("Evita que el micrófono capte lo que suena en tus auriculares, así nadie se escucha a sí mismo.")),
             prefs.effective_processing().echo_cancellation,
         ),
+        "system-echo" => {
+            let echo = prefs.effective_processing().echo_cancellation;
+            let note = match ui.audio.system_echo.filter(|_| echo && prefs.system_echo) {
+                Some(true) => t("Activo: se cancela todo lo que suena en tu salida. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía."),
+                Some(false) => t("No se pudo escuchar tu salida: por ahora se cancela sólo lo que reproduce RUNE."),
+                None => t("Juegos, música y videos que suenan en tu salida no se cuelan por el micrófono. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía."),
+            };
+            parts::toggle(
+                "us:system-echo",
+                t("Cancelar también el sonido de la PC"),
+                Some(note),
+                echo && prefs.system_echo,
+                (!echo).then_some(t("Necesita la cancelación de eco.")),
+                look,
+            )
+        }
         "automatic-gain" => toggle(
             "us:automatic-gain",
             t("Control automático de ganancia"),

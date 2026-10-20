@@ -19,6 +19,8 @@ mod clip;
 pub mod codec;
 /// A bounded reorder buffer for one remote stream.
 pub mod jitter;
+/// What the system plays, as an echo reference only.
+mod loopback;
 /// Remote streams summed into one frame, with per-person volume.
 pub mod mixer;
 /// The pictures of a Matroska or WebM file: how they are coded.

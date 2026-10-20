@@ -312,6 +312,7 @@ impl Audio {
             self.apply(ui, store, &snapshot, now);
         } else {
             ui.audio.starting = false;
+            ui.audio.system_echo = None;
             self.clear_speaking(ui, store);
         }
     }
@@ -550,11 +551,20 @@ impl Audio {
             monitor: ui.audio.loopback && !ui.deafened,
             // A channel that asks for push-to-talk goes by the key, not the gate.
             speech_gate: ui.prefs.speech_gate() && !store.push_to_talk_required(),
+            // What the PC plays is a reference for the canceller only.
+            system_echo: ui.prefs.system_echo,
+            output: ui.audio.output.clone(),
         })
     }
 
     fn apply(&mut self, ui: &mut Ui, store: &mut Store, snapshot: &CaptureSnapshot, now: Instant) {
         ui.audio.starting = ui.audio.testing && matches!(snapshot.state, CaptureState::Starting);
+        // Said once the canceller has heard something: before that, it
+        // has not chosen its reference yet.
+        let wanted = ui.prefs.system_echo && ui.prefs.effective_processing().echo_cancellation;
+        ui.audio.system_echo =
+            (wanted && snapshot.state == CaptureState::Running && snapshot.processed_frames > 0)
+                .then_some(snapshot.system_echo);
         match &snapshot.state {
             CaptureState::Failed(error) => self.failed(ui, store, error.clone(), now),
             CaptureState::Running => {
@@ -893,6 +903,13 @@ mod tests {
         assert!(!capture.echo_cancellation, "off until enabled");
         ui.prefs.processing.echo_cancellation = true;
         assert!(audio.request(&ui, &store).unwrap().echo_cancellation);
+        // The PC's sound is cancelled too by default, on the output chosen.
+        ui.audio.output = Some("headset".into());
+        let capture = audio.request(&ui, &store).unwrap();
+        assert!(capture.system_echo);
+        assert_eq!(capture.output.as_deref(), Some("headset"));
+        ui.prefs.system_echo = false;
+        assert!(!audio.request(&ui, &store).unwrap().system_echo);
         // Deafened, oneself is not heard either, also while the deafen
         // sound has the output undeafened.
         ui.deafened = true;

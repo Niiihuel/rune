@@ -57,6 +57,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             automatic_gain: flag("--agc"),
             monitor: true,
             speech_gate: flag("--gate"),
+            system_echo: flag("--system-echo"),
+            output: value("--device"),
         }));
         capture = Some(microphone);
     }

@@ -1,5 +1,6 @@
 //! A latest-request capture controller and a bounded real-time ingress.
 
+use std::any::Any;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, Thread};
@@ -19,11 +20,15 @@ use crate::{
 
 const POLL_INTERVAL: Duration = Duration::from_millis(4);
 /// Reference queued beyond this is old: dropping it bounds the misalignment
-/// the canceller's own delay estimate has to absorb.
+/// the canceller's own delay estimate has to absorb. Running steadily it is
+/// never reached: everything waiting is fed before each capture frame.
 const REFERENCE_BACKLOG: usize = 80 * REFERENCE_FRAME / 10;
-/// Capture frames without any played reference before echo cancellation
-/// turns off again: 200 ms.
-const ECHO_HOLD_FRAMES: u32 = 20;
+/// Reference frames fed before one capture frame, at most: a stalled worker
+/// catches up over a few frames instead of flooding the canceller.
+const MAX_RENDER_FRAMES: usize = REFERENCE_BACKLOG / REFERENCE_FRAME;
+/// Capture frames with nothing from the system's loopback before RUNE's own
+/// reference stands in, 500 ms: the output stopped or the stream died.
+const SYSTEM_IDLE_FRAMES: u32 = 50;
 const STALE_AFTER: Duration = Duration::from_millis(250);
 const MAX_RATE: u32 = 192_000;
 const MAX_CHANNELS: u16 = 8;
@@ -34,8 +39,9 @@ pub struct CaptureRequest {
     pub device: Option<String>,
     pub mode: ProcessingMode,
     pub muted: bool,
-    /// Cancel echo while the [`EchoReference`] given to
-    /// [`Capture::set_echo_reference`] receives played audio; off otherwise.
+    /// Cancel the echo of what the [`EchoReference`] given to
+    /// [`Capture::set_echo_reference`] plays; with [`Self::system_echo`],
+    /// of what the whole system plays.
     pub echo_cancellation: bool,
     /// Bring speech to a steady level, digitally; see
     /// [`CaptureProcessor::set_automatic_gain`].
@@ -46,6 +52,14 @@ pub struct CaptureRequest {
     /// Silence what RNNoise does not hear as speech; see
     /// [`CaptureProcessor::set_speech_gate`].
     pub speech_gate: bool,
+    /// With echo cancellation, cancel also what other applications play on
+    /// [`Self::output`] (a game, music): its loopback is the canceller's
+    /// reference instead of RUNE's own, which it already holds. It is only
+    /// a reference: never sent, played, measured or kept.
+    pub system_echo: bool,
+    /// The output RUNE plays to, `None` for the system's default: the one
+    /// [`Self::system_echo`] listens to.
+    pub output: Option<String>,
 }
 
 /// Device state; starting/opening never blocks the caller.
@@ -74,6 +88,9 @@ pub struct CaptureSnapshot {
     pub echo_cancelling: bool,
     /// Echo reference samples dropped as too old to align.
     pub reference_dropped: u64,
+    /// The canceller's reference is the system's loopback: what every
+    /// application plays on the output, RUNE included.
+    pub system_echo: bool,
 }
 
 struct Desired {
@@ -404,6 +421,14 @@ struct Opened<S> {
     rate: u32,
 }
 
+/// An open loopback of an output: the stream, kept only to stay open, a
+/// flag its error callback raises, and what it records, as a reference.
+struct Loopback {
+    _stream: Box<dyn Any>,
+    failed: Arc<AtomicBool>,
+    reference: EchoReference,
+}
+
 trait Backend {
     type Stream: InputStream;
     fn open(
@@ -411,6 +436,8 @@ trait Backend {
         device: Option<&str>,
         shared: Arc<Shared>,
     ) -> Result<Opened<Self::Stream>, MediaError>;
+    /// What the system plays on `output` (`None`: the default output).
+    fn open_loopback(&mut self, output: Option<&str>) -> Result<Loopback, MediaError>;
 }
 
 struct CpalBackend;
@@ -476,6 +503,15 @@ impl Backend for CpalBackend {
             rate,
         })
     }
+
+    fn open_loopback(&mut self, output: Option<&str>) -> Result<Loopback, MediaError> {
+        let (stream, failed, reference) = crate::loopback::open(output)?;
+        Ok(Loopback {
+            _stream: Box::new(stream),
+            failed,
+            reference,
+        })
+    }
 }
 
 /// The device's own configuration if it is at [`PLAYBACK_RATE`], else the
@@ -539,8 +575,15 @@ struct Active<S> {
     mode: ProcessingMode,
     echo: bool,
     monitor: bool,
-    /// Capture frames since the output last played anything.
-    echo_idle: u32,
+    /// The system's loopback while asked for and open, the output it
+    /// listens to, and capture frames since it last gave anything.
+    system: Option<(Loopback, Option<String>, u32)>,
+    /// The output whose loopback could not be opened: not tried again
+    /// until the request changes.
+    system_failed: Option<Option<String>>,
+    /// The capture started over (opened, a new request such as a mute, a
+    /// gap): what waits in the references played before it.
+    fresh: bool,
     reference: Vec<f32>,
     /// From the microphone's rate to the processor's, when they differ.
     resampler: Option<Linear>,
@@ -566,7 +609,9 @@ impl<S> Active<S> {
             mode: request.mode,
             echo: request.echo_cancellation,
             monitor: request.monitor,
-            echo_idle: 0,
+            system: None,
+            system_failed: None,
+            fresh: true,
             reference: vec![0.0; REFERENCE_FRAME],
             frame,
             next_sequence: None,
@@ -595,6 +640,8 @@ impl<S> Active<S> {
         }
         self.frame.clear();
         self.next_sequence = None;
+        self.fresh = true;
+        self.system_failed = None;
         // Admission is closed while reconfiguring. An in-flight callback can
         // still finish; generation tags reject its samples in step().
         for _ in 0..self.opened.rate as usize / 5 {
@@ -611,31 +658,85 @@ impl<S> Active<S> {
         self.stale = false;
     }
 
-    /// Give the canceller one reference frame per capture frame while the
-    /// output plays, silence for short gaps, and turn it off after a longer one.
+    /// Open or close the system's loopback as `request` asks: with echo
+    /// cancellation and [`CaptureRequest::system_echo`], on its output. A
+    /// failed one is not retried until the request changes.
+    fn steer_system<B: Backend>(&mut self, backend: &mut B, request: &CaptureRequest) {
+        let wanted = (request.echo_cancellation && request.system_echo).then_some(&request.output);
+        if self.system.as_ref().is_some_and(|(loopback, output, _)| {
+            Some(output) != wanted || loopback.failed.load(Ordering::Acquire)
+        }) {
+            self.system = None;
+        }
+        let Some(output) = wanted
+            .filter(|output| self.system.is_none() && self.system_failed.as_ref() != Some(*output))
+        else {
+            return;
+        };
+        match backend.open_loopback(output.as_deref()) {
+            Ok(loopback) => self.system = Some((loopback, output.clone(), 0)),
+            Err(_) => self.system_failed = Some(output.clone()),
+        }
+    }
+
+    /// Before a capture frame, give the canceller everything played since
+    /// the last one, as soon as it is there: the echo always comes after
+    /// what made it, by however long the devices take, and the canceller
+    /// finds that delay itself. One reference only: the system's loopback
+    /// while it gives sound (it holds RUNE's too), else RUNE's own.
     fn cancel_echo(&mut self, reference: Option<&mut EchoReference>) -> Result<(), MediaError> {
-        let Some(reference) = reference.filter(|_| self.echo) else {
+        if !self.echo {
+            self.processor.set_echo_cancellation(false);
+            self.snapshot.system_echo = false;
+            return Ok(());
+        }
+        if let Some((loopback, _, idle)) = &mut self.system {
+            *idle = if loopback.reference.available() > 0 {
+                0
+            } else {
+                idle.saturating_add(1)
+            };
+        }
+        let system = self
+            .system
+            .as_mut()
+            .filter(|(_, _, idle)| *idle < SYSTEM_IDLE_FRAMES)
+            .map(|(loopback, ..)| &mut loopback.reference);
+        let using_system = system.is_some();
+        let (source, unused) = match system {
+            Some(system) => (Some(system), reference),
+            None => (
+                reference,
+                self.system
+                    .as_mut()
+                    .map(|(loopback, ..)| &mut loopback.reference),
+            ),
+        };
+        if let Some(unused) = unused {
+            unused.clear();
+        }
+        self.snapshot.system_echo = using_system;
+        let Some(source) = source else {
             self.processor.set_echo_cancellation(false);
             return Ok(());
         };
-        let dropped = reference.trim(REFERENCE_BACKLOG) as u64;
-        self.snapshot.reference_dropped = self.snapshot.reference_dropped.saturating_add(dropped);
-        if reference.read(&mut self.reference) {
-            self.echo_idle = 0;
-            self.processor.set_echo_cancellation(true);
-        } else if self.processor.echo_cancellation() {
-            self.echo_idle += 1;
-            if self.echo_idle >= ECHO_HOLD_FRAMES {
-                self.processor.set_echo_cancellation(false);
-                return Ok(());
-            }
-            // Nothing audible played during this frame.
-            self.reference.fill(0.0);
-        } else {
-            return Ok(());
+        self.processor.set_echo_cancellation(true);
+        // What played while nothing was read goes. Here, at the first frame
+        // after a restart, as when the capture first opened: the canceller
+        // then finds what follows where it was, and keeps the echo's delay.
+        if std::mem::take(&mut self.fresh) {
+            source.clear();
         }
-        self.processor
-            .render(&self.reference, reference.output_latency_ms())
+        let dropped = source.trim(REFERENCE_BACKLOG) as u64;
+        self.snapshot.reference_dropped = self.snapshot.reference_dropped.saturating_add(dropped);
+        for _ in 0..MAX_RENDER_FRAMES {
+            if !source.read(&mut self.reference) {
+                break;
+            }
+            self.processor
+                .render(&self.reference, source.output_latency_ms())?;
+        }
+        Ok(())
     }
 
     /// Send the processed frame, at the output's rate already, to whoever
@@ -709,6 +810,7 @@ impl<S> Active<S> {
                 // Never join audio from either side of a lost interval.
                 self.frame.clear();
                 self.processor.reset();
+                self.fresh = true;
                 self.resampler = resampler(self.opened.rate);
             }
             self.next_sequence = Some(sample.sequence.wrapping_add(1));
@@ -730,6 +832,7 @@ impl<S> Active<S> {
             self.frame.clear();
             self.next_sequence = None;
             self.processor.reset();
+            self.fresh = true;
             self.snapshot.raw_level = 0.0;
             self.snapshot.processed_level = 0.0;
             self.stale = true;
@@ -830,6 +933,9 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                         Ok(())
                     })
             };
+            if let Some(current) = active.as_mut().filter(|_| result.is_ok()) {
+                current.steer_system(&mut backend, request);
+            }
             match result {
                 Ok(()) if shared.current(generation) && active.is_some() => {
                     shared.ready.store(generation, Ordering::Release);
@@ -887,3 +993,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
 
 #[cfg(test)]
 mod tests;
+
+/// The echo the capture path leaves, timed as the devices run.
+#[cfg(test)]
+pub(crate) mod eval;

@@ -46,6 +46,11 @@ rasterlottie = { version = "=0.2.4", default-features = false }
 # dependency of the tests already, and its own are in the tree.
 tempfile = "3"
 
+# Windows (windows-base): which file is at a name, by volume and file index,
+# before «Save as» replaces it; the bindings rune-platform already builds.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [dev-dependencies]
 # Writes an animated PNG for its decoding test: `image` only reads them. Already
 # in the tree through `image`.

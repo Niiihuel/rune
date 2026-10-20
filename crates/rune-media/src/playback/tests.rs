@@ -131,14 +131,18 @@ fn the_callback_applies_gain_and_fills_every_channel_without_allocating() {
 }
 
 #[test]
-fn deafen_and_zero_volume_silence_the_output_and_feed_no_reference() {
+fn deafen_and_zero_volume_silence_the_output_and_its_reference() {
     let shared = shared(0.0);
     let (mut egress, mut ends) = rings(48_000, 1, shared.clone()).unwrap();
     for _ in 0..20 {
         ends.producer.push(0.5).unwrap();
     }
     assert!(render(&mut egress, 10).iter().all(|value| *value == 0.0));
-    assert_eq!(ends.references.slots(), 0);
+    let reference: Vec<f32> = std::iter::from_fn(|| ends.references.pop().ok()).collect();
+    assert_eq!(
+        reference, [0.0; 10],
+        "the silence that played, sample for sample"
+    );
     shared.gain.store(1.0_f32.to_bits(), Ordering::Release);
     let played = render(&mut egress, 5);
     assert_eq!(&played[1..], &[0.5; 4]);
@@ -146,7 +150,7 @@ fn deafen_and_zero_volume_silence_the_output_and_feed_no_reference() {
 }
 
 #[test]
-fn underruns_are_silence_counted_only_while_a_source_plays_and_feed_no_reference() {
+fn underruns_are_silence_counted_only_while_a_source_plays_and_kept_in_the_reference() {
     let shared = shared(1.0);
     let (mut egress, mut ends) = rings(48_000, 2, shared.clone()).unwrap();
     assert!(render(&mut egress, 8).iter().all(|value| *value == 0.0));
@@ -162,11 +166,12 @@ fn underruns_are_silence_counted_only_while_a_source_plays_and_feed_no_reference
     assert_eq!(output[2], 0.25);
     assert!(output[6..].iter().all(|value| *value == 0.0));
     assert_eq!(shared.underruns.load(Ordering::Relaxed), 6);
-    assert_eq!(
-        ends.references.slots(),
-        2,
-        "silence filled in is not played audio"
-    );
+    // The reference keeps the speaker's timeline: idle, then the two
+    // samples, then the gap, each where it played.
+    let reference: Vec<f32> = std::iter::from_fn(|| ends.references.pop().ok()).collect();
+    assert_eq!(reference.len(), 16);
+    assert_eq!(&reference[8..11], &[0.25, 0.25, 0.0]);
+    assert_eq!(reference.iter().filter(|value| **value != 0.0).count(), 2);
     assert_eq!(shared.latency_micros.load(Ordering::Relaxed), 12_000);
 }
 

@@ -13,7 +13,7 @@ use limn::{
     LineChart, PopoverPlacement, RadiusRole, Size, Slider, Tooltip, TooltipPlacement, TooltipSpec,
 };
 use rune_i18n::{es, t, tr};
-use rune_model::{CallPhase, CallQuality, StreamQuality};
+use rune_model::{CallPhase, CallQuality, Rgb, StreamQuality};
 
 use crate::{centered, gap, icon, line, strong_line, text, Look};
 
@@ -125,6 +125,15 @@ pub mod ids {
         format!("vz:preview:{user}")
     }
 
+    // Rows in the column (voz-filas-y-arrastre).
+    /// The card of someone live beside their row, shown on hover.
+    pub const LIVE_DISMISS: &str = "vz:live:dismiss";
+
+    /// «Ver transmisión» on the card of someone live beside their row.
+    pub fn live_watch(user: u64) -> String {
+        format!("vz:live:watch:{user}")
+    }
+
     /// «Dejar de ver» on `user`'s stream.
     pub fn stop_watching(user: u64) -> String {
         format!("{STOP_WATCHING}{user}")
@@ -156,10 +165,17 @@ pub mod ids {
     }
 
     // Streams (transmisiones).
-    /// `user`'s stream watched on the stage: a click focuses it, a
-    /// secondary click opens its menu.
+    /// `user`'s stream watched on the stage: a click focuses it, or lets go
+    /// of the focus, a double click shows it full screen, a secondary click
+    /// opens its menu.
     pub fn stream_tile(user: u64) -> String {
         format!("vz:stream:{user}")
+    }
+
+    /// The «⋯» of `user`'s stream, shown while the pointer is on it: its
+    /// menu, anchored there.
+    pub fn stream_more(user: u64) -> String {
+        format!("vz:stream-more:{user}")
     }
 
     /// «Enfocar» `user`'s stream, or «Volver a la grilla» while it is.
@@ -221,7 +237,7 @@ fn video_buttons(controls: &VideoControls, height: f32, base: Color, look: &Look
                 height,
                 font_size: 14.0,
                 icon_size: 20.0,
-                horizontal_padding: if height > PANEL_BUTTON { 11.0 } else { 8.0 },
+                horizontal_padding: 8.0,
                 inner_spacing: 6.0,
             })
             .radius(RadiusRole::Card)
@@ -288,11 +304,34 @@ pub struct Preview {
     /// «Pausar».
     pub actions: Vec<(String, &'static str)>,
     // Streams (transmisiones).
-    /// What a click on it reports, and its menu opens on: a stream watched.
-    pub tile: Option<String>,
+    /// A stream watched: what its tile offers in place of `stop` and
+    /// `actions`.
+    pub stream: Option<StreamTile>,
     /// It takes the stage, the rest in a strip under it.
     pub focused: bool,
 }
+
+/// A stream watched, as its tile offers it (transmisiones), as in the
+/// official client: a click focuses it, a double click shows it full
+/// screen, and under the pointer its sound and «⋯» show at its top right.
+/// While it is focused, its window and full screen go at the bar's end and
+/// hanging up gives way to «Dejar de ver».
+#[derive(Clone, Debug, PartialEq)]
+pub struct StreamTile {
+    pub owner: u64,
+    /// The key of its sound for the account's mixer, apart from the voice's.
+    pub sound: u64,
+    /// Its sound is silenced for the account.
+    pub silenced: bool,
+    /// It shows in a window of its own already.
+    pub windowed: bool,
+    /// Its menu, while open from its «⋯».
+    pub menu: Option<Vec<MenuEntry>>,
+}
+
+/// RUNE's own glyphs for «Dejar de ver» and «Ventana aparte».
+const SCREEN_STOP: &str = crate::glyphs::glyph!("screen-stop");
+const POP_OUT: &str = crate::glyphs::glyph!("pop-out");
 
 /// A preview's tile: the frame as large as fits, its note and the way to
 /// stop it on top, its title in a chip at the bottom left. The camera's is
@@ -337,19 +376,30 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
             .render()
     }));
     let title = chip(strong_line(&view.title, 14.0, look.text)).shrink_to_fit();
-    let over = if compact {
-        Element::column(vec![
+    let over = match &view.stream {
+        _ if compact => Element::column(vec![
             Element::spacer().flex(1.0),
             Element::row(vec![title, Element::spacer().flex(1.0)]),
         ])
-        .padding(8.0)
-    } else {
-        Element::column(vec![
+        .padding(8.0),
+        // A stream watched: its ways out are in its menu and the bar.
+        Some(stream) => Element::column(vec![
+            Element::row(vec![
+                chip(line(&view.note, 13.0, look.text)).shrink_to_fit(),
+                Element::spacer().flex(1.0),
+                stream_buttons(stream, look),
+            ])
+            .gap(8.0),
+            Element::spacer().flex(1.0),
+            Element::row(vec![title, Element::spacer().flex(1.0)]),
+        ])
+        .padding(12.5),
+        None => Element::column(vec![
             Element::row(top).gap(8.0),
             Element::spacer().flex(1.0),
             Element::row(vec![title, Element::spacer().flex(1.0), stop]).gap(8.0),
         ])
-        .padding(12.5)
+        .padding(12.5),
     };
     let shown = Element::stack(vec![
         Element::panel(picture)
@@ -359,12 +409,75 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
             .clip_children(),
         over,
     ]);
-    match &view.tile {
-        Some(id) => Element::clickable(id.clone(), shown).radius(TILE_RADIUS),
+    match &view.stream {
+        Some(stream) => Element::clickable(ids::stream_tile(stream.owner), shown)
+            .radius(TILE_RADIUS)
+            .hover_region(),
         None => shown,
     }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
+}
+
+/// A stream's sound and «⋯» at its tile's top right, 32 across, shown
+/// while the pointer is on it, as the official client's: the sound stays
+/// while silenced, the «⋯» while its menu is open.
+fn stream_buttons(stream: &StreamTile, look: &Look) -> Element {
+    let button = |id: String, glyph: Icon, hint: &str| {
+        IconButton::new(
+            id,
+            glyph,
+            filled(Look::alpha(look.rail, 200), look.raised, look),
+        )
+        .variant(ButtonVariant::Raised)
+        .sizing(ButtonSizing {
+            height: 32.0,
+            font_size: 14.0,
+            icon_size: 18.0,
+            horizontal_padding: 7.0,
+            inner_spacing: 6.0,
+        })
+        .width(32.0)
+        .radius(RadiusRole::Card)
+        .ink(look.text)
+        .hover_ink(look.text)
+        .tooltip(hint)
+        .render()
+    };
+    let reveal = |shown: Element, kept: bool, what: &str| {
+        if kept {
+            shown
+        } else {
+            shown.reveal_on_hover(format!("{}:{what}", ids::stream_tile(stream.owner)))
+        }
+    };
+    let (glyph, hint) = if stream.silenced {
+        (Icon::VolumeMuted, t("Activar el sonido"))
+    } else {
+        (Icon::Volume, t("Silenciar"))
+    };
+    let sound = button(ids::local_mute(stream.sound), glyph, hint);
+    let open = stream.menu.is_some();
+    let more = DropdownMenu::new(
+        button(
+            ids::stream_more(stream.owner),
+            Icon::More,
+            t("Más opciones"),
+        ),
+        menu_entries(stream.menu.clone().unwrap_or_default(), look),
+        open,
+        ids::MENU_DISMISS,
+        look.menu_palette(),
+    )
+    .context_menu_style()
+    .width(MENU_WIDTH)
+    .placement(PopoverPlacement::BottomEnd)
+    .render();
+    Element::row(vec![
+        reveal(sound, stream.silenced, "sound"),
+        reveal(more, open, "more"),
+    ])
+    .gap(8.0)
 }
 
 /// A stream in a window of its own: the frame as large as fits, its note
@@ -419,10 +532,17 @@ const PANEL_GAP: f32 = 12.5;
 /// The connection's details: 319 wide.
 pub const DETAILS_WIDTH: f32 = 319.0;
 /// A person's row under a voice channel: 34 high, 30 in from the channel's
-/// row, their mark 25 across.
+/// row, their mark 25 across. Its highlight is 1 short above and below, so
+/// two rows' never touch, and ends where a channel's does
+/// (`sidebar::INSET` from the column's edge), rounded the same 6.
 pub const ROW_HEIGHT: f32 = 34.0;
 const ROW_INDENT: f32 = 38.0;
 const ROW_AVATAR: f32 = 25.0;
+const ROW_RADIUS: f32 = 6.0;
+/// The card of someone live, beside their row: 12 around a 288 by 162
+/// picture of their stream.
+pub const LIVE_CARD_WIDTH: f32 = 312.0;
+const LIVE_PICTURE: (f32, f32) = (288.0, 162.0);
 /// Tiles keep 16:9, 8.5 apart, rounded 8, with 17 around them.
 const TILE_GAP: f32 = 8.5;
 const TILE_RADIUS: f32 = 8.0;
@@ -433,12 +553,16 @@ const MIN_STRIP: f32 = 72.0;
 const MAX_STRIP: f32 = 124.0;
 /// The least a stream focused keeps; a shorter stage has no strip.
 const MIN_FOCUS: f32 = 180.0;
-/// The bar of the stage: 51 high, 22.5 over the bottom; its buttons 42
-/// across in groups rounded 12; hanging up is 68.5 wide.
-pub const BAR_HEIGHT: f32 = 51.0;
-const BAR_BOTTOM: f32 = 22.5;
-const BAR_BUTTON: f32 = 42.0;
-const HANG_UP_WIDTH: f32 = 68.5;
+/// The bar of the stage, as the official client's tray (REA): its buttons
+/// 36 across, 8 apart in sections 4 in, outlined and rounded 12, 46 high;
+/// sections and hanging up (62 wide) 12 apart, and 12 under the tiles;
+/// 16 over the bottom and in from the sides, where its end keeps a
+/// stream's own.
+pub const BAR_HEIGHT: f32 = 46.0;
+const BAR_BOTTOM: f32 = 16.0;
+const BAR_BUTTON: f32 = 36.0;
+const BAR_GAP: f32 = 12.0;
+const HANG_UP_WIDTH: f32 = 62.0;
 /// «Más opciones», 330 wide.
 const MORE_WIDTH: f32 = 330.0;
 
@@ -834,6 +958,10 @@ pub struct Participant {
     /// Their row can be dragged to another voice channel: the account may
     /// move them.
     pub movable: bool,
+    // Rows in the column (voz-filas-y-arrastre).
+    /// They are being carried to another voice channel: their row is lifted
+    /// on a card's surface, which the copy following the pointer keeps.
+    pub carried: bool,
 }
 
 /// The latest picture of someone's stream, as the column shows it.
@@ -871,6 +999,81 @@ fn thumbnail(person: &Participant, thumbnail: &Thumbnail, look: &Look) -> Elemen
         Element::spacer().flex(1.0),
     ])
     .padding(2.0)
+}
+
+/// The card of someone live beside their row in the column, while the
+/// pointer is on it: who, what they stream, the latest picture of it, and
+/// «Ver transmisión», as the official client's preview of a stream.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiveCard {
+    pub user: u64,
+    pub name: String,
+    /// What they stream: the game they play, when known.
+    pub activity: Option<String>,
+    /// The latest picture of their stream; what is said instead until one
+    /// arrives, or when none can.
+    pub picture: Result<Thumbnail, String>,
+    /// Whether «Ver transmisión» can be used, or why not.
+    pub watch: Result<(), String>,
+}
+
+/// The card of someone live: `card.picture` 288 by 162 under their name and
+/// what they stream, «Ver transmisión» under it. Transparent 8 on its left,
+/// toward the row, so the pointer crosses into it.
+pub fn live_card(card: &LiveCard, look: &Look) -> Element {
+    let (width, height) = LIVE_PICTURE;
+    let mut head = vec![
+        strong_line(&card.name, 15.0, look.text)
+            .flex(1.0)
+            .centered_y(),
+        live(16.0, look).centered_y(),
+    ];
+    head.insert(1, gap(8.0, 0.0));
+    let mut body = vec![Element::row(head)];
+    if let Some(activity) = &card.activity {
+        body.push(line(
+            tr!("Transmitiendo {name}", name = activity),
+            13.0,
+            look.muted,
+        ));
+    }
+    let picture = match &card.picture {
+        Ok(Thumbnail::Image(image)) => {
+            Element::raster_image(image.clone().cover()).size(Some(width), Some(height))
+        }
+        Ok(Thumbnail::Simulated) => centered(text(t("Vista previa simulada"), 13.0, look.muted)),
+        Err(note) => centered(text(note.clone(), 13.0, look.muted)),
+    };
+    body.push(
+        Element::panel(picture)
+            .size(Some(width), Some(height))
+            .radius(8.0)
+            .background(look.canvas)
+            .clip_children(),
+    );
+    let button = Button::new(
+        ids::live_watch(card.user),
+        t("Ver transmisión"),
+        look.palette(),
+    )
+    .variant(ButtonVariant::Success)
+    .icon(Icon::Screen)
+    .width(width);
+    body.push(match &card.watch {
+        Ok(()) => button.render(),
+        Err(reason) => button
+            .tooltip_with(denied_hint(t("Ver transmisión"), reason))
+            .disabled()
+            .render(),
+    });
+    let surface = Element::panel(Element::column(body).gap(10.0).padding(12.0))
+        .size(Some(LIVE_CARD_WIDTH), None)
+        .background(look.menu)
+        .border(look.border, 1.0)
+        .radius(12.0)
+        .shadow(look.shadow, limn::Point::new(0.0, 9.0), 22.0, 0.0)
+        .accessibility_label(tr!("Transmisión de {name}", name = card.name));
+    Element::row(vec![gap(8.0, 0.0), surface]).size(Some(LIVE_CARD_WIDTH + 8.0), None)
 }
 
 /// The «En vivo» mark of someone streaming, `size` high.
@@ -955,8 +1158,14 @@ fn marks(person: &Participant, prefix: &str, ink: Color, look: &Look) -> Vec<Ele
 /// Someone under the voice channel they are in: their mark (ringed while
 /// they speak), their name, and whether they hear and can be heard. A click
 /// opens their card (`card`, floating beside the row while open); a
-/// secondary click, their menu.
-pub fn participant(person: &Participant, card: Option<Element>, look: &Look) -> Element {
+/// secondary click, their menu. Someone live shows `streamed` beside the
+/// row while the pointer is on it.
+pub fn participant(
+    person: &Participant,
+    card: Option<Element>,
+    streamed: Option<&LiveCard>,
+    look: &Look,
+) -> Element {
     let id = ids::row(person.user);
     let face = speaking_ring(
         crate::avatar_with_image(
@@ -1011,25 +1220,46 @@ pub fn participant(person: &Participant, card: Option<Element>, look: &Look) -> 
     } else {
         format!("{}, {}", person.name, state.join(", "))
     };
+    // The highlight is drawn inside the row, short of its edges; the row
+    // itself reaches the column's edge, so the pointer goes from it to the
+    // card of someone live without leaving either.
+    let fill = Element::panel(Element::spacer()).radius(ROW_RADIUS);
+    let fill = if person.carried {
+        fill.background(look.menu).border(look.border, 1.0)
+    } else {
+        fill.background(look.hover)
+            .reveal_on_hover(format!("{id}:hover"))
+    };
+    let highlight = Element::column(vec![gap(0.0, 1.0), fill.flex(1.0), gap(0.0, 1.0)]);
+    let body = Element::stack(vec![highlight, Element::row(parts).gap(9.5).padding(4.5)])
+        .size(None, Some(ROW_HEIGHT));
     let row = Element::clickable(
         id,
-        Element::row(parts)
-            .gap(9.5)
-            .padding(4.5)
-            .size(None, Some(ROW_HEIGHT)),
+        Element::row(vec![body.flex(1.0), gap(crate::sidebar::INSET, 0.0)]),
     )
-    .radius(6.0)
-    .hover_background(look.hover)
+    .hover_region()
     .hover_foreground(look.text)
     .accessibility_label(label);
     let row = if person.movable { row.draggable() } else { row };
-    let row = crate::profile::popout(
-        row,
-        card,
-        ids::CARD_DISMISS,
-        PopoverPlacement::RightStart,
-        look,
-    );
+    let row = match (card, streamed) {
+        (Some(card), _) => crate::profile::popout(
+            row,
+            Some(card),
+            ids::CARD_DISMISS,
+            PopoverPlacement::RightStart,
+            look,
+        ),
+        // Shown while the pointer is on the row or on the card, as the
+        // official client's preview of a stream.
+        (None, Some(live)) => Element::popover(
+            row,
+            live_card(live, look),
+            ids::LIVE_DISMISS,
+            PopoverPlacement::RightStart,
+        )
+        .popover_on_hover(),
+        (None, None) => row,
+    };
     let row = Element::row(vec![gap(ROW_INDENT, 0.0), row.flex(1.0)]);
     match &person.thumbnail {
         Some(shown) => Element::column(vec![row, thumbnail(person, shown, look)]),
@@ -1407,7 +1637,7 @@ pub fn stage(view: Stage, look: &Look) -> Element {
 
 /// The tiles, as large as the room above the bar lets them be, and the bar.
 fn call(view: &Stage, look: &Look) -> Element {
-    let below = BAR_HEIGHT + BAR_BOTTOM;
+    let below = BAR_BOTTOM + BAR_HEIGHT + BAR_GAP;
     let area = Size::new(
         view.size.width - 2.0 * STAGE_INSET,
         view.size.height - crate::sidebar::HEADER - 1.0 - STAGE_INSET - below,
@@ -1541,7 +1771,7 @@ fn bar(view: &Stage, look: &Look) -> Element {
         height: BAR_BUTTON,
         font_size: 14.0,
         icon_size: 20.0,
-        horizontal_padding: 11.0,
+        horizontal_padding: 8.0,
         inner_spacing: 6.0,
     };
     let toggle = |id: &str, on: Icon, off: Icon, off_now: bool, hint: (&str, &str)| {
@@ -1569,9 +1799,11 @@ fn bar(view: &Stage, look: &Look) -> Element {
         None => screen,
     };
     let group = |buttons: Vec<Element>| {
-        Element::panel(Element::row(buttons).gap(4.0).padding(4.5))
+        Element::panel(Element::row(buttons).gap(8.0).padding(4.0))
+            .size(None, Some(BAR_HEIGHT))
             .radius(12.0)
             .background(look.menu)
+            .border(look.border, 1.0)
     };
     let microphone = toggle(
         ids::MUTE,
@@ -1618,7 +1850,7 @@ fn bar(view: &Stage, look: &Look) -> Element {
             .popover_gap(12.0),
             None => arrow,
         };
-        Element::row(vec![button, arrow])
+        Element::row(vec![button, arrow]).gap(1.0)
     };
     let quick = |output: bool| {
         view.quick
@@ -1666,9 +1898,25 @@ fn bar(view: &Stage, look: &Look) -> Element {
     .width(MORE_WIDTH)
     .placement(PopoverPlacement::TopEnd)
     .render();
+    // Streams (transmisiones): with one focused, as in the official client,
+    // hanging up gives way to letting it go, and its window and full screen
+    // go at the bar's end.
+    let focused = view
+        .watching
+        .iter()
+        .filter(|shown| shown.focused)
+        .find_map(|shown| shown.stream.as_ref());
+    let (id, glyph, hint) = match focused {
+        Some(stream) => (
+            ids::stop_watching(stream.owner),
+            Icon::Custom(SCREEN_STOP),
+            t("Dejar de ver"),
+        ),
+        None => (ids::LEAVE.to_owned(), Icon::HangUp, t("Desconectar")),
+    };
     let hang_up = IconButton::new(
-        ids::LEAVE,
-        Icon::HangUp,
+        id,
+        glyph,
         filled(look.danger, lighter(look.danger, 18), look),
     )
     .variant(ButtonVariant::Raised)
@@ -1680,16 +1928,55 @@ fn bar(view: &Stage, look: &Look) -> Element {
     .radius(RadiusRole::Panel)
     .ink(Color::rgb(255, 255, 255))
     .hover_ink(Color::rgb(255, 255, 255))
-    .tooltip(t("Desconectar"))
+    .tooltip(hint)
     .render();
+    let mut end = vec![Element::spacer().flex(1.0)];
+    if let Some(stream) = focused {
+        let button = |id: String, glyph: Icon, hint: &str| {
+            IconButton::new(
+                id,
+                glyph,
+                filled(Color::rgba(0, 0, 0, 0), look.raised, look),
+            )
+            .variant(ButtonVariant::Raised)
+            .sizing(ButtonSizing {
+                icon_size: 24.0,
+                horizontal_padding: 6.0,
+                ..sizing
+            })
+            .radius(RadiusRole::Card)
+            .ink(look.muted)
+            .hover_ink(look.text)
+            .tooltip(hint)
+            .render()
+            .centered_y()
+        };
+        if !stream.windowed {
+            end.push(button(
+                ids::window(stream.owner),
+                Icon::Custom(POP_OUT),
+                t("Ventana aparte"),
+            ));
+        }
+        end.push(button(
+            ids::fullscreen(stream.owner),
+            Icon::Fullscreen,
+            t("Pantalla completa"),
+        ));
+    }
+    // Centered in the stage whatever its ends hold, as the official grid of
+    // three columns does.
     Element::row(vec![
+        gap(BAR_BOTTOM, 0.0),
         Element::spacer().flex(1.0),
-        group(vec![microphone, sound, camera]),
-        gap(14.0, 0.0),
-        group(vec![screen, more]),
-        gap(15.0, 0.0),
-        hang_up,
-        Element::spacer().flex(1.0),
+        Element::row(vec![
+            group(vec![microphone, sound, camera]),
+            group(vec![screen, more]),
+            hang_up,
+        ])
+        .gap(BAR_GAP),
+        Element::row(end).gap(20.0).flex(1.0),
+        gap(BAR_BOTTOM, 0.0),
     ])
     .size(None, Some(BAR_HEIGHT))
 }
@@ -1873,9 +2160,22 @@ pub enum MenuEntry {
     },
     Separator,
     // Voice moderation (P4).
-    /// An item that opens a list of choices beside it: its label, and each
-    /// choice's action and label.
-    Submenu(String, Vec<(String, String)>),
+    /// An item that opens a list of entries beside it: its label, and those
+    /// entries.
+    Submenu(String, Vec<MenuEntry>),
+    // A person's menu as the official client draws it (2026-10-19).
+    /// An action that removes or punishes, such as kicking: its action and
+    /// label, drawn in the theme's danger color.
+    Danger(String, String),
+    /// A role in the menu's roles: its action, its name, its color (`None`
+    /// for one without), and whether the person has it, a check box at the
+    /// end of the row.
+    Role {
+        id: String,
+        name: String,
+        color: Option<Rgb>,
+        has: bool,
+    },
 }
 
 /// The most a person's volume goes: 200 %.
@@ -1923,14 +2223,26 @@ pub fn menu_entries(entries: Vec<MenuEntry>, look: &Look) -> Vec<DropdownMenuEnt
             MenuEntry::Submenu(label, choices) => {
                 let id = format!("vz:submenu:{label}");
                 DropdownMenuEntry::Item(
-                    DropdownMenuItem::new(id, label).submenu(
-                        choices
-                            .into_iter()
-                            .map(|(id, label)| {
-                                DropdownMenuEntry::Item(DropdownMenuItem::new(id, label))
-                            })
-                            .collect(),
-                    ),
+                    DropdownMenuItem::new(id, label).submenu(menu_entries(choices, look)),
+                )
+            }
+            MenuEntry::Danger(id, label) => {
+                DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).destructive(look.danger))
+            }
+            MenuEntry::Role {
+                id,
+                name,
+                color,
+                has,
+            } => {
+                // A 12 px dot in the role's color, centered in the 16 px icon slot.
+                let dot = Element::spacer()
+                    .background(color.map_or(look.muted, |color| look.ink(color)))
+                    .radius(6.0);
+                DropdownMenuEntry::Item(
+                    DropdownMenuItem::new(id, name)
+                        .leading(Element::panel(dot).padding(2.0))
+                        .checkbox(has),
                 )
             }
         })
@@ -1977,6 +2289,7 @@ mod tests {
             image: None,
             decoration: None,
             movable: false,
+            carried: false,
         }
     }
 
@@ -1992,7 +2305,7 @@ mod tests {
         .unwrap();
         let drawn = |person: &Participant| {
             let (_, laid) = frame(
-                participant(person, None, &Look::DARK),
+                participant(person, None, None, &Look::DARK),
                 Size::new(240.0, 40.0),
             );
             laid.commands
@@ -2053,7 +2366,10 @@ mod tests {
     fn a_server_mute_is_marked_red_and_said_apart_from_their_own() {
         let look = Look::DARK;
         let red_mic = |person: &Participant| {
-            let (_, laid) = frame(participant(person, None, &look), Size::new(240.0, 40.0));
+            let (_, laid) = frame(
+                participant(person, None, None, &look),
+                Size::new(240.0, 40.0),
+            );
             laid.commands.iter().any(|command| {
                 matches!(command, limn::DrawCommand::Icon { icon: Icon::MicrophoneMuted, tint, .. } if *tint == look.danger)
             })
@@ -2456,7 +2772,7 @@ mod tests {
                     stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
                     note: note.into(),
                     actions: vec![(ids::PAUSE.into(), "Pausar")],
-                    tile: None,
+                    stream: None,
                     focused: false,
                 },
                 Preview {
@@ -2467,7 +2783,7 @@ mod tests {
                     stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                     note: note.into(),
                     actions: Vec::new(),
-                    tile: None,
+                    stream: None,
                     focused: false,
                 },
             ],
@@ -2512,7 +2828,7 @@ mod tests {
                 stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                 note: "Sólo en esta computadora".into(),
                 actions: Vec::new(),
-                tile: None,
+                stream: None,
                 focused: false,
             };
             let (_, laid) = frame(
@@ -2567,7 +2883,7 @@ mod tests {
     fn a_row_under_the_channel_marks_who_is_muted_or_deafened() {
         let look = Look::DARK;
         let (_, laid) = frame(
-            participant(&person(7, true, true, false), None, &look),
+            participant(&person(7, true, true, false), None, None, &look),
             Size::new(280.0, ROW_HEIGHT),
         );
         let ids: Vec<String> = laid
@@ -2584,7 +2900,7 @@ mod tests {
             ..person(7, false, false, false)
         };
         let (_, laid) = frame(
-            participant(&silenced, None, &look),
+            participant(&silenced, None, None, &look),
             Size::new(280.0, ROW_HEIGHT),
         );
         assert!(laid
@@ -2647,7 +2963,7 @@ mod tests {
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo · simulado".into(),
             actions: Vec::new(),
-            tile: None,
+            stream: None,
             focused: false,
         };
         let (_, laid) = frame(
@@ -2663,7 +2979,7 @@ mod tests {
         )));
         // Their row in the column says it too.
         let (_, laid) = frame(
-            participant(&streamer, None, &look),
+            participant(&streamer, None, None, &look),
             Size::new(280.0, ROW_HEIGHT),
         );
         assert!(texts(&laid).iter().any(|text| text == "EN VIVO"));
@@ -2676,7 +2992,7 @@ mod tests {
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo".into(),
             actions: Vec::new(),
-            tile: None,
+            stream: None,
             focused: false,
         };
         let (_, laid) = frame(
@@ -2695,7 +3011,7 @@ mod tests {
             ..streamer.clone()
         };
         let (_, laid) = frame(
-            participant(&previewed, None, &look),
+            participant(&previewed, None, None, &look),
             Size::new(280.0, ROW_HEIGHT + 100.0),
         );
         assert!(controls(&laid).contains(&ids::preview(2)));
@@ -2718,8 +3034,14 @@ mod tests {
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(user), "Dejar de ver"),
             note: "En vivo".into(),
-            actions: vec![(ids::fullscreen(user), "Pantalla completa")],
-            tile: Some(ids::stream_tile(user)),
+            actions: Vec::new(),
+            stream: Some(StreamTile {
+                owner: user,
+                sound: user + 1_000,
+                silenced: false,
+                windowed: false,
+                menu: None,
+            }),
             focused,
         };
         let view = |watching| Stage {
@@ -2767,8 +3089,14 @@ mod tests {
         );
         let shown = surfaces(&grid);
         assert_eq!(shown.len(), 2);
-        assert!(controls(&grid).contains(&ids::stream_tile(2)));
-        assert!(controls(&grid).contains(&ids::watch(4)));
+        let ids = controls(&grid);
+        assert!(ids.contains(&ids::stream_tile(2)));
+        assert!(ids.contains(&ids::watch(4)));
+        // Under the pointer, as the official client's: its sound and «⋯»;
+        // the bar hangs up and has nothing at its end.
+        assert!(ids.contains(&ids::local_mute(1_002)) && ids.contains(&ids::stream_more(2)));
+        assert!(ids.contains(&ids::LEAVE.to_owned()));
+        assert!(!ids.contains(&ids::stop_watching(2)) && !ids.contains(&ids::fullscreen(2)));
         // Focused: it takes the stage, the other and who else streams go
         // small under it, without their buttons.
         let (_, focused) = frame(
@@ -2794,8 +3122,94 @@ mod tests {
             "the strip's focus it instead"
         );
         assert!(ids.contains(&ids::tile(4)) && !ids.contains(&ids::watch(4)));
+        // The bar lets go of the one focused in place of hanging up, and
+        // its end shows it apart or full screen.
         assert!(ids.contains(&ids::stop_watching(2)) && !ids.contains(&ids::stop_watching(3)));
+        assert!(!ids.contains(&ids::LEAVE.to_owned()));
         assert!(ids.contains(&ids::fullscreen(2)) && !ids.contains(&ids::fullscreen(3)));
+        assert!(ids.contains(&ids::window(2)));
+        let at = |laid: &limn::Frame, id: &str| {
+            laid.regions
+                .iter()
+                .find(|region| region.id == id)
+                .unwrap_or_else(|| panic!("{id}"))
+                .rect
+        };
+        let (window, full) = (
+            at(&focused, &ids::window(2)),
+            at(&focused, &ids::fullscreen(2)),
+        );
+        let hang_up = at(&focused, &ids::stop_watching(2));
+        assert!(window.x < full.x && full.x + full.width <= size.width - BAR_BOTTOM + 0.5);
+        assert!(window.x > hang_up.x + hang_up.width, "at the bar's end");
+        // Already in a window of its own: only full screen.
+        let mut windowed = stream(2, true);
+        windowed.stream.as_mut().unwrap().windowed = true;
+        let (_, laid) = frame(stage(view(vec![windowed, stream(3, false)]), &look), size);
+        assert!(!controls(&laid).contains(&ids::window(2)));
+        // Its «⋯» opens its menu there.
+        let mut open = stream(2, false);
+        open.stream.as_mut().unwrap().menu = Some(vec![MenuEntry::Item(
+            ids::stop_watching(2),
+            "Dejar de ver".into(),
+            None,
+        )]);
+        let (_, laid) = frame(stage(view(vec![open, stream(3, false)]), &look), size);
+        assert!(texts(&laid).contains(&"Dejar de ver".to_owned()));
+    }
+
+    #[test]
+    fn the_bar_is_spaced_as_the_official_clients_tray() {
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        let view = Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![
+                person(1, false, false, false),
+                person(2, false, false, false),
+            ],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size,
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching: Vec::new(),
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let (_, laid) = frame(stage(view, &look), size);
+        let at = |id: &str| {
+            laid.regions
+                .iter()
+                .find(|region| region.id == id)
+                .unwrap_or_else(|| panic!("{id}"))
+                .rect
+        };
+        let (mute, deafen, leave) = (at(ids::MUTE), at(ids::DEAFEN), at(ids::LEAVE));
+        assert_eq!((mute.width, mute.height), (BAR_BUTTON, BAR_BUTTON));
+        // 8 between a button's arrow and the next button, 12 between sections.
+        let arrow = at(ids::INPUT_OPTIONS);
+        assert_eq!(arrow.x, mute.x + mute.width + 1.0);
+        assert_eq!(deafen.x, arrow.x + arrow.width + 8.0);
+        assert_eq!((leave.width, leave.height), (HANG_UP_WIDTH, BAR_HEIGHT));
+        assert_eq!(leave.y + leave.height, size.height - BAR_BOTTOM);
+        // The tiles end 12 over the bar.
+        let tile = at(&ids::tile(1));
+        assert!(tile.y + tile.height <= leave.y - BAR_GAP + 0.5);
+        // Centered.
+        let left = at(ids::MUTE).x - 4.0;
+        let right = leave.x + leave.width;
+        assert!(((left + right) / 2.0 - size.width / 2.0).abs() < 1.0);
     }
 
     #[test]
@@ -2926,6 +3340,118 @@ mod tests {
         }
     }
 
+    // A person's menu, laid out alone as `context_menu` opens it.
+    fn person_menu(entries: Vec<MenuEntry>, look: &Look) -> limn::Frame {
+        frame(
+            context_menu((0.0, 0.0), entries, look),
+            Size::new(600.0, 600.0),
+        )
+        .1
+    }
+
+    fn icon_centers(laid: &limn::Frame, wanted: Icon) -> Vec<f32> {
+        laid.commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::Icon { rect, icon, .. } if *icon == wanted => {
+                    Some(rect.x + rect.width / 2.0)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_person_s_check_boxes_end_their_rows_where_a_submenu_s_chevron_does() {
+        let look = Look::ONYX;
+        let laid = person_menu(
+            vec![
+                MenuEntry::Item(
+                    "vz:mod:mute:7".into(),
+                    "Silenciar en el servidor".into(),
+                    Some(true),
+                ),
+                MenuEntry::Submenu(
+                    "Mover a".into(),
+                    vec![MenuEntry::Item(
+                        "vz:mod:move:7:9".into(),
+                        "Sala".into(),
+                        None,
+                    )],
+                ),
+                MenuEntry::Separator,
+                MenuEntry::Item(ids::local_mute(7), "Silenciar para mí".into(), Some(true)),
+            ],
+            &look,
+        );
+        let (checks, chevrons) = (
+            icon_centers(&laid, Icon::Check),
+            icon_centers(&laid, Icon::ChevronRight),
+        );
+        assert_eq!((checks.len(), chevrons.len()), (2, 1));
+        for check in checks {
+            assert_eq!(check, chevrons[0], "one column at the row's end");
+        }
+    }
+
+    #[test]
+    fn a_role_has_a_dot_of_its_color_and_a_check_box_and_punishing_is_in_danger_red() {
+        let look = Look::ONYX;
+        let red = Rgb(0xE7_4C_3C);
+        let laid = person_menu(
+            vec![
+                MenuEntry::Role {
+                    id: "role:1".into(),
+                    name: "Moderación".into(),
+                    color: Some(red),
+                    has: true,
+                },
+                MenuEntry::Role {
+                    id: "role:2".into(),
+                    name: "Bots".into(),
+                    color: None,
+                    has: false,
+                },
+                MenuEntry::Separator,
+                MenuEntry::Item("timeout-off".into(), "Quitar el aislamiento".into(), None),
+                MenuEntry::Danger("kick".into(), "Expulsar a Ada".into()),
+            ],
+            &look,
+        );
+        let dot = |color: Color| {
+            laid.commands.iter().any(|command| {
+                matches!(command, limn::DrawCommand::FillRect { rect, color: fill, .. }
+                    if *fill == color && rect.width == 12.0 && rect.height == 12.0)
+            })
+        };
+        assert!(dot(look.ink(red)), "the role's own color");
+        assert!(dot(look.muted), "a role without one is grey");
+        // The role it has is ticked at the end of its row, past its name.
+        let name = laid
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                // Seven pixels a character, as `frame` measures.
+                limn::DrawCommand::Text { text, position, .. } if text == "Moderación" => {
+                    Some(position.x + text.chars().count() as f32 * 7.0)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert!(icon_centers(&laid, Icon::Check)[0] > name);
+        let ink = |wanted: &str| {
+            laid.commands
+                .iter()
+                .find_map(|command| match command {
+                    limn::DrawCommand::Text { text, color, .. } if text == wanted => Some(*color),
+                    _ => None,
+                })
+                .unwrap()
+        };
+        assert_eq!(ink("Expulsar a Ada"), look.danger);
+        assert_eq!(ink("Quitar el aislamiento"), look.text);
+    }
+
     #[test]
     fn a_person_s_volume_is_a_slider_in_their_menu() {
         let look = Look::ONYX;
@@ -2968,5 +3494,208 @@ mod tests {
                 "{expected} in {shown:?}"
             );
         }
+    }
+
+    // Rows in the column (voz-filas-y-arrastre).
+    /// The hover's fills of `look.hover` painted in `frame`.
+    fn hover_fills(frame: &limn::Frame, look: &Look) -> Vec<limn::Rect> {
+        frame
+            .commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::FillRect {
+                    rect,
+                    color,
+                    radius,
+                } if *color == look.hover => {
+                    assert_eq!(*radius, ROW_RADIUS);
+                    Some(*rect)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_row_under_the_pointer_lights_up_inside_it_as_a_channel_does() {
+        use limn::{Point, UiEvent};
+        let look = Look::DARK;
+        let width = crate::sidebar::WIDTH - 1.0;
+        let channel = crate::sidebar::channel(
+            crate::sidebar::ChannelRow {
+                id: "voice:1".into(),
+                name: "Sala".into(),
+                voice: true,
+                ..Default::default()
+            },
+            &look,
+        );
+        let muted = person(7, true, true, false);
+        let column = Element::column(vec![
+            channel,
+            participant(&muted, None, None, &look),
+            participant(&person(8, false, false, false), None, None, &look),
+        ]);
+        let size = Size::new(width, 200.0);
+        let (mut tree, laid) = frame(column, size);
+        assert!(hover_fills(&laid, &look).is_empty(), "nothing lit at rest");
+        let region = |laid: &limn::Frame, id: &str| {
+            laid.regions
+                .iter()
+                .find(|region| region.id == id)
+                .map(|region| region.rect)
+                .unwrap()
+        };
+        let row = region(&laid, &ids::row(7));
+        let next = region(&laid, &ids::row(8));
+        // The row reaches the column's edge, for the card beside it.
+        assert_eq!(row.x + row.width, width);
+        tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
+        let lit = hover_fills(&tree.layout(size), &look);
+        assert_eq!(lit.len(), 1, "{lit:?}");
+        let lit = lit[0];
+        // Its right edge where a channel's is, short of the scroll bar.
+        assert_eq!(lit.x + lit.width, width - crate::sidebar::INSET);
+        assert_eq!(lit.x, ROW_INDENT);
+        // Inside its row: it does not reach the next one.
+        assert_eq!(lit.y, row.y + 1.0);
+        assert_eq!(lit.height, ROW_HEIGHT - 2.0);
+        assert!(lit.y + lit.height < next.y);
+        // The marks stay inside it.
+        let deafened = region(&tree.layout(size), &format!("{}:deafened", ids::row(7)));
+        assert!(deafened.x + deafened.width <= lit.x + lit.width - 4.0);
+        // The channel lights the same way, rounded alike.
+        let voice = region(&tree.layout(size), "voice:1");
+        tree.handle_event(UiEvent::PointerMove(Point::new(
+            voice.x + 20.0,
+            voice.y + 10.0,
+        )));
+        let lit = hover_fills(&tree.layout(size), &look);
+        assert_eq!(lit.len(), 1, "{lit:?}");
+        assert_eq!(lit[0].x + lit[0].width, width - crate::sidebar::INSET);
+    }
+
+    #[test]
+    fn the_pointer_on_someone_live_shows_their_stream_s_card_beside_the_row() {
+        use limn::{Point, UiEvent};
+        let look = Look::DARK;
+        let streamer = Participant {
+            streaming: true,
+            ..person(2, true, false, false)
+        };
+        let card = LiveCard {
+            user: 2,
+            name: "Persona 2".into(),
+            activity: Some("VALORANT".into()),
+            picture: Ok(Thumbnail::Simulated),
+            watch: Ok(()),
+        };
+        let size = Size::new(900.0, 400.0);
+        let column = |card: Option<&LiveCard>| {
+            Element::row(vec![
+                // Away from the window's top, which the card keeps clear of.
+                Element::column(vec![
+                    gap(0.0, 40.0),
+                    participant(&streamer, None, card, &look),
+                ])
+                .size(Some(crate::sidebar::WIDTH - 1.0), None),
+                Element::spacer().flex(1.0),
+            ])
+        };
+        let (mut tree, laid) = frame(column(Some(&card)), size);
+        assert!(
+            !controls(&laid).contains(&ids::live_watch(2)),
+            "not until the pointer is on the row"
+        );
+        let row = laid
+            .regions
+            .iter()
+            .find(|region| region.id == ids::row(2))
+            .unwrap()
+            .rect;
+        tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
+        let shown = tree.layout(size);
+        assert!(controls(&shown).contains(&ids::live_watch(2)));
+        let words = texts(&shown);
+        for expected in [
+            "Persona 2",
+            "Transmitiendo VALORANT",
+            "Vista previa simulada",
+            "Ver transmisión",
+        ] {
+            assert!(
+                words.iter().any(|text| text == expected),
+                "{expected} in {words:?}"
+            );
+        }
+        // Beside the row, its top with the row's.
+        let surface = shown
+            .regions
+            .iter()
+            .find(|region| region.id == format!("popover_surface:{}", ids::LIVE_DISMISS))
+            .unwrap()
+            .rect;
+        assert_eq!(surface.x, row.x + row.width);
+        assert_eq!(surface.y, row.y);
+        assert_eq!(surface.width, LIVE_CARD_WIDTH + 8.0);
+        // On their marks too.
+        let muted = shown
+            .regions
+            .iter()
+            .find(|region| region.id == format!("{}:muted", ids::row(2)))
+            .unwrap()
+            .rect;
+        tree.handle_event(UiEvent::PointerMove(Point::new(
+            muted.x + 4.0,
+            muted.y + 4.0,
+        )));
+        assert!(controls(&tree.layout(size)).contains(&ids::live_watch(2)));
+        // The pointer goes over to it and it stays, to be clicked.
+        let watch = shown
+            .regions
+            .iter()
+            .find(|region| region.id == ids::live_watch(2))
+            .unwrap()
+            .rect;
+        for point in [
+            Point::new(surface.x + 2.0, row.y + 10.0),
+            Point::new(watch.x + 4.0, watch.y + 4.0),
+        ] {
+            tree.handle_event(UiEvent::PointerMove(point));
+            assert!(controls(&tree.layout(size)).contains(&ids::live_watch(2)));
+        }
+        // Away from both, it goes.
+        tree.handle_event(UiEvent::PointerMove(Point::new(5.0, 390.0)));
+        assert!(!controls(&tree.layout(size)).contains(&ids::live_watch(2)));
+        // A click on «Ver transmisión» reports it.
+        tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
+        tree.layout(size);
+        tree.handle_event(UiEvent::PointerMove(Point::new(
+            watch.x + 4.0,
+            watch.y + 4.0,
+        )));
+        tree.layout(size);
+        tree.handle_event(UiEvent::PointerDown(Point::new(
+            watch.x + 4.0,
+            watch.y + 4.0,
+        )));
+        assert_eq!(
+            tree.handle_event(UiEvent::PointerUp(Point::new(watch.x + 4.0, watch.y + 4.0))),
+            vec![limn::UiAction::Clicked {
+                id: ids::live_watch(2)
+            }]
+        );
+        // Not allowed: disabled, with why; no picture yet: said so.
+        let denied = LiveCard {
+            picture: Err("Cargando la vista previa…".into()),
+            watch: Err("Entrá al canal de voz para ver la transmisión".into()),
+            activity: None,
+            ..card
+        };
+        let (_, laid) = frame(live_card(&denied, &look), size);
+        assert!(!controls(&laid).contains(&ids::live_watch(2)));
+        let words = texts(&laid);
+        assert!(words.iter().any(|text| text == "Cargando la vista previa…"));
+        assert!(!words.iter().any(|text| text.starts_with("Transmitiendo")));
     }
 }

@@ -2928,6 +2928,21 @@ impl App {
                 return true;
             }
         }
+        // A double click on a stream shows it full screen (transmisiones).
+        if let UiEvent::PointerDownEditor {
+            position,
+            click_count: 2,
+            ..
+        } = &event
+        {
+            let target = self.tree.frame().hit_test(*position).map(str::to_owned);
+            if let Some(intents) =
+                rune_ui::double_click(&mut self.ui, &self.store, target.as_deref())
+            {
+                self.run(ctx, intents);
+                return true;
+            }
+        }
         if let Some(intents) =
             rune_ui::intercept(&mut self.ui, &mut self.store, &event, focused.as_deref())
         {
@@ -3197,7 +3212,8 @@ impl App {
     /// A deferred capture action: `app:{custom_id}`, `app-pick:{n}:{custom_id}`
     /// and `app-close:{custom_id}` act on the newest message of the open
     /// conversation with that part of an app; `click:{id}` clicks; `{field}={text}`
-    /// writes; `reveal:{id}` scrolls to a control; anything else clicks its id.
+    /// writes; `reveal:{id}` scrolls to a control; `press:{id}` and
+    /// `move:{id}` drag; anything else clicks its id.
     fn capture_later(&mut self, ctx: &egui::Context, id: &str, now: Instant) {
         if let Some(target) = id.strip_prefix("reveal:") {
             self.tree.reveal_at_start(target, 16.0);
@@ -3234,6 +3250,42 @@ impl App {
                             .collect()
                     }
                 };
+            self.run(ctx, intents);
+            return;
+        }
+        // `press:{id}` picks up the control `id` as the pointer would, and
+        // `move:{id}` carries it over `id` (voz-filas-y-arrastre: a drag).
+        let pointer = [("press:", 24.0), ("move:", 40.0)]
+            .into_iter()
+            .find_map(|(prefix, x)| Some((prefix, x, id.strip_prefix(prefix)?)));
+        if let Some((prefix, x, target)) = pointer {
+            let Some(rect) = self
+                .tree
+                .frame()
+                .regions
+                .iter()
+                .rev()
+                .find(|region| region.id == target)
+                .map(|region| region.rect)
+            else {
+                eprintln!("rune: capture action {id} has nothing to act on");
+                return;
+            };
+            let at = Point::new(rect.x + x, rect.y + rect.height / 2.0);
+            let mut actions = Vec::new();
+            if prefix == "press:" {
+                actions.extend(self.tree.handle_event(UiEvent::PointerMove(at)));
+                actions.extend(self.tree.handle_event(UiEvent::PointerDown(at)));
+                // Past the click's tolerance: the drag starts.
+                let away = Point::new(at.x + 6.0, at.y + 16.0);
+                actions.extend(self.tree.handle_event(UiEvent::PointerMove(away)));
+            } else {
+                actions.extend(self.tree.handle_event(UiEvent::PointerMove(at)));
+            }
+            let intents = actions
+                .iter()
+                .flat_map(|action| rune_ui::update(&mut self.ui, &mut self.store, action, now))
+                .collect();
             self.run(ctx, intents);
             return;
         }

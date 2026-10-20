@@ -1164,6 +1164,31 @@ fn echo_cancellation_is_explicit_searchable_and_kept() {
 }
 
 #[test]
+fn cancelling_the_pcs_sound_is_on_searchable_honest_and_kept() {
+    let mut host = Host::new();
+    assert!(host.ui.prefs.system_echo, "on by default");
+    host.us_open();
+    host.us_write(SEARCH, "música juegos");
+    host.click("us:page=voice");
+    assert!(painted_has(
+        &mut host,
+        "Cancelar también el sonido de la PC"
+    ));
+    // Whether the canceller hears the output is said as it is.
+    host.ui.audio.system_echo = Some(false);
+    assert!(painted_has(
+        &mut host,
+        "No se pudo escuchar tu salida: por ahora se cancela sólo lo que reproduce RUNE."
+    ));
+    host.us_press("us:system-echo");
+    assert!(!host.ui.prefs.system_echo);
+    assert!(!host.us_next_run().prefs.system_echo, "kept");
+    // It needs echo cancellation, and says so.
+    host.ui.prefs.input_profile = crate::InputProfile::Studio;
+    assert!(painted_has(&mut host, "Necesita la cancelación de eco."));
+}
+
+#[test]
 fn hearing_oneself_starts_the_test_and_a_blank_click_leaves_the_search_alone() {
     let mut host = Host::new();
     host.us_open();

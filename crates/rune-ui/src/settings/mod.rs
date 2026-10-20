@@ -152,6 +152,10 @@ pub struct Prefs {
     pub input_profile: InputProfile,
     /// The processing of [`InputProfile::Custom`]; off until chosen.
     pub processing: Processing,
+    /// With echo cancellation, also cancel what other applications play on
+    /// the output (a game, music), with the output's monitor as the
+    /// canceller's reference only. On by default (2026-10-19).
+    pub system_echo: bool,
     /// The microphone's level before anything else, as a linear gain from 0
     /// to [`rune_media::MAX_INPUT_VOLUME`].
     pub input_volume: f32,
@@ -357,6 +361,9 @@ impl Default for Prefs {
             mention_badges: true,
             input_profile: InputProfile::default(),
             processing: Processing::default(),
+            // Measured (docs/PERFORMANCE.md): it removes a game's and
+            // music's echo and leaves the voice as it was.
+            system_echo: true,
             input_volume: 1.0,
             auto_sensitivity: true,
             sensitivity: rune_media::VoiceActivity::default().on,
@@ -502,6 +509,7 @@ impl Prefs {
             ),
             ("echo_cancellation", flag(self.processing.echo_cancellation)),
             ("automatic_gain", flag(self.processing.automatic_gain)),
+            ("system_echo", flag(self.system_echo)),
             ("input_volume", Some(self.input_volume.to_string())),
             ("auto_sensitivity", flag(self.auto_sensitivity)),
             ("sensitivity", Some(self.sensitivity.to_string())),
@@ -582,6 +590,7 @@ impl Prefs {
             echo_cancellation: flag("echo_cancellation", usual.processing.echo_cancellation),
             automatic_gain: flag("automatic_gain", usual.processing.automatic_gain),
         };
+        self.system_echo = flag("system_echo", usual.system_echo);
         self.input_volume = number("input_volume")
             .filter(|value| (0.0..=rune_media::MAX_INPUT_VOLUME).contains(value))
             .unwrap_or(usual.input_volume);
@@ -1312,6 +1321,7 @@ pub fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<In
         }
         "reactions" => flip(&mut prefs.reactions, "reactions"),
         "video-hardware" => flip(&mut prefs.video_hardware, "video_hardware"),
+        "system-echo" => flip(&mut prefs.system_echo, "system_echo"),
         "image-previews" => flip(&mut prefs.image_previews, "image_previews"),
         "emoticons" => flip(&mut prefs.convert_emoticons, "convert_emoticons"),
         "developer" => flip(&mut prefs.developer, "developer"),
@@ -1615,6 +1625,8 @@ mod tests {
                 echo_cancellation: true,
                 automatic_gain: false,
             },
+            // Off is the one that is not the default.
+            system_echo: false,
             input_volume: 1.5,
             auto_sensitivity: false,
             sensitivity: 0.3,

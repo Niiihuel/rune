@@ -467,20 +467,20 @@ pub(crate) fn member_menu_group(
         items.push(MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None));
     }
     if abilities.manage_roles.allowed() {
-        let roles: Vec<(String, String)> = found
+        let mut roles: Vec<&Role> = found
             .roles
             .iter()
             .filter(|role| role.id != RoleId(server.0) && grant_lock(store, server, role).is_none())
-            .map(|role| {
-                let mark = if member.roles.contains(&role.id) {
-                    "✓ "
-                } else {
-                    ""
-                };
-                (
-                    id(&format!("role:{}", role.id)),
-                    format!("{mark}{}", role.name),
-                )
+            .collect();
+        // Highest first, as the official client lists them.
+        roles.sort_by_key(|role| std::cmp::Reverse(role.position));
+        let roles: Vec<MenuEntry> = roles
+            .into_iter()
+            .map(|role| MenuEntry::Role {
+                id: id(&format!("role:{}", role.id)),
+                name: role.name.clone(),
+                color: role.color,
+                has: member.roles.contains(&role.id),
             })
             .collect();
         if !roles.is_empty() {
@@ -496,31 +496,26 @@ pub(crate) fn member_menu_group(
                     None,
                 )
             } else {
-                MenuEntry::Item(id("timeout"), tr!("Aislar a {name}", name), None)
+                MenuEntry::Danger(id("timeout"), tr!("Aislar a {name}", name))
             });
         }
         if member_lock(store, server, user, &abilities.kick).is_none() {
-            items.push(MenuEntry::Item(
+            items.push(MenuEntry::Danger(
                 id("kick"),
                 tr!("Expulsar a {name}", name),
-                None,
             ));
         }
         if member_lock(store, server, user, &abilities.ban).is_none() {
-            items.push(MenuEntry::Item(
-                id("ban"),
-                tr!("Vetar a {name}", name),
-                None,
-            ));
+            items.push(MenuEntry::Danger(id("ban"), tr!("Vetar a {name}", name)));
         }
     }
     items
 }
 
 /// `{server}:{user}:{what}` from [`member_menu_group`]: a role changes right
-/// away; the rest open the members page and the same dialog as there.
+/// away, with the menu left open for the next, as the official client does;
+/// the rest close it and open the members page and the same dialog as there.
 fn member_from_outside(ui: &mut Ui, store: &Store, member: &str, now: Instant) -> Vec<Intent> {
-    ui.voice.menu = None;
     let Some((server, rest)) = member.split_once(':') else {
         return Vec::new();
     };
@@ -549,6 +544,7 @@ fn member_from_outside(ui: &mut Ui, store: &Store, member: &str, now: Instant) -
         }
         return intents;
     }
+    ui.voice.menu = None;
     intents.extend(open(ui, store, server));
     let Some(mut settings) = ui.server_settings.take() else {
         return intents;

@@ -6,8 +6,8 @@
 //! worker, which keeps the device ring near a small target and drops the
 //! oldest queued audio when a feed runs ahead (overrun). The callback applies
 //! volume and deafen from atomics, converts rate and channels, writes silence
-//! when the ring runs dry (underrun) and, only while something audible is
-//! really playing, hands what it played to the [`EchoReference`].
+//! when the ring runs dry (underrun) and hands exactly what it played,
+//! silence included, to the [`EchoReference`].
 
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -68,7 +68,7 @@ pub struct PlaybackRequest {
     pub source: PlaybackSource,
     /// Linear gain from 0 to [`MAX_VOLUME`].
     pub volume: f32,
-    /// Plays silence and gives no echo reference.
+    /// Plays silence, which is what the echo reference gets.
     pub deafened: bool,
 }
 
@@ -80,7 +80,8 @@ pub struct PlaybackSnapshot {
     /// The device's rate and channels while running.
     pub rate: u32,
     pub channels: u16,
-    /// Output samples of silence written because a playing source ran dry.
+    /// Samples (at [`PLAYBACK_RATE`]) of silence played because a playing
+    /// source ran dry.
     pub underruns: u64,
     /// Source samples dropped: the oldest beyond the backlog, or a full feed.
     pub overruns: u64,
@@ -266,9 +267,9 @@ impl Tap {
     }
 }
 
-/// What the output played, mono at [`PLAYBACK_RATE`], for echo cancellation.
-/// It only receives audio while something audible is playing; read it from one
-/// non-real-time thread.
+/// What the output played, mono at [`PLAYBACK_RATE`], for echo cancellation:
+/// every sample, silence included, so its timeline is the speaker's. Read it
+/// from one non-real-time thread.
 pub struct EchoReference {
     consumer: Consumer<f32>,
     latency_micros: Arc<AtomicU64>,
@@ -306,16 +307,23 @@ impl EchoReference {
         (self.latency_micros.load(Ordering::Relaxed) / 1_000).min(u32::MAX as u64) as u32
     }
 
+    /// Drop everything waiting; returns how many went.
+    pub fn clear(&mut self) -> usize {
+        self.trim(0)
+    }
+
+    /// A reference read from `consumer`, with no latency to report.
+    pub(crate) fn from_consumer(consumer: Consumer<f32>) -> Self {
+        Self {
+            consumer,
+            latency_micros: Arc::new(AtomicU64::new(0)),
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn pair(capacity: usize) -> (Producer<f32>, Self) {
         let (producer, consumer) = RingBuffer::new(capacity);
-        (
-            producer,
-            Self {
-                consumer,
-                latency_micros: Arc::new(AtomicU64::new(0)),
-            },
-        )
+        (producer, Self::from_consumer(consumer))
     }
 }
 
@@ -380,25 +388,22 @@ impl Egress {
         T: SizedSample + FromSample<f32>,
     {
         let gain = f32::from_bits(self.shared.gain.load(Ordering::Acquire));
-        let audible = gain > 0.0;
         let (consumer, reference) = (&mut self.consumer, &mut self.reference);
         let mut missing = 0_u64;
         for frame in output.chunks_mut(self.channels) {
+            // A dry ring plays silence, and the reference gets it too: a
+            // reference that skipped it would run ahead of the speaker, and
+            // the canceller would lose the echo's delay (2026-10-19).
             let pulled = self.resampler.next(|| {
-                let sample = consumer.pop().ok()?;
-                if audible {
-                    // A full reference ring only means nobody is cancelling echo.
-                    let _ = reference.push((sample * gain).clamp(-1.0, 1.0));
-                }
-                Some(sample)
-            });
-            let value = match pulled {
-                Some(sample) => (sample * gain).clamp(-1.0, 1.0),
-                None => {
+                let sample = consumer.pop().unwrap_or_else(|_| {
                     missing += 1;
                     0.0
-                }
-            };
+                });
+                // A full reference ring only means nobody is cancelling echo.
+                let _ = reference.push((sample * gain).clamp(-1.0, 1.0));
+                Some(sample)
+            });
+            let value = (pulled.unwrap_or(0.0) * gain).clamp(-1.0, 1.0);
             frame.fill(T::from_sample(value));
         }
         if missing != 0 && self.shared.playing.load(Ordering::Relaxed) {
@@ -411,6 +416,44 @@ impl Egress {
             latency.as_micros().min(u128::from(u64::MAX)) as u64,
             Ordering::Relaxed,
         );
+    }
+}
+
+/// The output's callback alone, at [`PLAYBACK_RATE`] and full volume, for
+/// measurements: what it plays, and what it hands to the echo reference.
+#[cfg(test)]
+pub(crate) struct Speaker {
+    egress: Egress,
+    ends: Ends,
+}
+
+#[cfg(test)]
+impl Speaker {
+    pub(crate) fn new() -> Self {
+        let shared = Arc::new(Shared::new());
+        shared.gain.store(1.0_f32.to_bits(), Ordering::Release);
+        shared.playing.store(true, Ordering::Release);
+        let (egress, ends) = rings(PLAYBACK_RATE, 1, shared).expect("48 kHz mono is admitted");
+        Self { egress, ends }
+    }
+
+    /// What the worker queued for the callback.
+    pub(crate) fn queue(&mut self, samples: &[f32]) {
+        for sample in samples {
+            let _ = self.ends.producer.push(*sample);
+        }
+    }
+
+    /// One callback: fill `output` with what plays.
+    pub(crate) fn play(&mut self, output: &mut [f32]) {
+        self.egress.render(output, Duration::ZERO);
+    }
+
+    /// What the callback handed on as played since the last call.
+    pub(crate) fn played(&mut self, into: &mut Vec<f32>) {
+        while let Ok(sample) = self.ends.references.pop() {
+            into.push(sample);
+        }
     }
 }
 

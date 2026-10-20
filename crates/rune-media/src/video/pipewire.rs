@@ -28,6 +28,38 @@ const CAMERA_STALL: Duration = Duration::from_secs(5);
 
 const GONE: &str = es("La fuente dejó de estar disponible.");
 
+/// The raw pictures asked for, the first preferred (SPA choices repeat
+/// their default). A camera may also send MJPEG.
+const SCREEN_FORMATS: [VideoFormat; 5] = [
+    VideoFormat::BGRx,
+    VideoFormat::BGRx,
+    VideoFormat::BGRA,
+    VideoFormat::RGBx,
+    VideoFormat::RGBA,
+];
+const CAMERA_FORMATS: [VideoFormat; 6] = [
+    VideoFormat::YUY2,
+    VideoFormat::YUY2,
+    VideoFormat::NV12,
+    VideoFormat::I420,
+    VideoFormat::BGRx,
+    VideoFormat::RGBx,
+];
+
+/// How a raw format is read, and its name for the diagnostic line.
+fn pixels(format: VideoFormat) -> Option<(Pixels, &'static str)> {
+    Some(match format {
+        VideoFormat::BGRx => (Pixels::Bgr4, "BGRx"),
+        VideoFormat::BGRA => (Pixels::Bgr4, "BGRA"),
+        VideoFormat::RGBx => (Pixels::Rgb4, "RGBx"),
+        VideoFormat::RGBA => (Pixels::Rgb4, "RGBA"),
+        VideoFormat::YUY2 => (Pixels::Yuy2, "YUY2"),
+        VideoFormat::NV12 => (Pixels::Nv12, "NV12"),
+        VideoFormat::I420 => (Pixels::I420, "I420"),
+        _ => return None,
+    })
+}
+
 /// The format negotiated for the stream.
 #[derive(Clone, Copy)]
 struct Format {
@@ -73,7 +105,7 @@ pub(super) fn read(
             let fail = fail.clone();
             move |id, _, _, message| {
                 if id == pw::core::PW_ID_CORE {
-                    fail(format!("PipeWire: {message}"));
+                    fail(explain(message));
                 }
             }
         })
@@ -111,6 +143,8 @@ pub(super) fn read(
                     chosen.set(Some(global.id));
                 }
                 let mut cameras = cameras.borrow_mut();
+                // A node is announced again when the portal widens access.
+                cameras.retain(|(node, _)| *node != global.id);
                 cameras.push((
                     global.id,
                     CameraInfo {
@@ -160,7 +194,7 @@ pub(super) fn read(
         .state_changed({
             let fail = fail.clone();
             move |_, reader, _, state| match state {
-                StreamState::Error(message) => fail(format!("PipeWire: {message}")),
+                StreamState::Error(message) => fail(explain(&message)),
                 StreamState::Unconnected if reader.connected => fail(t(GONE).to_owned()),
                 StreamState::Paused | StreamState::Streaming => reader.connected = true,
                 _ => {}
@@ -178,15 +212,9 @@ pub(super) fn read(
                     // Its size and rate are read the same way for MJPEG.
                     let mut info = spa::param::video::VideoInfoRaw::new();
                     info.parse(param).ok()?;
-                    let (pixels, name) = match info.format() {
-                        _ if jpeg => (Pixels::Rgb4, "MJPG"),
-                        VideoFormat::BGRx => (Pixels::Bgr4, "BGRx"),
-                        VideoFormat::BGRA => (Pixels::Bgr4, "BGRA"),
-                        VideoFormat::RGBx => (Pixels::Rgb4, "RGBx"),
-                        VideoFormat::RGBA => (Pixels::Rgb4, "RGBA"),
-                        VideoFormat::YUY2 => (Pixels::Yuy2, "YUY2"),
-                        VideoFormat::NV12 => (Pixels::Nv12, "NV12"),
-                        _ => return None,
+                    let (pixels, name) = match jpeg {
+                        true => (Pixels::Rgb4, "MJPG"),
+                        false => pixels(info.format())?,
                     };
                     let size = info.size();
                     let fraction = |rate: spa::utils::Fraction| (rate.num, rate.denom);
@@ -230,20 +258,8 @@ pub(super) fn read(
         .map_err(unavailable)?;
 
     let formats = match kind {
-        VideoKind::Screen => vec![
-            VideoFormat::BGRx,
-            VideoFormat::BGRx,
-            VideoFormat::BGRA,
-            VideoFormat::RGBx,
-            VideoFormat::RGBA,
-        ],
-        VideoKind::Camera => vec![
-            VideoFormat::YUY2,
-            VideoFormat::YUY2,
-            VideoFormat::NV12,
-            VideoFormat::BGRx,
-            VideoFormat::RGBx,
-        ],
+        VideoKind::Screen => SCREEN_FORMATS.to_vec(),
+        VideoKind::Camera => CAMERA_FORMATS.to_vec(),
     };
     // Asked for at least at the rate kept (30 as before, 60 for 60 fps): a
     // source that settles lower could only be sent slower.
@@ -255,9 +271,10 @@ pub(super) fn read(
     // A camera that gives only MJPEG is read too, after what it gives raw.
     let mjpg = format_pod(MediaSubtype::Mjpg, Vec::new(), fps)
         .map_err(|_| unavailable(pw::Error::CreationFailed))?;
+    let buffers = buffers_pod(kind).map_err(|_| unavailable(pw::Error::CreationFailed))?;
     let pods = match kind {
-        VideoKind::Screen => vec![raw],
-        VideoKind::Camera => vec![raw, mjpg],
+        VideoKind::Screen => vec![raw, buffers],
+        VideoKind::Camera => vec![raw, mjpg, buffers],
     };
     let mut params = pods
         .iter()
@@ -373,17 +390,74 @@ fn format_pod(
             ))),
         },
     ]);
+    serialize(
+        SpaTypes::ObjectParamFormat,
+        spa::param::ParamType::EnumFormat,
+        properties,
+    )
+}
+
+/// Where the stream takes its buffers: shared memory, or for a camera also
+/// an exported DMA-BUF, both mapped by `MAP_BUFFERS`. Count and size stay
+/// the source's. Unsaid, a V4L2 camera keeps them in its own mapping, which
+/// a client in another process cannot reach: PipeWire then fails the link
+/// with "use input buffers: -22". A screen gets no DMA-BUF: without
+/// modifiers it could be tiled, unreadable as rows.
+fn buffers_pod(kind: VideoKind) -> Result<Vec<u8>, spa::pod::serialize::GenError> {
+    use spa::buffer::DataType;
+    use spa::pod::{ChoiceValue, Property, PropertyFlags, Value};
+    use spa::utils::{Choice, ChoiceEnum, ChoiceFlags, SpaTypes};
+    let mut types = [DataType::MemPtr, DataType::MemFd].to_vec();
+    if kind == VideoKind::Camera {
+        types.push(DataType::DmaBuf);
+    }
+    let mask = types.iter().fold(0, |mask, kind| mask | 1 << kind.as_raw());
+    serialize(
+        SpaTypes::ObjectParamBuffers,
+        spa::param::ParamType::Buffers,
+        vec![Property {
+            key: spa::sys::SPA_PARAM_BUFFERS_dataType,
+            flags: PropertyFlags::empty(),
+            // Flags: what both ends allow, bit by bit.
+            value: Value::Choice(ChoiceValue::Int(Choice(
+                ChoiceFlags::empty(),
+                ChoiceEnum::Flags {
+                    default: mask,
+                    flags: Vec::new(),
+                },
+            ))),
+        }],
+    )
+}
+
+fn serialize(
+    type_: spa::utils::SpaTypes,
+    id: spa::param::ParamType,
+    properties: Vec<spa::pod::Property>,
+) -> Result<Vec<u8>, spa::pod::serialize::GenError> {
     let object = spa::pod::Object {
-        type_: SpaTypes::ObjectParamFormat.as_raw(),
-        id: spa::param::ParamType::EnumFormat.as_raw(),
+        type_: type_.as_raw(),
+        id: id.as_raw(),
         properties,
     };
     Ok(spa::pod::serialize::PodSerializer::serialize(
         std::io::Cursor::new(Vec::new()),
-        &Value::Object(object),
+        &spa::pod::Value::Object(object),
     )?
     .0
     .into_inner())
+}
+
+/// A PipeWire error in the person's words, its own text kept for a report.
+fn explain(message: &str) -> String {
+    let reason = if message.contains("buffers") {
+        t("PipeWire no pudo compartir las imágenes de la fuente con RUNE.")
+    } else if message.contains("format") {
+        t("La fuente no ofrece imágenes en un formato que RUNE pueda leer.")
+    } else {
+        return format!("PipeWire: {message}");
+    };
+    format!("{reason} (PipeWire: {message})")
 }
 
 /// One mapped buffer within `max`, if its planes hold a whole frame.
@@ -398,28 +472,53 @@ fn frame(format: Format, datas: &mut [spa::buffer::Data], max: (u32, u32)) -> Op
     let bytes_per_row = match format.pixels {
         Pixels::Bgr4 | Pixels::Rgb4 => format.width as usize * 4,
         Pixels::Yuy2 => (format.width as usize).div_ceil(2) * 4,
-        // PipeWire is never asked for I420: it is how decoded streams arrive.
         Pixels::Nv12 | Pixels::I420 => format.width as usize,
     };
     let (first, rest) = datas.split_first_mut()?;
     let (main, after) = plane(first, bytes_per_row)?;
     let mut planes = vec![main];
-    if format.pixels == Pixels::Nv12 {
-        // The chroma plane in its own data, or after the luma rows in one.
-        let chroma_row = (format.width as usize).div_ceil(2) * 2;
-        match rest.first_mut() {
-            Some(second) => planes.push(plane(second, chroma_row)?.0),
-            None => {
-                let luma = planes[0].stride.checked_mul(format.height as usize)?;
-                let stride = planes[0].stride;
-                planes.push(Plane {
-                    bytes: after.get(luma..)?,
-                    stride,
-                });
-            }
+    if rest.is_empty() {
+        let stride = planes[0].stride;
+        planes.extend(packed_chroma(format.pixels, format.height, stride, after)?);
+    } else {
+        // Each chroma plane in its own data.
+        let half = (format.width as usize).div_ceil(2);
+        let rows = match format.pixels {
+            Pixels::Nv12 => &[half * 2][..],
+            Pixels::I420 => &[half, half][..],
+            _ => &[][..],
+        };
+        for (data, row) in rest.iter_mut().zip(rows) {
+            planes.push(plane(data, *row)?.0);
         }
     }
     convert_within(format.pixels, format.width, format.height, &planes, max)
+}
+
+/// The chroma planes after `height` luma rows of `stride` in one data:
+/// NV12's one at the luma stride, I420's two at half of it.
+fn packed_chroma(
+    pixels: Pixels,
+    height: u32,
+    stride: usize,
+    bytes: &[u8],
+) -> Option<Vec<Plane<'_>>> {
+    let (count, chroma) = match pixels {
+        Pixels::Nv12 => (1, stride),
+        Pixels::I420 => (2, stride.div_ceil(2)),
+        _ => return Some(Vec::new()),
+    };
+    let start = stride.checked_mul(height as usize)?;
+    let size = chroma.checked_mul((height as usize).div_ceil(2))?;
+    (0..count)
+        .map(|index| {
+            let offset = start.checked_add(size.checked_mul(index)?)?;
+            Some(Plane {
+                bytes: bytes.get(offset..)?,
+                stride: chroma,
+            })
+        })
+        .collect()
 }
 
 /// The bytes of a data plane from its chunk's offset, and its stride.
@@ -468,5 +567,78 @@ mod tests {
             .properties
             .iter()
             .any(|property| property.key == Key::VideoFormat.as_raw()));
+    }
+
+    #[test]
+    fn every_format_offered_is_one_read() {
+        for format in SCREEN_FORMATS.iter().chain(&CAMERA_FORMATS) {
+            assert!(pixels(*format).is_some(), "{format:?}");
+        }
+    }
+
+    /// The bug a V4L2 camera showed: with no data type said, it kept its
+    /// buffers in its own mapping and the link failed with -22.
+    #[test]
+    fn buffers_are_asked_in_memory_another_process_can_map() {
+        use spa::buffer::DataType;
+        use spa::pod::{deserialize::PodDeserializer, ChoiceValue, Value};
+        use spa::utils::{Choice, ChoiceEnum};
+        let mask = |kind| {
+            let pod = buffers_pod(kind).unwrap();
+            let Ok((_, Value::Object(object))) = PodDeserializer::deserialize_any_from(&pod) else {
+                panic!("not an object");
+            };
+            assert_eq!(object.id, spa::param::ParamType::Buffers.as_raw());
+            assert_eq!(
+                object.properties.len(),
+                1,
+                "count and size stay the source's"
+            );
+            let property = &object.properties[0];
+            assert_eq!(property.key, spa::sys::SPA_PARAM_BUFFERS_dataType);
+            match &property.value {
+                Value::Choice(ChoiceValue::Int(Choice(_, ChoiceEnum::Flags { default, .. }))) => {
+                    *default
+                }
+                other => panic!("not flags: {other:?}"),
+            }
+        };
+        let has = |mask: i32, kind: DataType| mask & 1 << kind.as_raw() != 0;
+        let camera = mask(VideoKind::Camera);
+        assert!(has(camera, DataType::MemFd) && has(camera, DataType::MemPtr));
+        assert!(has(camera, DataType::DmaBuf));
+        let screen = mask(VideoKind::Screen);
+        assert!(has(screen, DataType::MemFd) && !has(screen, DataType::DmaBuf));
+    }
+
+    #[test]
+    fn packed_chroma_follows_the_luma_rows() {
+        // 4x2 I420 with a padded stride of 6: Y rows, then U, then V.
+        let mut bytes = vec![0u8; 6 * 2];
+        bytes.extend([1, 1, 1]);
+        bytes.extend([2, 2, 2]);
+        let planes = packed_chroma(Pixels::I420, 2, 6, &bytes).unwrap();
+        assert_eq!(planes.len(), 2);
+        assert_eq!((planes[0].bytes[0], planes[0].stride), (1, 3));
+        assert_eq!((planes[1].bytes[0], planes[1].stride), (2, 3));
+        let nv12 = packed_chroma(Pixels::Nv12, 2, 6, &bytes).unwrap();
+        assert_eq!((nv12.len(), nv12[0].bytes[0], nv12[0].stride), (1, 1, 6));
+        assert!(
+            packed_chroma(Pixels::I420, 4, 6, &bytes).is_none(),
+            "too short"
+        );
+    }
+
+    #[test]
+    fn link_failures_say_what_went_wrong() {
+        let buffers = explain("error use input buffers: -22 (Invalid argument)");
+        assert!(buffers.starts_with(t(
+            "PipeWire no pudo compartir las imágenes de la fuente con RUNE."
+        )));
+        assert!(buffers.ends_with("(PipeWire: error use input buffers: -22 (Invalid argument))"));
+        assert!(explain("no more input formats").starts_with(t(
+            "La fuente no ofrece imágenes en un formato que RUNE pueda leer."
+        )));
+        assert_eq!(explain("node gone"), "PipeWire: node gone");
     }
 }

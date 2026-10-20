@@ -13,6 +13,8 @@ use super::*;
 
 // Streams (transmisiones).
 mod streams;
+// People's rows in the column (voz-filas-y-arrastre).
+mod rows;
 
 impl Host {
     /// Answer the voice commands sent from `from` on as the simulation
@@ -1313,7 +1315,9 @@ fn someone_streaming_is_watched_on_the_stage_ends_with_why_and_is_let_go() {
         owner: other,
         phase: StreamPhase::Live,
     });
-    // It takes the stage, says it is simulated, and can be let go of.
+    // It takes the stage, focused as the only one there, says it is
+    // simulated, and the bar lets go of it.
+    assert_eq!(host.ui.video.spotlight, Some(other));
     let stop = ids::stop_watching(other.0);
     assert!(host.vz_usable(&stop));
     assert!(!host.vz_shows(&ids::tile(other.0)));
@@ -1502,7 +1506,7 @@ fn several_streams_share_the_stage_up_to_their_bound_and_the_oldest_goes() {
     let watched: Vec<UserId> = host.store.watching().iter().map(|w| w.owner).collect();
     assert_eq!(watched, streamers[1..]);
     for owner in &streamers[1..] {
-        assert!(host.vz_usable(&ids::stop_watching(owner.0)));
+        assert!(host.vz_usable(&ids::stream_tile(owner.0)));
         assert!(!host.vz_shows(&ids::watch(owner.0)));
     }
     assert!(
@@ -1534,7 +1538,9 @@ fn several_streams_share_the_stage_up_to_their_bound_and_the_oldest_goes() {
     assert_eq!(host.ui.prefs.voice_volume(sound), (0.5, false));
     assert_eq!(host.ui.prefs.voice_volume(owner.0), (1.0, false));
     host.ui.voice.menu = None;
-    // Letting go of one leaves the others.
+    // Letting go of one leaves the others: from its menu, as in the
+    // official client, with none focused.
+    host.vz_right_click(&ids::stream_tile(streamers[1].0));
     host.click(&ids::stop_watching(streamers[1].0));
     assert_eq!(host.store.watching().len(), MAX_STREAMS - 1);
 }

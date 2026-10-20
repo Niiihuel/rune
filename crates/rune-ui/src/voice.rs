@@ -363,8 +363,14 @@ pub(crate) fn update(
     };
     let id = id.as_str();
     // Choosing anything closes a person's menu and the bar's options, items
-    // of other parts included.
-    let menu = ui.voice.menu.take();
+    // of other parts included; a role toggled in it keeps it open for the
+    // next, as the official client's does.
+    let role = id.starts_with("ss:member-of:") && id.contains(":role:");
+    let menu = if role {
+        ui.voice.menu
+    } else {
+        ui.voice.menu.take()
+    };
     let more = std::mem::take(&mut ui.voice.more);
     let picker = std::mem::take(&mut ui.video.picker);
     if let Some(height) = number(id, parts::ids::QUALITY) {
@@ -411,6 +417,9 @@ pub(crate) fn update(
     }
     if let Some(user) = number(id, "vz:preview:") {
         return Some(video::watch(ui, store, UserId(user), now));
+    }
+    if let Some(user) = number(id, "vz:live:watch:") {
+        return Some(crate::voice_live::watch(ui, store, UserId(user), now));
     }
     if let Some(user) = number(id, "vz:fullscreen:") {
         return Some(video::focus(ui, UserId(user)));
@@ -621,6 +630,7 @@ pub(crate) fn participant(
                 .as_ref(),
         ),
         movable: false,
+        carried: false,
     }
 }
 
@@ -701,9 +711,14 @@ pub(crate) fn participant_rows(
             // Only rows are dragged to another voice channel, not tiles.
             let person = Participant {
                 movable: crate::voice_drag::movable(store, user),
+                carried: ui.voice_drag.is_some_and(|drag| drag.user == user),
                 ..person
             };
-            let row = parts::participant(&person, card, look);
+            let live = person
+                .streaming
+                .then(|| crate::voice_live::card(ui, store, channel, user, &person.name))
+                .flatten();
+            let row = parts::participant(&person, card, live.as_ref(), look);
             crate::voice_drag::zone(ui, row, channel, &person.user.to_string())
         })
         .collect()
@@ -806,7 +821,10 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
         let mut people = Vec::new();
         match store.relationship(menu.user).map(|known| known.kind) {
             Some(RelationshipKind::Friend) if social.remove.allowed() => {
-                people.push(item(person("remove"), t("Eliminar amigo"), None));
+                people.push(MenuEntry::Danger(
+                    person("remove"),
+                    t("Eliminar amigo").into(),
+                ));
             }
             None if requests => people.push(item(person("add"), t("Añadir amigo"), None)),
             _ => {}
@@ -817,7 +835,7 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
                 people.push(item(person("unblock"), t("Desbloquear"), None));
             }
         } else if social.block.allowed() {
-            people.push(item(person("block"), t("Bloquear"), None));
+            people.push(MenuEntry::Danger(person("block"), t("Bloquear").into()));
         }
         if !people.is_empty() {
             groups.push(people);

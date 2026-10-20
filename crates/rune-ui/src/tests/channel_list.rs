@@ -1649,9 +1649,9 @@ fn muted_channels_can_be_left_out_of_the_list() {
     assert!(host.cl_buttons().contains(&format!("channel:{ayuda}")));
 }
 
-#[test]
-fn someone_dragged_onto_another_voice_channel_is_moved_there() {
-    let mut host = Host::new();
+/// «Laboratorio limn» with a second voice room, «Sala 2», and someone else
+/// in «Reunión semanal»: the server, that room, «Sala 2» and who.
+fn carried(host: &mut Host) -> (ServerId, ChannelId, ChannelId, UserId) {
     let lab = host.cl_server("Laboratorio limn");
     let voice = host.cl_named(lab, "Voz");
     let meeting = host.cl_named(lab, "Reunión semanal");
@@ -1688,6 +1688,14 @@ fn someone_dragged_onto_another_voice_channel_is_moved_there() {
         speak_request: None,
     };
     host.event(Event::VoiceChanged(state(someone, meeting)));
+    (lab, meeting, other, someone)
+}
+
+#[test]
+fn someone_dragged_onto_another_voice_channel_is_moved_there() {
+    let mut host = Host::new();
+    let (lab, meeting, other, someone) = carried(&mut host);
+    let me = host.store.me().unwrap();
     let center = |rect: limn::Rect| Point::new(rect.x + 24.0, rect.y + rect.height / 2.0);
     let start = center(Host::cl_rect(&host.frame(), &format!("vz:user:{someone}")));
     host.send(UiEvent::PointerDown(start));
@@ -1730,6 +1738,80 @@ fn someone_dragged_onto_another_voice_channel_is_moved_there() {
     host.send(UiEvent::PointerUp(text));
     assert_eq!(host.sent.len(), from, "{:?}", &host.sent[from..]);
     // The account's own row is not picked up: it moves itself by joining.
-    host.event(Event::VoiceChanged(state(me, meeting)));
+    let mut mine = host.store.voice_state_of(someone).unwrap().clone();
+    mine.user = me;
+    host.event(Event::VoiceChanged(mine));
     assert!(!crate::voice_drag::movable(&host.store, me));
+}
+
+#[test]
+fn someone_carried_follows_the_pointer_and_escape_or_letting_go_outside_cancels() {
+    let mut host = Host::new();
+    let (_, meeting, other, someone) = carried(&mut host);
+    let name = host.store.display_name(someone, host.ui.server);
+    let row = Host::cl_rect(&host.frame(), &format!("vz:user:{someone}"));
+    // Their name where it is drawn, or `dy` below it.
+    let painted = |frame: &Frame, dy: f32| -> usize {
+        frame
+            .commands
+            .iter()
+            .filter(|command| {
+                matches!(command, limn::DrawCommand::Text { text, position, .. }
+                    if *text == name
+                        && position.x >= row.x
+                        && position.x < row.x + row.width
+                        && position.y >= row.y + dy
+                        && position.y < row.y + row.height + dy)
+            })
+            .count()
+    };
+    assert_eq!(painted(&host.frame(), 0.0), 1);
+    let start = Point::new(row.x + 24.0, row.y + row.height / 2.0);
+    host.send(UiEvent::PointerDown(start));
+    host.send(UiEvent::PointerMove(Point::new(
+        start.x + 6.0,
+        start.y + 8.0,
+    )));
+    let end = Host::cl_rect(&host.frame(), &format!("vz:drop:{other}:channel"));
+    let end = Point::new(end.x + 40.0, end.y + end.height / 2.0);
+    host.send(UiEvent::PointerMove(end));
+    // A copy of their row follows the pointer, over everything, where it
+    // was picked up from; their row stays where it is.
+    let frame = host.frame();
+    let dy = end.y - start.y;
+    assert!(dy.abs() > row.height, "the drop is on another row");
+    assert_eq!(painted(&frame, 0.0), 1);
+    assert_eq!(painted(&frame, dy), 1, "the copy, under the pointer");
+    assert_eq!(host.ui.voice_drag.and_then(|drag| drag.over), Some(other));
+    // Escape lets go of them: nothing moves, the copy goes.
+    let from = host.sent.len();
+    host.send(UiEvent::Key {
+        key: limn::Key::Escape,
+        shift: false,
+        ctrl: false,
+        alt: false,
+    });
+    assert!(host.ui.voice_drag.is_none());
+    host.send(UiEvent::PointerUp(end));
+    assert_eq!(host.sent.len(), from, "{:?}", &host.sent[from..]);
+    assert_eq!(painted(&host.frame(), dy), 0, "the copy is gone");
+    // Let go outside the column, nothing moves either.
+    host.send(UiEvent::PointerDown(start));
+    host.send(UiEvent::PointerMove(Point::new(
+        start.x + 6.0,
+        start.y + 8.0,
+    )));
+    assert!(host.ui.voice_drag.is_some());
+    let outside = Point::new(WINDOW.width - 40.0, WINDOW.height / 2.0);
+    host.send(UiEvent::PointerMove(outside));
+    assert_eq!(host.ui.voice_drag.and_then(|drag| drag.over), None);
+    host.send(UiEvent::PointerUp(outside));
+    assert!(host.ui.voice_drag.is_none());
+    assert_eq!(host.sent.len(), from, "{:?}", &host.sent[from..]);
+    assert_eq!(
+        host.store
+            .voice_state_of(someone)
+            .map(|state| state.channel),
+        Some(meeting)
+    );
 }

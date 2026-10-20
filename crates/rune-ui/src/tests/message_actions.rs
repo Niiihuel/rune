@@ -535,6 +535,7 @@ fn moderation_moves_mutes_and_disconnects_within_its_reach() {
         .iter()
         .filter_map(|entry| match entry {
             rune_components::voice::MenuEntry::Item(_, label, _)
+            | rune_components::voice::MenuEntry::Danger(_, label)
             | rune_components::voice::MenuEntry::Submenu(label, _) => Some(label.clone()),
             _ => None,
         })
@@ -543,7 +544,11 @@ fn moderation_moves_mutes_and_disconnects_within_its_reach() {
         labels.contains(&"Silenciar en el servidor".to_owned()),
         "{labels:?}"
     );
-    assert!(labels.contains(&"Desconectar".to_owned()));
+    // Disconnecting is drawn in the danger color, as the official client does.
+    assert!(entries.iter().any(|entry| matches!(
+        entry,
+        rune_components::voice::MenuEntry::Danger(_, label) if label == "Desconectar"
+    )));
     host.ma_click(&format!("vz:mod:mute:{someone}"));
     assert_eq!(
         host.sent.last(),
@@ -582,9 +587,18 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     for entry in &entries {
         match entry {
             rune_components::voice::MenuEntry::Item(_, label, _) => labels.push(label.clone()),
+            // What removes or punishes is drawn in the danger color.
+            rune_components::voice::MenuEntry::Danger(_, label) => {
+                labels.push(format!("danger:{label}"))
+            }
             rune_components::voice::MenuEntry::Submenu(label, choices) => {
                 labels.push(label.clone());
-                role = choices.first().map(|(id, _)| id.clone());
+                role = choices.iter().find_map(|choice| match choice {
+                    rune_components::voice::MenuEntry::Role { id, has: false, .. } => {
+                        Some(id.clone())
+                    }
+                    _ => None,
+                });
             }
             _ => {}
         }
@@ -592,14 +606,30 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     for wanted in ["Cambiar apodo", "Roles"] {
         assert!(labels.contains(&wanted.to_owned()), "{labels:?}");
     }
-    for wanted in ["Aislar a ", "Expulsar a ", "Vetar a "] {
+    for wanted in ["danger:Aislar a ", "danger:Expulsar a ", "danger:Vetar a "] {
         assert!(
             labels.iter().any(|label| label.starts_with(wanted)),
             "{labels:?}"
         );
     }
-    // A role changes right away, without opening the settings.
+    // A role changes right away, without opening the settings, and the menu
+    // stays open for the next, as the official client's does.
+    let room = host
+        .store
+        .channel_tree(owned)
+        .into_iter()
+        .flat_map(|(_, channels)| channels)
+        .find(|channel| channel.kind == rune_model::ChannelKind::Voice)
+        .unwrap()
+        .id;
+    host.ui.voice.menu = Some(crate::voice::Menu {
+        user: someone,
+        channel: room,
+        at: None,
+        row: true,
+    });
     host.ma_click(&role.expect("a role the owner can give"));
+    assert!(host.ui.voice.menu.is_some(), "the menu stays open");
     assert!(
         matches!(host.sent.last(), Some(Command::SetMemberRoles { user, .. }) if *user == someone),
         "{:?}",
@@ -608,6 +638,7 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     assert!(host.ui.server_settings.is_none());
     // Kicking opens the members page with the same dialog as there.
     host.ma_click(&format!("ss:member-of:{owned}:{someone}:kick"));
+    assert!(host.ui.voice.menu.is_none(), "a dialog closes it");
     let settings = host.ui.server_settings.as_ref().expect("the settings open");
     assert!(settings
         .removal
@@ -618,6 +649,6 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     let own = crate::server_settings::member_menu_group(&host.store, owned, me);
     assert!(!own.iter().any(|entry| matches!(
         entry,
-        rune_components::voice::MenuEntry::Item(_, label, _) if label.starts_with("Expulsar a ")
+        rune_components::voice::MenuEntry::Danger(_, label) if label.starts_with("Expulsar a ")
     )));
 }

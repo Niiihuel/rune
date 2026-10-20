@@ -88,6 +88,8 @@ pub mod reading;
 mod onboarding;
 // Channels and voice administration (admin-canales-y-voz).
 mod voice_drag;
+// People's rows in the column: the card of someone live (voz-filas-y-arrastre).
+mod voice_live;
 // Scheduled events (eventos-programados).
 mod events;
 // Desktop session and games (escritorio-sesion-y-juegos).
@@ -601,6 +603,9 @@ pub struct Audio {
     pub loopback: bool,
     /// The output is opening for the loopback.
     pub output_starting: bool,
+    /// With the PC's sound cancelled and the microphone open: whether the
+    /// canceller hears the output's loopback (`false`: only what RUNE plays).
+    pub system_echo: Option<bool>,
 }
 
 /// Push-to-talk outside the window, through the desktop's global shortcuts.
@@ -1188,6 +1193,13 @@ pub fn secondary_click(
         ui.messages.more = None;
     }
     opened
+}
+
+/// A double click of the primary button on `target`, what is under the
+/// pointer (transmisiones): the stream there full screen, or the stage back
+/// from it. `None` lets the tree have the press.
+pub fn double_click(ui: &mut Ui, store: &Store, target: Option<&str>) -> Option<Vec<Intent>> {
+    streams::double_click(ui, store, target)
 }
 
 fn answer(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instant) -> Vec<Intent> {

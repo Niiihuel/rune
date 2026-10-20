@@ -154,7 +154,10 @@ sin tumbar la llamada.
   429 de esa ruta retiene sólo las vistas previas, como el de escribir, no
   los mensajes. Se muestra de 160×90 bajo la fila y, atenuada, en el
   mosaico del escenario con «EN VIVO», el nombre y «Ver transmisión»
-  encima; un clic la mira. En la simulación, «Vista previa simulada».
+  encima; un clic la mira. En la simulación, «Vista previa simulada». El
+  puntero sobre alguien en vivo muestra una tarjeta con la vista previa de
+  288×162 y «Ver transmisión», y la pide aunque ya se mire
+  ([MEDIA.md](MEDIA.md#personas-bajo-un-canal-de-voz)).
 - **Subir la propia** (pedido del dueño, 2026-10-19), como el oficial:
   a los 500 ms de que se ve la pantalla compartida y cada 300 s (60 s en
   pausa o si no se pudo sacar), el host saca el último cuadro en otro hilo,
@@ -170,7 +173,24 @@ sin tumbar la llamada.
   del alto), como el oficial y Serein. Otro clic, «Volver a la grilla»
   (`vz:spotlight:{persona}`) o Escape vuelven a la grilla; un clic en la
   tira enfoca esa.
-- **Menú de la transmisión**: clic derecho en ella. Volumen y silencio de
+- **Como el oficial** (2026-10-19, REA en [REA.md](REA.md#llamada-bandeja-y-transmisiones)):
+  doble clic en una transmisión mirada la enfoca y la muestra en pantalla
+  completa; otro doble clic ahí vuelve al escenario con la grilla, como el
+  oficial (Escape sale de la pantalla completa y la deja enfocada). El
+  doble clic lo da el host como `PointerDownEditor { click_count: 2 }` y
+  `rune_ui::double_click` lo toma antes que el árbol; va a la transmisión
+  del primer clic aunque ese clic haya movido los mosaicos. Al pasar el
+  puntero, arriba a la derecha, su sonido (`vz:mute:{clave}`, la de la
+  transmisión) y «⋯» (`vz:stream-more:{persona}`, su menú anclado ahí);
+  los botones de texto se fueron. Con una enfocada, el final de la barra
+  tiene «Ventana aparte» y «Pantalla completa», y el botón rojo pasa a
+  «Dejar de ver». Si es la única de otros en el canal, se enfoca al
+  mirarla; con dos o más queda la grilla.
+- **Barra de la llamada**: la medida de la bandeja oficial: botones de 36
+  (ícono 20) a 8 en secciones de 46 con 4 de relleno, borde de 1 y radio
+  12; flecha de 20 pegada a 1 px; secciones y colgar (62 de ancho) a 12;
+  16 sobre el borde de abajo y 12 bajo los mosaicos.
+- **Menú de la transmisión**: clic derecho en ella o su «⋯». Volumen y silencio de
   la transmisión (su sonido entra al mezclador con su propia clave,
   `mixer::STREAM_SOUND`, aparte de la voz de la persona; ensordecer los
   calla a los dos, como el oficial), Enfocar o Volver a la grilla, Pantalla
@@ -182,6 +202,7 @@ sin tumbar la llamada.
 | --- | --- |
 | ![Dos transmisiones](img/transmisiones-grilla-2026-10-19.png) | ![Una enfocada](img/transmisiones-enfocada-2026-10-19.png) |
 | ![Menú de la transmisión](img/transmisiones-menu-2026-10-19.png) | ![Vista previa simulada](img/transmisiones-vista-previa-2026-10-19.png) |
+| ![La barra como la bandeja oficial](img/llamada-barra-2026-10-19.png) | ![Enfocada: Dejar de ver, Ventana aparte y Pantalla completa](img/llamada-enfocada-2026-10-19.png) |
 
 ## Mirar cámaras
 
@@ -319,6 +340,8 @@ GPU (en esta máquina pueden no estarlo), y medido no es el cuello de
 botella: escalar a 1080p cuesta 2,65 ms por cuadro y VA-API codifica
 1080p60 con 30 % de CPU ([PERFORMANCE.md](PERFORMANCE.md)). Por software,
 1080p60 no alcanza en esta máquina (35–40 fps con un núcleo saturado).
+La cámara sí acepta el DMA-BUF que exporta V4L2: es lineal y se mapea a
+la CPU igual que la memoria compartida ([MEDIA.md](MEDIA.md#pantalla-y-cámara)).
 
 ## Pruebas
 

@@ -15,19 +15,19 @@ use super::*;
 use crate::playback::Linear;
 use crate::VoiceActivity;
 
-pub(super) const RATE: usize = 48_000;
+pub(crate) const RATE: usize = 48_000;
 /// The call's frames: the transmission gate decides on 20 ms.
 const CALL_FRAME: usize = RATE / 50;
 
 /// xorshift32: the same numbers on every machine.
-pub(super) struct Rng(u32);
+pub(crate) struct Rng(u32);
 
 impl Rng {
-    pub(super) fn new(seed: u32) -> Self {
+    pub(crate) fn new(seed: u32) -> Self {
         Self(seed.max(1))
     }
 
-    fn next(&mut self) -> u32 {
+    pub(crate) fn next(&mut self) -> u32 {
         self.0 ^= self.0 << 13;
         self.0 ^= self.0 >> 17;
         self.0 ^= self.0 << 5;
@@ -35,12 +35,12 @@ impl Rng {
     }
 
     /// Uniform in [-1, 1).
-    fn signed(&mut self) -> f32 {
+    pub(crate) fn signed(&mut self) -> f32 {
         (f64::from(self.next()) / f64::from(u32::MAX) * 2.0 - 1.0) as f32
     }
 
     /// Uniform in [low, high).
-    fn between(&mut self, low: f32, high: f32) -> f32 {
+    pub(crate) fn between(&mut self, low: f32, high: f32) -> f32 {
         low + (high - low) * (self.signed() * 0.5 + 0.5)
     }
 }
@@ -85,7 +85,7 @@ const VOWELS: [[f32; 4]; 5] = [
 const WIDTHS: [f32; 4] = [80.0, 100.0, 140.0, 200.0];
 
 /// Synthetic speech and where it is.
-pub(super) struct Speech {
+pub(crate) struct Speech {
     pub samples: Vec<f32>,
     /// Inside a syllable (voiced or not).
     pub speaking: Vec<bool>,
@@ -94,7 +94,7 @@ pub(super) struct Speech {
 /// `seconds` of phrases of two to five words with pauses between them,
 /// starting after 0.6 s of room; a low voice, or a high one (`high`). Its
 /// RMS while speaking is 0.1 (−20 dBFS).
-pub(super) fn speech(seconds: f32, high: bool, seed: u32) -> Speech {
+pub(crate) fn speech(seconds: f32, high: bool, seed: u32) -> Speech {
     let length = (seconds * RATE as f32) as usize;
     let mut rng = Rng::new(seed);
     let mut samples = vec![0.0_f32; length];
@@ -239,7 +239,7 @@ fn envelope(n: usize, span: usize, attack: usize, release: usize) -> f32 {
 
 /// The noises measured.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Noise {
+pub(crate) enum Noise {
     /// A laptop fan: rumble, a motor's hum and a little hiss, −42 dBFS.
     Fan,
     /// Typing in bursts: clicks of keys going down and up, peaks near
@@ -252,9 +252,9 @@ pub(super) enum Noise {
 }
 
 impl Noise {
-    pub(super) const ALL: [Self; 4] = [Self::Fan, Self::Keyboard, Self::White, Self::Pink];
+    pub(crate) const ALL: [Self; 4] = [Self::Fan, Self::Keyboard, Self::White, Self::Pink];
 
-    pub(super) fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Fan => "ventilador",
             Self::Keyboard => "teclado",
@@ -265,7 +265,7 @@ impl Noise {
 }
 
 /// `length` samples of `kind`.
-pub(super) fn noise(kind: Noise, length: usize, seed: u32) -> Vec<f32> {
+pub(crate) fn noise(kind: Noise, length: usize, seed: u32) -> Vec<f32> {
     let mut rng = Rng::new(seed);
     let db = |db: f64| 10_f64.powf(db / 20.0);
     let scaled = |samples: Vec<f32>, level: f64| {
@@ -354,7 +354,7 @@ fn pink(rng: &mut Rng, length: usize) -> Vec<f32> {
 
 /// What a chain did, against the clean speech.
 #[derive(Clone, Copy, Debug, Default)]
-pub(super) struct Scores {
+pub(crate) struct Scores {
     /// Output against input in the pauses (from 0.5 s after speech to
     /// 50 ms before the next), in dB: negative is noise taken away.
     pub pauses_db: f64,
@@ -374,7 +374,7 @@ pub(super) struct Scores {
 }
 
 /// Score `output`, `delay` samples late, against `clean` under `input`.
-pub(super) fn score(clean: &Speech, input: &[f32], output: &[f32], delay: usize) -> Scores {
+pub(crate) fn score(clean: &Speech, input: &[f32], output: &[f32], delay: usize) -> Scores {
     let length = clean.samples.len().min(output.len().saturating_sub(delay));
     let late = |at: usize| output[at + delay];
     // Pauses: far enough from speech on both sides.
@@ -456,7 +456,7 @@ pub(super) fn score(clean: &Speech, input: &[f32], output: &[f32], delay: usize)
 
 /// The delay of `output` behind `clean`, up to 60 ms: where they correlate
 /// best over the first phrase.
-pub(super) fn delay(clean: &[f32], output: &[f32]) -> usize {
+pub(crate) fn delay(clean: &[f32], output: &[f32]) -> usize {
     let window = RATE * 6 / 10..RATE * 21 / 10;
     let correlation = |lag: usize| {
         window
@@ -475,7 +475,7 @@ pub(super) fn delay(clean: &[f32], output: &[f32]) -> usize {
 /// activity, automatic sensitivity), over 20 ms frames: what is not sent is
 /// silence for the others.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Gate {
+pub(crate) enum Gate {
     /// The processed signal itself, as «Escucharme» plays it.
     Off,
     /// Opens on a frame's level.
@@ -489,7 +489,7 @@ pub(super) enum Gate {
 /// One way of processing the microphone, as the capture worker and the
 /// call run it.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Chain {
+pub(crate) struct Chain {
     pub name: &'static str,
     /// The microphone's rate; the chain resamples as RUNE's does.
     pub rate: u32,
@@ -505,7 +505,7 @@ pub(super) struct Chain {
 }
 
 impl Chain {
-    pub(super) const fn new(name: &'static str, mode: ProcessingMode) -> Self {
+    pub(crate) const fn new(name: &'static str, mode: ProcessingMode) -> Self {
         Self {
             name,
             rate: RATE as u32,
@@ -521,7 +521,7 @@ impl Chain {
 
 /// What `chain` makes of `input` (at [`RATE`]), back at [`RATE`], and the
 /// processing time of each 10 ms frame.
-pub(super) fn run(chain: Chain, input: &[f32]) -> (Vec<f32>, Vec<Duration>) {
+pub(crate) fn run(chain: Chain, input: &[f32]) -> (Vec<f32>, Vec<Duration>) {
     // The device's rate: what the microphone would have given.
     let at_device = resample(input, RATE as u32, chain.rate);
     let rate = if chain.resample_first {
@@ -606,7 +606,7 @@ fn resample(input: &[f32], from: u32, to: u32) -> Vec<f32> {
 }
 
 /// Clean speech with `kind` under it, mixed.
-pub(super) fn noisy(clean: &Speech, kind: Noise, seed: u32) -> Vec<f32> {
+pub(crate) fn noisy(clean: &Speech, kind: Noise, seed: u32) -> Vec<f32> {
     noise(kind, clean.samples.len(), seed)
         .iter()
         .zip(&clean.samples)

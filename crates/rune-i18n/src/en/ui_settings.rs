@@ -300,9 +300,27 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Ninguna", "None"),
     ("Cancelación de eco", "Echo cancellation"),
     (
-        "Evita que el micrófono capte lo que RUNE reproduce. Solo actúa mientras suena algo.",
-        "Keeps the microphone from picking up what RUNE plays. It only acts while something is playing.",
+        "Evita que el micrófono capte lo que suena en tus auriculares, así nadie se escucha a sí mismo.",
+        "Keeps the microphone from picking up what plays in your headphones, so nobody hears themselves.",
     ),
+    (
+        "cancelar el sonido de la pc juegos música videos eco referencia del sistema salida",
+        "cancel pc sound games music videos echo system reference output",
+    ),
+    ("Cancelar también el sonido de la PC", "Also cancel the PC's sound"),
+    (
+        "Activo: se cancela todo lo que suena en tu salida. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía.",
+        "On: everything playing on your output is cancelled. What plays is only used as a reference on this device: it's never recorded or sent.",
+    ),
+    (
+        "No se pudo escuchar tu salida: por ahora se cancela sólo lo que reproduce RUNE.",
+        "Your output couldn't be listened to: for now only what RUNE plays is cancelled.",
+    ),
+    (
+        "Juegos, música y videos que suenan en tu salida no se cuelan por el micrófono. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía.",
+        "Games, music and videos playing on your output don't leak into your microphone. What plays is only used as a reference on this device: it's never recorded or sent.",
+    ),
+    ("Necesita la cancelación de eco.", "Needs echo cancellation."),
     ("Control automático de ganancia", "Automatic gain control"),
     (
         "Sube o baja tu voz para mantenerla pareja. Es digital: no toca el volumen del micrófono en el sistema.",

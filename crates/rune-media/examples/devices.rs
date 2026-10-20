@@ -36,18 +36,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             device: None,
             mode,
             muted: false,
-            echo_cancellation: false,
+            // Cancels what this machine plays, through the default
+            // output's loopback; nothing of it is kept or printed but levels.
+            echo_cancellation: flag("--system-echo"),
             automatic_gain: flag("--agc"),
             monitor: false,
             speech_gate: flag("--gate"),
+            system_echo: flag("--system-echo"),
+            output: None,
         }));
         println!("midiendo el micrófono predeterminado ({mode:?})");
         for _ in 0..30 {
             std::thread::sleep(std::time::Duration::from_millis(100));
             let sample = capture.snapshot();
             println!(
-                "{:?}: entrada {:.2}, procesado {:.2}, descartadas {}",
-                sample.state, sample.raw_level, sample.processed_level, sample.dropped_samples
+                "{:?}: entrada {:.2}, procesado {:.2}, descartadas {}, eco {} (referencia del sistema: {})",
+                sample.state,
+                sample.raw_level,
+                sample.processed_level,
+                sample.dropped_samples,
+                sample.echo_cancelling,
+                sample.system_echo
             );
         }
     }

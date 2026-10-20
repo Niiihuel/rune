@@ -511,7 +511,11 @@ async fn save_to(
             let _ = ask.exists.set(filename.to_owned());
             wake();
             ask.replaced.await.map_err(|_| None)?;
-            Some(identity(&found))
+            Some(
+                identity(&path)
+                    .await
+                    .map_err(|_| Some(t("No se pudo guardar el archivo en esa carpeta.")))?,
+            )
         }
         Ok(_) => return Err(Some(t(SAVE_EXISTS))),
         Err(_) => None,
@@ -536,7 +540,8 @@ async fn save_to(
         // Linux has no rename that checks what it replaces.
         match tokio::fs::symlink_metadata(&path).await {
             Ok(found) if !found.is_file() => return Err(Some(t(SAVE_EXISTS))),
-            Ok(found) if identity(&found) != seen => {
+            // One that cannot be named is not the one asked about either.
+            Ok(_) if identity(&path).await.ok() != Some(seen) => {
                 return Err(Some(t(
                     "El archivo cambió mientras se descargaba. Volvé a guardarlo.",
                 )))
@@ -557,27 +562,49 @@ async fn save_to(
     }
 }
 
-/// Which file `found` is (device and inode): replacing waits for the one
+/// Which file is at `path` (device and inode): replacing waits for the one
 /// the person was asked about (08.3).
 #[cfg(unix)]
-fn identity(found: &std::fs::Metadata) -> (u64, u64) {
+async fn identity(path: &Path) -> std::io::Result<(u64, u64)> {
     use std::os::unix::fs::MetadataExt;
-    (found.dev(), found.ino())
+    let found = tokio::fs::symlink_metadata(path).await?;
+    Ok((found.dev(), found.ino()))
 }
 
-/// On Windows (windows-base), when the file was made and last written:
-/// another file put at the name has its own.
-/// shortcut: the volume and file index would name the file itself, but std
-/// has them only on nightly (`windows_by_handle`); upgrade when stable.
+/// On Windows (windows-base), its volume serial number and file index.
+/// Times name no file: tunneling gives one renamed onto the name the old
+/// one's creation time, and last writes are coarse.
 #[cfg(windows)]
-fn identity(found: &std::fs::Metadata) -> (u64, u64) {
-    use std::os::windows::fs::MetadataExt;
-    (found.creation_time(), found.last_write_time())
+async fn identity(path: &Path) -> std::io::Result<(u64, u64)> {
+    use std::os::windows::{fs::OpenOptionsExt, io::AsRawHandle};
+    use windows::Win32::{
+        Foundation::HANDLE,
+        Storage::FileSystem::{
+            GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION, FILE_FLAG_OPEN_REPARSE_POINT,
+        },
+    };
+    let path = path.to_owned();
+    tokio::task::spawn_blocking(move || {
+        // Attributes only, and never through a link put there since.
+        let file = std::fs::OpenOptions::new()
+            .access_mode(0)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0)
+            .open(path)?;
+        let mut info = BY_HANDLE_FILE_INFORMATION::default();
+        // SAFETY: a handle this function holds open, and a struct it owns.
+        unsafe { GetFileInformationByHandle(HANDLE(file.as_raw_handle()), &mut info) }?;
+        Ok((
+            u64::from(info.dwVolumeSerialNumber),
+            u64::from(info.nFileIndexHigh) << 32 | u64::from(info.nFileIndexLow),
+        ))
+    })
+    .await
+    .map_err(std::io::Error::other)?
 }
 
 #[cfg(not(any(unix, windows)))]
-fn identity(_: &std::fs::Metadata) -> (u64, u64) {
-    (0, 0)
+async fn identity(_: &Path) -> std::io::Result<(u64, u64)> {
+    Ok((0, 0))
 }
 
 /// The whole body of `url` in a private partial file of `directory`,

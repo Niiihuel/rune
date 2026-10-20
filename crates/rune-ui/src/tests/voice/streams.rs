@@ -1,7 +1,8 @@
 //! Streams (transmisiones): focusing one watched and coming back to the
-//! grid, a stream's own menu and its volume apart from the person's, the
-//! pictures of streams asked for as the official client asks them, and the
-//! account's own picture going up.
+//! grid, full screen with a double click, a stream's own menu and its
+//! volume apart from the person's, what its tile and the bar offer as the
+//! official client's, the pictures of streams asked for as the official
+//! client asks them, and the account's own picture going up.
 
 use std::time::Duration;
 
@@ -60,6 +61,25 @@ impl Host {
             })
             .unwrap_or_else(|| panic!("{surface} is not drawn"))
     }
+
+    /// A double click at `at`, as the window reports one: a click, then a
+    /// press that counts two.
+    fn tr_double_click(&mut self, at: Point) {
+        self.send(UiEvent::PointerDown(at));
+        self.send(UiEvent::PointerUp(at));
+        self.send(UiEvent::PointerDownEditor {
+            position: at,
+            shift: false,
+            alt: false,
+            ctrl: false,
+            click_count: 2,
+        });
+        self.send(UiEvent::PointerUp(at));
+    }
+}
+
+fn middle(rect: limn::Rect) -> Point {
+    Point::new(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0)
 }
 
 #[test]
@@ -80,25 +100,126 @@ fn a_stream_watched_is_focused_with_a_click_and_the_grid_comes_back() {
     let (big, small) = (host.tr_surface(first), host.tr_surface(second));
     assert!(big.width > side.width && small.width < side.width);
     assert!(small.y > big.y + big.height);
-    assert!(host.vz_usable(&ids::spotlight(first.0)), "the way back");
+    // The bar lets it go in place of hanging up, as the official client's.
+    assert!(host.vz_usable(&ids::stop_watching(first.0)), "the way out");
     assert!(!host.vz_shows(&ids::stop_watching(second.0)));
     // A click on the one in the strip focuses it instead.
     host.click(&ids::stream_tile(second.0));
     assert_eq!(host.ui.video.spotlight, Some(second));
-    // «Volver a la grilla», a click on it again, or Escape: the grid.
-    host.click(&ids::spotlight(second.0));
-    assert_eq!(host.ui.video.spotlight, None);
-    host.click(&ids::stream_tile(second.0));
+    // A click on it again, Escape or «Volver a la grilla» in its menu: the grid.
     host.click(&ids::stream_tile(second.0));
     assert_eq!(host.ui.video.spotlight, None);
+    assert!(
+        !host.vz_shows(&ids::stop_watching(second.0)),
+        "hanging up is back"
+    );
     host.click(&ids::stream_tile(first.0));
     host.key(Key::Escape, false, false);
     assert_eq!(host.ui.video.spotlight, None);
     assert_eq!(host.tr_surface(first).width, side.width);
+    host.click(&ids::stream_tile(first.0));
+    host.vz_right_click(&ids::stream_tile(first.0));
+    host.click(&ids::spotlight(first.0));
+    assert_eq!(host.ui.video.spotlight, None);
     // Letting go of the one focused brings the grid back too.
     host.click(&ids::stream_tile(first.0));
     host.click(&ids::stop_watching(first.0));
     assert_eq!(host.ui.video.spotlight, None);
+    assert!(host
+        .store
+        .watching()
+        .iter()
+        .all(|shown| shown.owner != first));
+}
+
+#[test]
+fn a_double_click_shows_a_stream_full_screen_and_another_brings_the_grid_back() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let owners = host.tr_streamers(room, 4, 2);
+    let (first, second) = (owners[0], owners[1]);
+    host.tr_watch(room, first);
+    host.tr_watch(room, second);
+    // From the grid: it is focused and shown alone, the window full screen.
+    let at = middle(host.vz_rect(&ids::stream_tile(second.0)));
+    host.tr_double_click(at);
+    assert_eq!(host.ui.video.spotlight, Some(second));
+    assert_eq!(host.ui.video.focus, Some(second));
+    assert!(crate::video_fullscreen(&host.ui, &host.store));
+    // Another there, as the official client: the stage and its grid.
+    let alone = host.tr_surface(second);
+    host.tr_double_click(middle(alone));
+    assert_eq!((host.ui.video.focus, host.ui.video.spotlight), (None, None));
+    assert!(!crate::video_fullscreen(&host.ui, &host.store));
+    // From the stream focused: its first click lets it go and moves the
+    // tiles, yet the press is still the focused one's.
+    host.click(&ids::stream_tile(first.0));
+    let at = middle(host.tr_surface(first));
+    host.tr_double_click(at);
+    assert_eq!(host.ui.video.focus, Some(first));
+    assert_eq!(host.ui.video.spotlight, Some(first));
+    host.key(Key::Escape, false, false);
+    assert_eq!(host.ui.video.focus, None);
+    assert_eq!(
+        host.ui.video.spotlight,
+        Some(first),
+        "Escape leaves it focused"
+    );
+    // A double click elsewhere is the tree's: two clicks of the bar's.
+    host.key(Key::Escape, false, false);
+    let at = middle(host.vz_rect(ids::MUTE));
+    host.tr_double_click(at);
+    assert_eq!(host.ui.video.focus, None);
+}
+
+#[test]
+fn a_streams_tile_offers_its_sound_and_menu_and_the_bar_its_window_and_full_screen() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let owner = host.tr_streamers(room, 3, 1)[0];
+    host.tr_watch(room, owner);
+    let sound = owner.0 | rune_media::mixer::STREAM_SOUND;
+    // Its sound, from its tile: the stream's, apart from the voice's.
+    host.click(&ids::local_mute(sound));
+    assert_eq!(host.ui.prefs.voice_volume(sound), (1.0, true));
+    assert_eq!(host.ui.prefs.voice_volume(owner.0), (1.0, false));
+    // Its «⋯»: its menu, there.
+    host.click(&ids::stream_more(owner.0));
+    assert_eq!(host.ui.video.menu, Some((owner, None)));
+    for id in [
+        ids::volume(sound),
+        ids::fullscreen(owner.0),
+        ids::stop_watching(owner.0),
+    ] {
+        assert!(host.vz_shows(&id), "{id}");
+    }
+    host.click(&ids::window(owner.0));
+    assert_eq!(host.ui.video.windows, [owner]);
+    assert!(host.ui.video.menu.is_none(), "an item closes it");
+    // Focused, as the only one there: the bar's end has full screen, and
+    // no second window.
+    assert_eq!(host.ui.video.spotlight, Some(owner));
+    assert!(!host.vz_shows(&ids::window(owner.0)), "already in one");
+    host.ui.video.windows.clear();
+    let (window, full) = (
+        host.vz_rect(&ids::window(owner.0)),
+        host.vz_rect(&ids::fullscreen(owner.0)),
+    );
+    let out = host.vz_rect(&ids::stop_watching(owner.0));
+    assert!(out.x + out.width < window.x && window.x < full.x);
+    host.click(&ids::fullscreen(owner.0));
+    assert_eq!(host.ui.video.focus, Some(owner));
+    host.key(Key::Escape, false, false);
+    assert_eq!(host.ui.video.focus, None);
+    // «Dejar de ver» in place of hanging up.
+    let from = host.sent.len();
+    host.click(&ids::stop_watching(owner.0));
+    assert!(matches!(
+        host.sent[from..],
+        [Command::StopWatching { owner: stopped, .. }] if stopped == owner
+    ));
 }
 
 #[test]
@@ -148,12 +269,18 @@ fn a_streams_menu_has_its_own_volume_and_its_ways_to_show_it() {
     assert_eq!(host.ui.prefs.voice_volume(sound), (0.5, true));
     assert_eq!(host.ui.prefs.voice_volume(owner.0), (1.0, false));
     assert!(host.ui.video.menu.is_none(), "an item closes it");
-    // Focusing it, full screen and a window of its own, from there too.
+    // The only one there, it was focused as it was watched, as in the
+    // official client. Back to the grid, focusing it, full screen and a
+    // window of its own, from there too.
+    assert_eq!(host.ui.video.spotlight, Some(owner));
+    host.vz_right_click(&ids::stream_tile(owner.0));
+    assert!(host.vz_texts().contains(&"Volver a la grilla".to_owned()));
+    host.click(&ids::spotlight(owner.0));
+    assert_eq!(host.ui.video.spotlight, None);
     host.vz_right_click(&ids::stream_tile(owner.0));
     host.click(&ids::spotlight(owner.0));
     assert_eq!(host.ui.video.spotlight, Some(owner));
     host.vz_right_click(&ids::stream_tile(owner.0));
-    assert!(host.vz_texts().contains(&"Volver a la grilla".to_owned()));
     host.click(&ids::window(owner.0));
     assert_eq!(host.ui.video.windows, [owner]);
     host.vz_right_click(&ids::stream_tile(owner.0));

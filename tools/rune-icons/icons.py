@@ -670,6 +670,20 @@ def _():
     return rect(2, 2, 20, 14, 3) | rect(11, 17, 2, 4, 0.5) | line("M9 21h6")
 
 
+@icon("screen-stop")
+def _():
+    """«Dejar de ver»: the screen with a cross cut out of it."""
+    stand = rect(11, 17, 2, 4, 0.5) | line("M9 21h6")
+    return (rect(2, 2, 20, 14, 3) - line("M9 6l6 6M15 6l-6 6")) | stand
+
+
+@icon("pop-out")
+def _():
+    """«Ventana aparte»: a window, an arrow leaving it by its corner."""
+    window = rect(2, 6, 16, 16, 3).hollow()
+    return cut(window, line("M10 14 21 3M15 3h6v6"))
+
+
 def handset():
     """Discord's handset: a thick arc between two pads, symmetric about y = 24 - x."""
     c = (15.4, 8.6)

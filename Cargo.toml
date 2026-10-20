@@ -3,7 +3,7 @@ resolver = "2"
 members = ["apps/desktop", "crates/rune-i18n", "crates/rune-model", "crates/rune-provider", "crates/rune-discord", "crates/rune-discord-session", "crates/rune-login", "crates/rune-state", "crates/rune-storage", "crates/rune-core", "crates/rune-media", "crates/rune-components", "crates/rune-ui", "crates/rune-platform", "crates/rune-update", "tools/rune-release"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"
@@ -49,6 +49,10 @@ publish = false
 # (Element::zoom_view, PR #112; branch rune/visor-de-medios, 2026-10-19).
 # And DropdownMenuItem::leading (PR #113, branch rune/menu-leading): a
 # server's icon or initial in the profile choice's rows (2026-10-19).
+# And a menu's check box at the row's edge beside submenus (PR #115, branch
+# rune/menu-check-end: a person's menu in voice, 2026-10-19).
+# And a hover card that stays open across its row's icons (PR #114, branch
+# rune/hover-popover-anchor: a live person's card in voice, 2026-10-19).
 limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
 limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
 eframe = { version = "0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }

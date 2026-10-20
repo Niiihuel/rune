@@ -140,6 +140,56 @@ Límite: la voz es sintética (RNNoise la reconoce con probabilidad 0,9–0,97);
 una voz real, susurrada o cantada puede comportarse distinto. Qué probar, en
 [MEDIA.md](MEDIA.md).
 
+### Eco
+
+El camino completo de la captura (`rune-media::capture::eval`), con los
+tiempos de los dispositivos: callbacks de salida, monitor y micrófono cada
+cuántum de PipeWire (1024 muestras), el hilo de salida pasando la
+referencia cada 4 ms y el de captura procesando cada 4 ms con su propio
+reloj (los dos derivan), salida con 23 ms de latencia y un auricular que
+devuelve lo que suena al micrófono 1 ms después, opaco y con un rebote
+(−12 dB; «débil», −34 dB). Las voces son las sintéticas de arriba; la música,
+acordes, bajo, bombo y platillos a −20 dBFS, y el juego, otra voz encima.
+Veinte segundos por caso, release:
+`cargo test --release -p rune-media echo_table -- --ignored --nocapture`.
+«Antes» es el mismo arnés sobre el código del 2026-10-19 previo al cambio.
+
+ERLE: cuánto más bajo sale lo que se manda que lo que oyó el micrófono, sólo
+con eco, AEC3 solo. «Se manda eco»: cuadros de 20 ms con eco en el micrófono
+que la cadena por defecto (Aislamiento de voz: AEC3, RNNoise, AGC2 y la
+compuerta) deja salir.
+
+| Caso | ERLE antes | ERLE ahora | Se manda eco, antes | ahora |
+| --- | --- | --- | --- | --- |
+| Voces de la llamada | 62,5 dB | 62,2 dB | 0,0 % | 0,0 % |
+| Voces de la llamada, eco débil | 44,2 dB | 43,6 dB | 0,0 % | 0,0 % |
+| Voces, la salida se queda sin audio 15 ms cada 2,5 s | 29,8 dB | 62,1 dB | 2,4 % | 0,0 % |
+| Voces, 2 s después de dejar de estar silenciado | 13,4 dB | 42,2 dB | 9,5 % | 4,8 % |
+| Juego y música, referencia de RUNE (como antes) | 2,6 dB | 2,6 dB | 100 % | 100 % |
+| Juego y música, referencia del sistema | — | 51,5 dB | — | 0,0 % |
+| Llamada, juego y música, referencia del sistema | — | 54,3 dB | — | 0,0 % |
+
+Con la persona hablando encima, su voz sale entre −0,8 y +1,1 dB de como
+sale sin eco. Lo que cambió:
+
+- Un underrun o ensordecer no dejaban rastro en la referencia: lo que sonaba
+  después quedaba corrido respecto del micrófono y AEC3 perdía el retardo.
+- La referencia se pasaba de a 10 ms por cuadro del micrófono, con silencio
+  si todavía no había llegado: lo que esperaba crecía de a 10 ms (se vio
+  entre 21 y 51 ms) y podía quedar después de su propio eco.
+- Silenciarse, un hueco o cambiar el supresor reiniciaban AEC3 entero, y
+  200 ms sin sonido lo apagaban: cada vez tenía que volver a aprender (a
+  los 2 s de dejar de estar silenciado seguía entre 7 y 28 dB).
+- El sonido de otros programas no estaba en ninguna referencia: RNNoise
+  oye la voz de un juego como voz y la deja pasar.
+
+Ahora, al dejar de estar silenciado, el primer medio segundo deja pasar algo
+(14 dB los primeros 250 ms), después nada. Otra cosa que mostró el arnés:
+mientras la persona habla, AEC3 de Sonora quita poco del eco (estimado
+repitiendo todo con el signo del eco invertido: 1 a 4 dB, aun con el retardo
+ideal); lo que lo frena es la supresión cuando la persona calla. No se
+cambió: el ajuste de AEC3 que lo gobierna no está expuesto en Sonora.
+
 ## Video
 
 ### Codificar la pantalla compartida

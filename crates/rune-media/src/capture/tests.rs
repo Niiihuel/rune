@@ -21,6 +21,8 @@ fn request(device: &str) -> CaptureRequest {
         automatic_gain: false,
         monitor: false,
         speech_gate: false,
+        system_echo: false,
+        output: None,
     }
 }
 
@@ -171,6 +173,7 @@ enum Trace {
     Open(String),
     Play(String),
     Drop(String),
+    Loopback(String),
 }
 
 struct FakeStream {
@@ -194,6 +197,8 @@ impl Drop for FakeStream {
 struct FakeBackend {
     trace: Sender<Trace>,
     inputs: Sender<Ingress>,
+    /// Where a loopback's sound goes in, for a test that plays some.
+    loopbacks: Sender<rtrb::Producer<f32>>,
     first_open_gate: Option<Receiver<()>>,
     fail_first: bool,
 }
@@ -230,6 +235,18 @@ impl Backend for FakeBackend {
             rate: 48_000,
         })
     }
+
+    fn open_loopback(&mut self, output: Option<&str>) -> Result<Loopback, MediaError> {
+        let output = output.unwrap_or("default").to_owned();
+        self.trace.send(Trace::Loopback(output.clone())).unwrap();
+        let (played, reference) = EchoReference::pair(9_600);
+        let _ = self.loopbacks.send(played);
+        Ok(Loopback {
+            _stream: Box::new(()),
+            failed: Arc::new(AtomicBool::new(false)),
+            reference,
+        })
+    }
 }
 
 fn fake(
@@ -242,6 +259,7 @@ fn fake(
     let capture = Capture::with_backend(FakeBackend {
         trace,
         inputs,
+        loopbacks: mpsc::channel().0,
         first_open_gate: blocked.then_some(gate),
         fail_first,
     })
@@ -380,8 +398,14 @@ fn frames(
     }
 }
 
+fn push(played: &mut rtrb::Producer<f32>, samples: usize, value: f32) {
+    for _ in 0..samples {
+        played.push(value).unwrap();
+    }
+}
+
 #[test]
-fn echo_cancellation_runs_only_while_the_output_plays_a_reference() {
+fn echo_cancellation_takes_all_that_played_before_each_frame_and_stays_on() {
     let shared = shared();
     let (mut input, mut active) = active(shared.clone(), 1);
     let (mut played, reference) = EchoReference::pair(16_000);
@@ -391,29 +415,28 @@ fn echo_cancellation_runs_only_while_the_output_plays_a_reference() {
         transmit: None,
     };
     active.echo = true;
-    frames(&mut input, &mut active, &shared, &mut links, 3);
-    assert!(!active.snapshot.echo_cancelling, "nothing played yet");
-    for _ in 0..REFERENCE_FRAME {
-        played.push(0.2).unwrap();
-    }
     frames(&mut input, &mut active, &shared, &mut links, 1);
-    assert!(active.snapshot.echo_cancelling);
-    frames(
-        &mut input,
-        &mut active,
-        &shared,
-        &mut links,
-        ECHO_HOLD_FRAMES as usize - 1,
+    assert!(
+        active.snapshot.echo_cancelling,
+        "on with a reference to read"
     );
-    assert!(active.snapshot.echo_cancelling, "a short pause keeps it");
+    // A burst of what the output played goes in before the next frame,
+    // not one frame each: waiting would put it after its own echo.
+    push(&mut played, 3 * REFERENCE_FRAME, 0.2);
     frames(&mut input, &mut active, &shared, &mut links, 1);
-    assert!(!active.snapshot.echo_cancelling, "a long one turns it off");
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    // Silence between words, or none played: it keeps what it learned.
+    frames(&mut input, &mut active, &shared, &mut links, 100);
+    assert!(active.snapshot.echo_cancelling, "no hold that turns it off");
     // Not requested: a reference alone never turns it on.
     active.echo = false;
-    for _ in 0..REFERENCE_FRAME * 2 {
-        played.push(0.2).unwrap();
-    }
+    push(&mut played, 2 * REFERENCE_FRAME, 0.2);
     frames(&mut input, &mut active, &shared, &mut links, 2);
+    assert!(!active.snapshot.echo_cancelling);
+    // Without a reference there is nothing to cancel with.
+    active.echo = true;
+    links.reference = None;
+    frames(&mut input, &mut active, &shared, &mut links, 1);
     assert!(!active.snapshot.echo_cancelling);
 }
 
@@ -422,24 +445,153 @@ fn old_reference_is_dropped_to_keep_alignment_bounded() {
     let shared = shared();
     let (mut input, mut active) = active(shared.clone(), 1);
     let (mut played, reference) = EchoReference::pair(16_000);
-    for _ in 0..10_000 {
-        played.push(0.2).unwrap();
-    }
     let mut links = Links {
         reference: Some(reference),
         monitor: None,
         transmit: None,
     };
     active.echo = true;
+    // What played before the capture started goes without counting.
+    push(&mut played, 10_000, 0.2);
+    frames(&mut input, &mut active, &shared, &mut links, 1);
+    assert_eq!(active.snapshot.reference_dropped, 0);
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    // A stalled capture: the oldest beyond the backlog goes, the rest in.
+    push(&mut played, 10_000, 0.2);
     frames(&mut input, &mut active, &shared, &mut links, 1);
     assert_eq!(
         active.snapshot.reference_dropped,
         (10_000 - REFERENCE_BACKLOG) as u64
     );
-    assert_eq!(
-        links.reference.as_ref().unwrap().available(),
-        REFERENCE_BACKLOG - REFERENCE_FRAME
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    // A restart (a mute, another request) forgets what played before it.
+    push(&mut played, 4 * REFERENCE_FRAME, 0.2);
+    active.reconfigure(&CaptureRequest {
+        echo_cancellation: true,
+        ..request("synthetic")
+    });
+    frames(&mut input, &mut active, &shared, &mut links, 1);
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    assert_eq!(active.snapshot.reference_dropped, 0, "cleared, not trimmed");
+}
+
+fn loopback_backend() -> (FakeBackend, Receiver<Trace>, Receiver<rtrb::Producer<f32>>) {
+    let (trace, traces) = mpsc::channel();
+    let (loopbacks, opened) = mpsc::channel();
+    (
+        FakeBackend {
+            trace,
+            inputs: mpsc::channel().0,
+            loopbacks,
+            first_open_gate: None,
+            fail_first: false,
+        },
+        traces,
+        opened,
+    )
+}
+
+#[test]
+fn the_system_loopback_replaces_runes_reference_and_hands_back_when_silent() {
+    let shared = shared();
+    let (mut input, mut active) = active(shared.clone(), 1);
+    let (mut backend, traces, opened) = loopback_backend();
+    let (mut played, reference) = EchoReference::pair(16_000);
+    let mut links = Links {
+        reference: Some(reference),
+        monitor: None,
+        transmit: None,
+    };
+    let wanted = CaptureRequest {
+        echo_cancellation: true,
+        system_echo: true,
+        output: Some("headset".into()),
+        ..request("synthetic")
+    };
+    active.reconfigure(&wanted);
+    active.steer_system(&mut backend, &wanted);
+    assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
+    let mut system = receive(&opened);
+    frames(&mut input, &mut active, &shared, &mut links, 1);
+    push(&mut system, 2 * REFERENCE_FRAME, 0.3);
+    push(&mut played, 2 * REFERENCE_FRAME, 0.2);
+    frames(&mut input, &mut active, &shared, &mut links, 1);
+    assert!(active.snapshot.system_echo && active.snapshot.echo_cancelling);
+    // It holds RUNE's sound too: RUNE's own reference is not fed as well.
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    assert!(system.slots() == system.buffer().capacity(), "all read");
+    // The same request keeps it open; nothing is opened twice.
+    active.steer_system(&mut backend, &wanted);
+    assert!(traces.try_recv().is_err());
+    // Half a second without anything from it: RUNE's own stands in.
+    frames(
+        &mut input,
+        &mut active,
+        &shared,
+        &mut links,
+        SYSTEM_IDLE_FRAMES as usize,
     );
+    push(&mut played, REFERENCE_FRAME, 0.2);
+    frames(&mut input, &mut active, &shared, &mut links, 1);
+    assert!(!active.snapshot.system_echo && active.snapshot.echo_cancelling);
+    assert_eq!(links.reference.as_ref().unwrap().available(), 0);
+    // Turned off, or no echo cancellation: the loopback closes.
+    let off = CaptureRequest {
+        system_echo: false,
+        ..wanted.clone()
+    };
+    active.steer_system(&mut backend, &off);
+    assert!(active.system.is_none());
+    active.steer_system(&mut backend, &wanted);
+    assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
+    active.steer_system(
+        &mut backend,
+        &CaptureRequest {
+            echo_cancellation: false,
+            ..wanted
+        },
+    );
+    assert!(active.system.is_none());
+}
+
+#[test]
+fn what_the_system_plays_is_never_sent_or_heard_back() {
+    let shared = shared();
+    let (mut input, mut active) = active(shared.clone(), 1);
+    let (mut backend, _traces, opened) = loopback_backend();
+    let (feed, mut tap) = crate::tap(48_000);
+    let (heard, mut monitor) = Feed::pair(48_000);
+    let mut links = Links {
+        reference: None,
+        monitor: Some(heard),
+        transmit: Some(feed),
+    };
+    let wanted = CaptureRequest {
+        echo_cancellation: true,
+        system_echo: true,
+        monitor: true,
+        ..request("synthetic")
+    };
+    active.reconfigure(&wanted);
+    active.steer_system(&mut backend, &wanted);
+    let mut system = receive(&opened);
+    let now = Instant::now();
+    let mut loud = crate::processing::eval::Rng::new(9);
+    for _ in 0..50 {
+        // Loud noise on the output; a silent microphone.
+        for _ in 0..REFERENCE_FRAME {
+            system.push(0.8 * loud.signed()).unwrap();
+        }
+        input.write(&[0.0_f32; 480]);
+        active.step(&shared, 1, now, &mut links).unwrap();
+    }
+    assert!(active.snapshot.system_echo);
+    let mut sent = vec![0.0; tap.available()];
+    assert!(tap.read(&mut sent) && sent.len() >= 40 * 480);
+    // Under the meter's floor, −60 dBFS, where −2 dBFS played.
+    assert!(crate::rms(&sent) < 1e-3, "sent {}", crate::rms(&sent));
+    let looped: Vec<f32> = std::iter::from_fn(|| monitor.pop().ok()).collect();
+    assert!(crate::rms(&looped) < 1e-3, "heard {}", crate::rms(&looped));
 }
 
 #[test]

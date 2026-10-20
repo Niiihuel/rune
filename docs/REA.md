@@ -428,6 +428,7 @@ confirmar: cómo recorta un GIF el oficial y el tope del `PATCH`.
 | Esqueleto del historial | grupos de 1–4, avatar 40, líneas de 16 en 22, anclado abajo, sin animación | `message::history_skeleton` con semilla del canal |
 | Fijados cargando | spinner | spinner de limn |
 | Pantalla de carga | logo y consejo hasta READY; a los 10 s, problemas; fundido de 200 ms | `rune_ui::splash`: etapa, motivo y botones a los 10 s; «Reconectando» sólo con sesión cargada |
+| Menú de una persona en voz | casillas y flecha de submenú al borde derecho; «Roles ›» con el punto del color del rol, el nombre y una casilla, sin cerrar al marcar; `color:"danger"` en lo que castiga (`remove-friend` confirmado en `web.4d4b2f75fdea5470.js`, byte 1237761; el resto, de la captura del dueño: el menú de usuario vive en chunks perezosos no bajados) | `voice::MenuEntry::{Role, Danger}`; rojo en Aislar, Expulsar, Vetar, Desconectar, Bloquear y Eliminar amigo; «Quitar el aislamiento» y «Desbloquear» sin rojo. Antes y después: `docs/img/voz-menu-{antes,despues}-2026-10-19.png` |
 
 **Tooltip del servidor y altavoz del riel** (`rune_ui::rail`): nombre (2
 líneas); escenario (hablantes, máx. 3, con cuántos escuchan); voz (canales
@@ -677,6 +678,37 @@ inputs de PulseAudio/PipeWire del pid de la fuente y su árbol
 (`soundshare/pulseaudio_controller.cpp`, `application.process.id`,
 `pipewire.sec.pid`), no todo el audio. Qué hace con una pantalla entera sin
 pid queda sin confirmar. Ver [VIDEO.md](VIDEO.md).
+
+### Llamada: bandeja y transmisiones
+
+Chunks diferidos del build de `933ace…` (textos en inglés): la llamada del
+canal (`91d6578abe9a9597.js`), su mosaico (`d14b3f4aeb1549a4.js`), la
+bandeja (`f104b3543f834457.js`, módulo 105225) y sus CSS (`313097…css`,
+`730227…css`, `770583…css`). Uso en RUNE: `rune_components::voice::bar`
+y `StreamTile`, `rune_ui::streams`.
+
+- **Clic** en un mosaico: `handleSelectParticipant` mira la transmisión si
+  no se mira y, en modo video, alterna la selección: el elegido otra vez
+  vuelve a la grilla (el mosaico enfocado usa el mismo `onClick`).
+- **Doble clic**: `handleFullscreenParticipant` lo selecciona si hace falta
+  (contando los dos clics que lo preceden) y alterna la pantalla completa;
+  en pantalla completa con ese elegido, deselecciona y sale: vuelve a la
+  grilla.
+- **Mirar**: `STREAM_WATCH` selecciona la transmisión salvo que haya dos o
+  más de otros en el canal (`allowMultiple`) o `noFocus`.
+- **Mosaico al pasar el puntero**: «Options» (⋯, abre el menú contextual)
+  y silenciar la transmisión («Mute»/«Unmute»), botones de 32
+  `overlay-secondary`; el enfocado tiene zoom.
+- **Barra** (`videoControls`): grilla de tres columnas, 16 de relleno a los
+  lados y abajo. A la izquierda invitar y el chat; al centro la bandeja; a
+  la derecha, con una transmisión ajena elegida, su volumen, «Pop Out» y
+  «Full Screen»/«Exit Full Screen». Con una transmisión ajena elegida, el
+  botón rojo es «Stop Watching». Ancho ≤ 550 esconde la segunda sección y
+  ≤ 650 la invitación.
+- **Bandeja**: `wrapper` en fila con 12 entre secciones; `buttonSection`
+  con borde de 1, radio 12, 4 de relleno y 8 entre botones; botón central
+  radio 8 y 8 de relleno con ícono de 20 (36); flecha de 20 pegada con 1
+  px; colgar con borde, radio 12 y 4×12 de relleno alrededor del ícono.
 
 ### Sin confirmar
 

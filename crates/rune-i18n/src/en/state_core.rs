@@ -704,6 +704,10 @@ pub(super) const ENTRIES: super::Entries = &[
     ("la cancelación de eco está apagada", "echo cancellation is off"),
     ("falló el análisis de la referencia de eco", "analyzing the echo reference failed"),
     (
+        "No se pudo escuchar lo que suena en la salida.",
+        "What plays on the output couldn't be listened to.",
+    ),
+    (
         "el procesamiento necesita un cuadro mono de exactamente 10 ms",
         "processing needs a mono frame of exactly 10 ms",
     ),
@@ -716,6 +720,14 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No se pudo conectar con PipeWire.", "Couldn't connect to PipeWire."),
     ("La fuente no envió imágenes.", "The source didn't send any frames."),
     ("La cámara dejó de enviar imágenes.", "The camera stopped sending frames."),
+    (
+        "PipeWire no pudo compartir las imágenes de la fuente con RUNE.",
+        "PipeWire couldn't share the source's frames with RUNE.",
+    ),
+    (
+        "La fuente no ofrece imágenes en un formato que RUNE pueda leer.",
+        "The source doesn't offer frames in a format RUNE can read.",
+    ),
     ("No se pudo iniciar la vista previa.", "Couldn't start the preview."),
     ("No se pudo leer el sonido de las aplicaciones.", "Couldn't read the apps' sound."),
 ];

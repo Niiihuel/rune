@@ -7,11 +7,13 @@
 //! audio callback or on the UI thread. The only retained audio is bounded DSP
 //! history; the reusable buffers are cleared after each processed frame.
 //!
-//! The chain, each stage only when chosen: input volume, then Sonora's
-//! high-pass filter, WebRTC noise suppression and echo cancellation, then
-//! RNNoise, then automatic gain, then the speech gate. RNNoise comes after
-//! the canceller, which needs the microphone linear in what the output
-//! played, and before the gain, so the gain is not set by noise RNNoise
+//! The chain, each stage only when chosen: input volume, then echo
+//! cancellation (Sonora's AEC3), then Sonora's high-pass filter and WebRTC
+//! noise suppression, then RNNoise, then automatic gain, then the speech
+//! gate. The canceller goes first: it needs the microphone linear in what
+//! the output played. It is its own stage so that what restarts the rest (a
+//! mute, a gap, another suppressor) keeps what it learned of the echo path.
+//! RNNoise comes before the gain, so the gain is not set by noise RNNoise
 //! removes. The gate goes last, on what would be sent: it silences what
 //! RNNoise does not hear as speech (a key, a breath, the room), so it is
 //! only on with RNNoise; see [`CaptureProcessor::set_speech_gate`].
@@ -85,9 +87,11 @@ pub struct ProcessingMetrics {
 pub struct CaptureProcessor {
     sample_rate: u32,
     mode: ProcessingMode,
-    echo: bool,
     gain: bool,
     volume: f32,
+    /// AEC3 alone, while echo cancellation is on.
+    canceller: Option<AudioProcessing>,
+    /// The high-pass filter and WebRTC's suppressor, when chosen.
     engine: Option<AudioProcessing>,
     denoiser: Option<Box<DenoiseState<'static>>>,
     leveler: Option<AudioProcessing>,
@@ -152,10 +156,10 @@ impl CaptureProcessor {
         Ok(Self {
             sample_rate,
             mode,
-            echo: false,
             gain: false,
             volume: 1.0,
-            engine: engine(sample_rate, mode, false),
+            canceller: None,
+            engine: engine(sample_rate, mode),
             denoiser: denoiser(sample_rate, mode),
             leveler: None,
             gate: None,
@@ -183,15 +187,14 @@ impl CaptureProcessor {
         self.denoiser.is_some()
     }
 
-    /// Turns echo cancellation on or off, discarding the canceller's
-    /// history. Turn it on only while a played reference reaches
-    /// [`Self::render`]. RNNoise, the gain and the gate keep theirs: the
-    /// output starting or stopping must not start the voice over. This may
+    /// Turns echo cancellation on or off; off discards what it learned.
+    /// Feed it what the output plays through [`Self::render`]. The other
+    /// stages keep their history, and [`Self::reset`] keeps the
+    /// canceller's: the echo path is the same after a mute. This may
     /// allocate; run it on the worker.
     pub fn set_echo_cancellation(&mut self, on: bool) {
-        if self.echo != on {
-            self.echo = on;
-            self.engine = engine(self.sample_rate, self.mode, on);
+        if self.canceller.is_some() != on {
+            self.canceller = on.then(|| canceller(self.sample_rate));
         }
     }
 
@@ -206,7 +209,7 @@ impl CaptureProcessor {
     }
 
     pub fn echo_cancellation(&self) -> bool {
-        self.echo
+        self.canceller.is_some()
     }
 
     /// Turns automatic gain on or off: a digital gain that brings speech to
@@ -238,7 +241,7 @@ impl CaptureProcessor {
                 t("la referencia de eco necesita exactamente 10 ms").into(),
             ));
         }
-        let Some(engine) = self.engine.as_mut().filter(|_| self.echo) else {
+        let Some(engine) = self.canceller.as_mut() else {
             return Err(MediaError(t("la cancelación de eco está apagada").into()));
         };
         // Out-of-range delays are clamped by the canceller, which is enough.
@@ -248,10 +251,12 @@ impl CaptureProcessor {
         result.map_err(|_| MediaError(t("falló el análisis de la referencia de eco").into()))
     }
 
-    /// Discards adaptive/filter history, e.g. after a gap or a mute transition.
-    /// This may allocate; run it on the worker before consuming new capture.
+    /// Discards adaptive/filter history, e.g. after a gap or a mute transition,
+    /// except the echo canceller's: the echo path did not change, and
+    /// relearning it lets the others hear themselves for a moment. This may
+    /// allocate; run it on the worker before consuming new capture.
     pub fn reset(&mut self) {
-        self.engine = engine(self.sample_rate, self.mode, self.echo);
+        self.engine = engine(self.sample_rate, self.mode);
         self.denoiser = denoiser(self.sample_rate, self.mode);
         self.leveler = leveler(self.sample_rate, self.gain);
         if let Some(gate) = self.gate.as_mut() {
@@ -281,6 +286,9 @@ impl CaptureProcessor {
         }
         let raw_level = level(frame);
         let steady = crate::sustained_level(frame) >= raw_level - IMPULSIVE;
+        if let Some(canceller) = self.canceller.as_mut() {
+            run(canceller, frame, &mut self.output)?;
+        }
         if let Some(engine) = self.engine.as_mut() {
             run(engine, frame, &mut self.output)?;
         }
@@ -308,7 +316,10 @@ impl CaptureProcessor {
         if let (Some(gate), Some(speech)) = (self.gate.as_mut(), speech) {
             gate.apply(frame, speech, steady);
         }
-        let processed = self.engine.is_some() || self.denoiser.is_some() || self.leveler.is_some();
+        let processed = self.canceller.is_some()
+            || self.engine.is_some()
+            || self.denoiser.is_some()
+            || self.leveler.is_some();
         Ok(ProcessingMetrics {
             raw_level,
             processed_level: if processed { level(frame) } else { raw_level },
@@ -340,31 +351,46 @@ fn run(
     Ok(())
 }
 
-fn engine(sample_rate: u32, mode: ProcessingMode, echo: bool) -> Option<AudioProcessing> {
+fn engine(sample_rate: u32, mode: ProcessingMode) -> Option<AudioProcessing> {
     // shortcut: RNNoise only runs at 48 kHz, other rates get WebRTC's
     // suppressor; resample around it if such microphones turn out common.
     let denoise = mode == ProcessingMode::WebRtc
         || (mode == ProcessingMode::RnNoise && sample_rate != RNNOISE_RATE);
-    if !denoise && !echo {
-        return None;
-    }
-    let config = Config {
-        pipeline: sonora::config::Pipeline {
-            maximum_internal_processing_rate: MaxProcessingRate::Rate48kHz,
+    denoise.then(|| {
+        sonora_with(
+            Config {
+                pipeline: pipeline(),
+                high_pass_filter: Some(HighPassFilter::default()),
+                noise_suppression: Some(NoiseSuppression {
+                    level: NoiseSuppressionLevel::Moderate,
+                    ..Default::default()
+                }),
+                // Gain is its own stage, after RNNoise.
+                gain_controller2: None,
+                ..Default::default()
+            },
+            sample_rate,
+        )
+    })
+}
+
+/// AEC3 alone, at full band.
+fn canceller(sample_rate: u32) -> AudioProcessing {
+    sonora_with(
+        Config {
+            pipeline: pipeline(),
+            echo_canceller: Some(EchoCanceller::default()),
             ..Default::default()
         },
-        high_pass_filter: denoise.then(HighPassFilter::default),
-        noise_suppression: denoise.then(|| NoiseSuppression {
-            level: NoiseSuppressionLevel::Moderate,
-            ..Default::default()
-        }),
-        // AEC only with a played reference, which the caller gates; gain is
-        // its own stage, after RNNoise.
-        echo_canceller: echo.then(EchoCanceller::default),
-        gain_controller2: None,
+        sample_rate,
+    )
+}
+
+fn pipeline() -> sonora::config::Pipeline {
+    sonora::config::Pipeline {
+        maximum_internal_processing_rate: MaxProcessingRate::Rate48kHz,
         ..Default::default()
-    };
-    Some(sonora_with(config, sample_rate))
+    }
 }
 
 /// RNNoise, primed with one silent frame: its first output fades in.
@@ -422,7 +448,7 @@ fn level(frame: &[f32]) -> f32 {
 
 /// Synthetic speech and noises through the chain, measured.
 #[cfg(test)]
-mod eval;
+pub(crate) mod eval;
 
 #[cfg(test)]
 mod tests {
@@ -636,13 +662,13 @@ mod tests {
     #[test]
     fn echo_cancellation_needs_its_switch_and_whole_reference_frames() {
         let mut processor = CaptureProcessor::new(44_100, ProcessingMode::Off).unwrap();
-        assert!(processor.engine.is_none());
+        assert!(processor.canceller.is_none());
         assert!(processor.render(&[0.0; REFERENCE_FRAME], 0).is_err(), "off");
         processor.set_echo_cancellation(true);
-        let config = processor.engine.as_ref().unwrap().config();
+        let config = processor.canceller.as_ref().unwrap().config();
         assert!(config.echo_canceller.is_some());
         assert!(
-            config.noise_suppression.is_none(),
+            config.noise_suppression.is_none() && processor.engine.is_none(),
             "echo alone adds no denoiser"
         );
         assert!(processor.render(&[0.0; 441], 0).is_err());
@@ -653,7 +679,7 @@ mod tests {
         }
         assert!(processor.rendered.iter().all(|sample| *sample == 0.0));
         processor.set_echo_cancellation(false);
-        assert!(processor.engine.is_none());
+        assert!(processor.canceller.is_none());
     }
 
     #[test]
@@ -685,6 +711,26 @@ mod tests {
         }
         let ratio = (processed_energy / raw_energy).sqrt();
         assert!(ratio < 0.3, "echo RMS ratio after adaptation: {ratio}");
+        // A reset (a mute, a gap) keeps what it learned: the echo stays out
+        // from the first frames after it.
+        processor.reset();
+        let (mut raw_energy, mut processed_energy) = (0.0_f64, 0.0_f64);
+        for _ in 0..20 {
+            noise(&mut reference, &mut state);
+            processor.render(&reference, 0).unwrap();
+            let mut frame: Vec<f32> = reference
+                .iter()
+                .map(|sample| {
+                    history.push_back(*sample);
+                    history.pop_front().unwrap() * 0.5
+                })
+                .collect();
+            raw_energy += frame.iter().map(|s| f64::from(*s).powi(2)).sum::<f64>();
+            processor.process(&mut frame).unwrap();
+            processed_energy += frame.iter().map(|s| f64::from(*s).powi(2)).sum::<f64>();
+        }
+        let ratio = (processed_energy / raw_energy).sqrt();
+        assert!(ratio < 0.3, "echo RMS ratio right after a reset: {ratio}");
     }
 
     #[test]

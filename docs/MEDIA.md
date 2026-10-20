@@ -94,12 +94,13 @@ se oculta.
 
 ## Procesamiento
 
-Cadena: volumen de entrada (0–200 %, por un atómico) → pasaaltos, NS de
-WebRTC y AEC3 → RNNoise → AGC2 → compuerta de voz. RNNoise va después del
-cancelador, que necesita el micrófono lineal respecto de lo reproducido, y
-antes de la ganancia. Cambiar supresor, eco o ganancia reconfigura la
-captura abierta sin reabrir el dispositivo; el AEC no reinicia RNNoise ni
-la ganancia cuando algo empieza o deja de sonar.
+Cadena: volumen de entrada (0–200 %, por un atómico) → AEC3 → pasaaltos y
+NS de WebRTC → RNNoise → AGC2 → compuerta de voz. El cancelador va primero,
+porque necesita el micrófono lineal respecto de lo reproducido, y en su
+propia instancia de Sonora; RNNoise va antes de la ganancia. Cambiar
+supresor, eco o ganancia reconfigura la captura abierta sin reabrir el
+dispositivo; reiniciar el resto (mute, hueco, otro supresor) no le borra al
+AEC lo que aprendió.
 
 - **Perfiles** (Ajustes › Voz y video, en el orden de Discord y Serein):
   *Aislamiento de voz* (RNNoise, cancelación de eco, ganancia automática y
@@ -121,16 +122,42 @@ la ganancia cuando algo empieza o deja de sonar.
   15 dB encima, entre −42 y −15 dBFS.
 - **Ganancia automática**: AGC2 digital adaptativa (hasta 20 dB); nunca
   toca el volumen del sistema.
-- **Eco**: la salida copia a un ring de referencia sólo lo que realmente
-  sonó (sin el silencio de un underrun, con la ganancia aplicada, nada
-  ensordecido). La captura le pasa a AEC3 10 ms de referencia antes de cada
-  cuadro del micrófono, con la latencia de salida como retardo; lo que
-  espera más de 80 ms se tira. AEC3 se enciende cuando llega referencia y se
-  apaga tras 200 ms sin nada.
+- **Eco** (revisado el 2026-10-19, ver
+  [PERFORMANCE.md](PERFORMANCE.md#eco)): la salida copia a un ring de
+  referencia exactamente lo que sonó, con la ganancia, incluido el silencio
+  de un underrun o de ensordecer: así la referencia lleva el reloj del
+  parlante. Antes de cada cuadro del micrófono la captura le pasa a AEC3
+  todo lo que sonó desde el anterior (hasta 80 ms), apenas llega: el eco
+  siempre viene después de lo que lo hizo y AEC3 encuentra el retardo solo.
+  Antes pasaba 10 ms por cuadro y rellenaba con silencio si todavía no
+  había llegado: la referencia quedaba corrida respecto del micrófono, a
+  veces después de su propio eco. AEC3 es una etapa aparte (Sonora sin
+  supresor) que sigue encendida mientras haya referencia, sin apagarse tras
+  200 ms sin sonido: silenciarse, un hueco o cambiar el supresor ya no le
+  borran lo que aprendió del camino del eco. Al reabrir o reconfigurar la
+  captura se tira lo que sonó mientras no se leía, en el primer cuadro,
+  como al abrir.
+- **Sonido de la PC** (`system_echo`, prendido por defecto con la
+  cancelación de eco): la referencia pasa a ser el *loopback* de la salida
+  que usa RUNE, o sea todo lo que suena ahí (juegos, música, videos y la
+  propia llamada), así eso tampoco se cuela por el micrófono. Una sola
+  referencia, nunca las dos: el loopback ya trae lo de RUNE. En PipeWire es
+  el monitor del sumidero (cpal abre su entrada `Duplex`; la salida
+  predeterminada es `sink_default`, que sigue a la del sistema); en Windows,
+  el loopback de WASAPI del punto de salida (cpal lo hace al abrir una
+  salida como entrada). Se abre en el hilo de captura, se cierra al apagarlo
+  o al terminar la captura, y si no da nada por 500 ms vuelve la referencia
+  de RUNE; Ajustes dice cuál se usa. Es sólo una referencia: de su ring va a
+  `CaptureProcessor::render` y a ningún otro lado; nunca se codifica, se
+  manda, se reproduce ni se guarda (un test lo comprueba). Discord no tiene
+  esta opción: su AEC usa lo que reproduce él, y Krisp quita ruido pero no
+  la voz de un juego; Serein tampoco la tiene.
+
+![Cancelar también el sonido de la PC](img/eco-pc-2026-10-19.png)
 
 Ajustes guardados: `input_profile`, `noise_suppression`
 (`off`/`webrtc`/`rnnoise`; el `true` viejo se lee como `webrtc`),
-`echo_cancellation`, `automatic_gain`, `input_volume`.
+`echo_cancellation`, `automatic_gain`, `system_echo`, `input_volume`.
 
 ## Salida (`Playback`)
 
@@ -236,6 +263,39 @@ en limn.
 ![Página de Voz](img/voz-ajustes-2026-10-18.png)
 ![Barra de la llamada](img/voz-barra-2026-10-18.png)
 
+## Personas bajo un canal de voz
+
+Pedido del dueño (2026-10-19), como el cliente oficial y Serein.
+
+- **Fila** (`rune_components::voice::participant`): 34 de alto, 38 de
+  sangría desde el borde de la columna. El resaltado bajo el puntero va
+  1 px adentro arriba y abajo (dos filas no se tocan), termina donde el de
+  un canal (`sidebar::INSET` del borde, lejos de la barra de
+  desplazamiento) y tiene su mismo radio de 6; las marcas de silencio y
+  ensordecido quedan adentro. La fila en sí llega al borde, para que el
+  puntero cruce a la tarjeta de al lado sin salir.
+- **Tarjeta de quien transmite** (`voice::live_card`, `rune_ui::voice_live`):
+  el puntero sobre alguien EN VIVO muestra a la derecha su nombre,
+  «Transmitiendo {juego}» si su presencia dice a qué juega, la última vista
+  previa de 288×162 (la que se pide con `GET /streams/{clave}/preview`, ver
+  [VIDEO.md](VIDEO.md); se pide aunque ya se mire esa transmisión) y «Ver
+  transmisión» (`vz:live:watch:{persona}`), que la mira, abre el escenario
+  y le pasa el foco. Fuera de la llamada el botón se ve deshabilitado con
+  el motivo. Sigue abierta mientras el puntero está en la fila, en sus
+  marcas o en la tarjeta (`popover_on_hover` de limn, PR #114). En la
+  simulación, «Vista previa simulada».
+- **Arrastrar a otro canal** (`rune_ui::voice_drag`): con permiso de mover
+  (`Store::voice_moderation`), mantener el clic sobre la fila y moverla la
+  levanta: la fila queda sobre una superficie de tarjeta y una copia sigue
+  al puntero (el fantasma de `draggable` de limn). El canal de destino se
+  rodea de verde y los que no la aceptan se atenúan. Soltar sobre otro
+  canal de voz manda `ModerateVoice::Move`; soltar afuera, sobre el mismo
+  canal o un canal de texto, o Escape, cancela sin mandar nada.
+
+| Resaltado | Vista previa | Arrastre |
+| --- | --- | --- |
+| ![Resaltado alineado](img/voz-filas-hover-2026-10-19.png) | ![Tarjeta de quien transmite](img/voz-filas-vista-previa-2026-10-19.png) | ![Arrastrar a otro canal](img/voz-filas-arrastre-2026-10-19.png) |
+
 ## Sonidos
 
 - **Eventos** (`rune_ui::CallSound`, la clave es el nombre del archivo):
@@ -332,10 +392,19 @@ pantalla), cada respuesta validada contra el pedido propio, y el fd de
 `OpenPipeWireRemote` tiene que ser un socket. Cámara por el portal Camera
 (`IsCameraPresent` → `AccessCamera`), sin recurrir a `/dev/video*`.
 PipeWire en un hilo propio: formatos BGRx/BGRA/RGBx/RGBA para pantalla;
-YUY2, NV12, BGRx/RGBx y MJPEG para cámara (BT.601 rango limitado; el MJPEG
-lo decodifica `zune-jpeg`, y se agrega la marca `AVI1` para las cámaras
-que omiten las tablas Huffman estándar). Sólo memoria compartida (sin
-DMA-BUF: [VIDEO.md](VIDEO.md#la-captura-y-dma-buf)). Cada plano se valida
+YUY2, NV12, I420, BGRx/RGBx y MJPEG para cámara, en cualquier tamaño y
+ritmo que dé el nodo (BT.601 rango limitado; el MJPEG lo decodifica
+`zune-jpeg`, y se agrega la marca `AVI1` para las cámaras que omiten las
+tablas Huffman estándar). El stream dice siempre dónde acepta los búferes
+(`SPA_PARAM_Buffers` con sólo `dataType`; cantidad y tamaño, los del
+nodo): memoria compartida, y para la cámara también el DMA-BUF que exporta
+V4L2, mapeado igual. Sin decirlo, un nodo V4L2 deja los búferes en su
+propio mapeo, que otro proceso no puede usar, y PipeWire corta el enlace
+con «use input buffers: -22» (lo que vio el dueño con una UVC sólo
+MJPEG/YUYV). La pantalla no pide DMA-BUF: sin modificadores podría venir
+en mosaico ([VIDEO.md](VIDEO.md#la-captura-y-dma-buf)). Un error del enlace
+se explica (búferes o formato) y lleva el texto de PipeWire detrás.
+Cada plano se valida
 contra su `chunk`; lados de hasta 8192 px. Termina la fuente el handle
 soltado, `Session.Closed`, un error del stream, el nodo quitado, 15 s sin
 primer cuadro o una cámara 5 s sin cuadros; el primer motivo gana.
@@ -366,7 +435,9 @@ Nada de esto abre dispositivos en los tests; con auriculares:
 
 ```sh
 cargo run -p rune-media --example devices                     # ids de entrada y salida
+cargo run --release -p rune-media --example camera [id]      # abre la cámara 8 s y cuenta cuadros, sin guardarlos
 cargo run --release -p rune-media --example devices -- --meter --rnnoise --gate   # niveles, sin sonido
+cargo run --release -p rune-media --example devices -- --meter --system-echo      # ¿abre el loopback de la salida?
 cargo run --release -p rune-media --example playback          # timbre en la salida predeterminada
 cargo run --release -p rune-media --example playback -- --loopback --rnnoise --gate --agc --echo --seconds 20
 cargo run --release -p rune-media --example processing        # costo por cuadro
@@ -382,6 +453,13 @@ Las mediciones de CPU y ruido están en [PERFORMANCE.md](PERFORMANCE.md).
 - Nadie escuchó todavía los tonos, el volumen por persona, la velocidad de
   los mensajes de voz ni el AGC con voz real; el AEC no se probó con
   altavoces de portátil.
+- Eco: medido sólo con señales sintéticas y un camino de eco lineal. Al
+  dejar de estar silenciado, el primer medio segundo todavía deja pasar
+  algo de eco. Mientras la persona habla encima de otra, AEC3 de Sonora
+  quita poco eco (medición aproximada): lo frena sobre todo cuando no
+  habla. El loopback en Windows no se probó en un Windows real, y si se
+  elige una salida que no es la predeterminada, lo que suena en la
+  predeterminada no se cancela.
 - Jitter de retardo fijo y remuestreo lineal en la salida (atajos).
 - Windows: sin codificador por hardware (MFT de Media Foundation), sin
   respaldo DXGI para Windows anterior a 1903, sin miniaturas en el

@@ -50,19 +50,19 @@ pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec
             can.rooms
                 .iter()
                 .map(|room| {
-                    (
+                    MenuEntry::Item(
                         format!("{PREFIX}move:{user}:{room}"),
                         store.channel_title(*room),
+                        None,
                     )
                 })
                 .collect(),
         ));
     }
     if can.disconnect.allowed() {
-        items.push(MenuEntry::Item(
+        items.push(MenuEntry::Danger(
             format!("{PREFIX}disconnect:{user}"),
             t("Desconectar").into(),
-            None,
         ));
     }
     items

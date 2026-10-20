@@ -267,6 +267,7 @@ mod tests {
             image: None,
             decoration: None,
             movable: false,
+            carried: false,
         }
     }
 

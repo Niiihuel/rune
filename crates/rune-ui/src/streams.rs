@@ -1,11 +1,12 @@
 //! The streams watched on the stage (transmisiones): one focused takes the
 //! stage, the rest in a strip under it, as in the official client and
 //! Serein; a click on a stream focuses it, or lets go of the focus, and so
-//! does «Volver a la grilla» or Escape. A secondary click opens the
-//! stream's own menu: its sound's volume and silence, apart from the
-//! person's, focusing it, full screen, a window of its own, and «Dejar de
-//! ver». What the host and the provider do with the pictures of streams
-//! lives in [`crate::video`].
+//! does «Volver a la grilla» or Escape. A double click shows it full
+//! screen, and another there brings the grid back, as the official client
+//! does (REA). A secondary click, or its «⋯», opens the stream's own menu:
+//! its sound's volume and silence, apart from the person's, focusing it,
+//! full screen, a window of its own, and «Dejar de ver». What the host and
+//! the provider do with the pictures of streams lives in [`crate::video`].
 
 use limn::{Element, Point, UiAction};
 use rune_components::voice::{self as parts, ids, MenuEntry};
@@ -30,13 +31,23 @@ fn watched(store: &Store, owner: UserId) -> bool {
 }
 
 /// A click: any closes the stream's menu, items of other parts included;
-/// a stream's tile and «Enfocar» focus it, or let go of the focus. `None`
-/// for the rest, which other parts answer.
+/// a stream's tile and «Enfocar» focus it, or let go of the focus, and its
+/// «⋯» opens or closes its menu there. `None` for the rest, which other
+/// parts answer.
 pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Vec<Intent>> {
     let UiAction::Clicked { id } = action else {
         return None;
     };
-    ui.video.menu = None;
+    let open = ui.video.menu.take();
+    ui.video.clicked = number(id, "vz:stream:").map(UserId);
+    if let Some(owner) = number(id, "vz:stream-more:").map(UserId) {
+        if open != Some((owner, None)) && watched(store, owner) {
+            ui.video.menu = Some((owner, None));
+            ui.voice.menu = None;
+            ui.voice.card = None;
+        }
+        return Some(Vec::new());
+    }
     let owner = number(id, "vz:stream:").or_else(|| number(id, "vz:spotlight:"))?;
     let owner = UserId(owner);
     ui.video.spotlight =
@@ -57,12 +68,43 @@ pub(crate) fn secondary_click(
     if !watched(store, owner) {
         return None;
     }
-    ui.video.menu = Some((owner, (at.x, at.y)));
+    ui.video.menu = Some((owner, Some((at.x, at.y))));
     ui.voice.menu = None;
     ui.voice.card = None;
     ui.voice.more = false;
     ui.channel_list.menu = None;
     ui.server_menu.open = false;
+    Some(Vec::new())
+}
+
+/// A double click on `target`, as the official client answers it: on a
+/// stream watched, it is focused and shown full screen (the window too);
+/// on the stream shown full screen, the stage comes back with its grid.
+/// `None` lets the tree have the press.
+pub(crate) fn double_click(
+    ui: &mut Ui,
+    store: &Store,
+    target: Option<&str>,
+) -> Option<Vec<Intent>> {
+    if crate::video::fullscreen(ui, store) {
+        ui.video.focus = None;
+        ui.video.spotlight = None;
+        return Some(Vec::new());
+    }
+    let under = UserId(number(target?, "vz:stream:")?);
+    // The first click of the two focused it or let it go, which moves the
+    // tiles: the press is the clicked one's even if another is under it now.
+    let owner = ui
+        .video
+        .clicked
+        .filter(|clicked| watched(store, *clicked))
+        .unwrap_or(under);
+    if !watched(store, owner) {
+        return None;
+    }
+    ui.video.menu = None;
+    ui.video.spotlight = Some(owner);
+    ui.video.focus = Some(owner);
     Some(Vec::new())
 }
 
@@ -111,7 +153,7 @@ pub(crate) fn menu_entries(ui: &Ui, store: &Store, owner: UserId) -> Vec<MenuEnt
 
 /// A stream's menu, over everything, while open on a stream still watched.
 pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, look: &Look) -> Element {
-    let Some((owner, at)) = ui.video.menu.filter(|(owner, _)| watched(store, *owner)) else {
+    let Some((owner, Some(at))) = ui.video.menu.filter(|(owner, _)| watched(store, *owner)) else {
         return root;
     };
     Element::stack(vec![

@@ -300,6 +300,19 @@ Pendiente:
   (cpal no da la clase del nodo).
 - El panel de voz cuenta desde que la cuenta se conectó; el tiempo del canal
   está en su fila.
+- Menú de una persona (2026-10-19, hecho: casillas al borde, roles con su
+  punto de color y casilla sin cerrar el menú, castigos en rojo): falta
+  confirmar en el bundle qué ítems pinta de rojo el oficial además de
+  `remove-friend` (el resto sale de la captura del dueño); los roles van
+  del más alto al más bajo, como en el perfil.
+- Eco (2026-10-19, hecho: referencia continua, todo lo que sonó antes de
+  cada cuadro, AEC3 que no se reinicia, y el sonido de la PC por el
+  loopback de la salida; ver PERFORMANCE.md#eco). Falta: el primer medio
+  segundo tras dejar de estar silenciado; AEC3 de Sonora quita poco eco
+  mientras la persona habla (su ajuste no está expuesto: PR a Sonora o
+  ajustar a mano); con una salida elegida que no es la predeterminada, lo
+  que suena en la predeterminada no se cancela; en Windows el loopback no
+  sigue un cambio de salida predeterminada hasta reabrir la captura.
 
 Probar contra el servicio real:
 
@@ -317,6 +330,39 @@ Probar contra el servicio real:
   panel rápido y prueba de micrófono con un micrófono real, un micrófono
   guardado que era un monitor. Si la pantalla compartida va poco fluida,
   mandar las líneas `rune: voice share: video …` y `… network …`.
+- Eco con los auriculares del dueño: en una llamada, que otra persona hable
+  mientras el dueño calla, habla encima, se silencia y vuelve; y con un
+  juego o música sonando en la PC, que nadie lo oiga por el micrófono (y
+  que con «Cancelar también el sonido de la PC» apagado sí se oiga). En
+  Ajustes › Voz y video la nota de esa opción dice si escucha la salida. En
+  Windows, lo mismo y que el loopback abra.
+
+### Filas de personas en voz (voz-filas-y-arrastre, 2026-10-19)
+
+Hecho: resaltado alineado con el de los canales (mismo margen derecho y
+radio, 1 px adentro arriba y abajo); tarjeta de quien transmite al pasar el
+puntero (vista previa, juego, «Ver transmisión» que abre el escenario);
+arrastre a otro canal con la fila levantada como fantasma, destino rodeado,
+Escape o soltar afuera cancelan. limn: PR #114 (`rune/hover-popover-anchor`,
+47570cc), que mantiene abierta la tarjeta sobre las marcas de la fila.
+Capturas `docs/img/voz-filas-*-2026-10-19.png`; acciones de captura
+`press:{id}` y `move:{id}` para arrastrar.
+
+Pendiente:
+
+- Tamaño y contenido de la tarjeta sin confirmar por REA: su renderizador
+  vive en un chunk diferido que no está entre los bajados; se tomó 288×162
+  (16:9, la mitad del 512×288 de la subida) y el contenido de Serein.
+- «Ver transmisión» fuera de la llamada no entra al canal (el oficial
+  entra y la mira): queda deshabilitado con el motivo.
+- La simulación pone a la misma persona en voz en dos servidores; quien
+  está en otro canal de un servidor sin permiso de mover no se puede
+  arrastrar aunque en este sí se pueda (`voice_state_of` da el primero).
+
+Probar contra el servicio real: el puntero sobre alguien en vivo (que
+aparezca la imagen de `GET /streams/{clave}/preview`), «Ver transmisión»
+desde la tarjeta, y arrastrar a alguien a otro canal con permiso de mover
+(`PATCH /guilds/{g}/members/{u}` `{"channel_id"}`).
 
 ## Video y pantalla
 
@@ -348,13 +394,30 @@ Probar contra el servicio real y con hardware:
   cambiar «Aceleración por hardware de H.264» en medio de una transmisión;
   que el sonido de la pantalla no lleve las voces de la llamada.
 - xdg-desktop-portal-hyprland con una cámara real (YUY2/NV12/MJPEG) y
-  `restore_token`.
+  `restore_token`. Cámara (2026-10-19): «use input buffers: -22» al probar
+  el video era el stream sin `dataType` en sus búferes (un nodo V4L2 los
+  dejaba en su mapeo propio); arreglado y probado en esta máquina con la
+  UVC USB2.0 FHD (MJPEG 1280×720 a 30 fps por DMA-BUF exportado,
+  `--example camera`, sin guardar cuadros). Falta que el dueño lo vea en
+  «Probar video» y en una llamada; la pantalla ahora también pide memoria
+  compartida explícita (ver que siga compartiendo). La cámara IR de la
+  misma UVC (sólo `GREY`) se lista con el mismo nombre y no se puede leer.
 - Transmisiones (2026-10-19, sólo fixtures): enfocar una y volver a la
   grilla, su menú propio (volumen y silencio de la transmisión), la vista
   previa en el mosaico pedida como el oficial (`?version`, 120 s, 429) y la
   subida de la propia (`POST /streams/{clave}/preview`, cada 300 s). Falta
   ver que Discord acepte la miniatura de RUNE y que el oficial la muestre;
   la vista previa de una llamada privada (`call:`) no se pide todavía.
+- Llamada como el oficial (2026-10-19, REA de los bundles): la barra con
+  la medida de la bandeja oficial; en una transmisión, doble clic a
+  pantalla completa (otro la devuelve a la grilla), al pasar el puntero su
+  sonido y «⋯», y enfocada «Ventana aparte» y «Pantalla completa» al final
+  de la barra y «Dejar de ver» en lugar de colgar; la única de otros en el
+  canal se enfoca al mirarla. Falta: en una ventana angosta la barra no se
+  achica como la oficial (≤ 550 px esconde la segunda sección), el zoom de
+  la transmisión enfocada, el control de volumen al final de la barra y
+  probar el doble clic con el mouse real (egui da el doble clic a los
+  300 ms, no según el sistema).
 - Vista previa local (`cargo run -p rune-desktop`, «Sala común»):
   «Compartir pantalla» abre el portal, cancelar avisa, detener desde el
   sistema avisa; «Encender la cámara» pide permiso, desenchufarla avisa;

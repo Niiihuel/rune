@@ -69,9 +69,12 @@ pub struct Video {
     // Streams (transmisiones).
     /// The stream watched that takes the stage, the rest in a strip.
     pub spotlight: Option<UserId>,
-    /// A stream's menu, opened by a secondary click on it: whose, and the
-    /// corner where it opened.
-    pub menu: Option<(UserId, (f32, f32))>,
+    /// A stream's menu: whose, and the corner where a secondary click
+    /// opened it; `None` there when its «⋯» did, anchored to it.
+    pub menu: Option<(UserId, Option<(f32, f32)>)>,
+    /// The stream whose tile the last click was on: a double click goes to
+    /// it even when that click moved the tiles.
+    pub clicked: Option<UserId>,
     /// When the picture of the account's own stream goes up next, while it
     /// shares its screen.
     pub own_preview: Option<Instant>,
@@ -169,6 +172,16 @@ const PREVIEW_ASKS: usize = 4;
 /// The streams the column shows: of others, in the voice channels of the
 /// server open, not watched, when the provider has their pictures.
 fn previewed(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
+    let watched = store.watching();
+    live(ui, store)
+        .into_iter()
+        .filter(|(_, state)| watched.iter().all(|watching| watching.owner != state.user))
+        .collect()
+}
+
+/// The streams of others in the voice channels of the server open, when the
+/// provider has their pictures.
+fn live(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
     let offered = store
         .provider
         .as_ref()
@@ -177,7 +190,6 @@ fn previewed(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> 
         return Vec::new();
     };
     let me = store.me();
-    let watched = store.watching();
     store
         .channel_tree(server)
         .into_iter()
@@ -185,7 +197,6 @@ fn previewed(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> 
         .filter(|channel| channel.kind == rune_model::ChannelKind::Voice)
         .flat_map(|channel| store.voice_in(channel.id))
         .filter(|state| state.streaming && Some(state.user) != me)
-        .filter(|state| watched.iter().all(|watching| watching.owner != state.user))
         .map(|state| (server, state.clone()))
         .collect()
 }
@@ -196,9 +207,18 @@ fn previewed(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> 
 /// or as long as the service asked (a 429); [`PREVIEW_ASKS`] at once. The
 /// host runs these each frame.
 pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
-    let shown = previewed(ui, store);
+    let live = live(ui, store);
+    let mut shown = previewed(ui, store);
+    // The card of someone live under the pointer shows it, watched or not
+    // (voz-filas-y-arrastre); it goes first.
+    let hovered = ui.profiles.hovered;
+    if let Some(card) = live.iter().find(|(_, state)| Some(state.user) == hovered) {
+        shown.retain(|(_, state)| state.user != card.1.user);
+        shown.insert(0, card.clone());
+    }
     let asked = &mut ui.video.previews;
-    asked.retain(|user, _| shown.iter().any(|(_, state)| state.user == *user));
+    // Kept while they stream, so a card shown again waits as long.
+    asked.retain(|user, _| live.iter().any(|(_, state)| state.user == *user));
     let answer = |state: &rune_model::VoiceState| {
         store
             .stream_preview(state.channel, state.user)
@@ -572,7 +592,7 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             stop: (ids::STOP_SCREEN.into(), t("Dejar de compartir")),
             note: screen_note(ui, store),
             actions: pause_action(store).into_iter().collect(),
-            tile: None,
+            stream: None,
             focused: false,
         });
     }
@@ -585,7 +605,7 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             stop: (ids::STOP_CAMERA.into(), t("Apagar la cámara")),
             note: camera_note(ui, store),
             actions: Vec::new(),
-            tile: None,
+            stream: None,
             focused: false,
         });
     }
@@ -654,18 +674,16 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
     };
     let ended = matches!(watching.phase, StreamPhase::Ended(_));
     let owner = watching.owner;
-    let focused = ui.video.spotlight == Some(owner);
-    let mut actions = Vec::new();
-    // Streams (transmisiones): the way back from a stream focused.
-    if focused {
-        actions.push((ids::spotlight(owner.0), t("Volver a la grilla")));
-    }
-    if !ended {
-        actions.push((ids::fullscreen(owner.0), t("Pantalla completa")));
-        if !ui.video.windows.contains(&owner) {
-            actions.push((ids::window(owner.0), t("Ventana aparte")));
-        }
-    }
+    // Streams (transmisiones): what its tile offers, as the official client's.
+    let sound = owner.0 | rune_media::mixer::STREAM_SOUND;
+    let tile = rune_components::voice::StreamTile {
+        owner: owner.0,
+        sound,
+        silenced: ui.prefs.voice_volume(sound).1,
+        windowed: ui.video.windows.contains(&owner),
+        menu: (ui.video.menu == Some((owner, None)))
+            .then(|| crate::streams::menu_entries(ui, store, owner)),
+    };
     let shown = ui
         .video
         .streams
@@ -682,9 +700,9 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
         waiting,
         stop: (ids::stop_watching(watching.owner.0), t("Dejar de ver")),
         note,
-        actions,
-        tile: Some(ids::stream_tile(owner.0)),
-        focused,
+        actions: Vec::new(),
+        stream: Some(tile),
+        focused: ui.video.spotlight == Some(owner),
     }
 }
 
@@ -698,7 +716,7 @@ pub(crate) fn focused_view(ui: &Ui, store: &Store, size: limn::Size) -> Option<l
     let shown = Preview {
         stop: (ids::FULLSCREEN_EXIT.into(), t("Salir de pantalla completa")),
         actions: Vec::new(),
-        tile: None,
+        stream: None,
         focused: false,
         ..stream(ui, store, watching)
     };
@@ -827,6 +845,18 @@ pub(crate) fn watch(ui: &mut Ui, store: &mut Store, owner: UserId, now: Instant)
     }
     store.begin_watch(channel, owner);
     ui.video.streams.push((owner, Live::Waiting));
+    // Streams (transmisiones): as the official client, the only one of
+    // others in the channel is focused as it is watched; with more, the
+    // grid stays.
+    let me = store.me();
+    let others = store
+        .voice_in(channel)
+        .iter()
+        .filter(|state| state.streaming && Some(state.user) != me)
+        .count();
+    if others < 2 {
+        ui.video.spotlight = Some(owner);
+    }
     intents.push(Intent::Command(Command::WatchStream { channel, owner }));
     intents
 }
@@ -1044,6 +1074,7 @@ pub(crate) fn call_over(ui: &mut Ui) {
     // Streams (transmisiones).
     ui.video.spotlight = None;
     ui.video.menu = None;
+    ui.video.clicked = None;
 }
 
 /// The host lost a source: the system ended it, it went away, or it could

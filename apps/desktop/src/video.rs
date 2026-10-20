@@ -67,7 +67,10 @@ const STREAM_POLL: Duration = Duration::from_millis(16);
 const SIMULATED: (u32, u32) = (640, 360);
 const SIMULATED_PACE: Duration = Duration::from_millis(66);
 /// Units waiting for one source's decoder.
-const QUEUE: usize = 4;
+const QUEUE: usize = 8;
+/// How often a queue waiting for a key frame asks for it again: a lost
+/// request would otherwise freeze the picture until the sender's next one.
+const KEY_AGAIN: Duration = Duration::from_millis(500);
 /// How often the shared screen's diagnostic line is written.
 const DIAG_EVERY: Duration = Duration::from_secs(5);
 /// What goes to the call, frames and kilobits a second, and who encodes it.
@@ -81,6 +84,9 @@ struct Queue {
     #[cfg(any(target_os = "linux", windows))]
     units: VecDeque<rune_media::video::decode::Unit>,
     skip: bool,
+    /// When the key frame waited for was last asked for.
+    #[cfg(any(target_os = "linux", windows))]
+    asked: Option<Instant>,
 }
 
 /// The provider's end, its units sorted by source: each decoder takes its
@@ -107,15 +113,22 @@ impl Router {
                 // Behind: what waits goes, and the picture starts again at a key frame.
                 queue.units.clear();
                 queue.skip = true;
-                let _ = self.link.requests.try_send(VideoRequest::KeyFrame {
-                    user: unit.user,
-                    kind: unit.kind,
-                });
             }
             if queue.skip && !unit.keyframe {
+                if queue
+                    .asked
+                    .is_none_or(|at| unit.at.saturating_duration_since(at) >= KEY_AGAIN)
+                {
+                    let _ = self.link.requests.try_send(VideoRequest::KeyFrame {
+                        user: unit.user,
+                        kind: unit.kind,
+                    });
+                    queue.asked = Some(unit.at);
+                }
                 continue;
             }
             queue.skip = false;
+            queue.asked = None;
             queue.units.push_back(rune_media::video::decode::Unit {
                 keyframe: unit.keyframe,
                 at: unit.at,
@@ -1355,11 +1368,14 @@ mod tests {
             unit(2, VideoKind::Camera, true),
             unit(2, VideoKind::Screen, true),
             unit(3, VideoKind::Camera, true),
-            unit(2, VideoKind::Camera, false),
-            unit(2, VideoKind::Camera, false),
-            unit(2, VideoKind::Camera, false),
         ] {
             port.incoming.try_send(sent).unwrap();
+        }
+        router.route();
+        for _ in 1..QUEUE {
+            port.incoming
+                .try_send(unit(2, VideoKind::Camera, false))
+                .unwrap();
         }
         router.route();
         assert_eq!(camera.lock().unwrap().units.len(), QUEUE);
@@ -1377,9 +1393,17 @@ mod tests {
                 kind: VideoKind::Camera
             })
         );
-        port.incoming
-            .try_send(unit(2, VideoKind::Camera, false))
-            .unwrap();
+        // Still no key frame: asked again once the first request is old,
+        // in case it was lost, and not before.
+        let mut late = unit(2, VideoKind::Camera, false);
+        port.incoming.try_send(late.clone()).unwrap();
+        late.at += KEY_AGAIN;
+        port.incoming.try_send(late).unwrap();
+        router.route();
+        let mut requests = port.requests.try_lock().unwrap();
+        assert!(requests.try_recv().is_ok());
+        assert!(requests.try_recv().is_err());
+        drop(requests);
         port.incoming
             .try_send(unit(2, VideoKind::Camera, true))
             .unwrap();

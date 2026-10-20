@@ -74,6 +74,8 @@ mod windows_media;
 mod media_viewer;
 // Streams (transmisiones).
 mod streams;
+// People's rows in the column (voz-filas-y-arrastre).
+mod voice_rows;
 
 /// Each file's entries, by the file's name.
 pub(crate) const ALL: &[(&str, Entries)] = &[
@@ -124,4 +126,6 @@ pub(crate) const ALL: &[(&str, Entries)] = &[
     ("media_viewer", media_viewer::ENTRIES),
     // Streams (transmisiones).
     ("streams", streams::ENTRIES),
+    // People's rows in the column (voz-filas-y-arrastre).
+    ("voice_rows", voice_rows::ENTRIES),
 ];
