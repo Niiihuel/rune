@@ -34,7 +34,13 @@ código 11 y RUNE da el enlace oficial de Microsoft para instalarlo.
 En MSVC el cargador de WebView2 va enlazado estático; con el target GNU
 (chequeo desde NixOS) `rune.exe` necesita `WebView2Loader.dll` al lado
 (está en la carpeta `out/x64` de `webview2-com-sys` dentro de `target`).
-Nada de esto se probó en un Windows real.
+El controlador se crea mientras el HWND está oculto: WebView2 conserva
+`IsVisible = false` incluso después de `ShowWindow`. Por eso RUNE fija
+explícitamente `SetIsVisible(true)` para login y verificación, y `false`
+para la sonda del motor. Sin eso la página puede cargar y ejecutar
+JavaScript, pero la ventana queda en blanco. Comprobado en Windows 11
+build 26200 con WebView2 155.0.4283.62: la página pública de Discord carga
+su formulario al activar el controlador. No se inició sesión en una cuenta.
 
 El dueño completa el login en `https://discord.com/login`. Es un handoff de
 sesión **no oficial**, distinto de OAuth2 y sin garantía de compatibilidad.
@@ -93,7 +99,20 @@ rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --feature
 rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --features webview -- --include-ignored --test-threads=1'
 ```
 
-El último comando incluye pruebas nativas con HTML sintético local y CSP
+En Windows, con WebView2 Runtime instalado:
+
+```powershell
+cargo test -p rune-login --features webview --locked
+cargo test -p rune-login --features webview --locked -- windows::tests::native_ --ignored --test-threads=1
+```
+
+Las pruebas nativas de Windows sirven HTML local desde memoria: una lee la
+identidad del navegador oculto y la otra exige que una página visible llegue
+a un `requestAnimationFrame` con `document.visibilityState === 'visible'`.
+No se conectan a Discord ni usan credenciales. La segunda detecta el fallo
+que la sonda oculta por sí sola no podía ver.
+
+El último comando de Linux incluye pruebas nativas con HTML sintético local y CSP
 sin red. La primera crea un XHR y fija una cabecera de prueba, pero nunca lo
 envía. Comprueba el puente nativo y el cierre. La segunda inicia un auxiliar
 aislado y su WebKitWebProcess, cancela el intento y comprueba que el auxiliar

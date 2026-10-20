@@ -459,6 +459,10 @@ fn provider_for(
                         if first.as_ref().is_err_and(rune_login::cancelled) {
                             std::process::exit(0);
                         }
+                        if let Err(error) = &first {
+                            // LoginError contains only a fixed local label, never a credential.
+                            eprintln!("rune: initial login failed: {error}");
+                        }
                         Arc::new(rune_login::PrefetchedLogin::new(first))
                     } else {
                         Arc::new(rune_login::HostedLogin::new())
@@ -543,6 +547,8 @@ fn main() -> eframe::Result {
     }
     let started = Instant::now();
     let (limited, graphics) = choose_gpu();
+    #[cfg(any(unix, windows))]
+    let mut logging = None;
     let configured = parse_arguments(
         std::env::args().skip(1),
         std::env::var("RUNE_DISCORD_CLIENT_ID").ok(),
@@ -583,6 +589,14 @@ fn main() -> eframe::Result {
                 rune_platform::single_instance::Launch::Alone => {}
             }
         }
+        // Keep startup/login failures even before the main window exists;
+        // captures, benchmarks and forwarded launches leave the log alone.
+        #[cfg(any(unix, windows))]
+        {
+            logging = (arguments.screenshot.is_none() && !arguments.bench)
+                .then(log::start)
+                .flatten();
+        }
         // RUNE's own updates (actualizaciones): before a login or a window
         // opens; a mandatory one opens its own window instead.
         arguments.updates = update::startup(arguments.screenshot.is_some(), arguments.bench);
@@ -593,22 +607,22 @@ fn main() -> eframe::Result {
         if let Some(result) = update::mandatory(&arguments.updates, arguments.screenshot.clone()) {
             if let Err(error) = result {
                 eprintln!("rune: {error}");
+                #[cfg(any(unix, windows))]
+                drop(logging.take());
                 std::process::exit(1);
             }
+            #[cfg(any(unix, windows))]
+            drop(logging.take());
             std::process::exit(0);
         }
         selected_provider(&arguments).map(|provider| (arguments, provider))
     });
     let (mut arguments, (provider, mock)) = configured.unwrap_or_else(|error| {
         eprintln!("rune: {error}");
+        #[cfg(any(unix, windows))]
+        drop(logging.take());
         std::process::exit(2);
     });
-    // Only for an interactive run: captures and the benchmark leave the
-    // person's log alone, and a start that only forwarded its links is gone.
-    #[cfg(any(unix, windows))]
-    let logging = (arguments.screenshot.is_none() && !arguments.bench)
-        .then(log::start)
-        .flatten();
     // Desktop session and games (escritorio-sesion-y-juegos): started by the
     // session in the tray, the window waits unseen (X11; Wayland maps it
     // anyway, and the tray hides it once it shows).

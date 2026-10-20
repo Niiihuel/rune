@@ -420,6 +420,10 @@ unsafe fn show(
     if visible {
         let _ = ShowWindow(window, SW_SHOWNORMAL);
     }
+    // The controller is created while its parent is hidden, so WebView2
+    // starts invisible. Showing the HWND alone does not show its web content.
+    // Keep only the engine probe hidden; login and verification must render.
+    controller.SetIsVisible(visible)?;
     SetTimer(Some(window), TICK, 100, None);
     webview.Navigate(&HSTRING::from(surface.url))?;
     let mut message = MSG::default();
@@ -751,5 +755,30 @@ mod tests {
         assert_eq!(code, 0, "the WebView2 Runtime must be installed");
         let engine: Engine = serde_json::from_str(&reply.unwrap()).unwrap();
         assert!(engine.user_agent.contains("Windows NT"));
+    }
+
+    #[test]
+    #[ignore = "opens a visible native WebView2 window on Windows; a local page, no network"]
+    fn native_visible_page_reaches_a_painted_frame() {
+        let mut surface = engine_surface();
+        surface.html = Some(
+            "<!doctype html><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\"><style>body { background: #163b28; color: white; }</style><p>RUNE WebView2 rendering test</p>".into(),
+        );
+        // A hidden page can execute scripts and complete the engine probe;
+        // a visible page must also be able to request an animation frame.
+        surface.script = format!(
+            "if (window === window.top && location.href === '{CAPTCHA_PAGE}') requestAnimationFrame(() => {{ window.__rune_painted = document.visibilityState === 'visible'; window.chrome.webview.postMessage(true); }});"
+        );
+        surface.take = "window.__rune_painted ? 'painted' : null".into();
+        surface.finish = Box::new(|value| {
+            if value.as_str() == "painted" {
+                (0, Some(value))
+            } else {
+                (6, None)
+            }
+        });
+        let (code, reply) = open(surface, Duration::from_secs(10), true);
+        assert_eq!(code, 0, "the visible page must reach an animation frame");
+        assert_eq!(reply.as_deref().map(String::as_str), Some("painted"));
     }
 }
