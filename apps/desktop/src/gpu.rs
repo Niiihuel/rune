@@ -10,7 +10,7 @@
 //! the loader to the GPU the display boots on, unless the person chose
 //! otherwise: in the settings («Dibujar con», escritorio-linux), kept in
 //! `~/.config/rune/gpu`, or with a variable of the environment, which
-//! wins. See docs/PERFORMANCE.md.
+//! wins. See docs/ARCHITECTURE.md.
 
 /// A display controller as sysfs describes it.
 #[derive(Clone, Debug, PartialEq)]

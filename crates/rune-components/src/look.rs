@@ -108,7 +108,7 @@ impl Look {
     /// Pure black, for dark rooms and OLED screens, and RUNE's default: every
     /// column on black, set apart by hairlines; text in four levels; the
     /// same amber accent. The greys are the ones measured on the reference
-    /// captures (docs/DISEÑO.md).
+    /// captures (docs/ARCHITECTURE.md).
     pub const ONYX: Self = Self {
         rail: Color::rgb(0, 0, 0),
         sidebar: Color::rgb(0, 0, 0),

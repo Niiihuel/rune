@@ -547,7 +547,7 @@ fn run(sound: &mut dyn Sound, mut feed: Feed, shared: &Shared) -> Result<(), Med
 mod tests {
     use super::*;
 
-    /// Four seconds of a synthesized, speech-like tone (see docs/MEDIA.md).
+    /// Four seconds of a synthesized, speech-like tone (see docs/SECURITY.md).
     const SAMPLE: &[u8] = include_bytes!("../../../assets/voice-sample.ogg");
 
     fn wait(until: impl Fn() -> bool) {

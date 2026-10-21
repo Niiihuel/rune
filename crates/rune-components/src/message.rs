@@ -41,7 +41,7 @@ const AVATAR: f32 = 42.0;
 /// The space right of a message's text, past which only the bar floats.
 const RIGHT: f32 = 48.0;
 /// Messages of one author within this many minutes of the first of their
-/// group read as one group. A design value; see docs/DISCORD_RESEARCH.md.
+/// group read as one group. A design value; see docs/ARCHITECTURE.md.
 pub const GROUP_MINUTES: i64 = 7;
 
 /// How an author is shown.
