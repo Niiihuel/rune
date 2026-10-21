@@ -249,7 +249,6 @@ impl Store {
     /// another device. Its cursor goes back; the reminder falls on the exact
     /// first message after it: the one named, else the first loaded, else
     /// the newest known. Nothing after the cursor leaves nothing unread.
-    #[allow(clippy::too_many_arguments)]
     pub(super) fn marked_unread(
         &mut self,
         account: UserId,

@@ -492,14 +492,6 @@ fn sets(read: &mut Reader<'_>, count: usize) -> Result<Vec<Vec<u8>>, Mp4Error> {
         .collect()
 }
 
-/// Where the pictures of `track` are in display order: each sample's index
-/// sorted by when it shows, for decoders that hand pictures over in that order.
-pub fn display_order(track: &VideoTrack) -> Vec<usize> {
-    let mut order: Vec<usize> = (0..track.samples.len()).collect();
-    order.sort_by_key(|index| (track.samples[*index].show, *index));
-    order
-}
-
 /// The samples to decode to show the picture at `show` (in the track's
 /// scale): from the last one it can start at before it, to it.
 pub fn from_sync(track: &VideoTrack, show: i64) -> Range<usize> {
@@ -608,7 +600,6 @@ mod tests {
             [0, 0, 0, 1, 0x67, 1, 2, 0, 0, 0, 1, 0x68, 3, 0, 0, 0, 1, 0x65, 0]
         );
         assert_eq!(track.annex_b(&file, 3).unwrap(), [0, 0, 0, 1, 0x65, 3]);
-        assert_eq!(display_order(&track), [0, 1, 2, 3, 4]);
         assert_eq!(from_sync(&track, 650), 0..5);
         assert!((track.seconds() - 0.7).abs() < 1e-9, "{}", track.seconds());
     }

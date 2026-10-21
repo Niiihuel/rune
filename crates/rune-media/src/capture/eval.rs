@@ -7,7 +7,7 @@
 //! deterministic synthetic signals only.
 //!
 //! `cargo test --release -p rune-media echo_table -- --ignored --nocapture`
-//! prints the table of docs/PERFORMANCE.md; the other tests hold the default
+//! prints the table of docs/ARCHITECTURE.md; the other tests hold the default
 //! path to it.
 
 use super::*;

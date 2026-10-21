@@ -1,5 +1,5 @@
 //! The rail beyond its marks (2026-10-18): what its hint says of each
-//! server's voice, as the official client's (REA in docs/REA.md), and its
+//! server's voice, as the official client's (REA in docs/DISCORD.md), and its
 //! servers and folders dragged to reorder them or to make and fill folders,
 //! as in Serein. The menus do the same.
 

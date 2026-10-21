@@ -170,11 +170,6 @@ impl Mixer {
         self.choices.get(&key).copied().unwrap_or((1.0, false))
     }
 
-    /// Someone left: forget their stream, keep their volume.
-    pub fn remove(&mut self, key: u64) {
-        self.sources.retain(|source| source.key != key);
-    }
-
     /// Forget every stream, as when the call ends or is deafened.
     pub fn clear(&mut self) {
         self.sources.clear();
@@ -338,7 +333,7 @@ mod tests {
             mixer.speaking().all(|(_, speaking)| speaking),
             "the ring still shows who talks"
         );
-        mixer.remove(1);
+        mixer.clear();
         mixer.push(1, 0, voice(&mut a, 0.9, 0));
         assert_eq!(
             mixer.choices[&1],

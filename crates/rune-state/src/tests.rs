@@ -1658,7 +1658,12 @@ fn sticker_failure_and_retry_keep_the_sticker_without_becoming_empty_text() {
         .unwrap()
         .messages()
         .iter()
-        .find(|message| message.delivery.needs_attention())
+        .find(|message| {
+            matches!(
+                message.delivery,
+                Delivery::Failed { .. } | Delivery::Unknown { .. }
+            )
+        })
         .unwrap()
         .clone();
     let unsent = store.unsent(GENERAL, pending.id).unwrap();

@@ -23,11 +23,8 @@ Cada release publica, además de sus artefactos:
   `minimum_version` y, por plataforma (`linux-x86_64`, `windows-x86_64`),
   la URL, el tamaño y el SHA-256 del artefacto.
 - `rune-update.json.sig`: la firma Ed25519 de esos bytes exactos, en
-  base64. Formato propio: un archivo de una línea, verificable con 32
-  bytes de clave pública. No es minisign porque minisign agrega un
-  formato de clave y de firma (y una dependencia) sin agregar nada que
-  haga falta acá; Ed25519 ya estaba en el árbol (`ed25519-dalek`, por
-  DAVE).
+  base64 (formato propio de una línea; `ed25519-dalek` ya estaba en el
+  árbol por DAVE).
 
 `minimum_version` es la versión obligatoria más nueva que sea menor o igual
 a la publicada: el CI la calcula leyendo los mensajes de **todos** los tags
@@ -63,20 +60,6 @@ con hasta **4 segundos** de espera, antes de cualquier login o ventana:
 antes de abrir la base). Apagado, no hay pedido de red al abrir y una
 obligatoria se descubre recién con **Buscar ahora**.
 
-![Actualización obligatoria descargando, simulado con el feed local](img/actualizaciones-obligatoria-2026-10-19.png)
-
-![Actualización obligatoria cuyo SHA-256 no coincide: el motivo, Reintentar y Salir, simulado](img/actualizaciones-error-2026-10-19.png)
-
-![Aviso de una actualización opcional con sus notas, sobre la simulación](img/actualizaciones-aviso-2026-10-19.png)
-
-![Ajustes › Actualizaciones con una versión disponible, simulado](img/actualizaciones-ajustes-2026-10-19.png)
-
-Capturas en un Xvfb privado de 1280×800 con el feed local
-(`rune-test-feed --mandatory --slow`, `--mandatory --corrupt` y sin opciones) y
-la simulación (`--language es --channel general --action jump:latest
---action update:notes`; `--action me:settings --action
-click:us:page=updates`).
-
 Una copia compilada desde el código (`cargo run`) no busca al iniciar ni se
 instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
 
@@ -100,8 +83,8 @@ instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
    - crea una release borrador con el mensaje del tag como notas (un tag
      con `-`, como `v0.2.0-rc.1`, queda como pre-release y las copias
      instaladas no la ven: `releases/latest` la saltea);
-   - compila el artefacto de Linux en Ubuntu 24.04 y lo sube al borrador;
-     el de Windows también cuando esté encendido ([Windows](#windows));
+   - compila el artefacto de Linux en Ubuntu 24.04 y el de Windows
+     ([Windows](#windows)) y los sube al borrador;
    - arma el manifiesto (`rune-release manifest`, con `minimum_version`), lo
      firma con el secreto (`rune-release sign`, con el programa ya compilado
      para que ningún build script vea el secreto), lo **verifica con la
@@ -126,16 +109,11 @@ nix-shell -p cargo-about --run \
   "cargo about generate --locked --offline --all-features about.hbs | cat -s > THIRD_PARTY_NOTICES.md"
 ```
 
-`cat -s` junta las líneas en blanco repetidas: algunos crates traen la
-misma licencia en dos archivos que sólo difieren en una línea en blanco
-(`miniz_oxide`: `LICENSE` y `LICENSE-MIT.md`), y cargo-about toma el que
-lea primero según el sistema de archivos. Hay que regenerarlo con cada
-cambio de `Cargo.lock` y commitearlo; el
-workflow Release lo regenera igual y no sigue si difiere. Cada artefacto lo
-lleva: el programa lo tiene adentro (`include_str!`) y lo imprime con
-`rune --licenses` (el workflow compara esa salida con el archivo en Linux y
-en Windows); el instalador de Windows lo deja además junto a `rune.exe`, y la
-release lo publica aparte y dentro de `rune-licenses.tar.gz`.
+Hay que regenerarlo con cada cambio de `Cargo.lock` y commitearlo (`cat -s`
+lo hace estable entre sistemas de archivos); el workflow Release lo
+regenera igual y no sigue si difiere. El programa lo lleva adentro y lo
+imprime con `rune --licenses`; el instalador de Windows lo deja junto a
+`rune.exe` y la release lo publica aparte y en `rune-licenses.tar.gz`.
 
 Hasta el último paso ninguna copia instalada ve la release. Si un paso
 falla, el borrador queda en GitHub para borrarlo o volver a correr el
@@ -161,16 +139,11 @@ releases siguientes).
 
 La firma usa una clave Ed25519 sólo para esto. La mitad pública va
 compilada en RUNE (`crates/rune-update/release-key.pub`, una línea en
-base64); la privada **nunca** entra al repositorio. Hasta que exista,
-`release-key.pub` está vacío: RUNE no confía en ninguna actualización y el
-paso de verificación del CI falla, así que no sale ninguna release.
-
-Una sola vez, en la máquina del dueño:
+base64); la privada **nunca** entra al repositorio. Se generó una vez, en
+la máquina del dueño, con `scripts/update-key.sh`:
 
 ```sh
 nix-shell --run scripts/update-key.sh          # o: scripts/update-key.sh <archivo>
-git add crates/rune-update/release-key.pub
-git commit -m "Actualizaciones: clave pública de las releases"
 ```
 
 El script genera la clave con `cargo run -p rune-release -- keygen` (el
@@ -219,12 +192,9 @@ entero: `rune --install` con un `HOME` de prueba, y un `--program` que sea
 un RUNE compilado con una versión mayor (si es la misma versión, después de
 reiniciar vuelve a encontrar la de prueba y se actualiza otra vez).
 
-Los tests (`cargo test -p rune-update`) hacen lo mismo sin ventana: firma
-válida e inválida, manifiesto alterado, otra clave, clave débil,
-obligatoria contra opcional, `minimum_version`, descarga con SHA o tamaño
-que no coinciden, reanudación después de un corte (con y sin `Range`),
-instalación atómica en una carpeta temporal y el recorrido feed → descarga
-→ instalación en loopback. Nada sale a la red.
+`cargo test -p rune-update` cubre lo mismo sin ventana ni red: firmas,
+manifiestos alterados, obligatoria contra opcional, descargas que no
+coinciden, reanudación e instalación atómica.
 
 ## Linux
 
@@ -314,21 +284,14 @@ environment.sessionVariables = {
 La alternativa de siempre sigue: compilar desde el código en `nix-shell`;
 esa copia no se actualiza sola.
 
-Probado en NixOS con el feed local (`rune --install` en un `HOME` de
-prueba, la obligatoria de punta a punta y la opcional). Falta probar el
-binario genérico en una distribución común y en NixOS con `nix-ld`.
-
 ## Windows
 
 **Artefacto**: `rune-x86_64-windows-setup.exe`, en el manifiesto como
 `windows-x86_64`: un instalador de [Inno Setup](https://jrsoftware.org/isinfo.php)
 6 armado con [`packaging/windows/rune.iss`](../packaging/windows/rune.iss).
-Inno Setup ya hace solo lo que hace falta: instalación por usuario, acceso directo con `AppUserModelID`,
-cerrar la aplicación con el Restart Manager, modo silencioso,
-desinstalador, español e inglés, sin código propio dentro del instalador.
-NSIS, el de Serein, necesita llamadas a la API de Windows escritas a mano
-para lo mismo. Su licencia permite cualquier uso; sus autores piden a los
-usuarios comerciales que compren una licencia, y RUNE no lo es.
+Inno Setup hace solo lo que hace falta (instalación por usuario, acceso
+directo con `AppUserModelID`, Restart Manager, modo silencioso,
+desinstalador), sin código propio dentro del instalador.
 
 **Instalación por usuario**, sin permisos de administrador (Windows 10 u
 11, x86_64):
@@ -343,37 +306,19 @@ usuarios comerciales que compren una licencia, y RUNE no lo es.
 HKCU\…\Uninstall\{9A354FE5-8128-4442-8261-E11202381361}_is1   «Aplicaciones instaladas»
 ```
 
-- La carpeta es fija (el asistente no la pregunta): RUNE se considera
-  instalado sólo si corre desde ahí (`rune_update::install::Install`).
-- Los avisos van junto a `rune.exe`
-  ([avisos de terceros](#avisos-de-terceros)); el workflow comprueba antes
-  que `rune.exe --licenses` imprima el mismo `THIRD_PARTY_NOTICES.md`.
-- El acceso directo lleva `RUNE.Desktop`, el ID de los toasts de RUNE
-  (Windows puede no mostrarlos sin un acceso directo en Inicio con ese ID).
-  RUNE se pone el mismo ID al arrancar
-  (`rune_platform::notifications::claim_application_id`), así sus ventanas
-  se agrupan con un RUNE anclado a la barra de tareas aunque lo haya
-  abierto el inicio con la sesión o una actualización.
-- `rune.exe` se compila con MSVC, `--features session-login` (el login
-  con WebView2, cuyo cargador va enlazado estático) y el runtime de C
-  adentro (`-C target-feature=+crt-static`): no hace falta el Visual C++
-  Redistributable. El instalador no instala el WebView2 Runtime (viene con
-  Windows 11 y con las actualizaciones de Windows 10; sin él, el login da
-  el enlace de Microsoft). El paso `DLLs` del workflow deja en el log las
-  bibliotecas que carga (tendrían que ser sólo las de Windows). El ícono
-  (`assets/icons/rune.ico`, [ARTWORK.md](ARTWORK.md)) y la versión van
-  dentro del `.exe`
-  (`apps/desktop/build.rs` con `winresource`, sólo para Windows).
-- Los datos de la persona están en otro lado (`%LOCALAPPDATA%\RUNE`,
-  `%APPDATA%\RUNE` y el Administrador de credenciales): actualizar no los
-  toca, desinstalar tampoco. Desinstalar (Configuración › Aplicaciones)
-  borra el programa, el acceso directo, el nombre de las notificaciones
-  (`HKCU\Software\Classes\AppUserModelId\RUNE.Desktop`) y el inicio con la
-  sesión (valor `RUNE` de `…\CurrentVersion\Run`). Para no dejar nada:
-  cerrar sesión y olvidar las cuentas en RUNE antes (borra sus datos y las
-  claves de la caché cifrada), y después borrar esas dos carpetas.
-- Abierto a mano con RUNE abierto, el asistente avisa que RUNE está en uso
-  y ofrece cerrarlo. Al final, «Abrir RUNE».
+- La carpeta es fija: RUNE se considera instalado sólo si corre desde ahí
+  (`rune_update::install::Install`).
+- El acceso directo lleva `RUNE.Desktop`, el ID de los toasts de RUNE; el
+  proceso se pone el mismo ID al arrancar.
+- `rune.exe` se compila con MSVC, `--features session-login` (WebView2 con
+  su cargador estático) y `+crt-static`: no hace falta el Visual C++
+  Redistributable. El WebView2 Runtime no se instala (viene con Windows 11
+  y las actualizaciones de Windows 10). Ícono y versión van dentro del
+  `.exe` (`apps/desktop/build.rs`).
+- Los datos de la persona (`%LOCALAPPDATA%\RUNE`, `%APPDATA%\RUNE`, el
+  Administrador de credenciales) no los tocan ni la actualización ni el
+  desinstalador. Para no dejar nada: cerrar sesión y olvidar las cuentas
+  antes, y después borrar esas carpetas.
 
 **Cada actualización**:
 
@@ -395,44 +340,13 @@ HKCU\…\Uninstall\{9A354FE5-8128-4442-8261-E11202381361}_is1   «Aplicaciones i
    `%TEMP%\rune-updates` (el instalador no puede borrarse a sí mismo).
 
 **Sin firma de código (Authenticode).** El instalador y `rune.exe` no
-están firmados. Qué pasa:
-
-- Bajado con un navegador y abierto, SmartScreen dice «Windows protegió
-  tu PC» (editor desconocido): «Más información» › «Ejecutar de todos
-  modos». El navegador también puede avisar que el archivo no se descarga
-  a menudo. Pasa en la primera instalación.
-- Las actualizaciones no pasan por ahí: RUNE baja el instalador con su
-  propio cliente, sin la marca «descargado de Internet» que mira
-  SmartScreen. Que sea el de la release lo garantizan la firma Ed25519 del
-  manifiesto y el SHA-256, no Authenticode.
-- Con el **Control inteligente de aplicaciones** de Windows 11 encendido
-  (sólo en instalaciones nuevas que lo activaron), Windows bloquea
-  programas sin firma conocida y RUNE no abre: hay que apagarlo
-  (Seguridad de Windows › Control de aplicaciones y navegador) o firmar.
-- Un antivirus puede demorar la primera ejecución de un instalador nuevo
-  sin firma, o marcarlo por heurística; se reporta como falso positivo.
-
-Opciones para firmar, cuando el dueño decida (precios y requisitos a
-revisar en ese momento):
-
-1. **Azure Artifact Signing** (antes *Trusted Signing*): servicio de
-   Microsoft, del orden de USD 10 por mes, firma desde el workflow con su
-   action. Pide validar la identidad; para personas físicas sólo estaba
-   abierto en algunos países (Estados Unidos, Canadá): ver si Argentina ya
-   está.
-2. **Certificado de una CA** (OV): pago anual; la clave tiene que vivir en
-   hardware (token o HSM en la nube de la CA), así que el CI firma contra
-   ese HSM. Un certificado nuevo no saca la advertencia de SmartScreen
-   enseguida: la reputación se gana con descargas (desde 2024, también con
-   uno EV).
-3. **SignPath Foundation**: firma gratis a proyectos de código abierto que
-   cumplan sus condiciones (repositorio público, licencia OSI, build
-   verificable en CI); el certificado sale a nombre de la fundación.
-4. No firmar: queda la advertencia de la primera instalación; las
-   actualizaciones funcionan igual.
-
-Con firma, el job firmaría `rune.exe` antes de armar el instalador, y el
-instalador y su desinstalador con la directiva `SignTool` de Inno Setup.
+están firmados: la primera instalación bajada con un navegador muestra el
+aviso de SmartScreen («Más información» › «Ejecutar de todos modos») y el
+Control inteligente de aplicaciones de Windows 11 puede bloquearla. Las
+actualizaciones no pasan por ahí (RUNE baja el instalador con su propio
+cliente); su integridad la dan la firma Ed25519 del manifiesto y el
+SHA-256. Firmar (Azure Artifact Signing, un certificado OV o SignPath
+Foundation) es decisión pendiente del dueño.
 
 **En el workflow**, el job `windows` (`windows-latest`) compila con MSVC
 (`--target x86_64-pc-windows-msvc --features session-login`), comprueba
@@ -440,42 +354,12 @@ que `rune.exe --licenses` sea `THIRD_PARTY_NOTICES.md`, instala Inno Setup 6.7.3
 SHA-256, arma el instalador (`ISCC /DVersion=…`), deja su tamaño y su
 SHA-256 en el log y en las salidas del job, y lo sube al borrador. El
 paso del manifiesto comprueba que el instalador que bajó del borrador sea
-ése antes de firmar. El job está apagado hasta que la variable del
-repositorio `RUNE_WINDOWS_RELEASES` sea `true`; encendido, si falla, la
-release no se publica.
+ése antes de firmar. El job corre sólo si la variable del repositorio
+`RUNE_WINDOWS_RELEASES` es `true` (lo está); si falla, la release no se
+publica.
 
-**Armarlo y probarlo desde NixOS**, con Wine (Wine no es Windows). ISCC y
-el instalador son de 32 bits: hace falta el Wine WoW64, no el `wine64` de
-`withWindows`.
-
-```sh
-nix-shell --arg withWindows true --run \
-  'cargo build --target x86_64-pc-windows-gnu -p rune-desktop --features session-login'
-nix-shell -p wineWow64Packages.stable xvfb-run
-export WINEPREFIX=$PWD/target/wine-inno
-# Inno Setup 6.7.3 (SHA-256 en el workflow), una vez:
-wine innosetup-6.7.3.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER '/DIR=C:\InnoSetup6'
-# con MinGW, rune.exe carga WebView2Loader.dll de su carpeta (MSVC lo enlaza):
-loader=$(ls target/x86_64-pc-windows-gnu/debug/build/webview2-com-sys-*/out/x64/WebView2Loader.dll | head -n 1)
-wine 'C:\InnoSetup6\ISCC.exe' /Q /DVersion=0.1.0 \
-  "/DProgram=$(winepath -w target/x86_64-pc-windows-gnu/debug/rune.exe)" \
-  "/DLoader=$(winepath -w "$loader")" \
-  "$(winepath -w packaging/windows/rune.iss)"        # target/rune-x86_64-windows-setup.exe
-WGPU_BACKEND=gl xvfb-run -a wine target/rune-x86_64-windows-setup.exe \
-  /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS
-```
-
-Para el ciclo del updater, el feed local sirve el instalador como lo
-publica el workflow con `--platform windows-x86_64 --program <setup.exe>`,
-y RUNE (de depuración, el instalado) se abre con `RUNE_UPDATE_FEED` y
-`RUNE_UPDATE_KEY`; bajo Wine, con `WGPU_BACKEND=gl`.
-
-Con Wine se probó el ciclo entero (armar, instalar en silencio encima de
-otra, actualizar desde el feed local, volver a abrir, borrar
-`rune-updates`, desinstalar sin tocar los datos). Wine no guarda el
-`AppUserModelID` del acceso directo ni encuentra procesos con el Restart
-Manager: eso, el asistente con ventanas, el build MSVC, SmartScreen y todo
-en un Windows real quedan por probar.
+Para probar el ciclo del updater, el feed local sirve el instalador como lo
+publica el workflow con `--platform windows-x86_64 --program <setup.exe>`.
 
 ## Seguridad
 
@@ -492,11 +376,3 @@ en un Windows real quedan por probar.
   (la copia sigue como está, y una obligatoria se descubre al volver la
   red).
 - `RUNE_UPDATE_KEY` sólo existe en compilaciones de depuración.
-
-## Lo que queda del dueño
-
-Encender el job de Windows (variable del repositorio
-`RUNE_WINDOWS_RELEASES` en `true`; para probarlo sin que lo vea ninguna
-copia instalada, una pre-release como `v0.1.0-rc.1`), decidir la
-[firma de código](#windows) y probar en un Windows real: lista en
-[tasks/todo.md](../tasks/todo.md).

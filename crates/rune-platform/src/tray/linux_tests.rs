@@ -227,6 +227,7 @@ async fn without_a_tray_host_it_is_unavailable_and_statuses_need_an_account() {
         Some(TrayEvent::Status(TrayStatus::Invisible))
     );
     assert_eq!(clicked(STATUS_FIRST + 4), None);
+    assert_eq!(clicked(i32::MIN), None, "a caller's id never overflows");
     let signed_out = menu(&TrayState::default());
     assert!(signed_out
         .children

@@ -175,13 +175,16 @@ impl Desktop {
     /// longer, off this thread.
     pub fn set_autostart(&mut self, on: bool, minimized: bool) {
         // An installation's own path, which updates keep (actualizaciones).
-        let Ok(program) = crate::update::program() else {
-            return;
-        };
+        let program = crate::update::program();
         self.autostart = Some(background(self.wake.clone(), move || {
-            let problem = rune_platform::autostart::change(on, minimized, &program)
-                .err()
-                .map(String::from);
+            let problem = match &program {
+                Ok(program) => rune_platform::autostart::change(on, minimized, program).err(),
+                Err(error) => {
+                    eprintln!("rune: autostart: where RUNE runs from is unknown: {error}");
+                    Some(es("No se pudo cambiar el inicio con la sesión."))
+                }
+            }
+            .map(String::from);
             let (on, minimized) = rune_platform::autostart::state().unwrap_or_default();
             (on, minimized, problem)
         }));
@@ -219,7 +222,11 @@ impl Desktop {
             #[cfg(target_os = "linux")]
             if let Some(socket) = rune_platform::hyprland::socket() {
                 let pid = std::process::id();
-                std::thread::spawn(move || rune_platform::hyprland::hide(&socket, pid));
+                std::thread::spawn(move || {
+                    if let Err(error) = rune_platform::hyprland::hide(&socket, pid) {
+                        eprintln!("rune: Hyprland did not hide the window: {error}");
+                    }
+                });
                 return;
             }
             #[cfg(target_os = "linux")]
@@ -242,7 +249,11 @@ impl Desktop {
             if std::env::var_os("WAYLAND_DISPLAY").is_some() {
                 if let Some(socket) = rune_platform::hyprland::socket() {
                     let pid = std::process::id();
-                    std::thread::spawn(move || rune_platform::hyprland::show(&socket, pid));
+                    std::thread::spawn(move || {
+                        if let Err(error) = rune_platform::hyprland::show(&socket, pid) {
+                            eprintln!("rune: Hyprland did not show the window: {error}");
+                        }
+                    });
                 }
                 if let Some(kwin) = &self.kwin {
                     kwin.set(rune_platform::kwin::Place::Shown);

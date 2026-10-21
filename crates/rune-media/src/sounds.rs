@@ -84,7 +84,11 @@ fn read(path: &Path) -> Result<Arc<[u8]>, MediaError> {
         return Err(too_big());
     }
     let bytes: Arc<[u8]> = bytes.into();
-    match sound_length(&bytes, MAX_LENGTH) {
+    // A decoder that panics on a strange file refuses that file, as a clip
+    // does, instead of ending the thread that reads the folder.
+    let length = std::panic::catch_unwind(|| sound_length(&bytes, MAX_LENGTH))
+        .unwrap_or_else(|_| Err(unreadable()));
+    match length {
         Ok(Some(length)) if !length.is_zero() => Ok(bytes),
         Ok(Some(_)) => Err(MediaError(t("no tiene sonido").into())),
         Ok(None) => Err(MediaError(tr!(

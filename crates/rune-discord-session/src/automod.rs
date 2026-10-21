@@ -1,6 +1,6 @@
 //! A server's AutoMod on the personal session (automod, 2026-10-19). The
 //! routes and bodies are the ones Discord documents and the official web
-//! client's bundle shows (docs/REA.md, «AutoMod»): `GET` and `POST
+//! client's bundle shows (docs/DISCORD.md, «AutoMod»): `GET` and `POST
 //! /guilds/{g}/auto-moderation/rules`, `PATCH` and `DELETE
 //! /guilds/{g}/auto-moderation/rules/{id}`, and the Gateway's
 //! `AUTO_MODERATION_RULE_*` and `AUTO_MODERATION_ACTION_EXECUTION`. Serein

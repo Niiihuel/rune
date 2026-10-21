@@ -1,6 +1,6 @@
 //! Twemoji 17.0.3 artwork for limn-egui's color emoji: the upstream 72 px
 //! PNGs back to back, and an index by sequence. `scripts/twemoji.py` builds
-//! both; `docs/ARTWORK.md` has their provenance and license.
+//! both; `assets/licenses/TWEMOJI.md` has their provenance and license.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;

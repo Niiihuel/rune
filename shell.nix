@@ -1,7 +1,7 @@
 # Development shell for RUNE on NixOS: the compiler's C toolchain, the window
 # libraries limn's backend opens, and the audio libraries rune-media links.
 # `--arg withWindows true` adds the MinGW-w64 cross toolchain and Wine, to
-# check, link and test RUNE for Windows from Linux (docs/PLATFORM.md#windows).
+# check, link and test RUNE for Windows from Linux (docs/ARCHITECTURE.md#windows-desde-linux).
 { pkgs ? import <nixpkgs> { }, withLogin ? false, withDocs ? false, withWindows ? false }:
 let
   # winit and wgpu dlopen the first four at run time; cpal links the next two;

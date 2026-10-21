@@ -351,7 +351,7 @@ impl Sound for OggOpus {
 mod tests {
     use super::*;
 
-    /// Four seconds of a synthesized, speech-like tone (see docs/MEDIA.md).
+    /// Four seconds of a synthesized, speech-like tone (see docs/SECURITY.md).
     const SAMPLE: &[u8] = include_bytes!("../../../../assets/voice-sample.ogg");
     /// 110 ms of a 440 Hz tone, mono: its last packet is mostly padding.
     const SHORT: &[u8] = include_bytes!("../../fixtures/short.ogg");

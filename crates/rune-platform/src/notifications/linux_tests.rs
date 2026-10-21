@@ -38,7 +38,6 @@ struct Daemon {
 
 #[zbus::interface(name = "org.freedesktop.Notifications")]
 impl Daemon {
-    #[allow(clippy::too_many_arguments)]
     async fn notify(
         &self,
         _app: String,

@@ -6,7 +6,7 @@
 //! restriction with `max_num_reorder_frames = 0` and
 //! `max_dec_frame_buffering ≤ max_num_ref_frames`. DAVE leaves the SPS clear
 //! but authenticates it, so a rewritten one fails and the picture is lost:
-//! Serein's finding (2026-09-21), not confirmed here (docs/REA.md). Every SPS
+//! Serein's finding (2026-09-21), not confirmed here (docs/DISCORD.md). Every SPS
 //! sent therefore already carries that restriction, written the way the
 //! rewriter writes it, so it finds nothing to change. Constrained Baseline
 //! never reorders, so the claim is true.

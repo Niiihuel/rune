@@ -1,5 +1,5 @@
 //! Translate account navigation into provider-independent state. Personal READY
-//! extensions are an unofficial compatibility surface; see DISCORD_SESSION.md.
+//! extensions are an unofficial compatibility surface; see docs/DISCORD.md.
 //! Unknown permissions fail closed. Payloads never leave this adapter.
 
 use rune_i18n::{es, t};
@@ -46,7 +46,7 @@ fn unsigned(value: &Value) -> Result<u64, LoginError> {
 /// Documented guild member flag: held back by automatic moderation.
 const AUTOMOD_QUARANTINED_USERNAME: u64 = 1 << 7;
 /// Held back for the server tag shown (`AUTOMOD_QUARANTINED_SERVER_TAG`,
-/// named so in the official client's bundle; see docs/DISCORD_SESSION.md).
+/// named so in the official client's bundle; see docs/DISCORD.md).
 const AUTOMOD_QUARANTINED_SERVER_TAG: u64 = 1 << 10;
 
 /// Apply the restriction fields `data` carries onto `restrictions`; a field

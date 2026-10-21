@@ -14,7 +14,7 @@ use crate::{Applied, Store};
 const CALLS_KEPT: usize = 64;
 /// A ring that stopped this soon, without its person coming, was declined;
 /// later, the service gave up on it. Discord stops ringing by itself well
-/// after this (docs/DISCORD_SESSION.md, «Llamadas privadas»).
+/// after this (docs/DISCORD.md, «Llamadas privadas»).
 pub const DECLINED_WITHIN: Duration = Duration::from_secs(20);
 
 /// What the account sees of the call of one direct or group conversation.
@@ -168,6 +168,7 @@ impl Store {
     }
 
     /// Whether `channel` has a call, as the provider said.
+    #[cfg(test)]
     pub fn has_private_call(&self, channel: ChannelId) -> bool {
         self.private_calls.calls.contains_key(&channel)
     }

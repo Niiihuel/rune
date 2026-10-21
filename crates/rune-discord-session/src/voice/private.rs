@@ -1,5 +1,5 @@
 //! Calls in direct and group conversations (2026-10-17), as the official
-//! web client makes them (static REA of its public bundle, docs/REA.md
+//! web client makes them (static REA of its public bundle, docs/DISCORD.md
 //! «Llamadas privadas») and Serein does (`discord-gateway/src/voice.rs`,
 //! `discord-api/src/lib.rs`, read the same day; no code copied):
 //!

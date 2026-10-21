@@ -6,7 +6,7 @@
 //! pink noise.
 //!
 //! `cargo test --release -p rune-media suppression_table -- --ignored --nocapture`
-//! prints the table of docs/PERFORMANCE.md; the other tests hold the default
+//! prints the table of docs/ARCHITECTURE.md; the other tests hold the default
 //! chain to it.
 
 use std::time::{Duration, Instant};

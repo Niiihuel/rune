@@ -487,7 +487,9 @@ impl Running {
 #[test]
 fn provider_declares_only_implemented_communication_capabilities() {
     let (login, _) = login();
-    let info = DiscordSessionProvider::new(login).unwrap().info();
+    let info = DiscordSessionProvider::with_proxy(login, &rune_provider::ApiProxy::Automatic)
+        .unwrap()
+        .info();
     assert_eq!(info.kind, ProviderKind::Unofficial);
     assert!(info.capabilities.authentication);
     assert!(info.capabilities.account_servers && info.capabilities.direct_messages);

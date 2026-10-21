@@ -4,7 +4,7 @@
 //! payload are sealed; a 32-bit big-endian counter, the start of the 24-byte
 //! nonce, trails the packet. RTCP is sealed the same way with its first 8
 //! bytes (header and sender SSRC) clear: how Serein sends it; the bundles
-//! of the official client do not show it (docs/REA.md, «Sin confirmar»).
+//! of the official client do not show it (docs/DISCORD.md, «Sin confirmar»).
 //! RTCP from the server is opened the same way only by a connection that
 //! sends video, for the [`Report`]s about it.
 
@@ -158,7 +158,7 @@ impl Transport {
 // Voice protocol (voz-protocolo).
 /// The element that marks a shared screen's sound, `(id, value)`: what
 /// Serein sends. Neither is in the official client's strings: not verified
-/// (docs/REA.md).
+/// (docs/DISCORD.md).
 pub(crate) const SCREEN_SOUND: (u8, u8) = (9, 4);
 
 /// RFC 8285 §4.2, one-byte form: the extension's preamble (profile `0xBEDE`

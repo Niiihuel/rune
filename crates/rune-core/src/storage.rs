@@ -219,7 +219,6 @@ enum Job {
         slot: AnswerSlot,
     },
     SetReadMark(ChannelId, ReadMark),
-    Setting(String, SyncSender<Answer<Option<String>>>),
     Settings(SyncSender<Answer<Vec<(String, String)>>>),
     SetSetting(String, Option<String>),
     Forget,
@@ -516,7 +515,8 @@ impl StorageWorker {
         })
     }
 
-    /// Optional legacy cache seeding. Reliable provider changes use `apply`.
+    /// Cache seeding for tests. Reliable provider changes use `apply`.
+    #[cfg(test)]
     pub fn save(&self, messages: Vec<Message>) {
         let changes = messages
             .into_iter()
@@ -533,11 +533,6 @@ impl StorageWorker {
 
     pub fn try_cached(&self) -> Option<(CacheRequest, Vec<Message>)> {
         self.cached.try_recv().ok().map(|answer| answer.value)
-    }
-
-    pub fn save_snapshot(&self, snapshot: Snapshot) -> Result<StorageTicket, StorageWriteError> {
-        self.save_snapshot_owned(Box::new(snapshot))
-            .map_err(|error| error.kind)
     }
 
     /// Keep ownership on backpressure, so retrying never clones a session snapshot.
@@ -632,13 +627,6 @@ impl StorageWorker {
     ) -> Result<StorageTicket, StorageWriteError> {
         self.submit(Job::SetReadMark(channel, mark))
             .map_err(|error| error.kind)
-    }
-
-    /// Startup only.
-    pub fn setting(&self, key: &str) -> Option<String> {
-        let (reply, answer) = sync_channel(1);
-        self.submit(Job::Setting(key.to_owned(), reply)).ok()?;
-        answer.recv_timeout(STARTUP_TIMEOUT).ok()?.value
     }
 
     /// Startup only: every setting, the device's and each account's.
@@ -824,12 +812,6 @@ fn execute(
             let bytes = vector_bytes(&drafts)
                 .saturating_add(drafts.iter().map(|(_, text)| text.capacity()).sum());
             reply(shared, answer, drafts, bytes);
-            Ok(())
-        }
-        Job::Setting(key, answer) => {
-            let value = storage.setting(key)?;
-            let bytes = text_bytes(&value);
-            reply(shared, answer, value, bytes);
             Ok(())
         }
         Job::Settings(answer) => {
@@ -1161,7 +1143,6 @@ fn job_bytes(job: &Job) -> usize {
             Job::ReadMarks { .. } => READ_MARKS_CREDIT,
             Job::Local(read) => read.bytes(),
             Job::SetDraft(_, text) => text_bytes(text),
-            Job::Setting(key, _) => key.capacity(),
             Job::SetSetting(key, value) => key.capacity().saturating_add(text_bytes(value)),
             Job::SetDraftFiles(_, files) => draft_files_bytes(files),
             _ => 0,

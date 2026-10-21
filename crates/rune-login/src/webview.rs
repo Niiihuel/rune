@@ -103,7 +103,7 @@ fn hardened_settings() -> webkit6::Settings {
         .allow_modal_dialogs(false)
         .javascript_can_access_clipboard(false)
         // No devices and no media: the page needs neither, and a missing
-        // GStreamer sink crashed the web process (DISCORD_SESSION.md).
+        // GStreamer sink crashed the web process (docs/DISCORD.md).
         .enable_media(false)
         .enable_webaudio(false)
         .enable_media_stream(false)

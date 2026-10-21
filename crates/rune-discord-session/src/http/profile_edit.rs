@@ -1,6 +1,6 @@
 //! Changes to the account's own profile. The routes and their fields are the
 //! ones the official web client calls (REA of its public bundle, 2026-10-17;
-//! see docs/DISCORD_SESSION.md), Serein's `PATCH /users/@me` among them:
+//! see docs/DISCORD.md), Serein's `PATCH /users/@me` among them:
 //!
 //! - `PATCH /users/@me` `{global_name, avatar}`: the account's name and picture.
 //! - `PATCH /users/@me/profile` `{bio, pronouns, accent_color, banner}`.

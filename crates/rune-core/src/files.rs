@@ -529,9 +529,10 @@ async fn save_to(
             wake();
         }
     };
+    // Keep fetch's reason: an expired link reads differently from a full disk.
     let partial = fetch(client, url, directory, size, &progress)
         .await
-        .map_err(|_| Some(t("No se pudo descargar el archivo.")))?;
+        .map_err(Some)?;
     if let Some(seen) = replacing {
         // Only the file the person was asked about: a folder or a link put
         // there since, or another file, stays. rename(2) swaps the name at
@@ -615,7 +616,7 @@ async fn fetch(
     directory: &Path,
     expected: u64,
     progress: &(dyn Fn(u64) + Sync),
-) -> Result<PartialFile, String> {
+) -> Result<PartialFile, &'static str> {
     let mut response = client
         .get(url)
         .send()
@@ -626,14 +627,13 @@ async fn fetch(
             t("El enlace venció o ya no está disponible. Volvé a abrir la conversación.")
         } else {
             t("El servidor no pudo entregar el archivo.")
-        }
-        .into());
+        });
     }
     if response
         .content_length()
         .is_some_and(|size| size > MAX_DOWNLOAD_BYTES)
     {
-        return Err(t("El archivo supera el límite de descarga de 128 MiB.").into());
+        return Err(t("El archivo supera el límite de descarga de 128 MiB."));
     }
     tokio::fs::create_dir_all(directory)
         .await
@@ -669,10 +669,12 @@ async fn fetch(
             .checked_add(chunk.len() as u64)
             .ok_or(t("Archivo demasiado grande."))?;
         if received > MAX_DOWNLOAD_BYTES {
-            return Err(t("El archivo supera el límite de descarga de 128 MiB.").into());
+            return Err(t("El archivo supera el límite de descarga de 128 MiB."));
         }
         if expected != 0 && received > expected {
-            return Err(t("El tamaño descargado no coincide con el archivo anunciado.").into());
+            return Err(t(
+                "El tamaño descargado no coincide con el archivo anunciado.",
+            ));
         }
         file.write_all(&chunk)
             .await
@@ -680,7 +682,9 @@ async fn fetch(
         progress(received);
     }
     if expected != 0 && expected != received {
-        return Err(t("El tamaño descargado no coincide con el archivo anunciado.").into());
+        return Err(t(
+            "El tamaño descargado no coincide con el archivo anunciado.",
+        ));
     }
     file.sync_all()
         .await

@@ -28,7 +28,7 @@ const MAX_ASKS: u8 = 3;
 /// Sequence numbers asked for in one NACK.
 pub(crate) const MAX_NACKED: usize = 64;
 
-/// What sending kept: the official client's repair window (docs/VIDEO.md).
+/// What sending kept: the official client's repair window (docs/DISCORD.md).
 pub(crate) const HISTORY_AGE: Duration = Duration::from_secs(1);
 pub(crate) const HISTORY_PACKETS: usize = 2048;
 pub(crate) const HISTORY_BYTES: usize = 2 * 1024 * 1024;

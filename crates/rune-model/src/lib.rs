@@ -983,11 +983,6 @@ impl Delivery {
     pub fn is_local(&self) -> bool {
         !matches!(self, Self::Sent)
     }
-
-    /// It needs the person: it failed or its fate is unknown.
-    pub fn needs_attention(&self) -> bool {
-        matches!(self, Self::Failed { .. } | Self::Unknown { .. })
-    }
 }
 
 /// A message.
@@ -1198,7 +1193,7 @@ pub enum VideoKind {
 
 /// How the account's own screen is sent: its height, 16:9, and frames a
 /// second. RUNE offers 480p, 720p and 1080p at 15, 30 or 60 with no tier
-/// check, as the owner decided (docs/VIDEO.md).
+/// check, as the owner decided (docs/ARCHITECTURE.md).
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct StreamQuality {
     pub height: u32,
@@ -1229,7 +1224,7 @@ impl StreamQuality {
     }
 
     /// The most bits a second sent: 3.5 Mbit/s, 9 for 720p60 and 1080p,
-    /// as the official client allows Go Live (docs/VIDEO.md, «Calidades»).
+    /// as the official client allows Go Live (docs/ARCHITECTURE.md, «Calidades»).
     pub fn max_bitrate(self) -> u32 {
         if self.height > 720 || (self.height == 720 && self.fps > 30) {
             9_000_000
@@ -1580,13 +1575,6 @@ mod tests {
         assert_eq!(read.delivery, Delivery::Sent);
         assert!(!read.pinned, "kept before pins existed: not pinned");
         assert!(read.stickers.is_empty() && read.text_references.is_empty());
-        assert!(
-            Delivery::Unknown {
-                reason: String::new()
-            }
-            .needs_attention()
-                && !Delivery::Sending.needs_attention()
-        );
     }
 
     #[test]

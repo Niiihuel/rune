@@ -547,9 +547,6 @@ async fn no_camera_is_unavailable_without_asking_for_access() {
     let mut portal = Fixture::start(false).await;
     let (_cancel, signal) = watch::channel(false);
     let client = portal.bus.connect().await;
-    assert!(!camera_present_on(client.clone(), signal.clone())
-        .await
-        .unwrap());
     let error = open_camera_on(client, signal).await.unwrap_err();
     assert_eq!(error, CaptureError::Unavailable(NO_DEVICE));
     portal.quiet().await;

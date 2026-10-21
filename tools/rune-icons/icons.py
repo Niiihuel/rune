@@ -3,7 +3,7 @@
 Metrics follow Discord's icon system (24 px view box shown at 12-32 px,
 2 px lines with round ends, 3 px corners, 2 px gap around a badge); the
 shapes are built from primitives with RUNE's own coordinates, never from
-Discord's paths (docs/ARTWORK.md). Needs skia-pathops and picosvg:
+Discord's paths (docs/SECURITY.md). Needs skia-pathops and picosvg:
 
     nix shell --impure --expr 'with import <nixpkgs> {}; python3.withPackages (p: [ p.skia-pathops p.picosvg ])' \
       -c python3 tools/rune-icons/icons.py assets/glyphs

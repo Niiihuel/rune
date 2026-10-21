@@ -1800,10 +1800,16 @@ impl Connection<'_> {
                     "[::]:0"
                 })
                 .await
-                .map_err(|_| UDP)?;
+                .map_err(|error| {
+                    note!(self.scope, "voice UDP socket failed: {error}");
+                    UDP
+                })?;
                 udp.connect(SocketAddr::new(address, port))
                     .await
-                    .map_err(|_| UDP)?;
+                    .map_err(|error| {
+                        note!(self.scope, "voice UDP connect failed: {error}");
+                        UDP
+                    })?;
                 self.udp = Some(udp);
                 self.discovering = Some(Instant::now() + DISCOVERY_TIMEOUT);
                 self.probes = 0;
@@ -2065,7 +2071,7 @@ impl Connection<'_> {
     }
 
     /// Tell the voice server which video to forward (op 15): see the
-    /// module. When to repeat it is not confirmed (docs/REA.md).
+    /// module. When to repeat it is not confirmed (docs/DISCORD.md).
     async fn sink_wants(&mut self) -> Result<(), Ended> {
         // Only those who watch say what they want; the one sharing does not.
         if self.video.is_none() || self.sharing() {

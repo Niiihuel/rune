@@ -1,6 +1,6 @@
 //! A server's rules and onboarding on the personal session (2026-10-18):
 //! what a new member answers and what the administration edits. The routes
-//! and bodies are the official web client's (docs/REA.md, «reglas y
+//! and bodies are the official web client's (docs/DISCORD.md, «reglas y
 //! onboarding»): `GET /guilds/{g}/member-verification`,
 //! `PUT /guilds/{g}/requests/@me` with each field as it came and its
 //! answer, `GET /guilds/{g}/onboarding`, `POST /guilds/{g}/onboarding-responses`
@@ -261,7 +261,7 @@ pub(crate) fn rules(value: &Value) -> Result<Option<ServerRules>, LoginError> {
 }
 
 /// `PUT /guilds/{g}/requests/@me`: every field as Discord sent it, with
-/// its `response` (docs/REA.md); `None` when a field has no such copy.
+/// its `response` (docs/DISCORD.md); `None` when a field has no such copy.
 pub(crate) fn join_request(rules: &ServerRules, answers: &[RulesAnswer]) -> Option<Value> {
     let mut form_fields = Vec::with_capacity(answers.len());
     for (field, answer) in rules.fields.iter().zip(answers) {
@@ -368,7 +368,7 @@ fn prompt(value: &Value) -> Result<Prompt, LoginError> {
     })
 }
 
-/// The body of `POST /guilds/{g}/onboarding-responses` (docs/REA.md): the
+/// The body of `POST /guilds/{g}/onboarding-responses` (docs/DISCORD.md): the
 /// options chosen, and when each question and option asked was seen.
 #[derive(Serialize)]
 struct Responses {

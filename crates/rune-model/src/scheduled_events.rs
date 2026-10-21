@@ -1,7 +1,7 @@
 //! A server's scheduled events (2026-10-19, branch `eventos-programados`):
 //! something planned for a time, on one of its stages or voice channels or
 //! somewhere else, which members may say interests them. The limits are
-//! the official client's (docs/REA.md, «eventos programados»); none was
+//! the official client's (docs/DISCORD.md, «eventos programados»); none was
 //! confirmed against a service.
 
 use rune_i18n::t;

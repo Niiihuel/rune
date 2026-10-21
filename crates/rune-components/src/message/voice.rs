@@ -1,6 +1,6 @@
 //! A voice message's player: play or pause, its loudness as bars that fill as
 //! it plays and seek when dragged, the time left and the speed. Measures
-//! follow the official client's player (docs/REA.md); the drawing is RUNE's own.
+//! follow the official client's player (docs/DISCORD.md); the drawing is RUNE's own.
 
 use limn::{Access, Element, Icon, Role};
 use rune_i18n::{t, tr};

@@ -296,7 +296,7 @@ fn said(step: &str, what: std::fmt::Arguments<'_>) {
 
 /// What the service's JSON error code says of a refused acceptance: the
 /// codes the official web client names for joining (`AbortCodes`, and the
-/// texts it shows for them; docs/REA.md). Any other stays a plain refusal.
+/// texts it shows for them; docs/DISCORD.md). Any other stays a plain refusal.
 fn refused(code: u64) -> Option<JoinError> {
     Some(match code {
         10006 => JoinError::Invalid,

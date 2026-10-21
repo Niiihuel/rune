@@ -363,7 +363,7 @@ impl Default for Prefs {
             mention_badges: true,
             input_profile: InputProfile::default(),
             processing: Processing::default(),
-            // Measured (docs/PERFORMANCE.md): it removes a game's and
+            // Measured (docs/ARCHITECTURE.md): it removes a game's and
             // music's echo and leaves the voice as it was.
             system_echo: true,
             input_volume: 1.0,

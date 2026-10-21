@@ -40,7 +40,7 @@ opusic-sys = "0.7.5"
 symphonia = { version = "0.5.5", default-features = false, features = ["aac", "flac", "isomp4", "mkv", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 
 # cpal lists devices and opens streams on every platform RUNE targets. On
-# Linux its PipeWire backend is preferred over ALSA (see docs/MEDIA.md).
+# Linux its PipeWire backend is preferred over ALSA (see docs/ARCHITECTURE.md).
 [target.'cfg(target_os = "linux")'.dependencies]
 cpal = { version = "0.18.2", features = ["pipewire"] }
 # Screen and camera preview: reads the video node of the remote the desktop
@@ -52,7 +52,7 @@ tokio = { workspace = true }
 # GStreamer's VA-API (Mesa, the integrated GPU) and NVENC/NVDEC (nvcodec)
 # elements, as Serein uses them. Bindings MIT/Apache-2.0; GStreamer is
 # LGPL-2.1+, linked dynamically, plugins found at run time (see shell.nix
-# and docs/VIDEO.md). glib 0.22 is already in the tree through rune-login.
+# and docs/ARCHITECTURE.md). glib 0.22 is already in the tree through rune-login.
 gstreamer = "0.25.4"
 gstreamer-app = "0.25.2"
 gstreamer-video = "0.25.4"
@@ -64,7 +64,7 @@ gstreamer-video = "0.25.4"
 rune-platform.workspace = true
 # H264, the codec of Discord's screen streams: decodes a watched stream on
 # its own thread. Cisco's OpenH264 built from source (`source` feature),
-# so Cisco's patent license does not cover it: see docs/MEDIA.md.
+# so Cisco's patent license does not cover it: see docs/ARCHITECTURE.md.
 openh264 = "=0.9.8"
 # The same OpenH264 bindings openh264 builds on (not a new library): its
 # runtime bit-rate option, which the safe API lacks, so a new rate needs no

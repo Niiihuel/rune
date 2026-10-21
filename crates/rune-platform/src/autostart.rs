@@ -35,15 +35,18 @@ pub fn state() -> Option<(bool, bool)> {
 /// Start `program` with the session, in the tray when `minimized`, or no
 /// longer; why not, as a text for [`rune_i18n::t`], when it could not.
 pub fn change(on: bool, minimized: bool, program: &Path) -> Result<(), &'static str> {
-    const FAILED: &str = es("No se pudo cambiar el inicio con la sesión.");
+    let failed = |error: io::Error| {
+        eprintln!("rune: autostart: {error}");
+        es("No se pudo cambiar el inicio con la sesión.")
+    };
     #[cfg(windows)]
     {
-        self::windows::set(on, minimized, program).map_err(|_| FAILED)
+        self::windows::set(on, minimized, program).map_err(failed)
     }
     #[cfg(not(windows))]
     {
         let path = entry_path().ok_or(es("No se encontró la carpeta de configuración."))?;
-        set(&path, on, minimized, program).map_err(|_| FAILED)
+        set(&path, on, minimized, program).map_err(failed)
     }
 }
 

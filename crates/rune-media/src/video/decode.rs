@@ -20,7 +20,7 @@ use openh264::formats::YUVSource;
 use rune_i18n::t;
 
 use super::gpu::{self, Engine};
-use super::{convert_within, fit, lock, Frame, Pixels, Plane, Shared, VideoState};
+use super::{convert_within, fit, lock, Frame, Pixels, Plane, Shared};
 
 /// The largest picture shown; bigger streams are scaled down to fit.
 pub const STREAM_MAX: (u32, u32) = (1920, 1080);
@@ -94,7 +94,8 @@ impl Decoding {
     }
 
     /// `Running` once a picture was decoded; `Ended` with why if it failed.
-    pub fn state(&self) -> VideoState {
+    #[cfg(test)]
+    pub fn state(&self) -> super::VideoState {
         super::lock(&self.shared.state).clone()
     }
 
@@ -338,6 +339,7 @@ pub fn clip_pictures(
 
 #[cfg(test)]
 mod tests {
+    use super::super::VideoState;
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;

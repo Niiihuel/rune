@@ -1,5 +1,5 @@
 //! The window's columns and bands at the size of the reference captures
-//! (1361×797), against what was measured on them (docs/DISEÑO.md). RUNE has
+//! (1361×797), against what was measured on them (docs/ARCHITECTURE.md). RUNE has
 //! no title bar of its own: what hangs from the top sits 34.5 higher than on
 //! the captures, what stands on the bottom edge sits where it was.
 

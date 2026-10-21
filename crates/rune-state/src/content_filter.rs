@@ -1,7 +1,7 @@
 //! The account's explicit content filter applied to what it reads: which
 //! pictures the service found explicit wait blurred until the account asks
 //! to see each, by where they were posted and who posted them, as the
-//! official client decides it (docs/REA.md, contenido-de-mensajes).
+//! official client decides it (docs/DISCORD.md, contenido-de-mensajes).
 
 use rune_model::{ChannelId, ContentFilter, MessagingPrivacy, RelationshipKind, UserId};
 

@@ -1,7 +1,7 @@
 //! A server's automatic moderation (AutoMod, 2026-10-19): rules that look
 //! at what members write, or at their names and profiles, and block it,
 //! alert a channel or time the member out. The limits are those the
-//! service documents and the official client's bundle holds (docs/REA.md);
+//! service documents and the official client's bundle holds (docs/DISCORD.md);
 //! none was confirmed against a service.
 
 use rune_i18n::{t, tr};

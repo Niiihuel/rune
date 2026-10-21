@@ -1,7 +1,7 @@
 //! Stages: raising a hand, inviting to speak and stepping down, checked
 //! against the session before the request goes. The routes are the ones the
 //! official web client calls (REA of its public bundle, 2026-10-17; see
-//! DISCORD_SESSION.md); Serein has no stages. The Gateway's
+//! docs/DISCORD.md); Serein has no stages. The Gateway's
 //! `VOICE_STATE_UPDATE` confirms every change.
 
 use rune_i18n::es;

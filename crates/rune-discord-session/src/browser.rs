@@ -10,7 +10,7 @@
 //! Apple's). On Windows it is the installed WebView2 (windows-login): a page
 //! in it tells what it reads ([`Engine`]) before anything goes out. The
 //! properties are the ones the web client derives from those (REA of build
-//! 641004 in `docs/REA.md`). Nothing here carries account data.
+//! 641004 in `docs/DISCORD.md`). Nothing here carries account data.
 
 use std::sync::{
     atomic::{AtomicU64, Ordering},

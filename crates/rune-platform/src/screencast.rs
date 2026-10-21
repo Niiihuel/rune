@@ -581,22 +581,6 @@ impl Drop for ScreenCast {
     }
 }
 
-/// Whether the system has a camera to offer; asks no permission.
-pub async fn camera_present(cancel: CancelSignal) -> Result<bool, CaptureError> {
-    camera_present_on(session_bus().await?, cancel).await
-}
-
-async fn camera_present_on(
-    connection: Connection,
-    mut cancel: CancelSignal,
-) -> Result<bool, CaptureError> {
-    let mut portal = Portal::new(connection, &mut cancel).await?;
-    let present = portal
-        .property(CAMERA, "IsCameraPresent", NO_CAMERA, &mut cancel)
-        .await?;
-    bool::try_from(present).map_err(|_| CaptureError::InvalidResponse)
-}
-
 /// Ask the system for the cameras, and open their PipeWire remote. The
 /// system may ask the person first, or answer from what they chose before.
 /// The cameras are released with the remote's descriptor.

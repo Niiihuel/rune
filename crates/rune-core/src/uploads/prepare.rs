@@ -190,7 +190,10 @@ impl PrepareWorker {
                         let _ = result.send(prepared);
                     }
                 })
-                .map_err(|_| UploadError::Failed)?,
+                .map_err(|error| {
+                    eprintln!("rune: could not start the thread that reads attachments: {error}");
+                    UploadError::Failed
+                })?,
         );
         Ok(Self {
             jobs,

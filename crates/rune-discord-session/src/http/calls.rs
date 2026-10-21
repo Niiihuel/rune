@@ -1,5 +1,5 @@
 //! Ringing people to a conversation's call, or stopping it, as the official
-//! web client does (`CALL_RING`, `CALL_STOP_RINGING`; docs/REA.md): one
+//! web client does (`CALL_RING`, `CALL_STOP_RINGING`; docs/DISCORD.md): one
 //! attempt each, never repeated. The Gateway's `CALL_UPDATE` says whom it
 //! rings then. And, before a direct call, whether it may ring (`CALL`,
 //! 2026-10-18). Fixtures only.

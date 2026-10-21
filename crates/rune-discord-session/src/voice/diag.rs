@@ -1,7 +1,7 @@
 //! Diagnostics, always on: one stderr line per step of the account's voice
 //! and stream connections and of the main Gateway's voice requests, so a
-//! failed real call can be reported (docs/DISCORD_SESSION.md says which
-//! lines to send); and of each invitation acceptance (docs/INVITATIONS.md).
+//! failed real call can be reported (docs/DISCORD.md says which
+//! lines to send); and of each invitation acceptance (docs/DISCORD.md).
 //!
 //! A line says what happened and why, never with what: no token, session
 //! id, key, MLS message, user id or the account's own public address. Hosts
