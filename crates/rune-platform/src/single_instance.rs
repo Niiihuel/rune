@@ -86,9 +86,15 @@ fn claim_at(path: &Path, links: &[String]) -> Launch {
         }),
         Ok(Bound::Taken) => match forward(path, links) {
             Ok(()) => Launch::Forwarded,
-            Err(_) => Launch::Alone,
+            Err(error) => {
+                eprintln!("rune: the open RUNE did not answer ({error}); starting another");
+                Launch::Alone
+            }
         },
-        Err(_) => Launch::Alone,
+        Err(error) => {
+            eprintln!("rune: no single-instance socket ({error}); starting alone");
+            Launch::Alone
+        }
     }
 }
 

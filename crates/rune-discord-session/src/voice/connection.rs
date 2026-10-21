@@ -1800,10 +1800,16 @@ impl Connection<'_> {
                     "[::]:0"
                 })
                 .await
-                .map_err(|_| UDP)?;
+                .map_err(|error| {
+                    note!(self.scope, "voice UDP socket failed: {error}");
+                    UDP
+                })?;
                 udp.connect(SocketAddr::new(address, port))
                     .await
-                    .map_err(|_| UDP)?;
+                    .map_err(|error| {
+                        note!(self.scope, "voice UDP connect failed: {error}");
+                        UDP
+                    })?;
                 self.udp = Some(udp);
                 self.discovering = Some(Instant::now() + DISCOVERY_TIMEOUT);
                 self.probes = 0;

@@ -518,8 +518,10 @@ trait OutputStream {
 
 impl OutputStream for cpal::Stream {
     fn play(&self) -> Result<(), MediaError> {
-        StreamTrait::play(self)
-            .map_err(|_| MediaError(t("No se pudo activar la salida de audio.").into()))
+        StreamTrait::play(self).map_err(|error| {
+            eprintln!("rune: speaker: start failed: {error}");
+            MediaError(t("No se pudo activar la salida de audio.").into())
+        })
     }
 }
 
@@ -636,9 +638,10 @@ fn output_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig, M
     });
     match preferred {
         Some(config) => Ok(config),
-        None => device
-            .default_output_config()
-            .map_err(|_| MediaError(t("No se pudo consultar la salida de audio.").into())),
+        None => device.default_output_config().map_err(|error| {
+            eprintln!("rune: speaker: no output format: {error}");
+            MediaError(t("No se pudo consultar la salida de audio.").into())
+        }),
     }
 }
 
@@ -672,7 +675,10 @@ where
             },
             Some(Duration::from_secs(2)),
         )
-        .map_err(|_| MediaError(t("No se pudo abrir la salida de audio elegida.").into()))
+        .map_err(|error| {
+            eprintln!("rune: speaker: open failed: {error}");
+            MediaError(t("No se pudo abrir la salida de audio elegida.").into())
+        })
 }
 
 /// The test chime: 660 Hz then 880 Hz, 200 ms each with 5 ms fades, then

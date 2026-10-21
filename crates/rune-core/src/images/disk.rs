@@ -528,7 +528,9 @@ impl DiskCache {
         if let Some(disk) = self.current() {
             self.then(move || {
                 if let Ok(mut disk) = disk.lock() {
-                    let _ = disk.set_limits(limits);
+                    if let Err(error) = disk.set_limits(limits) {
+                        eprintln!("rune: pictures over the new disk limits stay: {error}");
+                    }
                 }
             });
         }
@@ -551,7 +553,9 @@ impl DiskCache {
                 let disk = opened.disk.clone();
                 self.then(move || {
                     if let Ok(mut disk) = disk.lock() {
-                        let _ = disk.set_limits(limits);
+                        if let Err(error) = disk.set_limits(limits) {
+                            eprintln!("rune: pictures over the new disk limits stay: {error}");
+                        }
                     }
                 });
             }
@@ -587,7 +591,9 @@ impl DiskCache {
         if let Some(disk) = self.current() {
             self.then(move || {
                 if let Ok(mut disk) = disk.lock() {
-                    let _ = disk.clear(part);
+                    if let Err(error) = disk.clear(part) {
+                        eprintln!("rune: could not empty the picture cache on disk: {error}");
+                    }
                 }
             });
         }
