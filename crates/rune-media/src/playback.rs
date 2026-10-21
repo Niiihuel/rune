@@ -379,7 +379,14 @@ struct Egress {
     /// Samples at [`PLAYBACK_RATE`] per output frame, to size the period.
     step: f64,
     shared: Arc<Shared>,
+    /// The last sample played: a dry ring fades from it instead of
+    /// dropping to zero at once, which clicks (2026-10-21).
+    held: f32,
 }
+
+/// How much of the last sample a dry ring keeps each sample: down to a
+/// thousandth in about 3 ms.
+const DRY_DECAY: f32 = 0.95;
 
 impl Egress {
     /// Fill `output` (interleaved), never blocking or allocating.
@@ -388,17 +395,21 @@ impl Egress {
         T: SizedSample + FromSample<f32>,
     {
         let gain = f32::from_bits(self.shared.gain.load(Ordering::Acquire));
-        let (consumer, reference) = (&mut self.consumer, &mut self.reference);
+        let (consumer, reference, held) = (&mut self.consumer, &mut self.reference, &mut self.held);
         let mut missing = 0_u64;
         for frame in output.chunks_mut(self.channels) {
-            // A dry ring plays silence, and the reference gets it too: a
+            // A dry ring fades into silence, and the reference gets it too: a
             // reference that skipped it would run ahead of the speaker, and
             // the canceller would lose the echo's delay (2026-10-19).
             let pulled = self.resampler.next(|| {
-                let sample = consumer.pop().unwrap_or_else(|_| {
-                    missing += 1;
-                    0.0
-                });
+                let sample = match consumer.pop() {
+                    Ok(sample) => sample,
+                    Err(_) => {
+                        missing += 1;
+                        *held * DRY_DECAY
+                    }
+                };
+                *held = sample;
                 // A full reference ring only means nobody is cancelling echo.
                 let _ = reference.push((sample * gain).clamp(-1.0, 1.0));
                 Some(sample)
@@ -480,6 +491,7 @@ fn rings(rate: u32, channels: u16, shared: Arc<Shared>) -> Result<(Egress, Ends)
             channels: usize::from(channels),
             step: f64::from(PLAYBACK_RATE) / f64::from(rate),
             shared,
+            held: 0.0,
         },
         Ends {
             producer,
