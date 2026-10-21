@@ -51,7 +51,7 @@ fuentes predeterminadas de `epaint_default_fonts` y todas las dependencias
 Rust tienen sus avisos en [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md),
 que cada artefacto lleva. No cubre las fuentes del sistema que pueda usar el
 auxiliar de login ni las bibliotecas nativas que pone la distribución.
-Ver [FONTS.md](../../docs/FONTS.md) y [SECURITY.md](../../docs/SECURITY.md).
+Ver [SECURITY.md](../../docs/SECURITY.md#procedencia-de-lo-que-rune-trae).
 
 ## Noto Sans Symbols 2 2.008
 

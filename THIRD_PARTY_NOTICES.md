@@ -111,8 +111,9 @@ persona, con sus propios términos.
 
 ### Recursos propios
 
-Los íconos SVG de `assets/`, el ícono de la aplicación y los sonidos de
-llamada son de RUNE, bajo su misma licencia (ver `docs/ARTWORK.md` y
+Los íconos SVG de `assets/` y el ícono de la aplicación son de RUNE, bajo
+su misma licencia (ver `docs/SECURITY.md`). Los sonidos de llamada y de
+notificación son de Discord y no están bajo la licencia de RUNE (ver
 `assets/licenses/AUDIO-NOTICES.md`).
 
 ### Textos de las licencias de esta sección
