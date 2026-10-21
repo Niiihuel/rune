@@ -11,7 +11,7 @@ use rune_components::server_settings::{
 };
 use rune_components::{gap, line, strong_line, text, time, Look};
 use rune_i18n::{t, tr};
-use rune_model::{ExpressionId, Role, RoleId, Server, UserId};
+use rune_model::{ExpressionId, RemoteImage, Role, RoleId, Server, UserId};
 use rune_provider::ProviderKind;
 use rune_state::{ServerAbilities, Store};
 
@@ -84,6 +84,107 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Option<Element> {
     });
     let root = parts::shell(context.window, metrics, view.sidebar(), region, bar, look);
     Some(view.dialogs(root))
+}
+
+/// The pictures the page shown draws (2026-10-21: the people's rows kept
+/// their initials, as nothing asked for their faces): the faces of the rows
+/// in view, of the first entries of the lists that are not long, the
+/// server's icon on its profile, and the icon of the role open.
+pub(crate) fn wanted(
+    ui: &Ui,
+    store: &Store,
+    tree: &limn::UiTree,
+    add: &mut dyn FnMut(Option<&RemoteImage>),
+) {
+    /// How many entries of a list ask for their faces when its rows are
+    /// not told apart by the regions in view.
+    const LISTED: usize = 50;
+    let Some(settings) = &ui.server_settings else {
+        return;
+    };
+    let Some(server) = store.server(settings.server) else {
+        return;
+    };
+    let id = server.id;
+    // The people whose rows are in view: their controls carry their id
+    // right after `prefix`.
+    let in_view = |prefix: &str| -> Vec<UserId> {
+        tree.frame()
+            .regions
+            .iter()
+            .filter_map(|region| {
+                region
+                    .id
+                    .strip_prefix(prefix)?
+                    .split(':')
+                    .next()?
+                    .parse::<u64>()
+                    .ok()
+                    .map(UserId)
+            })
+            .collect()
+    };
+    match settings.page {
+        Page::Profile => add(server.icon.as_ref()),
+        Page::Members => {
+            for user in in_view("ss:member:") {
+                add(store.avatar_in(Some(id), user));
+            }
+        }
+        Page::Bans => {
+            for user in in_view("ss:ban:") {
+                add(store.avatar_in(Some(id), user));
+            }
+        }
+        Page::Invites => {
+            for user in store
+                .invites(id)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|invite| invite.inviter)
+                .take(LISTED)
+            {
+                add(store.avatar_in(Some(id), user));
+            }
+        }
+        Page::Audit => {
+            let entries = store.audit(id, &settings.audit_query());
+            for entry in entries
+                .map_or(&[][..], |entries| entries.items.as_slice())
+                .iter()
+                .take(LISTED)
+            {
+                add(store.avatar_in(Some(id), entry.actor));
+            }
+        }
+        Page::Roles => {
+            let Some(role) = settings
+                .role
+                .and_then(|role| server.roles.iter().find(|found| found.id == role))
+            else {
+                return;
+            };
+            add(role.style.icon.as_ref());
+            let everyone = role.id == server.everyone_id();
+            if !everyone && settings.tab == RoleTab::Members {
+                for member in store
+                    .members(id)
+                    .iter()
+                    .filter(|member| member.roles.contains(&role.id))
+                    .take(LISTED)
+                {
+                    add(store.avatar_in(Some(id), member.user));
+                }
+            }
+            // The dialog that adds members to it.
+            if settings.add_members.is_some() {
+                for user in in_view("ss:add:") {
+                    add(store.avatar_in(Some(id), user));
+                }
+            }
+        }
+        _ => {}
+    }
 }
 
 /// What every part of the view reads.
@@ -198,7 +299,15 @@ impl View<'_> {
             name: self.name_of(user),
             handle: account.map_or_else(|| user.to_string(), |account| account.name.clone()),
             accent: account.map_or(self.look.faint, |account| self.look.ink(account.accent)),
+            image: self.face(user),
         }
+    }
+
+    /// The picture `user` shows in this server, once loaded; [`wanted`]
+    /// asks for it.
+    fn face(&self, user: UserId) -> Option<limn::RasterImage> {
+        self.ui
+            .picture(self.store.avatar_in(Some(self.server.id), user))
     }
 
     fn role_color(&self, role: &Role) -> limn::Color {
@@ -286,7 +395,8 @@ impl View<'_> {
                 description: shown.description.clone(),
                 online,
                 members: members.len(),
-                picture: self.settings.rest.icon_preview.clone(),
+                // The icon chosen, else the saved one (2026-10-21).
+                picture: self.shown_icon(),
                 traits: self.trait_chips(),
                 // Icon, banner and community (2026-10-19).
                 banner: self.shown_banner(),
@@ -917,6 +1027,7 @@ impl View<'_> {
                         handle,
                         ink,
                         accent: person.accent,
+                        image: person.image,
                         owner: self.server.owner == Some(*user),
                         roles: theirs,
                         choices,
@@ -1200,6 +1311,7 @@ impl View<'_> {
                         id: format!("ss:audit:{}", entry.id),
                         actor: actor.name.clone(),
                         accent: actor.accent,
+                        image: actor.image.clone(),
                         kind: AuditKind::of(&entry.action),
                         sentence: audit_sentence(&actor.name, &entry.action, &person),
                         when: time::stamp(entry.when, context.wall),

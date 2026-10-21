@@ -14,7 +14,9 @@ use rune_components::server_settings::{
 };
 use rune_components::{gap, line, text, Look};
 use rune_i18n::{t, tr};
-use rune_model::{Channel, ChannelKind, OverwriteTarget, Permissions, Role, Server, UserId};
+use rune_model::{
+    Channel, ChannelKind, OverwriteTarget, Permissions, RemoteImage, Role, Server, UserId,
+};
 use rune_provider::ProviderKind;
 use rune_state::{Abilities, Store};
 
@@ -47,6 +49,7 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Option<Element> {
         metrics,
         advanced: ui.advanced_permissions,
         developer: ui.prefs.developer,
+        ui,
     };
     let region = match settings.page {
         Page::Overview => view.overview(),
@@ -78,6 +81,83 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Option<Element> {
     Some(view.dialogs(root, context.window.width))
 }
 
+/// The people the ⊕ popout offers: those not listed yet whose name or
+/// handle has what is searched, by name. Only the first few that match:
+/// typing narrows them, and the provider is asked for the people it has
+/// not sent yet (`lookup`).
+fn offered_people(
+    settings: &ChannelSettings,
+    store: &Store,
+    channel: &Channel,
+    server: &Server,
+) -> Vec<(String, UserId)> {
+    let query = settings.add_query.trim().to_lowercase();
+    let listed = settings.listed(channel);
+    let handle = |user: UserId| {
+        store
+            .user(user)
+            .map_or_else(|| user.to_string(), |account| account.name.clone())
+    };
+    let mut people: Vec<(String, UserId)> = store
+        .members(server.id)
+        .iter()
+        .filter(|member| !listed.contains(&OverwriteTarget::Member(member.user)))
+        .map(|member| {
+            (
+                store.display_name(member.user, Some(server.id)),
+                member.user,
+            )
+        })
+        .filter(|(name, user)| {
+            name.to_lowercase().contains(&query) || handle(*user).to_lowercase().contains(&query)
+        })
+        .collect();
+    people.sort_by_key(|(name, _)| name.to_lowercase());
+    people.truncate(8);
+    people
+}
+
+/// The faces the permissions page draws (2026-10-21: they kept their
+/// initials): the server's owner, the people with an overwrite, and while
+/// the ⊕ popout is open, the people it offers.
+pub(crate) fn wanted(ui: &Ui, store: &Store, add: &mut dyn FnMut(Option<&RemoteImage>)) {
+    /// How many people with an overwrite ask for their faces.
+    const LISTED: usize = 50;
+    let Some(settings) = ui
+        .channel_settings
+        .as_ref()
+        .filter(|settings| settings.page == Page::Permissions)
+    else {
+        return;
+    };
+    let Some(channel) = store.channel(settings.channel) else {
+        return;
+    };
+    let Some(server) = channel.server.and_then(|server| store.server(server)) else {
+        return;
+    };
+    let id = Some(server.id);
+    if let Some(owner) = server.owner {
+        add(store.avatar_in(id, owner));
+    }
+    for user in settings
+        .listed(channel)
+        .into_iter()
+        .filter_map(|target| match target {
+            OverwriteTarget::Member(user) => Some(user),
+            OverwriteTarget::Role(_) => None,
+        })
+        .take(LISTED)
+    {
+        add(store.avatar_in(id, user));
+    }
+    if settings.adding {
+        for (_, user) in offered_people(settings, store, channel, server) {
+            add(store.avatar_in(id, user));
+        }
+    }
+}
+
 /// What every part of the view reads.
 struct View<'a> {
     settings: &'a ChannelSettings,
@@ -90,6 +170,8 @@ struct View<'a> {
     advanced: bool,
     /// Developer mode: the menus offer to copy ids.
     developer: bool,
+    /// For the people's pictures already loaded.
+    ui: &'a Ui,
 }
 
 impl View<'_> {
@@ -330,6 +412,13 @@ impl View<'_> {
             .map_or(self.look.faint, |account| self.look.ink(account.accent))
     }
 
+    /// The picture `user` shows in this server, once loaded; [`wanted`]
+    /// asks for it.
+    fn image_of(&self, user: UserId) -> Option<limn::RasterImage> {
+        self.ui
+            .picture(self.store.avatar_in(Some(self.server.id), user))
+    }
+
     fn handle_of(&self, user: UserId) -> String {
         self.store
             .user(user)
@@ -448,6 +537,7 @@ impl View<'_> {
                     detail: t("Rol").into(),
                     color: self.role_color(self.role(target)),
                     person: false,
+                    image: None,
                     note: None,
                     remove: target_lock(self.store, self.channel, target)
                         .is_none()
@@ -467,6 +557,7 @@ impl View<'_> {
                 detail: self.handle_of(user),
                 color: self.accent_of(user),
                 person: true,
+                image: self.image_of(user),
                 note: Some(t("Propietario del servidor").into()),
                 remove: None,
             })
@@ -486,6 +577,7 @@ impl View<'_> {
                 detail: self.handle_of(user),
                 color: self.accent_of(user),
                 person: true,
+                image: self.image_of(user),
                 note: None,
                 remove: target_lock(self.store, self.channel, target)
                     .is_none()
@@ -517,7 +609,9 @@ impl View<'_> {
                     OverwriteTarget::Role(_) => {
                         TargetMark::Role(self.role_color(self.role(target)))
                     }
-                    OverwriteTarget::Member(user) => TargetMark::Member(self.accent_of(user)),
+                    OverwriteTarget::Member(user) => {
+                        TargetMark::Member(self.accent_of(user), self.image_of(user))
+                    }
                 };
                 let mut menu = if target == everyone {
                     Vec::new()
@@ -634,27 +728,16 @@ impl View<'_> {
                 name: role.name.clone(),
                 color: self.role_color(Some(role)),
                 person: false,
+                image: None,
             })
             .collect();
-        let mut people: Vec<(String, UserId)> = self
-            .store
-            .members(self.server.id)
-            .iter()
-            .filter(|member| !listed.contains(&OverwriteTarget::Member(member.user)))
-            .map(|member| (self.name_of(member.user), member.user))
-            .filter(|(name, user)| {
-                name.to_lowercase().contains(&query)
-                    || self.handle_of(*user).to_lowercase().contains(&query)
-            })
-            .collect();
-        people.sort_by_key(|(name, _)| name.to_lowercase());
-        // The first few that match: typing narrows them, and the provider is
-        // asked for the people it has not sent yet (`lookup`).
-        choices.extend(people.into_iter().take(8).map(|(name, user)| AddChoice {
+        let people = offered_people(settings, self.store, channel, self.server);
+        choices.extend(people.into_iter().map(|(name, user)| AddChoice {
             id: format!("cs:add:member:{user}"),
             name,
             color: self.accent_of(user),
             person: true,
+            image: self.image_of(user),
         }));
         choices
     }

@@ -4,7 +4,7 @@
 
 use limn::Element;
 
-use rune_components::updates::{ids, Stage};
+use rune_components::updates::{ids, release_notes, Stage};
 use rune_components::{line, time, user_settings as parts};
 use rune_i18n::{es, t, tr};
 
@@ -27,6 +27,10 @@ pub(super) const SECTIONS: &[Section] = &[Section {
         (
             "update-at-start",
             es("buscar al iniciar abrir comprobar automáticamente obligatoria"),
+        ),
+        (
+            "update-notes",
+            es("novedades notas cambios versión github imágenes videos"),
         ),
     ],
 }];
@@ -115,6 +119,33 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             None,
             look,
         ),
+        // What the release brought, as its page on GitHub says it; the
+        // page itself has its pictures and videos.
+        "update-notes" => {
+            let (version, notes) = updates.shown_notes()?;
+            if notes.trim().is_empty() {
+                return None;
+            }
+            let width = ctx.geometry.column;
+            Element::column(vec![
+                parts::setting(
+                    &tr!("Novedades de RUNE {version}", version = version),
+                    None,
+                    None,
+                    true,
+                    look,
+                ),
+                release_notes(version, notes, width, look),
+                Element::row(vec![parts::secondary_button(
+                    ids::ON_GITHUB,
+                    t("Ver en GitHub"),
+                    true,
+                    look,
+                )]),
+                Element::spacer().size(None, Some(12.0)),
+            ])
+            .gap(10.0)
+        }
         _ => return None,
     })
 }

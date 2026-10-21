@@ -142,6 +142,10 @@ pub fn wanted_images(ui: &Ui, store: &Store, tree: &UiTree) -> Vec<RemoteImage> 
             .filter(|_| page == crate::server_settings::Page::Profile)
             .and_then(|server| server.options.banner.as_ref()));
     }
+    // The faces of the people the settings list, the server's icon and a
+    // role's (2026-10-21).
+    crate::server_settings::wanted(ui, store, tree, &mut add);
+    crate::channel_settings::wanted(ui, store, &mut add);
     // The open group's picture, in its header and its dialog.
     add(ui
         .channel()

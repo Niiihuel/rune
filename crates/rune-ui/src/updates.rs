@@ -26,6 +26,9 @@ pub struct Updates {
     pub error: Option<String>,
     /// The newer release, and where its installation stands.
     pub offered: Option<UpdateView>,
+    /// The latest release the last check found, newer or not: its version
+    /// and notes, for Ajustes › Actualizaciones to say what it brought.
+    pub latest: Option<(String, String)>,
     /// «Más tarde»: no notice until the next start; the settings still
     /// offer it.
     pub later: bool,
@@ -42,9 +45,25 @@ impl Default for Updates {
             checked: None,
             error: None,
             offered: None,
+            latest: None,
             later: false,
             notes_open: false,
         }
+    }
+}
+
+impl Updates {
+    /// The notes Ajustes › Actualizaciones shows, with their version: the
+    /// update offered's, else those of the version installed when the last
+    /// check found it is the latest.
+    pub fn shown_notes(&self) -> Option<(&str, &str)> {
+        if let Some(offered) = &self.offered {
+            return Some((offered.version.as_str(), offered.notes.as_str()));
+        }
+        self.latest
+            .as_ref()
+            .filter(|(version, _)| version == env!("CARGO_PKG_VERSION"))
+            .map(|(version, notes)| (version.as_str(), notes.as_str()))
     }
 }
 
@@ -78,6 +97,13 @@ pub(crate) fn update(ui: &mut Ui, action: &UiAction) -> Option<Vec<Intent>> {
             updates.notes_open = !updates.notes_open;
             Vec::new()
         }
+        // Its page on GitHub, with the pictures and videos of its notes.
+        ids::ON_GITHUB => match updates.shown_notes() {
+            Some((version, _)) => vec![Intent::OpenUrl(rune_components::updates::release_page(
+                version,
+            ))],
+            None => Vec::new(),
+        },
         ids::AT_START => {
             updates.at_start = !updates.at_start;
             vec![Intent::CheckUpdatesAtStart(updates.at_start)]
@@ -117,6 +143,26 @@ mod tests {
             notes: "Notas.".into(),
             stage,
         })
+    }
+
+    #[test]
+    fn the_notes_shown_are_the_offered_ones_else_the_installed_version_s() {
+        let mut ui = Ui::new();
+        assert_eq!(ui.updates.shown_notes(), None);
+        assert_eq!(click(&mut ui, ids::ON_GITHUB), Some(Vec::new()));
+        ui.updates.latest = Some(("0.0.1".into(), "Vieja.".into()));
+        assert_eq!(ui.updates.shown_notes(), None, "not this version's");
+        let installed = env!("CARGO_PKG_VERSION");
+        ui.updates.latest = Some((installed.into(), "Lo nuevo.".into()));
+        assert_eq!(ui.updates.shown_notes(), Some((installed, "Lo nuevo.")));
+        ui.updates.offered = offered(Stage::Offered);
+        assert_eq!(ui.updates.shown_notes(), Some(("1.2.0", "Notas.")));
+        assert_eq!(
+            click(&mut ui, ids::ON_GITHUB),
+            Some(vec![Intent::OpenUrl(
+                "https://github.com/Niiihuel/rune/releases/tag/v1.2.0".into()
+            )])
+        );
     }
 
     #[test]

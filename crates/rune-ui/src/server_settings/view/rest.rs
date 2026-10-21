@@ -357,6 +357,16 @@ impl View<'_> {
         }
     }
 
+    /// The icon the card shows: the one chosen, else the server's own
+    /// unless it is being taken away.
+    pub(super) fn shown_icon(&self) -> Option<limn::RasterImage> {
+        match &self.settings.profile.icon {
+            Some(Some(_)) => self.settings.rest.icon_preview.clone(),
+            Some(None) => None,
+            None => self.ui.image(&self.server.icon),
+        }
+    }
+
     /// The banner's buttons on the profile, where the provider has banners,
     /// and what the server's boosts say of moving ones.
     fn banner_fields(&self) -> Vec<Element> {
@@ -643,7 +653,11 @@ impl View<'_> {
                 Element::raster_image(preview.clone()).size(Some(32.0), Some(32.0))
             }
             (None, Some(emoji), _) => line(emoji.clone(), 24.0, look.text),
-            (None, None, Some(_)) => line(t("Imagen"), 13.0, look.muted),
+            // The saved picture once loaded; `wanted` asks for it.
+            (None, None, Some(icon)) => match self.ui.picture(Some(icon)) {
+                Some(picture) => Element::raster_image(picture).size(Some(32.0), Some(32.0)),
+                None => line(t("Imagen"), 13.0, look.muted),
+            },
             (None, None, None) => line(t("Sin ícono"), 13.0, look.muted),
         };
         let gradient_can = can && gradients.is_none();
