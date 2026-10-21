@@ -1843,7 +1843,7 @@ impl DiscordSessionProvider {
                 mut secret,
             } = saved;
             let Ok(secret) = SessionSecret::try_from_local(std::mem::take(&mut *secret)) else {
-                let _ = secrets.delete(SERVICE, &account).await;
+                discard(&*secrets, &account).await;
                 return Ok(Step::Revoked(secrets.list(SERVICE).await.ok()));
             };
             match http.identity(&secret).await {
@@ -1852,7 +1852,7 @@ impl DiscordSessionProvider {
                     if !restored {
                         // Saved under the wrong account: it is saved again
                         // under its own once verified.
-                        let _ = secrets.delete(SERVICE, &account).await;
+                        discard(&*secrets, &account).await;
                     }
                     Ok(Step::Verified {
                         secret,
@@ -1861,7 +1861,7 @@ impl DiscordSessionProvider {
                     })
                 }
                 Err(error) if error.ends_session => {
-                    let _ = secrets.delete(SERVICE, &account).await;
+                    discard(&*secrets, &account).await;
                     Ok(Step::Revoked(secrets.list(SERVICE).await.ok()))
                 }
                 Err(error) => Ok(Step::Unrestored {
@@ -2929,6 +2929,14 @@ async fn fail_invitation(
         .await?;
     }
     Ok(())
+}
+
+/// Drop a saved session restore cannot use. A keyring that refuses keeps
+/// it and tries it again next start, so the log says why.
+async fn discard(secrets: &dyn SecretStore, account: &str) {
+    if let Err(error) = secrets.delete(SERVICE, account).await {
+        eprintln!("rune: an unusable saved session stays in the keyring: {error}");
+    }
 }
 
 async fn emit(events: &EventSink, event: Event) -> Result<(), ProviderError> {
