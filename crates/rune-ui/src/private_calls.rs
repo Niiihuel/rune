@@ -524,7 +524,11 @@ pub(crate) fn call_view(
     look: &Look,
     width: f32,
 ) -> Option<Element> {
-    let channel = ui.channel().filter(|channel| callable(store, *channel))?;
+    // While the call takes the stage, its chat beside it does not draw it
+    // again (2026-10-21: the tiles and the bar showed twice).
+    let channel = ui
+        .channel()
+        .filter(|channel| callable(store, *channel) && ui.voice.stage != Some(*channel))?;
     let private = private_stage(ui, store, channel, look)?;
     // Cameras take more of the conversation than faces do.
     let video = ui.video.camera.on

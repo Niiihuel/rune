@@ -158,12 +158,13 @@ En Ajustes › Sistema:
   `~/.config/rune/decorations` (`hidden`: la de RUNE; `shown`: la del
   sistema; sin archivo: automática). `--title-bar auto|rune|system` la
   elige para una ejecución sin guardarla.
-- **Ícono de la aplicación**: la runa blanca sobre la placa ámbar que hizo
-  el dueño (`assets/icons/rune.png` y `assets/icons/hicolor`; 16 y 24 px
-  con el trazo de `rune-small.svg`). La ventana lo fija a 256 px; X11 y
+- **Ícono de la aplicación**: la R de tres bloques en blanco sobre la placa
+  roja (`assets/icons/rune.png` y `assets/icons/hicolor`, desde
+  `icons/rune.svg`; 16, 24 y 32 px desde `rune-small.svg`, con la marca en
+  píxeles enteros). La ventana lo fija a 256 px; X11 y
   Windows lo muestran en la barra de tareas. Wayland lo busca por el
   `app_id` (`rune`) en la entrada del menú, y `rune --install` instala cada
-  tamaño en `~/.local/share/icons/hicolor`. La marca de trazo
+  tamaño en `~/.local/share/icons/hicolor`. La marca
   (`assets/rune-mark.svg`) es un glifo de la interfaz.
 - **Gráficos › Dibujar con**: Automático (en una laptop con dos GPU, la que
   maneja la pantalla) o cada fabricante que sysfs muestra (dos del mismo

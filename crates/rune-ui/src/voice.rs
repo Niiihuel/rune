@@ -52,6 +52,8 @@ pub struct Voice {
 const CHAT_FROM: f32 = 720.0;
 /// The narrowest the chat beside the stage gets.
 const CHAT_MIN: f32 = 320.0;
+/// What the stage keeps however wide the chat is dragged.
+const STAGE_KEEPS: f32 = 400.0;
 
 /// A person's menu: on whom, where they are, and where it opened.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -238,13 +240,19 @@ fn chat_denied(store: &Store, channel: ChannelId, width: f32) -> Option<String> 
     }
 }
 
-/// How wide the chat beside the stage is, out of `width`, while it shows.
+/// How wide the chat beside the stage is, out of `width`, while it shows:
+/// as wide as it was dragged, leaving the stage its room.
 pub(crate) fn chat_width(ui: &Ui, store: &Store, width: f32) -> Option<f32> {
     let stage = ui.voice.stage?;
     (ui.voice.chat.is_some()
         && ui.channel() == Some(stage)
         && chat_denied(store, stage, width).is_none())
-    .then(|| (width * 0.4).clamp(CHAT_MIN, 440.0))
+    .then(|| {
+        ui.prefs
+            .call_chat_width
+            .min(width - STAGE_KEEPS)
+            .max(CHAT_MIN)
+    })
 }
 
 /// Show the stage's channel's chat beside it, or hide it and go back to the
@@ -316,12 +324,17 @@ fn number(id: &str, prefix: &str) -> Option<u64> {
 }
 
 /// The channel `user` is in, as shown: their voice state, or the account's
-/// call before the provider confirms it.
+/// call before the provider confirms it. The account's call first, so that
+/// a direct call, in no server, is found too (2026-10-21: its people had no
+/// menu).
 fn channel_of(store: &Store, user: UserId) -> Option<ChannelId> {
-    let call = store
-        .call()
-        .filter(|_| store.me() == Some(user))
-        .map(|call| call.channel);
+    let call = store.call().map(|call| call.channel).filter(|channel| {
+        store.me() == Some(user)
+            || store
+                .voice_in(*channel)
+                .iter()
+                .any(|state| state.user == user)
+    });
     call.or_else(|| {
         store
             .servers()
@@ -500,7 +513,8 @@ pub(crate) fn update(
     })
 }
 
-/// A secondary click on someone in a voice channel opens their menu there.
+/// A secondary click on someone in a voice channel opens their menu there:
+/// on their row, their tile (their camera too) or a control on the tile.
 /// `None` when it was not on one.
 pub(crate) fn secondary_click(
     ui: &mut Ui,
@@ -508,7 +522,12 @@ pub(crate) fn secondary_click(
     target: &str,
     at: Point,
 ) -> Option<Vec<Intent>> {
-    let (user, row) = match (number(target, "vz:user:"), number(target, "vz:tile:")) {
+    let on_tile = || {
+        ["vz:tile:", "vz:tile-more:", "vz:watch:"]
+            .into_iter()
+            .find_map(|prefix| number(target, prefix))
+    };
+    let (user, row) = match (number(target, "vz:user:"), on_tile()) {
         (Some(user), _) => (UserId(user), true),
         (_, Some(user)) => (UserId(user), false),
         _ => return None,

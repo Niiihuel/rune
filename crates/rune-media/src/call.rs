@@ -159,7 +159,18 @@ impl CallMedia {
                         // Asleep too long: skip the missed ticks.
                         deadline = now;
                     }
-                    thread::park_timeout(deadline - now);
+                    // Never a tick before its time: one early takes a packet
+                    // before its turn and the speaker runs dry (2026-10-21:
+                    // a sound handed over woke it early). `sleep` waits on a
+                    // high-resolution timer on Windows, where parking rounds
+                    // up to the system's 15.6 ms tick.
+                    loop {
+                        let now = Instant::now();
+                        if now >= deadline || worker_shared.shutdown.load(Ordering::Acquire) {
+                            break;
+                        }
+                        thread::sleep(deadline - now);
+                    }
                 }
             })
             .map_err(|_| MediaError(t("No se pudo iniciar el audio de la llamada.").into()))?;

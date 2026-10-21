@@ -1,5 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M7 3v18"/>
-  <path d="M7 4l9 4.5L7 13"/>
-  <path d="M7 13l10 8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- RUNE's mark: an R of three blocks at 45 degrees on a 10 x 8 grid
+       (the upper band, the long band and the foot), 2.2 units a cell. -->
+  <path d="M7.6 3.2L14.2 3.2L20.8 9.8L14.2 9.8Z"/>
+  <path d="M1 5.4L7.6 5.4L23 20.8L16.4 20.8Z"/>
+  <path d="M1 12L7.6 12L7.6 20.8L1 20.8Z"/>
 </svg>

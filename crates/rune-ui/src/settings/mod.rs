@@ -195,6 +195,8 @@ pub struct Prefs {
     /// The widths of the column of channels and of the member list.
     pub sidebar_width: f32,
     pub members_width: f32,
+    /// The width of a call's chat beside its stage.
+    pub call_chat_width: f32,
     /// Server channels shown first, and direct conversations pinned on top,
     /// the newest first; only on this device.
     pub favorites: Vec<ChannelId>,
@@ -383,6 +385,7 @@ impl Default for Prefs {
             ui_font: None,
             sidebar_width: rune_components::sidebar::WIDTH,
             members_width: rune_components::members::WIDTH,
+            call_chat_width: 400.0,
             favorites: Vec::new(),
             pinned: Vec::new(),
             show_hidden: false,
@@ -1645,6 +1648,7 @@ mod tests {
             ui_font: Some("Inter".into()),
             sidebar_width: 300.0,
             members_width: 260.0,
+            call_chat_width: 520.0,
             favorites: vec![ChannelId(3), ChannelId(1)],
             pinned: vec![ChannelId(9)],
             show_hidden: true,

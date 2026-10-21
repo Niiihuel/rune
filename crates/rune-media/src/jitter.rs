@@ -5,7 +5,9 @@
 //! starts once [`START`] packets wait (40 ms), puts late arrivals back in
 //! order, drops duplicates and packets already played, and reports a gap as
 //! [`Popped::Lost`] (with the next packet, for FEC) at most [`MAX_CONCEALED`]
-//! times in a row. After that the stream counts as stopped and buffers again.
+//! times in a row. A gap with nothing waiting is concealed in place, waiting
+//! for the late packet. After that the stream counts as stopped and buffers
+//! again.
 
 use crate::codec::MAX_PACKET;
 
@@ -116,22 +118,29 @@ impl Jitter {
             self.started = true;
             return self.pop();
         }
-        self.next = Some(next.wrapping_add(1));
         if let Some(packet) = self.take(next) {
+            self.next = Some(next.wrapping_add(1));
             self.concealed = 0;
             return Popped::Packet(packet);
         }
-        if self.waiting() == 0 || self.concealed >= MAX_CONCEALED {
-            // Nothing coming: the speaker paused. Buffer again before playing.
+        if self.concealed >= MAX_CONCEALED {
+            // Nothing came in time: the speaker paused. Buffer again before
+            // playing.
             self.started = false;
             self.concealed = 0;
-            if self.waiting() == 0 {
-                self.next = None;
-            }
+            self.next = (self.waiting() > 0).then(|| next.wrapping_add(1));
             return Popped::Empty;
         }
         self.concealed += 1;
         self.stats.lost += 1;
+        if self.waiting() == 0 {
+            // Dry in the middle of speech: conceal in the late packet's place
+            // and wait for it, so it still plays when it comes (the delay
+            // grows by a packet), instead of cutting to silence, which clicks
+            // (2026-10-21: an unstable connection crackled).
+            return Popped::Lost { next: None };
+        }
+        self.next = Some(next.wrapping_add(1));
         let following = next.wrapping_add(1);
         Popped::Lost {
             next: self.slots[usize::from(following) % SLOTS]
@@ -230,10 +239,29 @@ mod tests {
         assert_eq!(jitter.pop(), Popped::Empty, "no endless concealment");
         jitter.push(8, packet(8));
         assert_eq!(played(&mut jitter, 2), [Some(7), Some(8)]);
-        assert_eq!(jitter.pop(), Popped::Empty, "a pause is silence");
+        assert_eq!(
+            played(&mut jitter, 3),
+            [None, None, None],
+            "dry, it conceals while a late packet may still come"
+        );
+        assert_eq!(jitter.pop(), Popped::Empty, "then a pause is silence");
         jitter.push(40, packet(40));
         jitter.push(41, packet(41));
         assert_eq!(played(&mut jitter, 2), [Some(40), Some(41)]);
+    }
+
+    #[test]
+    fn a_packet_late_while_the_buffer_is_dry_is_concealed_then_played() {
+        let mut jitter = Jitter::default();
+        jitter.push(1, packet(1));
+        jitter.push(2, packet(2));
+        assert_eq!(played(&mut jitter, 2), [Some(1), Some(2)]);
+        // 3 is late: its tick is concealed instead of cut to silence.
+        assert_eq!(jitter.pop(), Popped::Lost { next: None });
+        assert!(jitter.push(3, packet(3)), "still its turn");
+        jitter.push(4, packet(4));
+        assert_eq!(played(&mut jitter, 2), [Some(3), Some(4)]);
+        assert_eq!(jitter.stats.late, 0);
     }
 
     #[test]

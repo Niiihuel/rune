@@ -24,6 +24,12 @@ pub const STREAM_SOUND: u64 = 1 << 63;
 const SPEAKING_RMS: f32 = 0.01;
 /// ...and for this many ticks after: 300 ms.
 const SPEAKING_HOLD: u8 = 15;
+/// A source that starts or stops ramps over this many samples (2 ms)
+/// instead of jumping, which clicks.
+const FADE: usize = 96;
+/// Past this level the mix bends smoothly towards 1 instead of being cut
+/// flat, which crackles.
+const KNEE: f32 = 0.9;
 
 struct Source {
     key: u64,
@@ -34,9 +40,35 @@ struct Source {
     start: usize,
     end: usize,
     speaking: u8,
+    /// The last sample played, while it played last tick.
+    last: Option<f32>,
 }
 
 impl Source {
+    /// One frame of this source, ramped where it starts and stops; `false`
+    /// while it has nothing to play.
+    fn faded(&mut self, out: &mut [f32; FRAME]) -> bool {
+        if self.next(out) {
+            if self.last.is_none() {
+                for (n, sample) in out.iter_mut().take(FADE).enumerate() {
+                    *sample *= (n + 1) as f32 / FADE as f32;
+                }
+            }
+            self.last = Some(out[FRAME - 1]);
+            return true;
+        }
+        match self.last.take() {
+            Some(tail) if tail != 0.0 => {
+                out.fill(0.0);
+                for (n, sample) in out.iter_mut().take(FADE).enumerate() {
+                    *sample = tail * (1.0 - (n + 1) as f32 / FADE as f32);
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
     /// One frame of this source, or `false` while it has nothing to play.
     /// Packets shorter than a tick are decoded until a frame fills, up to
     /// eight per tick; longer ones leave samples for the next ticks.
@@ -110,6 +142,7 @@ impl Mixer {
                     start: 0,
                     end: 0,
                     speaking: 0,
+                    last: None,
                 });
                 self.sources.len() - 1
             }
@@ -153,7 +186,7 @@ impl Mixer {
         let mut heard = false;
         let mut frame = [0.0; FRAME];
         for source in &mut self.sources {
-            if !source.next(&mut frame) {
+            if !source.faded(&mut frame) {
                 source.speaking = source.speaking.saturating_sub(1);
                 continue;
             }
@@ -175,10 +208,11 @@ impl Mixer {
                 *sum += sample * volume;
             }
         }
-        // Hard clip: several loud people at once must not wrap around.
+        // Several loud people at once must not wrap around: past the knee
+        // the sum bends towards 1, never past it.
         for sample in out.iter_mut() {
             *sample = if sample.is_finite() {
-                sample.clamp(-1.0, 1.0)
+                soft_clip(*sample)
             } else {
                 0.0
             };
@@ -205,10 +239,67 @@ impl Mixer {
     }
 }
 
+/// `sample` as it is up to [`KNEE`], then bent smoothly towards ±1.
+fn soft_clip(sample: f32) -> f32 {
+    let level = sample.abs();
+    if level <= KNEE {
+        return sample;
+    }
+    let room = 1.0 - KNEE;
+    (KNEE + room * ((level - KNEE) / room).tanh()).copysign(sample)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::codec::Encoder;
+
+    #[test]
+    fn the_mix_bends_past_the_knee_and_never_passes_one() {
+        assert_eq!(soft_clip(0.5), 0.5);
+        assert_eq!(soft_clip(-KNEE), -KNEE);
+        for level in [0.95f32, 1.0, 1.5, 4.0, 100.0] {
+            let bent = soft_clip(level);
+            // Far past the knee it reaches full scale, never past it.
+            assert!(bent > KNEE && bent <= 1.0, "{level}: {bent}");
+            assert_eq!(soft_clip(-level), -bent);
+        }
+        assert!(
+            soft_clip(1.0) < 1.0,
+            "a sum just past full scale is bent, not flat"
+        );
+        assert!(soft_clip(1.5) > soft_clip(1.0), "louder stays louder");
+    }
+
+    #[test]
+    fn a_source_that_stops_ramps_down_instead_of_jumping_to_silence() {
+        let mut mixer = Mixer::default();
+        let mut encoder = Encoder::new().unwrap();
+        let mut out = [0.0; FRAME];
+        for frame in 0..6u16 {
+            mixer.push(1, frame, voice(&mut encoder, 0.8, frame.into()));
+        }
+        // Everything it had plays, concealed while it might still come,
+        // then it stops: the first silent tick starts from where the sound
+        // was and ramps to zero.
+        let mut previous = 0.0;
+        let mut stopped = false;
+        for _ in 0..12 {
+            let heard = mixer.mix(&mut out);
+            if !heard {
+                stopped = true;
+                continue;
+            }
+            assert!(
+                (out[0] - previous).abs() < 0.25,
+                "no jump between ticks: {previous} -> {}",
+                out[0]
+            );
+            previous = out[FRAME - 1];
+        }
+        assert!(stopped, "it stops in the end");
+        assert!(out.iter().all(|sample| *sample == 0.0));
+    }
 
     fn voice(encoder: &mut Encoder, amplitude: f32, frame: usize) -> Vec<u8> {
         let pcm: [f32; FRAME] = std::array::from_fn(|n| {

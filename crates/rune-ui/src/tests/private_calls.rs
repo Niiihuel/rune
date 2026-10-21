@@ -267,6 +267,38 @@ fn a_direct_call_asks_for_the_cameras_on_its_tiles_under_the_header() {
     // 2026-10-21: only a voice channel's stage asked for them, and a
     // direct call's tiles kept showing faces.
     assert_eq!(crate::video::cameras(&host.ui, &host.store), vec![other]);
+    // A secondary click on their tile, on a mark of it too, opens their menu
+    // (their volume, silencing them for the account).
+    for target in [
+        voice_ids::tile(other.0),
+        format!("{}:muted", voice_ids::tile(other.0)),
+    ] {
+        host.ui.voice.menu = None;
+        let opened = crate::voice::secondary_click(
+            &mut host.ui,
+            &host.store,
+            &target,
+            Point::new(40.0, 40.0),
+        );
+        assert!(opened.is_some(), "{target}");
+        assert!(
+            host.ui
+                .voice
+                .menu
+                .is_some_and(|menu| menu.user == other && menu.channel == direct),
+            "{target}"
+        );
+    }
+    host.ui.voice.menu = None;
+    // On the stage, with its chat beside it, the chat does not draw the
+    // call again.
+    host.ui.voice.stage = Some(direct);
+    let look = host.ui.look();
+    let context = host.context();
+    assert!(
+        crate::private_calls::call_view(&host.ui, &host.store, &context, &look, 400.0).is_none()
+    );
+    assert_eq!(crate::video::cameras(&host.ui, &host.store), vec![other]);
 }
 
 #[test]

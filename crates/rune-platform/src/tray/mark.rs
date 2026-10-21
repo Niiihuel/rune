@@ -1,9 +1,9 @@
-//! RUNE's icon (`assets/icons/hicolor`: the white rune on its amber tile)
+//! RUNE's icon (`assets/icons/hicolor`: the white mark on its red tile)
 //! as the tray's pixmaps, at whatever size the tray asks for, with a red
 //! dot for mentions.
 
-/// The icon as drawn for each size, smallest first: 16 and 24 with a
-/// thicker rune, which would turn thinner than a pixel there.
+/// The icon as drawn for each size, smallest first: 16 and 24 with the
+/// tile filling the box and the mark on whole pixels.
 const DRAWN: [(usize, &[u8]); 6] = [
     (
         16,
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn the_icon_is_amber_with_a_white_rune_at_any_size_and_the_dot_red() {
+    fn the_icon_is_red_with_a_white_mark_at_any_size_and_the_dot_red() {
         for size in [16, 20, 22, 24, 32, 40, 48, 64, 128] {
             let plain = pixmap(size, false);
             assert_eq!((plain.0, plain.1), (size as i32, size as i32));
@@ -187,12 +187,11 @@ mod tests {
                 at(&plain, 0, 0)[0] < 16,
                 "{size}: a rounded corner is clear"
             );
-            // Amber at the tile's lower right, past the rune.
-            // The owner's tile lets 1 % through; 16 and 24 are opaque.
-            let [alpha, red, green, blue] = at(&plain, size * 3 / 4, size * 3 / 4);
+            // Red at the tile's foot, under the mark and clear of its edge.
+            let [alpha, red, green, blue] = at(&plain, size / 2, size * 13 / 16);
             assert!(alpha > 240, "{size}: {alpha}");
             assert!(
-                red > 180 && green > 100 && blue < 90,
+                red > 180 && green < 90 && blue < 90,
                 "{size}: {red} {green} {blue}"
             );
             // The rune, white.

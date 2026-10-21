@@ -150,7 +150,7 @@ fn deafen_and_zero_volume_silence_the_output_and_its_reference() {
 }
 
 #[test]
-fn underruns_are_silence_counted_only_while_a_source_plays_and_kept_in_the_reference() {
+fn underruns_fade_counted_only_while_a_source_plays_and_kept_in_the_reference() {
     let shared = shared(1.0);
     let (mut egress, mut ends) = rings(48_000, 2, shared.clone()).unwrap();
     assert!(render(&mut egress, 8).iter().all(|value| *value == 0.0));
@@ -164,14 +164,21 @@ fn underruns_are_silence_counted_only_while_a_source_plays_and_kept_in_the_refer
     ends.producer.push(0.25).unwrap();
     let output = render(&mut egress, 8);
     assert_eq!(output[2], 0.25);
-    assert!(output[6..].iter().all(|value| *value == 0.0));
+    // Dry, it fades from the last sample instead of dropping to zero.
+    assert!(output[6] > 0.0 && output[6] < 0.25, "{}", output[6]);
+    assert!(output[6..]
+        .chunks(2)
+        .zip(output[8..].chunks(2))
+        .all(|(before, after)| after[0] < before[0]));
     assert_eq!(shared.underruns.load(Ordering::Relaxed), 6);
     // The reference keeps the speaker's timeline: idle, then the two
-    // samples, then the gap, each where it played.
+    // samples, then the fade, each where it played.
     let reference: Vec<f32> = std::iter::from_fn(|| ends.references.pop().ok()).collect();
     assert_eq!(reference.len(), 16);
-    assert_eq!(&reference[8..11], &[0.25, 0.25, 0.0]);
-    assert_eq!(reference.iter().filter(|value| **value != 0.0).count(), 2);
+    assert!(reference[..8].iter().all(|value| *value == 0.0));
+    for (pulled, played) in reference[8..15].iter().zip(output[2..].chunks(2)) {
+        assert_eq!(*pulled, played[0], "what played is the reference");
+    }
     assert_eq!(shared.latency_micros.load(Ordering::Relaxed), 12_000);
 }
 
