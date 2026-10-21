@@ -23,9 +23,12 @@ use crate::{Intent, Theme, Ui};
 
 pub(crate) const CHANNELS_HANDLE: &str = "panel:channels";
 pub(crate) const MEMBERS_HANDLE: &str = "panel:members";
-/// How wide the column of channels and the member list may be.
+pub(crate) const CALL_CHAT_HANDLE: &str = "panel:call-chat";
+/// How wide the column of channels, the member list and a call's chat
+/// beside its stage may be.
 pub const SIDEBAR_WIDTHS: RangeInclusive<f32> = 220.0..=440.0;
 pub const MEMBERS_WIDTHS: RangeInclusive<f32> = 220.0..=400.0;
+pub const CALL_CHAT_WIDTHS: RangeInclusive<f32> = 320.0..=720.0;
 /// The handle's width, over the boundary it moves.
 const HANDLE: f32 = 6.0;
 /// Favorites and pinned conversations kept, as Serein bounds them.
@@ -181,6 +184,7 @@ impl Desktop {
 enum Panel {
     Channels,
     Members,
+    CallChat,
 }
 
 fn save(key: &str, value: impl ToString) -> Intent {
@@ -207,6 +211,7 @@ pub(crate) fn kept(prefs: &Prefs) -> Vec<(&'static str, Option<String>)> {
         ("ui_font", prefs.ui_font.clone()),
         ("sidebar_width", Some(prefs.sidebar_width.to_string())),
         ("members_width", Some(prefs.members_width.to_string())),
+        ("call_chat_width", Some(prefs.call_chat_width.to_string())),
         ("favorite_channels", ids(&prefs.favorites)),
         ("pinned_directs", ids(&prefs.pinned)),
         ("show_hidden_channels", flag(prefs.show_hidden)),
@@ -245,6 +250,7 @@ pub(crate) fn restore(prefs: &mut Prefs, setting: &impl Fn(&str) -> Option<Strin
     });
     prefs.sidebar_width = width("sidebar_width", SIDEBAR_WIDTHS, usual.sidebar_width);
     prefs.members_width = width("members_width", MEMBERS_WIDTHS, usual.members_width);
+    prefs.call_chat_width = width("call_chat_width", CALL_CHAT_WIDTHS, usual.call_chat_width);
     restore_lists(prefs, setting);
     prefs.show_hidden = flag("show_hidden_channels", usual.show_hidden);
     prefs.mute_key = key("mute_key");
@@ -605,6 +611,18 @@ pub(crate) fn members_handle(look: &Look) -> Element {
     ])
 }
 
+/// Over a call's chat beside its stage: the handle on its left edge.
+pub(crate) fn call_chat_handle(look: &Look) -> Element {
+    Element::row(vec![
+        handle(
+            CALL_CHAT_HANDLE,
+            t("Cambiar el ancho del chat de la llamada"),
+            look,
+        ),
+        Element::spacer().flex(1.0),
+    ])
+}
+
 /// Whether the voice details show the call's encryption.
 pub(crate) fn privacy_tab(ui: &Ui) -> bool {
     ui.desktop.privacy_tab
@@ -653,6 +671,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
     let panel = |id: &str| match id {
         CHANNELS_HANDLE => Some(Panel::Channels),
         MEMBERS_HANDLE => Some(Panel::Members),
+        CALL_CHAT_HANDLE => Some(Panel::CallChat),
         _ => None,
     };
     match action {
@@ -661,6 +680,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
             let width = match panel {
                 Panel::Channels => ui.prefs.sidebar_width,
                 Panel::Members => ui.prefs.members_width,
+                Panel::CallChat => ui.prefs.call_chat_width,
             };
             ui.desktop.resizing = Some((panel, position.x, width));
             Some(Vec::new())
@@ -678,6 +698,10 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
                     Panel::Members => {
                         ui.prefs.members_width = clamp(width - moved, MEMBERS_WIDTHS);
                     }
+                    // So is the call's chat's.
+                    Panel::CallChat => {
+                        ui.prefs.call_chat_width = clamp(width - moved, CALL_CHAT_WIDTHS);
+                    }
                 }
             }
             Some(Vec::new())
@@ -688,6 +712,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
             Some(vec![match panel {
                 Panel::Channels => save("sidebar_width", ui.prefs.sidebar_width),
                 Panel::Members => save("members_width", ui.prefs.members_width),
+                Panel::CallChat => save("call_chat_width", ui.prefs.call_chat_width),
             }])
         }
         UiAction::DragCancelled { id } => {
@@ -696,6 +721,7 @@ pub(crate) fn update(ui: &mut Ui, store: &mut Store, action: &UiAction) -> Optio
                 match panel {
                     Panel::Channels => ui.prefs.sidebar_width = width,
                     Panel::Members => ui.prefs.members_width = width,
+                    Panel::CallChat => ui.prefs.call_chat_width = width,
                 }
             }
             Some(Vec::new())
@@ -914,9 +940,11 @@ pub(crate) fn settings_clicked(
             let usual = Prefs::default();
             prefs.sidebar_width = usual.sidebar_width;
             prefs.members_width = usual.members_width;
+            prefs.call_chat_width = usual.call_chat_width;
             vec![
                 save("sidebar_width", prefs.sidebar_width),
                 save("members_width", prefs.members_width),
+                save("call_chat_width", prefs.call_chat_width),
             ]
         }
         "hidden-channels" => flip(&mut prefs.show_hidden, "show_hidden_channels"),

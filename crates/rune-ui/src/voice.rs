@@ -52,6 +52,8 @@ pub struct Voice {
 const CHAT_FROM: f32 = 720.0;
 /// The narrowest the chat beside the stage gets.
 const CHAT_MIN: f32 = 320.0;
+/// What the stage keeps however wide the chat is dragged.
+const STAGE_KEEPS: f32 = 400.0;
 
 /// A person's menu: on whom, where they are, and where it opened.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -238,13 +240,19 @@ fn chat_denied(store: &Store, channel: ChannelId, width: f32) -> Option<String> 
     }
 }
 
-/// How wide the chat beside the stage is, out of `width`, while it shows.
+/// How wide the chat beside the stage is, out of `width`, while it shows:
+/// as wide as it was dragged, leaving the stage its room.
 pub(crate) fn chat_width(ui: &Ui, store: &Store, width: f32) -> Option<f32> {
     let stage = ui.voice.stage?;
     (ui.voice.chat.is_some()
         && ui.channel() == Some(stage)
         && chat_denied(store, stage, width).is_none())
-    .then(|| (width * 0.4).clamp(CHAT_MIN, 440.0))
+    .then(|| {
+        ui.prefs
+            .call_chat_width
+            .min(width - STAGE_KEEPS)
+            .max(CHAT_MIN)
+    })
 }
 
 /// Show the stage's channel's chat beside it, or hide it and go back to the

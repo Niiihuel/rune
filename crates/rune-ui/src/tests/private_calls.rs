@@ -267,6 +267,15 @@ fn a_direct_call_asks_for_the_cameras_on_its_tiles_under_the_header() {
     // 2026-10-21: only a voice channel's stage asked for them, and a
     // direct call's tiles kept showing faces.
     assert_eq!(crate::video::cameras(&host.ui, &host.store), vec![other]);
+    // On the stage, with its chat beside it, the chat does not draw the
+    // call again.
+    host.ui.voice.stage = Some(direct);
+    let look = host.ui.look();
+    let context = host.context();
+    assert!(
+        crate::private_calls::call_view(&host.ui, &host.store, &context, &look, 400.0).is_none()
+    );
+    assert_eq!(crate::video::cameras(&host.ui, &host.store), vec![other]);
 }
 
 #[test]

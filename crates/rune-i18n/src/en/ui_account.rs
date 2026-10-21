@@ -163,6 +163,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Una aplicación", "An app"),
     ("Cambiar el ancho de la lista de canales", "Resize the channel list"),
     ("Cambiar el ancho de la lista de miembros", "Resize the member list"),
+    ("Cambiar el ancho del chat de la llamada", "Resize the call's chat"),
     // Folders and messaging privacy (`account.rs`).
     (
         "No se pudieron cambiar las notificaciones",

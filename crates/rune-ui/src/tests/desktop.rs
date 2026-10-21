@@ -5,7 +5,7 @@
 use super::*;
 use rune_model::{ActivitySource, LocalActivity, Permissions, UserId};
 
-use crate::desktop::{self, Shortcut, CHANNELS_HANDLE, MEMBERS_HANDLE};
+use crate::desktop::{self, Shortcut, CALL_CHAT_HANDLE, CHANNELS_HANDLE, MEMBERS_HANDLE};
 use crate::title_bar::TitleBar;
 
 fn saved(intents: &[Intent], key: &str) -> Option<Option<String>> {
@@ -193,6 +193,56 @@ fn a_panel_is_dragged_wider_within_its_bounds_and_kept_or_put_back() {
         .unwrap();
     let edge = rune_components::rail::WIDTH + host.ui.prefs.sidebar_width;
     assert!((handle.rect.x + handle.rect.width / 2.0 - edge).abs() < 1.0);
+}
+
+#[test]
+fn the_call_s_chat_is_dragged_wider_from_its_left_edge_and_kept() {
+    let mut host = Host::new();
+    let start = host.ui.prefs.call_chat_width;
+    let drag = |host: &mut Host, action: UiAction| {
+        let intents = update(&mut host.ui, &mut host.store, &action, host.now);
+        host.run(intents.clone());
+        intents
+    };
+    let id = || CALL_CHAT_HANDLE.to_owned();
+    drag(
+        &mut host,
+        UiAction::DragStarted {
+            id: id(),
+            position: Point::new(900.0, 300.0),
+        },
+    );
+    // Its handle is on its left: going left widens it.
+    drag(
+        &mut host,
+        UiAction::DragMoved {
+            id: id(),
+            position: Point::new(860.0, 300.0),
+            over: None,
+        },
+    );
+    assert_eq!(host.ui.prefs.call_chat_width, (start + 40.0).round());
+    drag(
+        &mut host,
+        UiAction::DragMoved {
+            id: id(),
+            position: Point::new(-4000.0, 300.0),
+            over: None,
+        },
+    );
+    assert_eq!(
+        host.ui.prefs.call_chat_width,
+        *desktop::CALL_CHAT_WIDTHS.end()
+    );
+    let intents = drag(
+        &mut host,
+        UiAction::Dropped {
+            id: id(),
+            position: Point::new(-4000.0, 300.0),
+            target: None,
+        },
+    );
+    assert!(saved(&intents, "call_chat_width").is_some());
 }
 
 #[test]

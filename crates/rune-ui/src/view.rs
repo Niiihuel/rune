@@ -465,15 +465,19 @@ fn direct_rows(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Vec<Elem
 /// timeline, the composer, and the member list beside them.
 fn main(ui: &Ui, store: &Store, context: &ViewContext, look: &Look, width: f32) -> Element {
     if let Some(stage) = voice::stage_view(ui, store, context, look, width) {
-        // The channel's chat is the open conversation, beside the stage.
+        // The channel's chat is the open conversation, beside the stage; its
+        // width moves from its left edge.
         return match voice::chat_width(ui, store, width) {
             Some(chat) => Element::row(vec![
                 stage.flex(1.0),
                 Element::panel(Element::spacer())
                     .size(Some(1.0), None)
                     .background(look.border),
-                conversation(ui, store, context, look, chat - 1.0, false)
-                    .size(Some(chat - 1.0), None),
+                Element::stack(vec![
+                    conversation(ui, store, context, look, chat - 1.0, false),
+                    crate::desktop::call_chat_handle(look),
+                ])
+                .size(Some(chat - 1.0), None),
             ]),
             None => stage,
         };
