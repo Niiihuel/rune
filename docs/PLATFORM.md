@@ -174,7 +174,7 @@ En Ajustes › Sistema:
   (`VK_LOADER_DRIVERS_SELECT`, `VK_DRIVER_FILES`, `VK_ICD_FILENAMES`,
   `RUNE_GPU`) la elección no se usa y la página lo dice; si la GPU elegida
   no abre la ventana, RUNE arranca otra vez con cualquiera y lo dice.
-  Detalle en [PERFORMANCE.md](PERFORMANCE.md).
+  Detalle en [ARCHITECTURE.md](ARCHITECTURE.md#elección-de-gpu-appsdesktopsrcgpurs).
 
 Barra de título y GPU se leen antes de abrir la ventana (la base local se
 abre después): son archivos de una línea, `~/.config/rune/decorations` y
