@@ -649,8 +649,14 @@ fn main() -> eframe::Result {
     // The opening screen's splash: a small tile in the middle of the screen
     // until the session says more than its stage, then the usual window
     // (`WindowFrame::grow`). Captures, the benchmark and a start in the
-    // tray open at the usual size.
-    let compact = arguments.screenshot.is_none() && !arguments.bench && !arguments.start_minimized;
+    // tray open at the usual size, and so does Hyprland: it floats a window
+    // of fixed size and keeps it at its least size when it asks to grow.
+    #[cfg(target_os = "linux")]
+    let tiling = rune_platform::hyprland::socket().is_some();
+    #[cfg(not(target_os = "linux"))]
+    let tiling = false;
+    let compact =
+        arguments.screenshot.is_none() && !arguments.bench && !arguments.start_minimized && !tiling;
     let (size, min_size) = if compact {
         (frame::SPLASH_SIZE, frame::SPLASH_SIZE.into())
     } else {
