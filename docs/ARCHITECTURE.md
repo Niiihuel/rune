@@ -156,15 +156,10 @@ sustituye por un envío sólo de texto. Los fallos ambiguos requieren
 idempotencia declarada y una acción explícita. Progreso y confirmación son
 etapas distintas.
 
-**Arrastrar archivos no funciona todavía.** eframe/egui dependen de winit
-0.30, cuya vía RawInput no produce eventos de archivos en Wayland y, en X11,
-no liga la posición del puntero al lote. Por eso `apps/desktop/src/uploads.rs`
-(`reject_legacy_drop`) limpia `dropped_files` y `hovered_files` antes de que
-lleguen a limn, rechaza todo drop con un aviso que ofrece Adjuntar y bloquea
-el `Submitted` del editor en ese cuadro, para que Enter no envíe el texto
-solo. `Client::prepare_attachment_paths` existe y está probado para cuando
-haya una entrada con posición fiable (migrar a winit 0.31 o el receptor
-Wayland de `limn-dnd`); ver [tasks/todo.md](../tasks/todo.md).
+**Arrastrar archivos no funciona todavía**: el host rechaza todo drop
+(`apps/desktop/src/uploads.rs`, `reject_legacy_drop`) y
+`Client::prepare_attachment_paths` espera una entrada con posición fiable;
+por qué, en [FILES.md](FILES.md#arrastrar-y-soltar).
 
 ## Flujo de un cuadro
 
