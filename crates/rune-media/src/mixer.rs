@@ -260,9 +260,14 @@ mod tests {
         assert_eq!(soft_clip(-KNEE), -KNEE);
         for level in [0.95f32, 1.0, 1.5, 4.0, 100.0] {
             let bent = soft_clip(level);
-            assert!(bent > KNEE && bent < 1.0, "{level}: {bent}");
+            // Far past the knee it reaches full scale, never past it.
+            assert!(bent > KNEE && bent <= 1.0, "{level}: {bent}");
             assert_eq!(soft_clip(-level), -bent);
         }
+        assert!(
+            soft_clip(1.0) < 1.0,
+            "a sum just past full scale is bent, not flat"
+        );
         assert!(soft_clip(1.5) > soft_clip(1.0), "louder stays louder");
     }
 
