@@ -296,11 +296,12 @@ que el tema los tiña.
 
 | Archivo | Qué dibuja | Dónde |
 | --- | --- | --- |
-| `rune-mark.svg` | La marca: la runa ᚱ | `rune_components::MARK` (carril, pantalla de carga, perfil) |
+| `rune-mark.svg` | La marca: una R de tres bloques a 45° (banda superior, banda larga y pie) sobre una grilla de 10 × 8, diseñada con el dueño el 2026-10-21 (archivo de Figma «RUNE — Marca») | `rune_components::MARK` (carril, pantalla de carga, inicio de sesión, actualizaciones, perfil); en rojo de marca `rune_components::BRAND` (`#D62D2D`) donde RUNE se presenta |
 | `glyphs/{crown,headphones-off,person,shield,signal,calendar,eye-off}.svg` | Corona del dueño, auriculares tachados, persona, escudo, señal, calendario, ojo tachado | `members::CROWN`, `HEADPHONES_OFF`, `user_settings::PERSON` y `SHIELD`, `voice::SIGNAL`, `events::CALENDAR`, `desktop::EYE_OFF` |
-| `icons/rune-small.svg` | El ícono a 16 y 24 px, más grueso | Origen de `icons/hicolor/16x16` y `24x24` |
-| `icons/rune.png`, `icons/hicolor/*` | El ícono de la aplicación, hecho por el dueño: la marca en blanco sobre una placa ámbar, en la grilla de íconos de macOS | Ventana, bandeja, `rune --install`, notificaciones, entrada de escritorio, README |
-| `icons/rune.ico` | El mismo ícono para Windows (16 a 256 px) | Ejecutable e instalador; generado con `icotool -c` desde los PNG de `icons/hicolor` |
+| `icons/rune-small.svg` | El ícono a 16, 24 y 32 px: la placa llena el cuadro y la marca cae en píxeles enteros | Origen de `icons/hicolor/16x16`, `24x24` y `32x32` |
+| `icons/rune.svg` | El ícono desde 48 px: la marca en blanco sobre una placa que va del casi negro `#2B080A` al rojo `#E0292B`, en la grilla de íconos de macOS (la placa, 824 de 1024) | Origen de `icons/rune.png` y del resto de `icons/hicolor` |
+| `icons/rune.png`, `icons/hicolor/*` | El ícono de la aplicación, dibujado desde esos dos SVG | Ventana, bandeja, `rune --install`, notificaciones, entrada de escritorio, README |
+| `icons/rune.ico` | El mismo ícono para Windows: mapas de bits de 32 bits de 16 a 128 px y PNG de 256 | Ejecutable, instalador y ventana de inicio de sesión |
 
 Los sonidos (`assets/sounds/*.ogg`) son tonos sintetizados por
 `scripts/sounds.sh` ([AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md)).

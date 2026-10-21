@@ -144,7 +144,7 @@ pub fn view(ui: &Ui, store: &Store, look: &Look, context: &ViewContext) -> Eleme
         centered(
             Element::icon(Icon::Custom(rune_components::MARK))
                 .large_icon(88.0)
-                .foreground(look.accent),
+                .foreground(rune_components::BRAND),
         )
         .size(None, Some(96.0)),
         centered(Spinner::new("splash:progress", look.accent).render()).size(None, Some(24.0)),

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- RUNE's icon from 48 px up, on the macOS icon grid: the tile 824 of
+       1024, deep at the top and red below; the mark (rune-mark.svg) in white,
+       60 % of the tile. rune.png and icons/hicolor are drawn from it. -->
+  <defs>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B080A"/>
+      <stop offset="1" stop-color="#E0292B"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="184.3" fill="url(#red)"/>
+  <g transform="translate(264.8 314.24) scale(49.44)" fill="#fff">
+    <path d="M3 0L6 0L9 3L6 3Z"/>
+    <path d="M0 1L3 1L10 8L7 8Z"/>
+    <path d="M0 4L3 4L3 8L0 8Z"/>
+  </g>
+</svg>
