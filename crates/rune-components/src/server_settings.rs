@@ -36,6 +36,12 @@ const CLOSE_GAP: f32 = 42.0;
 /// Space over a page's title, and under its end for the bar to float in.
 const PAGE_TOP: f32 = 60.0;
 const PAGE_BOTTOM: f32 = 96.0;
+/// The strip at the window's top where its buttons are: the region right of
+/// the sidebar starts under it, so a page scrolls away there and its
+/// scrollbar never runs under the buttons.
+const TOP_STRIP: f32 = crate::sidebar::HEADER;
+/// Space over a page's title inside the region, which starts under the strip.
+pub const REGION_TOP: f32 = PAGE_TOP - TOP_STRIP;
 /// The bar of unsaved changes: as wide as the column and 20.5 px past each side.
 pub const BAR_HEIGHT: f32 = 55.5;
 const BAR_OVERHANG: f32 = 20.5;
@@ -330,8 +336,10 @@ pub fn unsaved_bar_for(prefix: &str, bar: UnsavedBar, look: &Look) -> Element {
 }
 
 /// The whole window while the settings are open: the sidebar on its own
-/// ground, `region` right of it (a page, or the role editor), the close
-/// button, and the bar floating over the page's foot when there is one.
+/// ground, `region` right of it (a page, or the role editor) up to the
+/// window's edge, where its scrollbar runs as in the reference, the close
+/// button over it, and the bar floating over the page's foot when there is
+/// one.
 pub fn shell(
     window: Size,
     metrics: Metrics,
@@ -357,25 +365,26 @@ pub fn shell_for(
         Element::panel(Element::row(vec![gap(metrics.margin, 0.0), sidebar]))
             .size(Some(metrics.margin + SIDEBAR_WIDTH), None)
             .background(look.sidebar),
-        region.size(Some(metrics.region()), None),
-        Element::column(vec![
-            gap(0.0, 64.0),
-            Element::row(vec![
-                gap(CLOSE_GAP, 0.0),
-                close_button(&format!("{prefix}:close"), look),
-            ]),
-        ]),
-        Element::spacer().flex(1.0),
+        Element::column(vec![gap(0.0, TOP_STRIP), region.flex(1.0)]).flex(1.0),
     ])
     .size(Some(window.width), Some(window.height))
     .background(look.canvas);
-    let Some(bar) = bar else {
-        return base;
-    };
-    let left = metrics.margin + SIDEBAR_WIDTH + PAGE_INSET - BAR_OVERHANG;
-    Element::stack(vec![
-        base,
-        Element::column(vec![
+    // Where it stood when the region ended at the page's column: it stays
+    // put while the page scrolls under it.
+    let close = Element::column(vec![
+        gap(0.0, 64.0),
+        Element::row(vec![
+            gap(
+                metrics.margin + SIDEBAR_WIDTH + metrics.region() + CLOSE_GAP,
+                0.0,
+            ),
+            close_button(&format!("{prefix}:close"), look),
+        ]),
+    ]);
+    let mut layers = vec![base, close];
+    if let Some(bar) = bar {
+        let left = metrics.margin + SIDEBAR_WIDTH + PAGE_INSET - BAR_OVERHANG;
+        layers.push(Element::column(vec![
             Element::spacer().flex(1.0),
             Element::row(vec![
                 gap(left, 0.0),
@@ -383,8 +392,9 @@ pub fn shell_for(
                 Element::spacer().flex(1.0),
             ]),
             gap(0.0, BAR_BOTTOM),
-        ]),
-    ])
+        ]));
+    }
+    Element::stack(layers)
 }
 
 /// A page's column: `children` under one another, scrolling on their own,
@@ -395,7 +405,7 @@ pub fn page(scroll_id: &str, width: f32, children: Vec<Element>) -> Element {
         Element::row(vec![
             gap(PAGE_INSET, 0.0),
             Element::column(vec![
-                gap(0.0, PAGE_TOP),
+                gap(0.0, REGION_TOP),
                 Element::column(children).gap(16.0),
                 gap(0.0, PAGE_BOTTOM),
             ])
@@ -1039,7 +1049,7 @@ pub fn role_list(items: &[RoleItem], can_create: bool, look: &Look) -> Element {
     ScrollArea::new(
         "ss:role-list",
         Element::column(vec![
-            gap(0.0, PAGE_TOP),
+            gap(0.0, REGION_TOP),
             Element::row(vec![
                 gap(51.0, 0.0),
                 Element::column(rows).gap(0.5).flex(1.0),

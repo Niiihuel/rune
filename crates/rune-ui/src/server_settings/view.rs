@@ -626,7 +626,7 @@ impl View<'_> {
             Element::row(vec![
                 gap(26.0, 0.0),
                 Element::column(vec![
-                    gap(0.0, 60.0),
+                    gap(0.0, parts::REGION_TOP),
                     Element::column(column).gap(16.0),
                     gap(0.0, 96.0),
                 ])

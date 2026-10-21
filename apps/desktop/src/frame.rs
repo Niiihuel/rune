@@ -18,6 +18,12 @@ const EDGE: f32 = 5.0;
 /// The narrowest the window gets with the system's frame: the conversation's
 /// header folds its tools down to this.
 const MIN_SIZE: [f32; 2] = [720.0, 480.0];
+/// The window's usual size, which it opens at or grows to from the splash.
+pub const SIZE: [f32; 2] = [1280.0, 800.0];
+/// The window while the opening screen only says the stage it is in: a
+/// small tile in the middle of the screen, as the official client's splash,
+/// with no frame or buttons and not resizable.
+pub const SPLASH_SIZE: [f32; 2] = [300.0, 340.0];
 /// The value kept for RUNE's bar: what hiding the decorations kept before
 /// it existed, so that choice holds.
 const RUNE: &str = window::HIDDEN;
@@ -121,25 +127,53 @@ pub fn icon() -> std::sync::Arc<egui::IconData> {
     .clone()
 }
 
-/// The frame between frames: who draws it, and whether a press on the bar
-/// already moved the window.
+/// The frame between frames: who draws it, whether a press on the bar
+/// already moved the window, and whether it is still the splash.
 #[derive(Debug, Default)]
 pub struct WindowFrame {
     pub chrome: Chrome,
     moved: bool,
+    /// Opened at [`SPLASH_SIZE`] and not grown yet.
+    pub compact: bool,
 }
 
 impl WindowFrame {
-    pub fn new(chrome: Chrome) -> Self {
+    pub fn new(chrome: Chrome, compact: bool) -> Self {
         Self {
             chrome,
             moved: false,
+            compact,
+        }
+    }
+
+    /// From the splash to the usual window, once: its frame as the person
+    /// chose, resizable again, and grown around the splash's middle (the
+    /// screen's, unless it was dragged), no bigger than the screen.
+    pub fn grow(&mut self, ctx: &egui::Context) {
+        if !self.compact {
+            return;
+        }
+        self.compact = false;
+        let (outer, monitor) = ctx.input(|input| {
+            let viewport = input.viewport();
+            (viewport.outer_rect, viewport.monitor_size)
+        });
+        let size = monitor.map_or(vec2(SIZE[0], SIZE[1]), |monitor| {
+            vec2(SIZE[0], SIZE[1]).min(monitor * 0.9)
+        });
+        ctx.send_viewport_cmd(ViewportCommand::Decorations(self.chrome == Chrome::System));
+        ctx.send_viewport_cmd(ViewportCommand::Resizable(true));
+        ctx.send_viewport_cmd(ViewportCommand::InnerSize(size));
+        ctx.send_viewport_cmd(ViewportCommand::MinInnerSize(self.chrome.min_size()));
+        if let Some(outer) = outer {
+            ctx.send_viewport_cmd(ViewportCommand::OuterPosition(outer.center() - size / 2.0));
         }
     }
 
     /// Where the app goes in `ui`'s room, and what its view must know: the
-    /// buttons show while RUNE draws the frame, not in full screen. The edge
-    /// of a window that is not maximized is painted in `rim` and resizes it.
+    /// buttons show while RUNE draws the frame, not in full screen nor as
+    /// the splash. The edge of a window that is not maximized is painted in
+    /// `rim` and resizes it.
     pub fn content(&self, ui: &egui::Ui, desktop: &mut Desktop, rim: limn::Color) -> Rect {
         let bounds = ui.max_rect();
         let (fullscreen, maximized) = ui.input(|input| {
@@ -149,7 +183,7 @@ impl WindowFrame {
                 viewport.maximized.unwrap_or(false),
             )
         });
-        let drawn = self.chrome == Chrome::Drawn && !fullscreen;
+        let drawn = self.chrome == Chrome::Drawn && !fullscreen && !self.compact;
         desktop.window_buttons = drawn;
         desktop.maximized = maximized;
         if !drawn || maximized {
@@ -206,13 +240,18 @@ impl WindowFrame {
         if !down {
             self.moved = false;
         }
-        if self.chrome != Chrome::Drawn || fullscreen {
+        if !self.compact && (self.chrome != Chrome::Drawn || fullscreen) {
             return;
         }
-        let bar = Rect::from_min_size(
-            content.min,
-            vec2(content.width(), rune_components::sidebar::HEADER),
-        );
+        // The splash has no frame and moves from anywhere but its controls.
+        let bar = if self.compact {
+            content
+        } else {
+            Rect::from_min_size(
+                content.min,
+                vec2(content.width(), rune_components::sidebar::HEADER),
+            )
+        };
         let free = |point: Pos2| {
             bar.contains(point)
                 && !on_control(limn::Point::new(
@@ -222,7 +261,7 @@ impl WindowFrame {
         };
         // A double click is told on its release, when the press has no
         // origin left.
-        if double && at.is_some_and(free) {
+        if double && !self.compact && at.is_some_and(free) {
             ctx.send_viewport_cmd(ViewportCommand::Maximized(!maximized));
         } else if dragging && down && !self.moved && origin.is_some_and(free) {
             self.moved = true;
@@ -281,7 +320,7 @@ mod tests {
         fn new(chrome: Chrome) -> Self {
             Self {
                 ctx: egui::Context::default(),
-                frame: WindowFrame::new(chrome),
+                frame: WindowFrame::new(chrome, false),
                 desktop: Desktop::default(),
                 maximized: false,
                 fullscreen: false,
@@ -488,6 +527,58 @@ mod tests {
         window.frame(vec![button(control, true)]);
         let (_, released) = window.frame(vec![button(control, false)]);
         assert!(released.is_empty());
+    }
+
+    #[test]
+    fn the_splash_has_no_buttons_or_edges_and_moves_from_anywhere_until_it_grows() {
+        for chrome in [Chrome::Drawn, Chrome::System] {
+            let mut window = Window::new(chrome);
+            window.frame.compact = true;
+            let corner = pos2(WIDTH - 1.0, HEIGHT - 1.0);
+            let (content, commands) = window.frame(vec![
+                egui::Event::PointerMoved(corner),
+                button(corner, true),
+            ]);
+            assert!(!window.desktop.window_buttons, "{chrome:?}");
+            assert_eq!(
+                content,
+                Rect::from_min_size(Pos2::ZERO, vec2(WIDTH, HEIGHT))
+            );
+            assert!(commands.is_empty(), "no edge to resize by");
+            window.frame(vec![button(corner, false)]);
+            // Under where the bar would be, away from the app's controls.
+            let middle = pos2(WIDTH / 2.0, HEIGHT / 2.0);
+            window.frame(vec![
+                egui::Event::PointerMoved(middle),
+                button(middle, true),
+            ]);
+            let (_, moved) =
+                window.frame(vec![egui::Event::PointerMoved(middle + vec2(20.0, 0.0))]);
+            assert_eq!(moved, [ViewportCommand::StartDrag], "{chrome:?}");
+            window.frame(vec![button(middle + vec2(20.0, 0.0), false)]);
+        }
+        // Grown, the frame is the person's again, once.
+        let mut frame = WindowFrame::new(Chrome::Drawn, true);
+        let ctx = egui::Context::default();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        // No renderer here to take the font atlas.
+        output.textures_delta.clear();
+        let commands = &output.viewport_output[&egui::ViewportId::ROOT].commands;
+        assert!(!frame.compact);
+        for command in [
+            ViewportCommand::Decorations(false),
+            ViewportCommand::Resizable(true),
+            ViewportCommand::InnerSize(vec2(SIZE[0], SIZE[1])),
+            ViewportCommand::MinInnerSize(Chrome::Drawn.min_size()),
+        ] {
+            assert!(commands.contains(&command), "{command:?} in {commands:?}");
+        }
+        let mut again = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        again.textures_delta.clear();
+        assert!(!again.viewport_output[&egui::ViewportId::ROOT]
+            .commands
+            .iter()
+            .any(|command| matches!(command, ViewportCommand::InnerSize(_))));
     }
 
     #[test]

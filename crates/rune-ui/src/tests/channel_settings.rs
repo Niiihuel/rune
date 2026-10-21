@@ -320,6 +320,8 @@ fn denying_a_permission_to_a_role_saves_its_overwrite() {
     assert!(found.permissions.contains(Permissions::SEND));
     assert!(host.store.abilities(channel).unwrap().write.allowed());
     host.click("cs:page:permissions");
+    // The notice heads the page, scrolled away while the permission was set.
+    host.cs_reveal("cs:sync");
     assert!(
         host.cs_painted("Los permisos no están sincronizados con la categoría: "),
         "it no longer matches its category"
