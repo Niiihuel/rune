@@ -185,6 +185,25 @@ fn without_permission_the_list_reads_but_offers_no_changes() {
 }
 
 #[test]
+fn a_list_that_did_not_load_says_so_in_the_dialog_never_in_a_notice() {
+    let mut host = Host::new();
+    host.frame();
+    // The entry's read in the background, refused by the service.
+    host.event(Event::Failed {
+        failure: rune_provider::Failure::ScheduledEvents {
+            request: host.ui.fresh_request(),
+            server: FIRST,
+        },
+        reason: "Discord pidió esperar. La acción no se reintentó.".into(),
+        ambiguous: false,
+    });
+    assert!(
+        host.ui.notices.is_empty(),
+        "the entry's count is not a notice"
+    );
+}
+
+#[test]
 fn an_invitation_that_names_an_event_shows_it_and_opens_its_detail() {
     let mut host = Host::new();
     let channel = host.open_channel("limn-core");

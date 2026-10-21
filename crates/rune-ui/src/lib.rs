@@ -1258,6 +1258,9 @@ fn answer(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instant) -> Ve
         Applied::Failed { failure, .. } if private_calls::shows_failure(store, failure) => {
             Vec::new()
         }
+        // Scheduled events say it in their dialog; the entry's count read in
+        // the background is not worth a notice.
+        Applied::Failed { failure, .. } if events::shows_failure(ui, failure) => Vec::new(),
         Applied::Failed {
             failure, reason, ..
         } => {

@@ -58,13 +58,18 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let look = &ui.look();
     // Until the session is loaded: RUNE's mark and the stage it is in.
     if crate::splash::visible(store) {
-        let root = with_notices(crate::splash::view(ui, store, look, context), ui, look);
+        let root = with_notices(
+            crate::splash::view(ui, store, look, context),
+            ui,
+            look,
+            None,
+        );
         return crate::title_bar::overlay(ui, root, look);
     }
     if crate::auth::visible(store) {
         let root = crate::auth::view(ui, store, look, context)
             .size(Some(context.window.width), Some(context.window.height));
-        return crate::title_bar::overlay(ui, with_notices(root, ui, look), look);
+        return crate::title_bar::overlay(ui, with_notices(root, ui, look, None), look);
     }
     // Every time written from here on, rows built during layout included.
     rune_components::time::set_twelve_hour(ui.prefs.twelve_hour);
@@ -72,7 +77,7 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let mut ground = look.canvas;
     // A stream watched shown alone fills the window, full screen.
     if let Some(focused) = crate::video::focused_view(ui, store, window) {
-        return with_notices(focused, ui, look);
+        return with_notices(focused, ui, look, None);
     }
     let body = if let Some(editor) = profile::editor_view(ui, store, context) {
         editor
@@ -156,15 +161,23 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     // An app's modal (P3), under the verification it may need.
     let root = crate::interactions::overlay(ui, store, root, look, context);
     let root = crate::challenges::overlay(ui, store, root, look);
-    // RUNE's own updates (actualizaciones): an optional one, in the corner.
-    let root = crate::updates::overlay(ui, root, look);
+    // RUNE's own updates (actualizaciones): an optional one, in the corner,
+    // under the notices.
+    let update = crate::updates::card(ui, look);
     // The window's own buttons (barra-e-icono), over everything; a stream
     // shown alone, above, fills the window without them.
-    crate::title_bar::overlay(ui, with_notices(root, ui, look), look)
+    crate::title_bar::overlay(ui, with_notices(root, ui, look, update), look)
 }
 
-/// Fill the visible conversation's flow slot, or announce above its replacement.
-fn with_notices(mut root: Element, ui: &Ui, look: &Look) -> Element {
+/// Fill the visible conversation's flow slot, or announce above its
+/// replacement. With an optional update's card in the corner, every notice
+/// stacks over it there instead, so none covers its buttons.
+fn with_notices(mut root: Element, ui: &Ui, look: &Look, update: Option<Element>) -> Element {
+    if let Some(update) = update {
+        let mut cards = notice_cards(ui, look, NOTICE_WIDTH);
+        cards.push(update);
+        return Toast::layer(root, cards, 16.0);
+    }
     if ui.notices.is_empty() && ui.save_as.is_none() {
         return root;
     }

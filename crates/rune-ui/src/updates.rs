@@ -4,7 +4,7 @@
 //! ask for. A mandatory update never reaches this window: the host shows
 //! its screen (`rune_components::updates::screen`) before anything opens.
 
-use limn::{Element, Toast, UiAction};
+use limn::{Element, UiAction};
 use rune_components::updates::{ids, notice, Stage, UpdateView};
 use rune_components::Look;
 use rune_model::Timestamp;
@@ -86,18 +86,19 @@ pub(crate) fn update(ui: &mut Ui, action: &UiAction) -> Option<Vec<Intent>> {
     })
 }
 
-/// The notice of an optional update in the corner of `root`, until it is
-/// put off; only for a copy that can install it, and not over the
-/// settings, whose page offers it already.
-pub(crate) fn overlay(ui: &Ui, root: Element, look: &Look) -> Element {
+/// The notice of an optional update, for the corner, until it is put off;
+/// only for a copy that can install it, and not over the settings, whose
+/// page offers it already. The other notices stack over it there
+/// (`view::with_notices`), never on its buttons.
+pub(crate) fn card(ui: &Ui, look: &Look) -> Option<Element> {
     let updates = &ui.updates;
     match &updates.offered {
         Some(offered)
             if !updates.later && updates.installation.is_some() && ui.settings.is_none() =>
         {
-            Toast::layer(root, vec![notice(offered, updates.notes_open, look)], 16.0)
+            Some(notice(offered, updates.notes_open, look))
         }
-        _ => root,
+        _ => None,
     }
 }
 

@@ -133,9 +133,9 @@ fn embed(value: &Value) -> Embed {
     };
     let embed = Embed {
         kind,
-        image: media(&value["image"]),
+        image: still(&value["image"]),
         text_references: Vec::new(),
-        thumbnail: media(&value["thumbnail"]),
+        thumbnail: still(&value["thumbnail"]),
         provider: text(&value["provider"]["name"], 256),
         author: text(&value["author"]["name"], 256),
         title: text(&value["title"], 256),
@@ -364,6 +364,34 @@ pub(crate) fn media(value: &Value) -> Option<EmbedImage> {
         },
         dimensions: (width, height),
     })
+}
+
+/// The longest side a card's still picture is asked for in.
+const STILL_SIDE: u32 = 1024;
+
+/// [`media`] for a card's still picture: one the proxy fetched from a page
+/// is asked for as the official client asks, re-encoded to PNG at a
+/// bounded size (2026-10-21: the bare address of a GitHub preview answered
+/// 400 now and then, and the card kept a broken picture). A GIF keeps its
+/// bare address, so it still moves; an address with a query is left as is.
+fn still(value: &Value) -> Option<EmbedImage> {
+    let mut image = media(value)?;
+    let url = &image.source.url;
+    let external = IMAGE_PROXIES.iter().any(|proxy| {
+        url.strip_prefix(proxy)
+            .is_some_and(|path| path.starts_with("/external/"))
+    });
+    if external && !url.contains('?') && !url.to_ascii_lowercase().ends_with(".gif") {
+        let (width, height) = image.dimensions;
+        let scale = (f64::from(STILL_SIDE) / f64::from(width.max(height))).min(1.0);
+        let side = |side: u32| ((f64::from(side) * scale).round() as u32).max(1);
+        image.source.url = format!(
+            "{url}?format=png&width={}&height={}",
+            side(width),
+            side(height)
+        );
+    }
+    Some(image)
 }
 
 /// A poll with two to ten answers. Without `results` the counts are unknown,
@@ -663,9 +691,31 @@ mod tests {
         let image = shown.image.unwrap();
         assert_eq!(
             (image.source.url.as_str(), image.dimensions),
-            (proxied, (640, 480))
+            (
+                format!("{proxied}?format=png&width=640&height=480").as_str(),
+                (640, 480)
+            )
         );
         assert_eq!(image.source.kind, ImageKind::AttachmentPreview);
+        // A page's preview is asked for re-encoded and no larger than needed,
+        // as the official client asks; a GIF and an address with a query are
+        // left as they came.
+        let preview = embed(&json!({"type": "article", "thumbnail": {"proxy_url":
+            "https://images-ext-2.discordapp.net/external/s/https/opengraph.githubassets.test/a/b",
+            "width": 1200, "height": 600}}));
+        assert_eq!(
+            preview.thumbnail.unwrap().source.url,
+            "https://images-ext-2.discordapp.net/external/s/https/opengraph.githubassets.test/a/b?format=png&width=1024&height=512"
+        );
+        for kept in [
+            "https://images-ext-1.discordapp.net/external/g/https/x.test/a.GIF",
+            "https://images-ext-1.discordapp.net/external/q/https/x.test/a.png?format=webp",
+            "https://media.discordapp.net/attachments/1/2/p.jpg",
+        ] {
+            let card = embed(&json!({"type": "rich", "image": {"proxy_url": kept,
+                "width": 2000, "height": 2000}}));
+            assert_eq!(card.image.unwrap().source.url, kept);
+        }
         for bad in [
             json!({"url": proxied, "width": 640, "height": 480}),
             json!({"proxy_url": "https://x.test/a.png", "width": 640, "height": 480}),

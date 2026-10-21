@@ -2055,7 +2055,10 @@ fn quality_picker(
     .render()
 }
 
-/// While the account is not in the call: the channel, who is in it, why it
+/// The faces over a call the account is not in, at most.
+const INVITATION_FACES: usize = 6;
+
+/// While the account is not in the call: who is in it, the channel, why it
 /// could not connect if it tried, and the way in.
 fn invitation(view: &Stage, look: &Look) -> Element {
     // Names up to three, as for who is typing; past that, how many.
@@ -2084,7 +2087,35 @@ fn invitation(view: &Stage, look: &Look) -> Element {
         .as_ref()
         .and_then(|private| private.invitation.clone());
     let who = invited.as_ref().map_or(who, |(line, _)| line.clone());
-    let mut parts = vec![
+    let mut parts = Vec::new();
+    // Who is in it, by their faces, ringed while they speak, as the
+    // official client's call header shows them (2026-10-21: a call joined
+    // from another device showed no one). Cameras need RUNE's own
+    // connection: faces only, until the account joins from here.
+    if !view.people.is_empty() {
+        const FACE: f32 = 72.0;
+        let faces = view
+            .people
+            .iter()
+            .take(INVITATION_FACES)
+            .map(|person| {
+                speaking_ring(
+                    crate::avatar_with_image(
+                        &person.name,
+                        person.accent,
+                        FACE,
+                        person.image.clone(),
+                    ),
+                    FACE,
+                    person.speaking,
+                    look,
+                )
+            })
+            .collect();
+        parts.push(centered(Element::row(faces).gap(16.0)).size(None, Some(FACE + 8.0)));
+        parts.push(gap(0.0, 4.0));
+    }
+    parts.extend([
         centered(
             Element::text(view.channel.clone())
                 .font_family(FontFamily::SansBold)
@@ -2094,7 +2125,7 @@ fn invitation(view: &Stage, look: &Look) -> Element {
         .size(None, Some(40.0)),
         // Long names are cut short within the column.
         centered(line(who, 14.0, look.muted).shrink_to_fit()).size(None, Some(20.0)),
-    ];
+    ]);
     if let Some(CallPhase::Failed { reason }) = &view.phase {
         parts.push(centered(text(reason.clone(), 13.0, look.danger)).size(None, Some(20.0)));
     }
