@@ -36,6 +36,9 @@ pub mod ids {
 
     /// On the stage: «Volver a llamar», and «Rechazar» beside joining.
     pub const RING_AGAIN: &str = "vz:ring-again";
+    /// The header's «Expandir»/«Reducir»: the call over the whole
+    /// conversation, with its chat beside it, or under its header again.
+    pub const EXPAND: &str = "vz:expand-call";
     pub const DECLINE: &str = "vz:decline";
     /// «Dejar de llamar» on the tile of someone it rings.
     pub const STOP_RINGING: &str = "vz:stop-ringing:";
@@ -60,6 +63,9 @@ pub struct PrivateStage {
     pub invitation: Option<(String, String)>,
     /// It rings the account: «Rechazar» beside answering.
     pub incoming: bool,
+    /// It takes the whole conversation (its header offers «Reducir»), or
+    /// shows under the conversation's header («Expandir»).
+    pub expanded: bool,
 }
 
 /// «Aceptar» (`accept`) or «Rechazar», in limn's green and red.

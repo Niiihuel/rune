@@ -12,8 +12,8 @@
 
 use limn::{
     Access, Button, ButtonSize, ButtonVariant, Color, Component, ControlSize, DropdownOption,
-    Element, FontFamily, Icon, Popover, PopoverPlacement, Role, Select, SelectVariant, Switch,
-    TextField, TextSpan,
+    Element, FontFamily, Icon, Popover, PopoverPlacement, Role, ScrollArea, ScrollbarAppearance,
+    Select, SelectVariant, Switch, TextField, TextSpan,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::{ChannelKind, Permissions};
@@ -894,6 +894,9 @@ pub struct AddChoice {
     pub person: bool,
 }
 
+/// The tallest the popout's list of roles and people gets: eight of them.
+const ADD_LIST_HEIGHT: f32 = 8.0 * 44.0;
+
 /// The ⊕ of the list (`cs:add`) and, while `open`, the popout «Añadir:» with
 /// its field (`cs:add-query`) and what matches it; Esc or a click outside
 /// reports `cs:add:dismiss`.
@@ -921,6 +924,7 @@ pub fn add_popout(
     if choices.is_empty() {
         content.push(text(t("Nada para añadir."), 13.0, look.muted));
     }
+    let mut list = Vec::with_capacity(choices.len());
     for choice in choices {
         let (mark, name_ink, detail) = if choice.person {
             (
@@ -931,7 +935,7 @@ pub fn add_popout(
         } else {
             (gap(0.0, 0.0), choice.color, t("Rol").to_owned())
         };
-        content.push(
+        list.push(
             Element::clickable(
                 choice.id.clone(),
                 Element::row(vec![
@@ -946,6 +950,16 @@ pub fn add_popout(
             .radius(4.0)
             .hover_background(look.hover)
             .accessible(Access::new(Role::Button).name(choice.name.clone())),
+        );
+    }
+    // A server with many roles and people scrolls inside the popout instead
+    // of running past the window's foot (2026-10-21).
+    if !list.is_empty() {
+        content.push(
+            ScrollArea::new("cs:add-list", Element::column(list).gap(8.0))
+                .appearance(ScrollbarAppearance::overlay().buttons(false))
+                .render()
+                .max_height(ADD_LIST_HEIGHT),
         );
     }
     Popover::new(
