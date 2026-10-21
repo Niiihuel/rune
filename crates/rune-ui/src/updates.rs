@@ -162,8 +162,7 @@ mod tests {
     fn the_notice_shows_until_put_off_and_never_for_a_build_from_source() {
         let mut ui = Ui::new();
         let look = Look::DARK;
-        let base = format!("{:?}", Element::spacer());
-        let shown = |ui: &Ui| format!("{:?}", overlay(ui, Element::spacer(), &look)) != base;
+        let shown = |ui: &Ui| card(ui, &look).is_some();
         ui.updates.offered = offered(Stage::Offered);
         assert!(!shown(&ui));
         ui.updates.installation = Some("/opt".into());

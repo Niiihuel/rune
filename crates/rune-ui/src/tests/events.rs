@@ -189,9 +189,10 @@ fn a_list_that_did_not_load_says_so_in_the_dialog_never_in_a_notice() {
     let mut host = Host::new();
     host.frame();
     // The entry's read in the background, refused by the service.
+    let request = host.ui.fresh_request();
     host.event(Event::Failed {
         failure: rune_provider::Failure::ScheduledEvents {
-            request: host.ui.fresh_request(),
+            request,
             server: FIRST,
         },
         reason: "Discord pidió esperar. La acción no se reintentó.".into(),
