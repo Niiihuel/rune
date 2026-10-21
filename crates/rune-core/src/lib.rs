@@ -2345,11 +2345,13 @@ impl Client {
     }
 
     /// The account the store keeps rows under.
+    #[cfg(test)]
     pub fn account(&self) -> &str {
         &self.account
     }
 
     /// Run `future` on the client's runtime, for work of the host that waits.
+    #[cfg(test)]
     pub fn spawn(&self, future: impl std::future::Future<Output = ()> + Send + 'static) {
         self.runtime.spawn(future);
     }
