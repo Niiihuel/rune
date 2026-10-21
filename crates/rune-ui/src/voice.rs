@@ -324,12 +324,17 @@ fn number(id: &str, prefix: &str) -> Option<u64> {
 }
 
 /// The channel `user` is in, as shown: their voice state, or the account's
-/// call before the provider confirms it.
+/// call before the provider confirms it. The account's call first, so that
+/// a direct call, in no server, is found too (2026-10-21: its people had no
+/// menu).
 fn channel_of(store: &Store, user: UserId) -> Option<ChannelId> {
-    let call = store
-        .call()
-        .filter(|_| store.me() == Some(user))
-        .map(|call| call.channel);
+    let call = store.call().map(|call| call.channel).filter(|channel| {
+        store.me() == Some(user)
+            || store
+                .voice_in(*channel)
+                .iter()
+                .any(|state| state.user == user)
+    });
     call.or_else(|| {
         store
             .servers()
@@ -508,7 +513,8 @@ pub(crate) fn update(
     })
 }
 
-/// A secondary click on someone in a voice channel opens their menu there.
+/// A secondary click on someone in a voice channel opens their menu there:
+/// on their row, their tile (their camera too) or a control on the tile.
 /// `None` when it was not on one.
 pub(crate) fn secondary_click(
     ui: &mut Ui,
@@ -516,7 +522,12 @@ pub(crate) fn secondary_click(
     target: &str,
     at: Point,
 ) -> Option<Vec<Intent>> {
-    let (user, row) = match (number(target, "vz:user:"), number(target, "vz:tile:")) {
+    let on_tile = || {
+        ["vz:tile:", "vz:tile-more:", "vz:watch:"]
+            .into_iter()
+            .find_map(|prefix| number(target, prefix))
+    };
+    let (user, row) = match (number(target, "vz:user:"), on_tile()) {
         (Some(user), _) => (UserId(user), true),
         (_, Some(user)) => (UserId(user), false),
         _ => return None,

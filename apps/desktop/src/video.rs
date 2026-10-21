@@ -267,6 +267,9 @@ pub struct Video {
     /// its source and encoder had counted then.
     #[cfg(any(target_os = "linux", windows))]
     diag: Option<(Instant, CaptureStats, EncodeStats)>,
+    /// The same for the account's camera.
+    #[cfg(any(target_os = "linux", windows))]
+    camera_diag: Option<(Instant, CaptureStats, EncodeStats)>,
     /// The GPU's engines the account lets encode and decode video.
     #[cfg(any(target_os = "linux", windows))]
     engines: &'static [Engine],
@@ -717,48 +720,27 @@ impl Video {
         )))
     }
 
-    /// Every [`DIAG_EVERY`] while the screen goes to the call: what its
-    /// source delivered and its encoder made, on stderr, beside the
-    /// provider's `network` line, for the owner to send when a stream is
-    /// not fluid; and the applications its sound mixes. Sizes, rates,
-    /// counts and applications' names only.
+    /// Every [`DIAG_EVERY`] while the screen or the camera goes to the call:
+    /// what its source delivered and its encoder made, on stderr, beside the
+    /// provider's `network` line, for the owner to send when a stream or a
+    /// camera is not fluid; and the applications the screen's sound mixes.
+    /// Sizes, rates, counts and applications' names only.
     #[cfg(any(target_os = "linux", windows))]
     fn diagnose(&mut self, now: Instant) {
-        let counted = self.screen.as_ref().and_then(|held| {
-            let encoding = held.encoding.as_ref()?;
-            Some((
-                held.source.capture_stats(),
-                encoding.stats(),
-                encoding.sent().bitrate,
-            ))
-        });
-        let Some((capture, encode, bitrate)) = counted else {
-            self.diag = None;
-            return;
-        };
-        match self.diag {
-            Some((at, ..)) if now.duration_since(at) < DIAG_EVERY => {}
-            Some((at, before, made)) => {
-                let hardware = !self.engines.is_empty();
-                let line = video_line(
-                    &before,
-                    &capture,
-                    &made,
-                    &encode,
-                    bitrate,
-                    hardware,
-                    now - at,
-                );
-                eprintln!("rune: voice share: {line}");
-                // Which applications the screen's sound mixes, and which it
-                // leaves out and why: names and roles only.
-                if let Some(sound) = &self.sound {
-                    let heard = rune_media::video::sound::summary(&sound.heard());
-                    eprintln!("rune: voice share: sound: {heard}");
-                }
-                self.diag = Some((now, capture, encode));
+        let hardware = !self.engines.is_empty();
+        if let Some(line) = diagnosed(&mut self.diag, self.screen.as_ref(), hardware, now) {
+            eprintln!("rune: voice share: {line}");
+            // Which applications the screen's sound mixes, and which it
+            // leaves out and why: names and roles only.
+            if let Some(sound) = &self.sound {
+                let heard = rune_media::video::sound::summary(&sound.heard());
+                eprintln!("rune: voice share: sound: {heard}");
             }
-            None => self.diag = Some((now, capture, encode)),
+        }
+        // 2026-10-21: a camera sent at 15 of its 30 frames left no line to
+        // tell where the rest went.
+        if let Some(line) = diagnosed(&mut self.camera_diag, self.camera.as_ref(), hardware, now) {
+            eprintln!("rune: voice camera: {line}");
         }
     }
 
@@ -1148,8 +1130,52 @@ fn step_one(
     Ok((live, cameras))
 }
 
-/// What the shared screen's source and encoder did between two counts,
-/// over `elapsed`: see [`Video::diagnose`].
+/// The line of what `held` did since the count in `diag`, once
+/// [`DIAG_EVERY`] passed, counting again from now; `None` until then, or
+/// while it does not go to the call.
+#[cfg(any(target_os = "linux", windows))]
+fn diagnosed(
+    diag: &mut Option<(Instant, CaptureStats, EncodeStats)>,
+    held: Option<&Held>,
+    hardware: bool,
+    now: Instant,
+) -> Option<String> {
+    let counted = held.and_then(|held| {
+        let encoding = held.encoding.as_ref()?;
+        Some((
+            held.source.capture_stats(),
+            encoding.stats(),
+            encoding.sent().bitrate,
+        ))
+    });
+    let Some((capture, encode, bitrate)) = counted else {
+        *diag = None;
+        return None;
+    };
+    match *diag {
+        Some((at, ..)) if now.duration_since(at) < DIAG_EVERY => None,
+        Some((at, before, made)) => {
+            let line = video_line(
+                &before,
+                &capture,
+                &made,
+                &encode,
+                bitrate,
+                hardware,
+                now - at,
+            );
+            *diag = Some((now, capture, encode));
+            Some(line)
+        }
+        None => {
+            *diag = Some((now, capture, encode));
+            None
+        }
+    }
+}
+
+/// What a source and its encoder did between two counts, over `elapsed`:
+/// see [`Video::diagnose`].
 #[cfg(any(target_os = "linux", windows))]
 fn video_line(
     before: &CaptureStats,

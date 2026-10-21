@@ -86,7 +86,10 @@ cpal = "0.18.2"
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = [
     "Foundation",
+    # Asking for a capture without Windows' yellow border, where it allows.
+    "Foundation_Metadata",
     "Graphics_Capture",
+    "Security_Authorization_AppCapabilityAccess",
     "Graphics_DirectX_Direct3D11",
     "Win32_Foundation",
     "Win32_Graphics_Direct3D",

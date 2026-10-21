@@ -1,8 +1,9 @@
 //! A screen or a window through Windows.Graphics.Capture (Windows 10 1903
 //! or later), on a Direct3D 11 device of its own: each frame kept is copied
 //! from the GPU to memory and scaled into the queues, the rest are let go
-//! at once. Windows draws its own border around what is captured while it
-//! is. RUNE's picker lists what can be chosen ([`sources`]): the screens,
+//! at once. Windows draws a yellow border around what is captured unless
+//! the capture asks to go without and the system allows it ([`borderless`],
+//! Windows 10 2104 or later). RUNE's picker lists what can be chosen ([`sources`]): the screens,
 //! the main one first, and the windows people have on the taskbar, never
 //! RUNE's own.
 
@@ -11,14 +12,17 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use rune_i18n::{es, t, tr};
-use windows::core::{Interface, BOOL};
+use windows::core::{Interface, BOOL, HSTRING};
+use windows::Foundation::Metadata::ApiInformation;
 use windows::Foundation::TypedEventHandler;
 use windows::Graphics::Capture::{
-    Direct3D11CaptureFrame, Direct3D11CaptureFramePool, GraphicsCaptureItem, GraphicsCaptureSession,
+    Direct3D11CaptureFrame, Direct3D11CaptureFramePool, GraphicsCaptureAccess,
+    GraphicsCaptureAccessKind, GraphicsCaptureItem, GraphicsCaptureSession,
 };
 use windows::Graphics::DirectX::Direct3D11::IDirect3DDevice;
 use windows::Graphics::DirectX::DirectXPixelFormat;
 use windows::Graphics::SizeInt32;
+use windows::Security::Authorization::AppCapabilityAccess::AppCapabilityAccessStatus;
 use windows::Win32::Foundation::{HMODULE, HWND, LPARAM, POINT, RECT};
 use windows::Win32::Graphics::Direct3D::{D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP};
 use windows::Win32::Graphics::Direct3D11::{
@@ -436,6 +440,27 @@ fn picture(
     }
 }
 
+/// Without Windows' yellow border around what is shared, where the system
+/// has the switch (Windows 10 2104 or later) and allows it: the person sees
+/// RUNE says it shares, and what they show is not framed (2026-10-21). Any
+/// failure keeps the border and the capture.
+fn borderless(session: &GraphicsCaptureSession) {
+    let present = ApiInformation::IsPropertyPresent(
+        &HSTRING::from("Windows.Graphics.Capture.GraphicsCaptureSession"),
+        &HSTRING::from("IsBorderRequired"),
+    )
+    .unwrap_or(false);
+    if !present {
+        return;
+    }
+    let allowed = GraphicsCaptureAccess::RequestAccessAsync(GraphicsCaptureAccessKind::Borderless)
+        .and_then(|asked| asked.join())
+        .is_ok_and(|status| status == AppCapabilityAccessStatus::Allowed);
+    if allowed {
+        let _ = session.SetIsBorderRequired(false);
+    }
+}
+
 /// Read `chosen` into `shared` until it stops, ends or fails.
 pub(super) fn read(chosen: Option<&str>, shared: &Arc<Shared>) -> Result<(), String> {
     let _com = Com::start()?;
@@ -450,6 +475,7 @@ pub(super) fn read(chosen: Option<&str>, shared: &Arc<Shared>) -> Result<(), Str
     let pool = Direct3D11CaptureFramePool::CreateFreeThreaded(&direct, format, 2, size)
         .map_err(unavailable)?;
     let session = pool.CreateCaptureSession(&item).map_err(unavailable)?;
+    borderless(&session);
     // The window closed, or the screen went away.
     let closed = Arc::new(AtomicBool::new(false));
     let told = closed.clone();
