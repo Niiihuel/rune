@@ -399,7 +399,6 @@ impl World {
 }
 
 /// A planned event, nobody's interest counted yet.
-#[allow(clippy::too_many_arguments)]
 fn event(
     id: u64,
     server: ServerId,

@@ -42,7 +42,6 @@ pub const FORWARD: &str = "nav:forward";
 /// conversation's own (`tools`, such as the bell and the pinned messages),
 /// the member list's toggle, and the search, a box while the header is
 /// `wide` and an icon otherwise.
-#[allow(clippy::too_many_arguments)]
 pub fn channel_header(
     glyph: Icon,
     title: &str,

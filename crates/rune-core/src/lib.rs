@@ -595,7 +595,6 @@ impl Client {
     /// Start a post in `forum` whose first message carries the files
     /// `tokens` prepared for that forum. Answered as a `CreatePost`: the
     /// files stay prepared until the post is made.
-    #[allow(clippy::too_many_arguments)]
     pub fn create_post(
         &mut self,
         request: RequestId,

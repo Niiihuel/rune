@@ -587,7 +587,6 @@ impl Gateway {
     /// about the conversation's call `calls` names (op 13), and when the
     /// voice rooms of the server `shown` went live (op 43). `now` cuts a
     /// wait between attempts short, when the person asks to try at once.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn run_watching(
         &self,
         secret: Arc<SessionSecret>,
