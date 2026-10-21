@@ -416,8 +416,10 @@ fn clicked(id: i32) -> Option<TrayEvent> {
         MUTE => Some(TrayEvent::ToggleMute),
         DEAFEN => Some(TrayEvent::ToggleDeafen),
         QUIT => Some(TrayEvent::Quit),
-        id => usize::try_from(id - STATUS_FIRST)
-            .ok()
+        // Any session-bus caller picks `id`: checked, it cannot overflow.
+        id => id
+            .checked_sub(STATUS_FIRST)
+            .and_then(|at| usize::try_from(at).ok())
             .and_then(|at| TrayStatus::ALL.get(at))
             .map(|status| TrayEvent::Status(*status)),
     }
