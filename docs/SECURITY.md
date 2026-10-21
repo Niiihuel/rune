@@ -177,6 +177,12 @@ el hCaptcha. Reimplementado, sin copiar. Valores exactos en
      estilos, íconos, sonidos ni otros recursos. Excluido: leer el perfil,
      la caché, el almacenamiento local o la memoria del cliente oficial, y
      ejecutarlo instrumentado con la cuenta sin una autorización aparte.
+   - **Sonidos de Discord (2026-10-21):** excepción a lo anterior: RUNE
+     empaqueta como sonidos predeterminados los efectos de sonido públicos
+     de Discord, bajados sin autenticación del bundle público
+     (`assets/sounds/discord`, procedencia en su `SOURCES.md`). No abarca
+     código, otros recursos, perfiles, cachés, credenciales ni datos de
+     sesión ([AGENTS.md](../AGENTS.md)).
    - **Siempre prohibido:** automatizar, resolver o reenviar CAPTCHA o MFA
      (los resuelve la persona en la ventana de RUNE, con un único
      reintento), cualquier evasión antiabuso, leer sesiones o datos locales
@@ -224,7 +230,7 @@ el hCaptcha. Reimplementado, sin copiar. Valores exactos en
 | Identidad, navegación y mensajes del proveedor no oficial | Memoria; lo que se guarda, en la caché cifrada una vez verificada la cuenta | Cierre local no equivale a revocación remota |
 | Ajustes con cualquier proveedor: los del equipo y, por cuenta, último servidor y canal, favoritos y privados fijados, niveles de notificación, canales ocultos, categorías plegadas y temporizadores de estado | Tabla `settings` de `rune.db`; los de la cuenta bajo `account:{proveedor}:{id de la cuenta}:` | Sólo ids y valores de la interfaz: nunca credenciales, mensajes, nombres ni datos de perfil. «Borrar datos locales» no los toca |
 | Credencial del proveedor no oficial | Memoria; con la autorización del dueño (2026-10-16), también el llavero del sistema para restaurar la sesión, una entrada por cuenta recordada | Nunca SQLite, archivos, logs ni configuración; cerrar sesión borra la de esa cuenta; cambiar de cuenta la conserva; «Olvidar» borra la elegida; sin llavero queda sólo en memoria |
-| Lista de cuentas recordadas del proveedor no oficial | Atributos (no secretos) de esas mismas entradas: `account=<id>` y `name=<nombre visible>`; la fecha de la entrada indica la última usada | Ningún otro dato personal (sin avatar, correo ni teléfono); se borra con la entrada |
+| Lista de cuentas recordadas del proveedor no oficial | Atributos (no secretos) de esas mismas entradas: `account=<id>`, `name=<nombre visible>` y `avatar=<hash>` (público, nunca una URL); la fecha de la entrada indica la última usada | Ningún otro dato personal (sin correo ni teléfono); se borra con la entrada |
 | Diagnóstico de voz y del Gateway, y lo demás que RUNE escribe en stderr (errores, pánicos) | stderr, una línea por paso (`rune: voice …`, `rune: gateway: …`); también `$XDG_STATE_HOME/rune/rune.log` (o `~/.local/state/rune/rune.log`), rotado a 5 MB con tres archivos, sólo en ejecuciones interactivas en Unix (`apps/desktop/src/log.rs`) | Directorio `0700`, archivos `0600`. Voz y Gateway: sólo opcodes, códigos de cierre, modos de cifrado, conteos y el host del servidor de voz; nunca token, `session_id`, claves, mensajes MLS, ids de personas ni la IP propia (test `diagnostics_follow_each_step_and_never_show_secrets`). El resto: errores con rutas locales y motivos de red, nombres de las aplicaciones que suenan al transmitir la pantalla, una cabecera por arranque y el texto de los pánicos, que puede citar un mensaje o nombre llegado de la red. Ninguna línea lleva credenciales ni respuestas de hCaptcha: las ventanas de login y hCaptcha y el navegador que abre un enlace mandan su stderr a `/dev/null`. El archivo sobrevive a cerrar sesión y a «Borrar datos locales»: se borra a mano |
 | Identidad y servidores obtenidos con OAuth2 | Sólo memoria | Sin caché ni restauración (sólo ajustes); se borran del estado al salir o fallar |
 
@@ -439,7 +445,9 @@ suma **sólo** estos orígenes:
   lo lleva adentro (`rune --licenses`) y el workflow de release corta si
   quedó viejo ([UPDATES.md](UPDATES.md)). Las fuentes embebidas y sus
   licencias están en [FONTS.md](FONTS.md) y
-  [assets/licenses](../assets/licenses/FONT-NOTICES.md).
+  [assets/licenses](../assets/licenses/FONT-NOTICES.md); la procedencia de
+  los sonidos predeterminados, en
+  [AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md).
 - Quedan fuera las bibliotecas del sistema que el programa enlaza en
   ejecución (GTK, WebKitGTK, GStreamer, PipeWire, ALSA en Linux): las pone
   la distribución. GTK, GLib y libsoup son LGPL y WebKit LGPL/BSD; quien
