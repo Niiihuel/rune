@@ -163,19 +163,32 @@ pub struct Storage {
 impl Storage {
     /// Open or create the store at `path`.
     pub fn open(path: &Path) -> Result<Self, Error> {
-        if let Some(parent) = path.parent() {
+        // A bare file name's parent is "": the working folder, left as it is.
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
             let _ = std::fs::create_dir_all(parent);
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;
-                let _ = std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700));
+                // Rows are sealed, but others should not even list the folder.
+                if let Err(error) =
+                    std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700))
+                {
+                    eprintln!("rune: {} stays open to others: {error}", parent.display());
+                }
             }
         }
         let connection = Connection::open(path)?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+            if let Err(error) =
+                std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+            {
+                eprintln!("rune: {} stays open to others: {error}", path.display());
+            }
         }
         connection.pragma_update(None, "journal_mode", "WAL")?;
         connection.pragma_update(None, "synchronous", "NORMAL")?;
