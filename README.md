@@ -57,7 +57,7 @@ CI lo prueba ahí, pero nada se probó todavía en un Windows real
   dentro de RUNE, PDF multipágina con búsqueda, spoilers y «Guardar como…».
 - **Voz y video**: llamadas en servidores, privados y grupos, con Opus,
   cifrado DAVE, reducción de ruido, pulsar para hablar, transmitir la
-  pantalla (con su sonido) y la cámara, H264 por la GPU, sonidos propios y
+  pantalla (con su sonido) y la cámara, H264 por la GPU, sonidos configurables y
   un panel rápido de voz.
 - **Social y cuentas**: amigos, solicitudes, bloqueos y grupos; perfiles
   con actividades, insignias y edición; varias cuentas recordadas en el
@@ -82,25 +82,13 @@ muestra cuentas ni datos reales.
 
 ### Sonidos de la llamada
 
-Son tonos propios de RUNE, sintetizados por
-[`scripts/sounds.sh`](scripts/sounds.sh); nada copiado de Discord ni de
-nadie. En **Ajustes → Voz y video → Sonidos de la llamada** cada evento tiene
-su interruptor y su «Probar», un volumen propio y una **carpeta de
-sonidos**: si la carpeta elegida tiene un archivo con el nombre de un
-evento (`.ogg`, `.opus`, `.mp3` o `.wav`, hasta 1 MB y 5 s), suena ése.
-
-| Evento | Archivo |
-| --- | --- |
-| Entrar a la llamada / salir | `join` / `leave` |
-| Alguien entra / sale | `user_join` / `user_leave` |
-| Silenciarte / dejar de silenciarte | `mute` / `unmute` |
-| Ensordecerte / dejar de ensordecerte | `deafen` / `undeafen` |
-| Empezar / dejar de transmitir | `stream_start` / `stream_stop` |
-| Alguien empieza a transmitir | `user_stream` |
-| Desconexión o error | `disconnect` |
-| Mensaje nuevo | `message` |
-
-Detalle en [docs/MEDIA.md](docs/MEDIA.md).
+Los predeterminados son los efectos públicos del cliente de Discord
+(autorización del dueño del 2026-10-21; procedencia en
+[assets/sounds/discord/SOURCES.md](assets/sounds/discord/SOURCES.md)). En
+**Ajustes → Voz y video → Sonidos de la llamada** cada evento tiene su
+interruptor y su «Probar», un volumen propio y una **carpeta de sonidos**
+que los reemplaza por nombre de evento. Detalle en
+[docs/MEDIA.md](docs/MEDIA.md#sonidos).
 
 ## Instalar y ejecutar
 
@@ -209,7 +197,7 @@ sesiones de otros navegadores o clientes, y MFA y CAPTCHA los resuelve
 siempre la persona: nunca se automatizan ni se eluden.
 Ver [docs/SECURITY.md](docs/SECURITY.md).
 
-La marca, los iconos, los colores y los sonidos de RUNE son propios.
+La marca, los iconos y los colores de RUNE son propios.
 
 ## Licencia
 
