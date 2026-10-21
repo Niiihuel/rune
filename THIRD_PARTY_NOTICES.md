@@ -2562,7 +2562,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### Community Data License Agreement Permissive 2.0
 
 - webpki-roots 0.26.11, <https://github.com/rustls/webpki-roots>
-- webpki-roots 1.0.9, <https://github.com/rustls/webpki-roots>
+- webpki-roots 1.0.10, <https://github.com/rustls/webpki-roots>
 
 ````text
 # Community Data License Agreement - Permissive - Version 2.0
@@ -2693,7 +2693,7 @@ THIS SOFTWARE.
 
 ### ISC License
 
-- rustls-webpki 0.103.15, <https://github.com/rustls/webpki>
+- rustls-webpki 0.103.16, <https://github.com/rustls/webpki>
 
 ````text
 Except as otherwise noted, this project is licensed under the following

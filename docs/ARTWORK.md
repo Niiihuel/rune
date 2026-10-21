@@ -303,7 +303,9 @@ que el tema los tiña.
 | `icons/rune.png`, `icons/hicolor/*` | El ícono de la aplicación, dibujado desde esos dos SVG | Ventana, bandeja, `rune --install`, notificaciones, entrada de escritorio, README |
 | `icons/rune.ico` | El mismo ícono para Windows: mapas de bits de 32 bits de 16 a 128 px y PNG de 256 | Ejecutable, instalador y ventana de inicio de sesión |
 
-Los sonidos (`assets/sounds/*.ogg`) son tonos sintetizados por
-`scripts/sounds.sh` ([AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md)).
-Las fuentes y los símbolos de respaldo están en [FONTS.md](FONTS.md); lo de
-terceros, en [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+Los sonidos predeterminados (`assets/sounds/discord/*.mp3`) son efectos
+públicos de Discord, con sus fuentes y hashes en
+`assets/sounds/discord/SOURCES.md` y
+[AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md). Las fuentes y los
+símbolos de respaldo están en [FONTS.md](FONTS.md); lo de terceros, en
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

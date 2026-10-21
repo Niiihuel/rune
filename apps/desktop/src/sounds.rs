@@ -1,8 +1,8 @@
 //! The call's sounds: what happened since the last frame, and what each
-//! sounds like. RUNE's own are short tones it synthesized
-//! (`scripts/sounds.sh`, `ffmpeg` `aevalsrc`, Ogg Opus in `assets/sounds`);
-//! no sound of anyone else's. A folder the person chose can replace any of
-//! them, read on a thread of its own ([`Library`]).
+//! sounds like. The built-ins are Discord's public static MP3 assets, with
+//! their provenance and checksums in `assets/sounds/discord`; no profile,
+//! cache, credential, or session data is read. A folder the person chose can
+//! replace any of them, read on a thread of its own ([`Library`]).
 //!
 //! What changed is read by comparing each frame with the one before: the
 //! first look at a call, or at the account's controls, only remembers them.
@@ -17,25 +17,33 @@ use rune_model::{CallPhase, ChannelId, StreamPhase, UserId};
 use rune_state::Store;
 use rune_ui::{CallSound, FolderReport, Ui};
 
-/// RUNE's own sound for `sound`.
-pub fn default_ogg(sound: CallSound) -> &'static [u8] {
+/// The built-in sound for `sound`.
+pub fn default_audio(sound: CallSound) -> &'static [u8] {
     match sound {
-        CallSound::Join => include_bytes!("../../../assets/sounds/join.ogg"),
-        CallSound::Leave => include_bytes!("../../../assets/sounds/leave.ogg"),
-        CallSound::UserJoin => include_bytes!("../../../assets/sounds/user_join.ogg"),
-        CallSound::UserLeave => include_bytes!("../../../assets/sounds/user_leave.ogg"),
-        CallSound::Mute => include_bytes!("../../../assets/sounds/mute.ogg"),
-        CallSound::Unmute => include_bytes!("../../../assets/sounds/unmute.ogg"),
-        CallSound::Deafen => include_bytes!("../../../assets/sounds/deafen.ogg"),
-        CallSound::Undeafen => include_bytes!("../../../assets/sounds/undeafen.ogg"),
-        CallSound::StreamStart => include_bytes!("../../../assets/sounds/stream_start.ogg"),
-        CallSound::StreamStop => include_bytes!("../../../assets/sounds/stream_stop.ogg"),
-        CallSound::UserStream => include_bytes!("../../../assets/sounds/user_stream.ogg"),
-        CallSound::Disconnect => include_bytes!("../../../assets/sounds/disconnect.ogg"),
-        CallSound::Message => include_bytes!("../../../assets/sounds/message.ogg"),
+        CallSound::Join | CallSound::UserJoin => {
+            include_bytes!("../../../assets/sounds/discord/user_join.mp3")
+        }
+        CallSound::Leave | CallSound::UserLeave => {
+            include_bytes!("../../../assets/sounds/discord/user_leave.mp3")
+        }
+        CallSound::Mute => include_bytes!("../../../assets/sounds/discord/mute.mp3"),
+        CallSound::Unmute => include_bytes!("../../../assets/sounds/discord/unmute.mp3"),
+        CallSound::Deafen => include_bytes!("../../../assets/sounds/discord/deafen.mp3"),
+        CallSound::Undeafen => include_bytes!("../../../assets/sounds/discord/undeafen.mp3"),
+        CallSound::StreamStart => {
+            include_bytes!("../../../assets/sounds/discord/stream_started.mp3")
+        }
+        CallSound::StreamStop => {
+            include_bytes!("../../../assets/sounds/discord/stream_ended.mp3")
+        }
+        CallSound::UserStream => {
+            include_bytes!("../../../assets/sounds/discord/stream_user_joined.mp3")
+        }
+        CallSound::Disconnect => include_bytes!("../../../assets/sounds/discord/disconnect.mp3"),
+        CallSound::Message => include_bytes!("../../../assets/sounds/discord/message1.mp3"),
         // Private calls.
-        CallSound::Ring => include_bytes!("../../../assets/sounds/ring.ogg"),
-        CallSound::RingOut => include_bytes!("../../../assets/sounds/ring_out.ogg"),
+        CallSound::Ring => include_bytes!("../../../assets/sounds/discord/call_ringing.mp3"),
+        CallSound::RingOut => include_bytes!("../../../assets/sounds/discord/call_calling.mp3"),
     }
 }
 
@@ -275,12 +283,12 @@ impl Library {
         report
     }
 
-    /// What `sound` sounds like: the person's, else RUNE's.
+    /// What `sound` sounds like: the person's, else the built-in sound.
     pub fn bytes(&self, sound: CallSound) -> Arc<[u8]> {
         self.own
             .get(&sound)
             .cloned()
-            .unwrap_or_else(|| default_ogg(sound).into())
+            .unwrap_or_else(|| default_audio(sound).into())
     }
 }
 
@@ -475,30 +483,46 @@ mod tests {
     }
 
     #[test]
-    fn every_sound_of_rune_is_a_clip_rune_can_play() {
+    fn every_built_in_sound_is_a_clip_rune_can_play() {
         use rune_media::{tap, Clip, ClipStatus};
         for sound in CallSound::ALL {
             let (feed, mut heard) = tap(48_000);
-            let clip = Clip::start(default_ogg(sound).into(), feed, 0.0).unwrap();
-            clip.set_paused(false);
+            let clip = Clip::start(default_audio(sound).into(), feed, 0.0).unwrap();
             let deadline = Instant::now() + std::time::Duration::from_secs(5);
-            while clip.status() == ClipStatus::Open {
-                assert!(Instant::now() < deadline, "{sound:?} ends");
-                std::thread::sleep(std::time::Duration::from_millis(20));
+            while clip.duration().is_none() && clip.status() == ClipStatus::Open {
+                assert!(Instant::now() < deadline, "{sound:?} opens");
+                std::thread::sleep(std::time::Duration::from_millis(5));
             }
-            assert_eq!(clip.status(), ClipStatus::Ended, "{sound:?}");
-            // Between a seventh and two fifths of a second, and audible; a
-            // ring, up to a second and a half.
-            let length = heard.available();
-            let most = if sound.repeats().is_some() {
-                72_000
-            } else {
-                20_000
-            };
-            assert!((6_000..most).contains(&length), "{sound:?}: {length}");
-            let mut samples = vec![0.0; length];
-            assert!(heard.read(&mut samples));
-            assert!(rune_media::rms(&samples) > 0.05, "{sound:?}");
+            assert!(clip.duration().is_some(), "{sound:?} has a length");
+            clip.set_paused(false);
+            let mut loudest = 0.0_f32;
+            while Instant::now() < deadline && clip.status() == ClipStatus::Open {
+                let length = heard.available().min(6_000);
+                if length == 0 {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                    continue;
+                }
+                let mut samples = vec![0.0; length];
+                assert!(heard.read(&mut samples));
+                loudest = loudest.max(rune_media::rms(&samples));
+                if loudest > 0.001 {
+                    break;
+                }
+            }
+            // Some call sounds start with silence and some rings are longer
+            // than RUNE's synthesized clips were. Decode until an audible
+            // stretch instead of waiting for every asset to play out.
+            assert!(loudest > 0.001, "{sound:?}: {loudest}");
+        }
+    }
+
+    #[test]
+    fn built_in_sounds_are_mp3_assets() {
+        for sound in CallSound::ALL {
+            assert!(
+                default_audio(sound).starts_with(b"ID3"),
+                "{sound:?} is an MP3 asset"
+            );
         }
     }
 
@@ -507,8 +531,8 @@ mod tests {
         let folder = std::env::temp_dir().join(format!("rune-library-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&folder);
         std::fs::create_dir_all(&folder).unwrap();
-        let mute = default_ogg(CallSound::Unmute);
-        std::fs::write(folder.join("mute.ogg"), mute).unwrap();
+        let mute = default_audio(CallSound::Unmute);
+        std::fs::write(folder.join("mute.mp3"), mute).unwrap();
         std::fs::write(folder.join("leave.mp3"), b"no").unwrap();
         let mut ui = Ui::new();
         ui.prefs.sound_folder = Some(folder.to_string_lossy().into_owned());
@@ -520,19 +544,19 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(5));
         }
         let found = ui.call_sounds.found.clone().unwrap();
-        assert_eq!(found.taken, [(CallSound::Mute, "mute.ogg".to_owned())]);
+        assert_eq!(found.taken, [(CallSound::Mute, "mute.mp3".to_owned())]);
         assert_eq!(found.refused.len(), 1);
         assert_eq!(*library.bytes(CallSound::Mute), *mute);
         assert_eq!(
             *library.bytes(CallSound::Join),
-            *default_ogg(CallSound::Join)
+            *default_audio(CallSound::Join)
         );
         // Taking the folder away brings RUNE's back.
         ui.prefs.sound_folder = None;
         library.step(&mut ui);
         assert_eq!(
             *library.bytes(CallSound::Mute),
-            *default_ogg(CallSound::Mute)
+            *default_audio(CallSound::Mute)
         );
         let _ = std::fs::remove_dir_all(&folder);
     }

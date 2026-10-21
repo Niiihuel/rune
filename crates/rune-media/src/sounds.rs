@@ -146,13 +146,13 @@ mod tests {
         let folder = Folder::new("load");
         let dir = &folder.0;
         std::fs::write(dir.join("join.wav"), wav(0.3)).unwrap();
-        // The Ogg comes first when both are there.
-        let ogg = std::fs::read(concat!(
+        // The MP3 comes first when both are there.
+        let mp3 = std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../assets/sounds/mute.ogg"
+            "/../../assets/sounds/discord/mute.mp3"
         ))
         .unwrap();
-        std::fs::write(dir.join("mute.ogg"), &ogg).unwrap();
+        std::fs::write(dir.join("mute.mp3"), &mp3).unwrap();
         std::fs::write(dir.join("mute.wav"), wav(0.2)).unwrap();
         std::fs::write(dir.join("leave.wav"), wav(6.0)).unwrap();
         std::fs::write(dir.join("deafen.mp3"), b"not a sound at all").unwrap();
@@ -170,7 +170,7 @@ mod tests {
         let found = load(dir, &names).unwrap();
         assert!(matches!(&found[0], Found::Sound { file, .. } if file == "join.wav"));
         assert!(
-            matches!(&found[1], Found::Sound { file, bytes } if file == "mute.ogg" && **bytes == *ogg)
+            matches!(&found[1], Found::Sound { file, bytes } if file == "mute.mp3" && **bytes == *mp3)
         );
         let refused = |at: usize| match &found[at] {
             Found::Refused { file, reason } => format!("{file}: {reason}"),
