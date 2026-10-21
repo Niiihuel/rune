@@ -73,10 +73,6 @@ impl Identity {
             tag: over.tag.clone().or_else(|| self.tag.clone()),
         }
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.decoration.is_none() && self.nameplate.is_none() && self.tag.is_none()
-    }
 }
 
 /// Artwork behind a name in a list, on a ground of its colors.
@@ -346,7 +342,7 @@ mod tests {
         let shown = account.with(&member);
         assert_eq!(shown.decoration, Some(image("server")));
         assert_eq!(shown.tag, account.tag);
-        assert!(Identity::default().is_empty() && !shown.is_empty());
+        assert_ne!(shown, Identity::default());
         assert!(Platforms {
             mobile: true,
             ..Default::default()
@@ -366,7 +362,7 @@ mod tests {
             "id": 1, "name": "Legacy", "display_name": null, "accent": 0, "bot": false
         }))
         .unwrap();
-        assert!(user.identity.is_empty());
+        assert_eq!(user.identity, Identity::default());
         let role: crate::Role = serde_json::from_value(serde_json::json!({
             "id": 2, "name": "Viejo", "color": null, "position": 1, "hoisted": false
         }))

@@ -1040,7 +1040,7 @@ mod tests {
             "collectibles": {"nameplate": {"asset": "../escape/"}},
             "clan": {"identity_guild_id": "77", "identity_enabled": false, "tag": "RUST"}
         });
-        assert!(identity(&broken).is_empty());
+        assert_eq!(identity(&broken), Identity::default());
         let expired = json!({"avatar_decoration_data": {"asset": HASH, "expires_at": 1}});
         assert!(identity(&expired).decoration.is_none());
         let legacy =
