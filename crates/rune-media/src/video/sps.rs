@@ -96,7 +96,8 @@ fn buffering(rbsp: &[u8]) -> Option<(u32, (usize, usize, u32))> {
                     let (mut last, mut next) = (8i32, 8i32);
                     for _ in 0..if list < 6 { 16 } else { 64 } {
                         if next != 0 {
-                            next = (last + bits.se()? + 256) % 256;
+                            // Wrapping: a crafted delta near i32::MAX must not overflow.
+                            next = last.wrapping_add(bits.se()?).rem_euclid(256);
                         }
                         last = if next == 0 { last } else { next };
                     }
