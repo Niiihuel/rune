@@ -131,8 +131,9 @@ escribe en stderr (diagnóstico de voz y del Gateway, sin secretos) queda
 también en `~/.local/state/rune/rune.log`, rotado
 ([docs/PLATFORM.md](docs/PLATFORM.md#registro-a-archivo)).
 
-Las versiones publicadas se instalan por usuario con `./rune --install` y
-se actualizan solas desde las GitHub Releases, con un manifiesto firmado;
+Las versiones publicadas se instalan por usuario (en Linux con
+`./rune --install`, en Windows con su instalador) y se actualizan solas
+desde las GitHub Releases, con un manifiesto firmado;
 una marcada como obligatoria se instala antes de abrir
 ([docs/UPDATES.md](docs/UPDATES.md)).
 
