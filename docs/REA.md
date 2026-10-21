@@ -17,13 +17,17 @@ estáticas, y RUNE las prueba con fixtures en loopback.
   —el paquete instalado y los bundles JavaScript públicos— para conocer
   rutas, mensajes de Gateway, comportamiento e interfaz, y usar lo
   encontrado en el proveedor no oficial. Se reimplementa: no se copia
-  código, textos ni recursos (los sonidos, imágenes y textos de RUNE son
+  código, textos ni recursos (las imágenes y los textos de RUNE son
   propios).
 - **2026-10-19:** el proveedor no oficial puede presentarse como el cliente
   web en un navegador (user agent, `X-Super-Properties`, huella,
   propiedades del Identify), con una sola identidad coherente en REST,
   Gateway y la WebView del hCaptcha. Ver
   [SECURITY.md](SECURITY.md).
+- **2026-10-21:** los efectos de sonido públicos de Discord pueden
+  empaquetarse como sonidos predeterminados de RUNE
+  ([AGENTS.md](../AGENTS.md), [MEDIA.md](MEDIA.md#sonidos)); la excepción
+  no abarca código ni otros recursos.
 - **Nunca:** ejecutar el cliente oficial o sus addons, leer sus perfiles,
   sesiones, cachés, memoria o tráfico, automatizar o reenviar CAPTCHA/MFA,
   ni usar cuentas reales en las pruebas.
@@ -428,7 +432,7 @@ confirmar: cómo recorta un GIF el oficial y el tope del `PATCH`.
 | Esqueleto del historial | grupos de 1–4, avatar 40, líneas de 16 en 22, anclado abajo, sin animación | `message::history_skeleton` con semilla del canal |
 | Fijados cargando | spinner | spinner de limn |
 | Pantalla de carga | logo y consejo hasta READY; a los 10 s, problemas; fundido de 200 ms | `rune_ui::splash`: etapa, motivo y botones a los 10 s; «Reconectando» sólo con sesión cargada |
-| Menú de una persona en voz | casillas y flecha de submenú al borde derecho; «Roles ›» con el punto del color del rol, el nombre y una casilla, sin cerrar al marcar; `color:"danger"` en lo que castiga (`remove-friend` confirmado en `web.4d4b2f75fdea5470.js`, byte 1237761; el resto, de la captura del dueño: el menú de usuario vive en chunks perezosos no bajados) | `voice::MenuEntry::{Role, Danger}`; rojo en Aislar, Expulsar, Vetar, Desconectar, Bloquear y Eliminar amigo; «Quitar el aislamiento» y «Desbloquear» sin rojo. Antes y después: `docs/img/voz-menu-{antes,despues}-2026-10-19.png` |
+| Menú de una persona en voz | casillas y flecha de submenú al borde derecho; «Roles ›» con el punto del color del rol, el nombre y una casilla, sin cerrar al marcar; `color:"danger"` en lo que castiga (`remove-friend` confirmado en `web.4d4b2f75fdea5470.js`, byte 1237761; el resto, de la captura del dueño: el menú de usuario vive en chunks perezosos no bajados) | `voice::MenuEntry::{Role, Danger}`; rojo en Aislar, Expulsar, Vetar, Desconectar, Bloquear y Eliminar amigo; «Quitar el aislamiento» y «Desbloquear» sin rojo |
 
 **Tooltip del servidor y altavoz del riel** (`rune_ui::rail`): nombre (2
 líneas); escenario (hablantes, máx. 3, con cuántos escuchan); voz (canales
@@ -582,7 +586,8 @@ En RUNE: `voice/private.rs`, `http/calls.rs`.
   reconectar con el canal abierto. Op 4 con `guild_id` nulo;
   `VOICE_SERVER_UPDATE` con guild nulo; `server_id` de la conexión de voz:
   el del stream, si no el guild, si no el canal.
-- Sonidos propios de RUNE (`ring_out`, `ring`), nunca los de Discord.
+- `ring_out` y `ring` suenan con los efectos públicos de Discord
+  ([MEDIA.md](MEDIA.md#sonidos)).
 - Sin confirmar: cuánto tarda el servidor en dejar de sonar, qué hace el
   rechazo oficial (RUNE sigue a Serein), la llamada en otro dispositivo.
 
