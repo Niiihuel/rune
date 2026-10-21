@@ -24,6 +24,8 @@ pub struct Timeline {
     pub reached_start: bool,
     /// The newest messages are loaded, so new ones can be added at the end.
     pub latest: bool,
+    /// Why the newest history page did not load, until the next successful page.
+    load_error: Option<String>,
     context: Option<rune_model::HistorySource>,
     deleted: VecDeque<MessageId>,
 }
@@ -32,6 +34,15 @@ impl Timeline {
     /// A partial navigation window, distinct from a latest history run.
     pub fn context_source(&self) -> Option<rune_model::HistorySource> {
         self.context
+    }
+
+    /// The last failed history load, shown instead of an endless loading skeleton.
+    pub fn load_error(&self) -> Option<&str> {
+        self.load_error.as_deref()
+    }
+
+    pub(crate) fn fail_load(&mut self, reason: &str) {
+        self.load_error = Some(reason.to_owned());
     }
 
     pub(crate) fn clear_context(&mut self) {
@@ -148,6 +159,7 @@ impl Timeline {
         } else if self.context.is_some() {
             return;
         }
+        self.load_error = None;
         let end = before.unwrap_or(MessageId(u64::MAX));
         let start = match page.first() {
             Some(first) => first.id,

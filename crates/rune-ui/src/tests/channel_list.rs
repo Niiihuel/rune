@@ -1327,6 +1327,81 @@ fn pins_permission_revocation_cancels_a_pending_request() {
 }
 
 #[test]
+fn opening_a_channel_without_history_permission_shows_why_instead_of_loading() {
+    let mut host = Host::new();
+    let channel = host.channel_named("general");
+    let mut restricted = host.store.channel(channel).unwrap().clone();
+    restricted.permissions = Permissions::VIEW | Permissions::SEND;
+    host.event(Event::ChannelChanged(restricted));
+
+    host.open_channel("general");
+    let timeline = host.store.timeline(channel);
+    assert!(!timeline.is_some_and(|timeline| timeline.latest));
+    let said = host.cl_said();
+    assert!(
+        said.contains("No podés leer el historial de esa conversación."),
+        "{said}"
+    );
+    assert!(!said.contains("Cargando mensajes"), "{said}");
+}
+
+#[test]
+fn failed_history_is_shown_inline_without_a_persistent_toast() {
+    let mut host = Host::new();
+    let server = host.server_id_for_cl("Laboratorio limn");
+    for event in host.provider.manage(Command::CreateChannel {
+        request: 900,
+        server,
+        kind: ChannelKind::Text,
+        name: "sin-historial".into(),
+        parent: None,
+        private: false,
+    }) {
+        host.event(event);
+    }
+    let channel = host.channel_named("sin-historial");
+    host.ui.server = Some(server);
+    host.ui.channels.insert(Some(server), channel);
+    host.active = false;
+    let notices = host.ui.notices.len();
+    host.event(Event::Failed {
+        failure: rune_provider::Failure::History {
+            request: 7,
+            channel,
+        },
+        reason: "No tenés permiso para leer el historial de #general".into(),
+        ambiguous: false,
+    });
+
+    assert_eq!(host.ui.notices.len(), notices);
+    let said = host.cl_said();
+    assert!(said.contains("No se pudo cargar el historial."), "{said}");
+    assert!(
+        said.contains("No tenés permiso para leer el historial de #general"),
+        "{said}"
+    );
+    assert!(!said.contains("Cargando mensajes"), "{said}");
+}
+
+#[test]
+fn a_history_failure_after_messages_loaded_keeps_its_notice() {
+    let mut host = Host::new();
+    let channel = host.open_channel("general");
+    let notices = host.ui.notices.len();
+
+    host.event(Event::Failed {
+        failure: rune_provider::Failure::History {
+            request: 8,
+            channel,
+        },
+        reason: "No se pudo cargar la página anterior".into(),
+        ambiguous: false,
+    });
+
+    assert_eq!(host.ui.notices.len(), notices + 1);
+}
+
+#[test]
 fn pins_are_invalidated_when_ready_replaces_the_snapshot() {
     for completed in [false, true] {
         let mut host = Host::new();

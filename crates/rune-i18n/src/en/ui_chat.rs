@@ -37,6 +37,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Ventana de contexto del proveedor", "The provider's context window"),
     ("Actualizando recientes…", "Updating recent messages…"),
+    ("No se pudo cargar el historial.", "Couldn't load the history."),
     (
         "Vista provisional de recientes · falta actualizar",
         "Provisional view of recent messages · not updated yet",
