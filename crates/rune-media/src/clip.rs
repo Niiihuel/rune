@@ -207,7 +207,6 @@ impl Clip {
     }
 
     /// Whether it has pictures to show: a video.
-    #[cfg(test)]
     pub fn has_pictures(&self) -> bool {
         self.shared.video.load(Ordering::Acquire)
     }
