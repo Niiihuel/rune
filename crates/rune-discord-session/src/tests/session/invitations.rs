@@ -57,7 +57,8 @@ fn presented_with_context(post: &str) {
 #[tokio::test]
 async fn production_declares_acceptance_and_its_post_presents_the_browser() {
     let (login, _attempts) = login();
-    let provider = DiscordSessionProvider::new(login).unwrap();
+    let provider =
+        DiscordSessionProvider::with_proxy(login, &rune_provider::ApiProxy::Automatic).unwrap();
     assert!(provider.info().capabilities.invitation_accept);
     assert!(provider.info().capabilities.invitation_preview);
     let mut app = Harness::new().await;
