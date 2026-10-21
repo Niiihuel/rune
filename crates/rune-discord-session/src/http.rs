@@ -285,11 +285,16 @@ impl Http {
             request = request.json(&body);
         }
         request = self.admin.apply(request);
-        let response = request.send().await.map_err(|_| {
-            RestError::response(
-                LoginError::new(es("No se pudo confirmar la respuesta de Discord.")),
-                mutating,
-            )
+        let response = request.send().await.map_err(|error| {
+            // Only the kind: the error's own text may name the route.
+            let reason = if error.is_connect() {
+                es("No se pudo conectar con Discord. Revisá la conexión a internet.")
+            } else if error.is_timeout() {
+                es("Discord no respondió a tiempo.")
+            } else {
+                es("No se pudo confirmar la respuesta de Discord.")
+            };
+            RestError::response(LoginError::new(reason), mutating)
         })?;
         let status = response.status();
         let delay = if status == StatusCode::TOO_MANY_REQUESTS {

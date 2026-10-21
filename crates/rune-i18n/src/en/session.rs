@@ -345,6 +345,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "No se pudo confirmar la respuesta de Discord.",
         "Couldn't confirm Discord's response.",
     ),
+    (
+        "No se pudo conectar con Discord. Revisá la conexión a internet.",
+        "Couldn't connect to Discord. Check your internet connection.",
+    ),
+    ("Discord no respondió a tiempo.", "Discord didn't respond in time."),
     ("No se pudo iniciar el cliente HTTPS.", "Couldn't start the HTTPS client."),
     (
         "No tenés permiso para completar esta acción.",
