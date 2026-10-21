@@ -74,17 +74,8 @@ línea base la fija el renderizador: con todos los drivers se cargan el
 cargador Vulkan y cinco drivers (NVIDIA, radeon, nouveau, lavapipe, dzn) más
 EGL, y abrir el de NVIDIA para enumerar adaptadores la despierta (~0,9 s).
 
-Por eso `apps/desktop/src/gpu.rs` decide antes de abrir la ventana: si hay
-una GPU integrada que maneja la pantalla (`boot_vga` en sysfs) y otra
-discreta, limita el cargador al driver de la integrada
-(`VK_LOADER_DRIVERS_SELECT`: `*radeon*` para AMD, `*intel*` para Intel,
-`*nvidia*,*nouveau*` si la persona elige NVIDIA en Ajustes › Sistema ›
-Gráficos). Respeta una elección previa del entorno
-(`VK_LOADER_DRIVERS_SELECT`, `VK_DRIVER_FILES`, `VK_ICD_FILENAMES`,
-`CHOSEN_BY_PERSON`), y `RUNE_GPU` con cualquier valor la desactiva;
-`WGPU_POWER_PREF` no sirve porque no evita que el cargador abra todos los
-drivers. Si la ventana no abre con el filtro, RUNE se vuelve a ejecutar sin
-él (`RUNE_GPU=fallback`).
+Por eso RUNE limita el cargador Vulkan al driver de la GPU integrada antes
+de abrir la ventana ([ARCHITECTURE.md](ARCHITECTURE.md#elección-de-gpu-appsdesktopsrcgpurs)).
 
 ## Audio
 

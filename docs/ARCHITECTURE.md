@@ -404,9 +404,7 @@ resultados del cliente oficial y el de Serein, reimplementados):
 
 Más capturas: [filtro «Tiene»](img/busqueda-filtros-2026-10-19.png),
 [autor](img/busqueda-autor-2026-10-19.png),
-[vacía](img/busqueda-vacia-2026-10-19.png); antes del rediseño:
-[cargados](img/busqueda-antes-cargados-2026-10-19.png) y
-[todo el historial](img/busqueda-antes-remoto-2026-10-19.png).
+[vacía](img/busqueda-vacia-2026-10-19.png).
 
 El cursor se liga a consulta, canal, época y revisión de datos: un cambio en
 los mensajes invalida resultados y cursores, y la UI permite actualizar
@@ -655,8 +653,8 @@ fila se construye desde un contexto compartido `Arc<Rows>`
 (`crates/rune-ui/src/timeline.rs`): agrupación por autor (misma persona,
 mismo día, sin respuesta, <7 min desde el primero del grupo), separadores de
 día y de «Nuevos», respuesta citada, mención resaltada. La agrupación camina
-hacia atrás sólo la racha del mismo autor (`group_starts_at`), coste lineal;
-una versión recursiva era exponencial ([PERFORMANCE.md](PERFORMANCE.md)).
+hacia atrás sólo la racha del mismo autor (`group_starts_at`), coste lineal
+([PERFORMANCE.md](PERFORMANCE.md)).
 
 ## Servicios (`rune-core`)
 
@@ -757,12 +755,17 @@ esconder la lista de miembros.
 
 En portátiles con GPU integrada y discreta, el cargador Vulkan abre todos los
 drivers para enumerar adaptadores, y abrir el de la discreta la despierta
-(~0,9 s y consumo mientras RUNE corre). Antes de abrir la ventana, RUNE
-limita el cargador al driver de la integrada que maneja la pantalla, salvo
-que la persona haya elegido otra en Ajustes › Sistema › Gráficos
-(`~/.config/rune/gpu`) o que el entorno ya haya elegido (`CHOSEN_BY_PERSON`).
-Si la ventana no abre así, se vuelve a ejecutar sin filtro
-(`RUNE_GPU=fallback`) y Ajustes lo dice. La decisión es una función pura
+(~0,9 s y consumo mientras RUNE corre). Antes de abrir la ventana, si hay
+una GPU integrada que maneja la pantalla (`boot_vga` en sysfs) y otra
+discreta, RUNE limita el cargador al driver de la integrada
+(`VK_LOADER_DRIVERS_SELECT`: `*radeon*` para AMD, `*intel*` para Intel,
+`*nvidia*,*nouveau*` si la persona elige NVIDIA en Ajustes › Sistema ›
+Gráficos, guardado en `~/.config/rune/gpu`). Respeta lo que el entorno ya
+eligió (`CHOSEN_BY_PERSON`: `VK_LOADER_DRIVERS_SELECT`, `VK_DRIVER_FILES`,
+`VK_ICD_FILENAMES` o `RUNE_GPU` con cualquier valor); `WGPU_POWER_PREF` no
+sirve porque no evita que el cargador abra todos los drivers. Si la ventana
+no abre así, se vuelve a ejecutar sin filtro (`RUNE_GPU=fallback`) y
+Ajustes lo dice. La decisión es una función pura
 sobre lo leído de sysfs, con tests. Números en
 [PERFORMANCE.md](PERFORMANCE.md).
 
