@@ -983,11 +983,6 @@ impl Delivery {
     pub fn is_local(&self) -> bool {
         !matches!(self, Self::Sent)
     }
-
-    /// It needs the person: it failed or its fate is unknown.
-    pub fn needs_attention(&self) -> bool {
-        matches!(self, Self::Failed { .. } | Self::Unknown { .. })
-    }
 }
 
 /// A message.
@@ -1580,13 +1575,6 @@ mod tests {
         assert_eq!(read.delivery, Delivery::Sent);
         assert!(!read.pinned, "kept before pins existed: not pinned");
         assert!(read.stickers.is_empty() && read.text_references.is_empty());
-        assert!(
-            Delivery::Unknown {
-                reason: String::new()
-            }
-            .needs_attention()
-                && !Delivery::Sending.needs_attention()
-        );
     }
 
     #[test]

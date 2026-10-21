@@ -235,13 +235,9 @@ pub fn has_remembered_accounts() -> bool {
 }
 
 impl DiscordSessionProvider {
-    /// Remembers the session in this system's keyring, if it has one.
-    pub fn new(login: Arc<dyn SessionLogin>) -> Result<Self, LoginError> {
-        Self::with_proxy(login, &rune_provider::ApiProxy::Automatic)
-    }
-
-    /// As [`Self::new`], its REST requests going as `proxy` says
-    /// (escritorio-sesion-y-juegos). The Gateway and voice go straight.
+    /// Remembers the session in this system's keyring, if it has one. Its
+    /// REST requests go as `proxy` says (escritorio-sesion-y-juegos). The
+    /// Gateway and voice go straight.
     pub fn with_proxy(
         login: Arc<dyn SessionLogin>,
         proxy: &rune_provider::ApiProxy,
@@ -256,7 +252,7 @@ impl DiscordSessionProvider {
             #[cfg(test)]
             voice_local: None,
             login,
-            // Tests never reach the person's keyring, even through `new`.
+            // Tests never reach the person's keyring.
             #[cfg(not(test))]
             secrets: rune_platform::secrets::system(),
             #[cfg(test)]

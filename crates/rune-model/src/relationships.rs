@@ -18,13 +18,6 @@ pub enum RelationshipKind {
     Blocked,
 }
 
-impl RelationshipKind {
-    /// A request still waiting for an answer, either way.
-    pub fn is_pending(self) -> bool {
-        matches!(self, Self::IncomingRequest | Self::OutgoingRequest)
-    }
-}
-
 /// The account's relationship with `user`.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Relationship {
@@ -62,7 +55,5 @@ mod tests {
             serde_json::from_value(serde_json::json!({"user": 7, "kind": "Blocked"})).unwrap();
         assert_eq!(read.kind, RelationshipKind::Blocked);
         assert!(read.since.is_none() && read.nickname.is_none() && !read.spam);
-        assert!(RelationshipKind::OutgoingRequest.is_pending());
-        assert!(!RelationshipKind::Friend.is_pending());
     }
 }

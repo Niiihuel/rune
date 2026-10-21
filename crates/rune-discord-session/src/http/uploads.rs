@@ -52,7 +52,6 @@ impl Http {
     /// (the scope's, unless a verification moved it). `posting` turns true
     /// when the message request starts: past it, a failure is ambiguous. A
     /// reply notifies its author only with `mention_reply`, as a text one.
-    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn send_files(
         &self,
         secret: &SessionSecret,
@@ -185,7 +184,6 @@ impl Http {
     }
 
     /// PUT `file` to the target `answer` names; its stored name.
-    #[allow(clippy::too_many_arguments)]
     async fn store(
         &self,
         answer: &Value,

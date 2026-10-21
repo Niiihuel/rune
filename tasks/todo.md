@@ -42,11 +42,6 @@ falla contra Discord, mandar las líneas `rune: …` del registro
   GStreamer), sumar sus avisos.
 - Las pruebas de video con plazos de 5 s fallaron alguna vez con la máquina
   cargada: si se repite en la CI, medir por cuadros.
-- Código que sólo usan los tests y quedó a propósito (limpieza del
-  2026-10-19): `screencast::camera_present` (su versión con bus la prueban
-  los tests del portal), `StorageWorker::save` (siembra de los tests) y los
-  `pub` de `rune-storage`, `rune-model` y otros que sólo nombran sus tests.
-  Decidir si la cámara se usa o se borra junto con su test.
 - Firma Authenticode del instalador de Windows: decide el dueño
   ([UPDATES.md](../docs/UPDATES.md#windows)).
 

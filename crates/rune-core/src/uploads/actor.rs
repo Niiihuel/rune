@@ -161,7 +161,6 @@ async fn pick_file(
 /// Short of memory or of the worker, none comes back and none is named as
 /// gone (only that error is), so the draft keeps them all for the next
 /// run: Core checked the room before, so only a race gets here.
-#[allow(clippy::too_many_arguments)]
 async fn restore(
     worker: &mut prepare::PrepareWorker,
     files: Vec<rune_storage::DraftFile>,

@@ -105,7 +105,7 @@ fn an_unlock_restores_its_read_marks_even_with_no_room_left_behind_it() {
             .collect(),
         ..Snapshot::default()
     };
-    let saved = worker.save_snapshot(big).unwrap();
+    let saved = worker.save_snapshot_owned(Box::new(big)).ok().unwrap();
     wait_committed(&worker, &wakes, saved);
     let unlocking = || {
         Box::new(Unlocking {
@@ -872,7 +872,9 @@ fn a_failed_job_keeps_its_place_and_is_not_committed_until_a_retry_succeeds() {
     worker.thread.as_ref().unwrap().thread().unpark();
     wait_committed(&worker, &wakes, flush);
     assert!(worker.error().is_none());
-    assert_eq!(worker.setting("order").as_deref(), Some("later"));
+    assert!(worker
+        .settings()
+        .contains(&("order".to_owned(), "later".to_owned())));
 }
 
 #[test]
@@ -912,7 +914,7 @@ fn closed_workers_reject_writes_and_startup_reads_without_waiting() {
     assert_eq!(worker.flush(), Err(StorageWriteError::Closed));
     assert!(worker.snapshot().is_none());
     assert!(worker.drafts().is_empty());
-    assert!(worker.setting("theme").is_none());
+    assert!(worker.settings().is_empty());
 }
 
 #[test]

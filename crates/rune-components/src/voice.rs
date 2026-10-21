@@ -794,20 +794,16 @@ pub struct Details {
     pub simulated: bool,
 }
 
-/// The popover of the connection: its latency over the call, its average
-/// and last, and the packets lost. Values that are made up say so.
-pub fn details(view: &Details, look: &Look) -> Element {
-    details_tabbed(view, None, look)
-}
-
 /// The tabs of the voice details beside «Conexión» (P6).
 pub mod details_tabs {
     pub const CONNECTION: &str = "vz:details:tab=connection";
     pub const PRIVACY: &str = "vz:details:tab=privacy";
 }
 
-/// [`details`] with a «Privacidad» tab beside «Conexión» (P6): with
-/// `privacy`, its tab shows instead of the connection's while `open`.
+/// The popover of the connection: its latency over the call, its average
+/// and last, and the packets lost. Values that are made up say so. With
+/// `privacy`, a «Privacidad» tab beside «Conexión» (P6) shows instead of
+/// the connection's while `open`.
 pub fn details_tabbed(view: &Details, privacy: Option<(Element, bool)>, look: &Look) -> Element {
     let tab = |id: &str, label: &str, width: f32, chosen: bool| {
         let ink = if chosen { look.accent } else { look.muted };
@@ -2587,7 +2583,10 @@ mod tests {
             loss_permille: Some(0),
             simulated: true,
         };
-        let (_, laid) = frame(details(&view, &Look::DARK), Size::new(DETAILS_WIDTH, 600.0));
+        let (_, laid) = frame(
+            details_tabbed(&view, None, &Look::DARK),
+            Size::new(DETAILS_WIDTH, 600.0),
+        );
         let shown = texts(&laid);
         for expected in ["Conexión", "44 ms", "46 ms", "0,0 %"] {
             assert!(

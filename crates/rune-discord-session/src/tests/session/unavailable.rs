@@ -874,10 +874,11 @@ async fn settle(
 #[tokio::test]
 async fn no_command_the_session_declares_falls_through_to_not_available_yet() {
     let (login, _) = login();
-    let capabilities = DiscordSessionProvider::new(login)
-        .unwrap()
-        .info()
-        .capabilities;
+    let capabilities =
+        DiscordSessionProvider::with_proxy(login, &rune_provider::ApiProxy::Automatic)
+            .unwrap()
+            .info()
+            .capabilities;
     // Every ability but idempotent sends, how a send may be repeated and no
     // command of its own: each command below is one the session says it does.
     assert!(!capabilities.idempotent_send && capabilities.private_calls);

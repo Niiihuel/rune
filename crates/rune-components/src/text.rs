@@ -81,7 +81,6 @@ pub struct Pictures<'a> {
 /// `everyone`, whether its `@everyone` and `@here` notify. Returns the
 /// number after its last spoiler, where another text of the same card goes
 /// on.
-#[allow(clippy::too_many_arguments)]
 pub fn decorate(
     element: &mut Element,
     names: &Names,

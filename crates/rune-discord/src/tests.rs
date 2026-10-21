@@ -98,9 +98,13 @@ fn configuration_accepts_only_canonical_public_ids_and_advertises_no_chat() {
         "18446744073709551616",
         "personal.secret.token",
     ] {
-        assert!(DiscordProvider::new(bad.into()).is_err());
+        assert!(
+            DiscordProvider::with_proxy(bad.into(), &rune_provider::ApiProxy::Automatic).is_err()
+        );
     }
-    let info = DiscordProvider::new("42".into()).unwrap().info();
+    let info = DiscordProvider::with_proxy("42".into(), &rune_provider::ApiProxy::Automatic)
+        .unwrap()
+        .info();
     assert_eq!(info.kind, ProviderKind::Official);
     assert!(info.capabilities.authentication);
     assert!(
@@ -215,7 +219,9 @@ async fn direct_exchange_validates_identity_and_maps_only_available_fields() {
         "https://cdn.discordapp.com/banners/7/a_0123456789abcdef0123456789abcdef.png?size=512"
     );
     assert_eq!(
-        DiscordProvider::new("42".into()).unwrap().image_origins(),
+        DiscordProvider::with_proxy("42".into(), &rune_provider::ApiProxy::Automatic)
+            .unwrap()
+            .image_origins(),
         &["https://cdn.discordapp.com"]
     );
     assert_eq!(snapshot.users.first(), snapshot.me.as_ref());

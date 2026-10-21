@@ -43,12 +43,8 @@ enum Step {
 type Operation = BoxFuture<'static, Result<Step, AuthError>>;
 
 impl DiscordProvider {
-    pub fn new(client_id: String) -> Result<Self, ConfigError> {
-        Self::with_proxy(client_id, &rune_provider::ApiProxy::Automatic)
-    }
-
-    /// As [`Self::new`], its requests going as `proxy` says
-    /// (escritorio-sesion-y-juegos). The browser's authorization does not.
+    /// Its requests go as `proxy` says (escritorio-sesion-y-juegos). The
+    /// browser's authorization does not.
     pub fn with_proxy(
         client_id: String,
         proxy: &rune_provider::ApiProxy,
