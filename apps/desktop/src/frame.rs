@@ -560,7 +560,9 @@ mod tests {
         // Grown, the frame is the person's again, once.
         let mut frame = WindowFrame::new(Chrome::Drawn, true);
         let ctx = egui::Context::default();
-        let output = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        // No renderer here to take the font atlas.
+        output.textures_delta.clear();
         let commands = &output.viewport_output[&egui::ViewportId::ROOT].commands;
         assert!(!frame.compact);
         for command in [
@@ -571,7 +573,8 @@ mod tests {
         ] {
             assert!(commands.contains(&command), "{command:?} in {commands:?}");
         }
-        let again = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        let mut again = ctx.run_ui(egui::RawInput::default(), |ui| frame.grow(ui.ctx()));
+        again.textures_delta.clear();
         assert!(!again.viewport_output[&egui::ViewportId::ROOT]
             .commands
             .iter()
