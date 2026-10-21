@@ -358,10 +358,6 @@ impl PushToTalk {
         self.transmitting = false;
         self.released = None;
     }
-
-    pub fn transmitting(&self) -> bool {
-        self.transmitting
-    }
 }
 
 #[cfg(test)]
@@ -402,7 +398,7 @@ mod tests {
         assert!(!ptt.update(false, at(200)), "the delay passed");
         assert!(ptt.update(true, at(300)));
         ptt.reset();
-        assert!(!ptt.transmitting(), "a reset skips the delay");
+        assert!(!ptt.transmitting, "a reset skips the delay");
         let mut instant = PushToTalk::default();
         assert!(instant.update(true, at(0)));
         assert!(!instant.update(false, at(0)), "no delay releases at once");

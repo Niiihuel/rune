@@ -183,6 +183,7 @@ impl CaptureProcessor {
     }
 
     /// Whether RNNoise runs: chosen, and the microphone is at [`RNNOISE_RATE`].
+    #[cfg(test)]
     pub fn rnnoise(&self) -> bool {
         self.denoiser.is_some()
     }
