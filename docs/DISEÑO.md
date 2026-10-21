@@ -4,7 +4,8 @@ RUNE conserva su lenguaje visual compacto. Discord y Serein sirven como
 referencias de comportamiento —jerarquía, foco, hover y separación de
 zonas—, no como un diseño que haya que reproducir píxel a píxel
 (preferencia explícita del dueño, 2026-10-14). Los textos, iconos, colores y
-recursos son de RUNE. No se agrega un control sólo porque aparece en la
+recursos son de RUNE, salvo los sonidos predeterminados
+([MEDIA.md](MEDIA.md#sonidos)). No se agrega un control sólo porque aparece en la
 referencia: su acción tiene que existir y respetar las capacidades del
 proveedor.
 
@@ -43,7 +44,7 @@ con su fuente, están en [DISCORD_RESEARCH.md](DISCORD_RESEARCH.md).
   largos se desplazan y el contenido se adapta a ventanas chicas.
 
 Todas las coordenadas son px lógicos. Las «y» de la captura cuentan su barra
-de título (34.5 px); RUNE no la dibuja (ver diferencias), así que lo que
+de título (34.5 px); RUNE no tiene esa franja (ver diferencias), así que lo que
 cuelga del borde superior queda 34.5 px más arriba y lo que se apoya en el
 borde inferior queda igual.
 
@@ -51,7 +52,7 @@ borde inferior queda igual.
 
 | Zona | Captura | RUNE |
 |---|---|---|
-| Barra de título | alto 34.5, dibujada por la app | no hay: la pone el sistema |
+| Barra de título | alto 34.5, dibujada por la app | sin franja: los controles van en la cabecera |
 | Carril de servidores | x 0–85.5 + divisor 1 px | igual (`rail::WIDTH` = 86.5) |
 | Inicio / servidor / «+» | 42×42 en x 21.5, radio ≈10 | igual |
 | Paso entre servidores | ≈52–53 | 52.5 |
@@ -139,11 +140,12 @@ Claro y Oscuro siguen disponibles en Ajustes → Apariencia.
   Bandeja de entrada y ayuda no existen en RUNE.
 - **Acento propio**: ámbar en lugar del azul de Discord (servidor elegido,
   hover del carril). La corona del dueño también va en el acento.
-- **Sin funciones que RUNE no tiene**: no hay filas «Eventos» ni «Mejoras
-  del servidor» (la lista empieza bajo la cabecera) ni botón «Descubrir».
+- **Sin funciones que RUNE no tiene**: no hay fila «Mejoras del servidor»
+  ni botón «Descubrir».
 - **Proveedor a la vista**: al pie de la lista de canales, una línea dice qué
   proveedor está activo («Simulación local · sin conexión real»).
-- **Buscador**: busca en los mensajes cargados de la conversación (Ctrl+F).
+- **Buscador**: busca en los mensajes de la conversación, cargados o en
+  todo el historial (Ctrl+F; [ARCHITECTURE.md](ARCHITECTURE.md#búsqueda-y-contexto-de-mensajes)).
   El selector rápido de conversaciones se abre con Ctrl+K. En ventanas que
   no tienen lugar para la lista de miembros pasa a ser un icono.
 - **Lista de miembros**: se oculta por debajo de 1147.5 px de ancho
