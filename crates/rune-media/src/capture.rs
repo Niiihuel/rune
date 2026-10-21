@@ -406,12 +406,12 @@ fn ring(
 }
 
 trait InputStream {
-    fn play(&self) -> Result<(), MediaError>;
+    fn start(&self) -> Result<(), MediaError>;
 }
 
 impl InputStream for cpal::Stream {
-    fn play(&self) -> Result<(), MediaError> {
-        StreamTrait::play(self).map_err(|error| {
+    fn start(&self) -> Result<(), MediaError> {
+        StreamTrait::start(self).map_err(|error| {
             eprintln!("rune: microphone: start failed: {error}");
             MediaError(t("No se pudo activar el micrófono.").into())
         })
@@ -1090,7 +1090,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                         if !shared.current(generation) {
                             return Ok(());
                         }
-                        next.opened.stream.play()?;
+                        next.opened.stream.start()?;
                         if shared.current(generation) {
                             eprintln!("rune: microphone: capture started");
                             active = Some(next);

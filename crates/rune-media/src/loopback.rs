@@ -121,7 +121,7 @@ pub(crate) fn open(
         _ => None,
     }
     .ok_or_else(unavailable)?;
-    stream.play().map_err(|_| unavailable())?;
+    stream.start().map_err(|_| unavailable())?;
     Ok((stream, failed, EchoReference::from_consumer(consumer)))
 }
 
@@ -139,11 +139,7 @@ where
         .build_input_stream::<T, _, _>(
             config,
             move |samples, _| monitor.write(samples),
-            move |error| {
-                if !matches!(error.kind(), cpal::ErrorKind::Xrun) {
-                    failed.store(true, Ordering::Release);
-                }
-            },
+            move |_| failed.store(true, Ordering::Release),
             Some(Duration::from_secs(2)),
         )
         .ok()

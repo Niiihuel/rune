@@ -91,6 +91,9 @@ rune-update = { path = "crates/rune-update" }
 # vendor/hpke-rs/RUNE-PATCH.md for the diff and when to remove it.
 [patch.crates-io]
 hpke-rs = { path = "vendor/hpke-rs" }
+# CPAL 0.18.2 ignores WASAPI's AUDCLNT_BUFFERFLAGS_SILENT flag and can pass
+# undefined capture data; pin the upstream fix until it ships in a release.
+cpal = { git = "https://github.com/RustAudio/cpal", rev = "c14f262446e74013eced53d47624347bc54c882a" }
 
 [workspace.lints.clippy]
 too_many_arguments = "allow"

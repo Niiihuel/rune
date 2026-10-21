@@ -513,12 +513,12 @@ struct Ends {
 }
 
 trait OutputStream {
-    fn play(&self) -> Result<(), MediaError>;
+    fn start(&self) -> Result<(), MediaError>;
 }
 
 impl OutputStream for cpal::Stream {
-    fn play(&self) -> Result<(), MediaError> {
-        StreamTrait::play(self).map_err(|error| {
+    fn start(&self) -> Result<(), MediaError> {
+        StreamTrait::start(self).map_err(|error| {
             eprintln!("rune: speaker: start failed: {error}");
             MediaError(t("No se pudo activar la salida de audio.").into())
         })
@@ -662,16 +662,15 @@ where
                 egress.render(
                     output,
                     timestamp
-                        .playback
+                        .device
                         .saturating_duration_since(timestamp.callback),
                 );
             },
             move |error| {
-                // Xruns are underruns the device itself saw; only losing the
-                // stream needs a reopen.
-                if !matches!(error.kind(), cpal::ErrorKind::Xrun) {
-                    signals.failed.store(true, Ordering::Release);
-                }
+                // CPAL 0.19 reports xruns with the affected data callback;
+                // its error callback therefore means the stream was lost.
+                let _ = error;
+                signals.failed.store(true, Ordering::Release);
             },
             Some(Duration::from_secs(2)),
         )
@@ -1016,7 +1015,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                         if !shared.current(generation) {
                             continue;
                         }
-                        match opened.stream.play() {
+                        match opened.stream.start() {
                             Ok(()) => {
                                 snapshot.rate = opened.ends.rate;
                                 snapshot.channels = opened.ends.channels;
