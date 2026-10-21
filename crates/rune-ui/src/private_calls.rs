@@ -513,7 +513,24 @@ pub(crate) fn private_stage(
         ring_again,
         invitation,
         incoming: status == CallStatus::Incoming,
+        expanded: ui.voice.stage == Some(channel),
     })
+}
+
+/// «Expandir»: the call of the open conversation over all of it, with its
+/// chat beside; «Reducir»: back under the conversation's header.
+pub(crate) fn toggle_expanded(ui: &mut Ui, store: &Store) -> Vec<Intent> {
+    let Some(channel) = ui.channel().filter(|channel| callable(store, *channel)) else {
+        return Vec::new();
+    };
+    if ui.voice.stage == Some(channel) {
+        ui.voice.stage = None;
+        ui.voice.chat = None;
+    } else {
+        ui.voice.stage = Some(channel);
+        ui.voice.chat = Some(Some(channel));
+    }
+    Vec::new()
 }
 
 /// The call of the conversation open, under its header, `width` wide.

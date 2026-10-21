@@ -26,6 +26,46 @@ pub mod ids {
     pub const CHECK: &str = "update:check";
     /// Look when RUNE starts, or no longer (settings).
     pub const AT_START: &str = "update:at-start";
+    /// The release's page on GitHub, with its pictures and videos.
+    pub const ON_GITHUB: &str = "update:on-github";
+}
+
+/// Where a release's page is, as GitHub shows it: its notes with their
+/// pictures and videos, and its files.
+pub fn release_page(version: &str) -> String {
+    format!("https://github.com/Niiihuel/rune/releases/tag/v{version}")
+}
+
+/// A release's notes as its page reads them, `width` wide: Markdown, where
+/// a short line right over a list (the tag's message drops `#` headings)
+/// reads as a heading, and a first line that only names the release is
+/// left out, the title says it already.
+pub fn release_notes(version: &str, notes: &str, width: f32, look: &Look) -> Element {
+    let lines: Vec<&str> = notes.trim().lines().collect();
+    let name = format!("RUNE {version}");
+    let mut source = String::with_capacity(notes.len() + 64);
+    for (at, current) in lines.iter().enumerate() {
+        let current = current.trim_end();
+        if at == 0 && current.trim() == name {
+            continue;
+        }
+        let heading = !current.trim().is_empty()
+            && !current.starts_with(['-', '*', '#', '>', ' '])
+            && current.chars().count() <= 60
+            && lines
+                .get(at + 1)
+                .is_some_and(|next| next.trim_start().starts_with("- "));
+        if heading {
+            source.push_str("### ");
+        }
+        source.push_str(current);
+        source.push('\n');
+    }
+    limn::Markdown::new(&source, look.palette())
+        .width(width)
+        .font_size(14.0)
+        .render()
+        .element
 }
 
 /// Where the update offered stands.

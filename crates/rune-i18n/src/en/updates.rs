@@ -93,6 +93,12 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Instalando RUNE {version}…", "Installing RUNE {version}…"),
     ("RUNE {version} está disponible.", "RUNE {version} is available."),
     ("Tenés la última versión.", "You have the latest version."),
+    ("Novedades de RUNE {version}", "What's new in RUNE {version}"),
+    ("Ver en GitHub", "View on GitHub"),
+    (
+        "novedades notas cambios versión github imágenes videos",
+        "whats new notes changes version github pictures videos",
+    ),
     ("Todavía no se buscó.", "Not checked yet."),
     (
         "{status} Última verificación: {when}.",

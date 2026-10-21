@@ -27,6 +27,7 @@ mod view;
 
 pub use advanced::expression_image_picked;
 pub use view::view;
+pub(crate) use view::wanted;
 
 use std::collections::HashSet;
 use std::time::Instant;

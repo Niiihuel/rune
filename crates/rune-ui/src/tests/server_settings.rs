@@ -2048,3 +2048,55 @@ fn members_are_ordered_filtered_and_say_how_they_joined() {
         "only recent joins"
     );
 }
+
+/// The people the settings list ask for their pictures, and their rows draw
+/// them (2026-10-21: every row kept its initials, as nothing asked).
+#[test]
+fn the_settings_ask_for_the_faces_they_list() {
+    use rune_model::RemoteImage;
+    let mut host = Host::new();
+    let lab = host.lab();
+    // `user` given a picture of their own: the one the settings show.
+    let pictured = |host: &mut Host, user: UserId| -> RemoteImage {
+        let mut account = host.store.user(user).unwrap().clone();
+        account.avatar = Some(RemoteImage {
+            url: format!("https://cdn.example.test/face-{user}.png"),
+            kind: Default::default(),
+        });
+        host.event(Event::UserChanged(account));
+        host.frame();
+        host.store.avatar_in(Some(lab), user).unwrap().clone()
+    };
+    host.open_settings(lab);
+    host.click("ss:page:invites");
+    host.answer();
+    let inviter = host
+        .store
+        .invites(lab)
+        .unwrap()
+        .iter()
+        .find_map(|invite| invite.inviter)
+        .expect("an invitation says who made it");
+    let face = pictured(&mut host, inviter);
+    assert!(wanted_images(&host.ui, &host.store, &host.tree).contains(&face));
+    host.click("ss:page:members");
+    host.answer();
+    host.frame();
+    let shown = host
+        .tree
+        .frame()
+        .regions
+        .iter()
+        .find_map(|region| {
+            region
+                .id
+                .strip_prefix("ss:member:")?
+                .strip_suffix(":menu")?
+                .parse::<u64>()
+                .ok()
+        })
+        .map(UserId)
+        .expect("a member's row is in view");
+    let face = pictured(&mut host, shown);
+    assert!(wanted_images(&host.ui, &host.store, &host.tree).contains(&face));
+}

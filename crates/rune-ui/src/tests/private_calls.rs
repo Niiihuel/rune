@@ -302,6 +302,31 @@ fn a_direct_call_asks_for_the_cameras_on_its_tiles_under_the_header() {
 }
 
 #[test]
+fn a_direct_call_expands_over_its_conversation_with_the_chat_beside_and_back() {
+    let mut host = Host::new();
+    let (direct, _) = host.pc_direct();
+    host.click(&ids::start(direct.0));
+    host.event(Event::CallChecked {
+        channel: direct,
+        ringable: true,
+    });
+    host.pc_connected(direct);
+    assert!(host.pc_offers(ids::EXPAND), "under the header: «Expandir»");
+    host.click(ids::EXPAND);
+    assert_eq!(host.ui.voice.stage, Some(direct), "over the conversation");
+    assert!(host.ui.voice.chat.is_some(), "its chat beside it");
+    assert_eq!(host.ui.channel(), Some(direct));
+    assert!(
+        host.pc_offers(ids::EXPAND),
+        "«Reducir» in the stage's header"
+    );
+    host.click(ids::EXPAND);
+    assert_eq!(host.ui.voice.stage, None, "back under the header");
+    assert!(host.ui.voice.chat.is_none());
+    assert_eq!(host.ui.channel(), Some(direct));
+}
+
+#[test]
 fn without_private_calls_the_header_offers_none() {
     let mut host = Host::new();
     if let Some(info) = host.store.provider.as_mut() {

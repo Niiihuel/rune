@@ -12,14 +12,14 @@
 
 use limn::{
     Access, Button, ButtonSize, ButtonVariant, Color, Component, ControlSize, DropdownOption,
-    Element, FontFamily, Icon, Popover, PopoverPlacement, Role, Select, SelectVariant, Switch,
-    TextField, TextSpan,
+    Element, FontFamily, Icon, Popover, PopoverPlacement, Role, ScrollArea, ScrollbarAppearance,
+    Select, SelectVariant, Switch, TextField, TextSpan,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::{ChannelKind, Permissions};
 
 use crate::server_settings::{color_dot, context_menu, MenuAction, PermissionInfo};
-use crate::{avatar, centered, gap, line, strong_line, text, Look};
+use crate::{centered, gap, line, strong_line, text, Look};
 
 /// How long slow mode makes each member wait between two messages, and what
 /// the choice says (Spanish: show it through `t`). The provider takes up to
@@ -614,6 +614,8 @@ pub struct AccessLine {
     /// The role's color, or the person's accent.
     pub color: Color,
     pub person: bool,
+    /// The person's picture, once loaded.
+    pub image: Option<limn::RasterImage>,
     /// Said before the button, such as «Propietario del servidor».
     pub note: Option<String>,
     /// The action that takes their access away, when it can be taken.
@@ -723,7 +725,7 @@ pub fn private_card(card: &PrivateCard, look: &Look) -> Element {
 
 fn access_row(row: &AccessLine, look: &Look) -> Element {
     let mark = if row.person {
-        avatar(&row.name, row.color, 20.0)
+        crate::avatar_with_image(&row.name, row.color, 20.0, row.image.clone())
     } else {
         color_dot(row.color, 14.0)
     };
@@ -778,14 +780,14 @@ pub fn advanced_heading(open: bool, look: &Look) -> Element {
 }
 
 /// How a row of the list of overwrites is marked.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TargetMark {
     /// A role, by its color.
     Role(Color),
     /// `@everyone`, unmarked.
     Everyone,
-    /// A person, by their accent.
-    Member(Color),
+    /// A person, by their accent and their picture once loaded.
+    Member(Color, Option<limn::RasterImage>),
 }
 
 /// A role or a person with an overwrite, as the advanced view lists them.
@@ -814,9 +816,14 @@ pub fn target_list(items: &[TargetItem], add: Element, look: &Look) -> Element {
     ])
     .size(None, Some(32.0))];
     for item in items {
-        let mark = match item.mark {
-            TargetMark::Role(color) => Some(color_dot(color, 13.0)),
-            TargetMark::Member(accent) => Some(avatar(&item.name, accent, 20.0)),
+        let mark = match &item.mark {
+            TargetMark::Role(color) => Some(color_dot(*color, 13.0)),
+            TargetMark::Member(accent, image) => Some(crate::avatar_with_image(
+                &item.name,
+                *accent,
+                20.0,
+                image.clone(),
+            )),
             TargetMark::Everyone => None,
         };
         let mut parts = Vec::new();
@@ -892,7 +899,12 @@ pub struct AddChoice {
     /// The role's color, or the person's accent.
     pub color: Color,
     pub person: bool,
+    /// The person's picture, once loaded.
+    pub image: Option<limn::RasterImage>,
 }
+
+/// The tallest the popout's list of roles and people gets: eight of them.
+const ADD_LIST_HEIGHT: f32 = 8.0 * 44.0;
 
 /// The ⊕ of the list (`cs:add`) and, while `open`, the popout «Añadir:» with
 /// its field (`cs:add-query`) and what matches it; Esc or a click outside
@@ -921,17 +933,18 @@ pub fn add_popout(
     if choices.is_empty() {
         content.push(text(t("Nada para añadir."), 13.0, look.muted));
     }
+    let mut list = Vec::with_capacity(choices.len());
     for choice in choices {
         let (mark, name_ink, detail) = if choice.person {
             (
-                avatar(&choice.name, choice.color, 24.0),
+                crate::avatar_with_image(&choice.name, choice.color, 24.0, choice.image.clone()),
                 look.text,
                 String::new(),
             )
         } else {
             (gap(0.0, 0.0), choice.color, t("Rol").to_owned())
         };
-        content.push(
+        list.push(
             Element::clickable(
                 choice.id.clone(),
                 Element::row(vec![
@@ -946,6 +959,16 @@ pub fn add_popout(
             .radius(4.0)
             .hover_background(look.hover)
             .accessible(Access::new(Role::Button).name(choice.name.clone())),
+        );
+    }
+    // A server with many roles and people scrolls inside the popout instead
+    // of running past the window's foot (2026-10-21).
+    if !list.is_empty() {
+        content.push(
+            ScrollArea::new("cs:add-list", Element::column(list).gap(8.0))
+                .appearance(ScrollbarAppearance::overlay().buttons(false))
+                .render()
+                .max_height(ADD_LIST_HEIGHT),
         );
     }
     Popover::new(
@@ -1124,6 +1147,7 @@ mod tests {
                 detail: "ana".into(),
                 color: LOOK.accent,
                 person: true,
+                image: None,
                 note: Some("Propietario del servidor".into()),
                 remove: None,
             }],
@@ -1132,6 +1156,7 @@ mod tests {
                 detail: "Rol".into(),
                 color: LOOK.danger,
                 person: false,
+                image: None,
                 note: None,
                 remove: Some("cs:access:role:21:remove".into()),
             }],

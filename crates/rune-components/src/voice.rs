@@ -1603,9 +1603,24 @@ pub fn stage(view: Stage, look: &Look) -> Element {
             .tooltip_with(denied_hint(t("Mostrar chat"), reason).placement(TooltipPlacement::Below))
             .disabled(),
     };
-    // A conversation's call has its chat under it already.
-    if private.is_none() {
-        header.push(chat.render().centered_y());
+    // A conversation's call has its chat under it already, or beside it
+    // once expanded; it switches between the two instead.
+    match private {
+        None => header.push(chat.render().centered_y()),
+        Some(private) => {
+            let (glyph, hint) = if private.expanded {
+                (Icon::Collapse, t("Reducir la llamada"))
+            } else {
+                (Icon::Fullscreen, t("Expandir la llamada"))
+            };
+            header.push(
+                IconButton::new(crate::private_call::ids::EXPAND, glyph, look.palette())
+                    .variant(ButtonVariant::Ghost)
+                    .tooltip_with(TooltipSpec::new(hint).placement(TooltipPlacement::Below))
+                    .render()
+                    .centered_y(),
+            );
+        }
     }
     // The window's own buttons (barra-e-icono) end where the row's padding does.
     if view.end > 0.0 {

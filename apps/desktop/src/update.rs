@@ -70,9 +70,14 @@ fn now() -> Timestamp {
     rune_provider::mock::wall_clock()
 }
 
+/// What a check found: the release offered, when newer, and the latest
+/// release's version and notes either way, for the settings to show what
+/// the version installed brought.
+type Found = (Option<Release>, (String, String));
+
 /// Look for a newer RUNE, here and now: call it off the interface's
 /// thread. `keep`: remember when, as an interactive run does.
-fn check(keep: bool) -> Result<Option<Release>, Error> {
+fn check(keep: bool) -> Result<Found, Error> {
     let client = rune_update::client()?;
     let checked = rune_update::block_on(rune_update::check(
         &client,
@@ -83,7 +88,9 @@ fn check(keep: bool) -> Result<Option<Release>, Error> {
         crate::window::remember(CHECKED, Some(now().0.to_string()));
     }
     let installed = Version::parse(rune_update::VERSION).expect("the workspace's version");
-    let offered = rune_update::offer(checked?, &installed, &rune_update::platform());
+    let manifest = checked?;
+    let latest = (manifest.version.to_string(), manifest.notes.clone());
+    let offered = rune_update::offer(manifest, &installed, &rune_update::platform());
     // On Windows the installer that put this version in place is still in
     // the downloads (it cannot delete itself): up to date, nothing there is
     // needed any more.
@@ -91,19 +98,19 @@ fn check(keep: bool) -> Result<Option<Release>, Error> {
     if let (None, Some(install)) = (&offered, installation()) {
         let _ = std::fs::remove_dir_all(install.downloads());
     }
-    Ok(offered)
+    Ok((offered, latest))
 }
 
 /// What a check found before the window opened.
 #[derive(Default)]
 pub struct Startup {
-    pub found: Option<Result<Option<Release>, Error>>,
+    pub found: Option<Result<Found, Error>>,
 }
 
 impl Startup {
     fn mandatory(&self) -> Option<&Release> {
         match &self.found {
-            Some(Ok(Some(release))) if release.mandatory => Some(release),
+            Some(Ok((Some(release), _))) if release.mandatory => Some(release),
             _ => None,
         }
     }
@@ -136,7 +143,7 @@ pub fn startup(capture: bool, bench: bool) -> Startup {
 
 /// What a job reports to the window that started it.
 enum Report {
-    Checked(Result<Option<Release>, Error>),
+    Checked(Result<Found, Error>),
     Progress(u64, u64),
     Installing,
     /// Installed: start this program.
@@ -306,13 +313,14 @@ impl Updates {
         updates
     }
 
-    fn found(&mut self, found: Result<Option<Release>, Error>, ui: &mut rune_ui::Ui) {
+    fn found(&mut self, found: Result<Found, Error>, ui: &mut rune_ui::Ui) {
         let state = &mut ui.updates;
         state.checking = false;
         state.checked = Some(now());
         match found {
-            Ok(release) => {
+            Ok((release, latest)) => {
                 state.error = None;
+                state.latest = Some(latest);
                 state.offered = release
                     .as_ref()
                     .map(|release| view_of(release, Stage::Offered));

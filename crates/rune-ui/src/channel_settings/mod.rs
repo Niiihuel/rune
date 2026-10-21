@@ -18,6 +18,7 @@ mod view;
 pub(crate) mod forum;
 
 pub use view::view;
+pub(crate) use view::wanted;
 
 use std::time::Instant;
 

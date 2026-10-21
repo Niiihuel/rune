@@ -99,6 +99,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Compartir pantalla", "Share your screen"),
     ("{whole},{tenth} %", "{whole}.{tenth}%"),
     ("Conectando a la voz…", "Connecting to voice…"),
+    ("Expandir la llamada", "Expand the call"),
+    ("Reducir la llamada", "Shrink the call"),
     ("Asegurando el audio…", "Securing audio…"),
     ("Voz conectada (simulada)", "Voice connected (simulated)"),
     ("Voz conectada", "Voice connected"),

@@ -504,6 +504,9 @@ pub(crate) fn update(
         }
         ids::VOICE_SETTINGS => settings::open_settings(ui, store, SettingsPage::Voice),
         ids::CHAT => toggle_chat(ui, store),
+        rune_components::private_call::ids::EXPAND => {
+            crate::private_calls::toggle_expanded(ui, store)
+        }
         ids::CARD_DISMISS => {
             ui.voice.card = None;
             Vec::new()
@@ -966,7 +969,12 @@ pub(crate) fn stage_view(
         None => Ok(ui.voice.chat.is_some() && ui.channel() == Some(channel)),
     };
     let size = Size::new(width, context.window.height);
-    stage_of(ui, store, channel, size, chat, None, look)
+    // A conversation's call, expanded, keeps what it adds: who it rings,
+    // «Volver a llamar», «Reducir».
+    let private = crate::private_calls::callable(store, channel)
+        .then(|| crate::private_calls::private_stage(ui, store, channel, look))
+        .flatten();
+    stage_of(ui, store, channel, size, chat, private, look)
 }
 
 /// The stage of `channel` in `size`: a voice channel's, with whether its

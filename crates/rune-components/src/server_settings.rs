@@ -1464,6 +1464,8 @@ pub struct MemberLine {
     /// The color of their highest colored role.
     pub ink: Color,
     pub accent: Color,
+    /// Their picture, once loaded.
+    pub image: Option<limn::RasterImage>,
     pub owner: bool,
     /// Their roles, highest first.
     pub roles: Vec<(String, Color)>,
@@ -1571,7 +1573,8 @@ pub fn member_row(row: &MemberLine, width: f32, look: &Look) -> Element {
     let body = Element::panel(
         Element::row(vec![
             Element::row(vec![
-                avatar(&row.name, row.accent, 32.0).centered_y(),
+                crate::avatar_with_image(&row.name, row.accent, 32.0, row.image.clone())
+                    .centered_y(),
                 Element::column(name).gap(1.0).flex(1.0).centered_y(),
             ])
             .gap(10.0)
@@ -1605,12 +1608,21 @@ pub struct PersonLine {
     pub name: String,
     pub handle: String,
     pub accent: Color,
+    /// Their picture, once loaded.
+    pub image: Option<limn::RasterImage>,
+}
+
+impl PersonLine {
+    /// Their picture, or their initial on their accent, `size` across.
+    fn avatar(&self, size: f32) -> Element {
+        crate::avatar_with_image(&self.name, self.accent, size, self.image.clone())
+    }
 }
 
 /// A member of a role, with the button that takes the role away from them.
 pub fn role_member_row(person: &PersonLine, remove: &str, enabled: bool, look: &Look) -> Element {
     Element::row(vec![
-        avatar(&person.name, person.accent, 24.0).centered_y(),
+        person.avatar(24.0).centered_y(),
         strong_line(&person.name, 15.0, look.text).centered_y(),
         line(&person.handle, 14.0, look.muted)
             .flex(1.0)
@@ -1636,7 +1648,7 @@ pub fn pick_row(id: &str, person: &PersonLine, checked: bool, look: &Look) -> El
             .accessibility_label(person.name.clone())
             .render()
             .centered_y(),
-        avatar(&person.name, person.accent, 24.0).centered_y(),
+        person.avatar(24.0).centered_y(),
         strong_line(&person.name, 15.0, look.text).centered_y(),
         line(&person.handle, 14.0, look.muted)
             .flex(1.0)
@@ -1674,7 +1686,7 @@ pub fn ban_row(row: &BanLine, look: &Look) -> Element {
     ));
     Element::column(vec![
         Element::row(vec![
-            avatar(&row.person.name, row.person.accent, 32.0).centered_y(),
+            row.person.avatar(32.0).centered_y(),
             Element::column(copy).gap(2.0).flex(1.0).centered_y(),
             Button::new(
                 format!("ss:ban:{}:revoke", row.user),
@@ -1723,7 +1735,7 @@ pub fn invite_row(row: &InviteLine, look: &Look) -> Element {
     }
     let who = row.inviter.as_ref().map_or_else(
         || avatar("?", look.faint, 32.0),
-        |person| avatar(&person.name, person.accent, 32.0),
+        |person| person.avatar(32.0),
     );
     let by = row.inviter.as_ref().map_or_else(
         || t("Creador desconocido").to_owned(),
@@ -2061,6 +2073,8 @@ pub struct AuditLine {
     pub id: String,
     pub actor: String,
     pub accent: Color,
+    /// The actor's picture, once loaded.
+    pub image: Option<limn::RasterImage>,
     pub kind: AuditKind,
     pub sentence: Vec<Span>,
     /// When, as the timeline writes it: "Hoy a las 14:05".
@@ -2097,7 +2111,7 @@ pub fn audit_row(row: &AuditLine, look: &Look) -> Element {
             .radius(14.0)
             .background(Look::alpha(badge, 36))
             .centered_y(),
-        avatar(&row.actor, row.accent, 40.0).centered_y(),
+        crate::avatar_with_image(&row.actor, row.accent, 40.0, row.image.clone()).centered_y(),
         Element::column(vec![
             spans(&row.sentence, 16.0, look),
             line(&row.when, 14.0, look.faint),
@@ -2588,6 +2602,7 @@ mod tests {
             handle: "ana".into(),
             ink: LOOK.text,
             accent: LOOK.accent,
+            image: None,
             owner: false,
             roles: vec![
                 ("Moderación".into(), LOOK.danger),
@@ -2625,6 +2640,7 @@ mod tests {
             id: "ss:audit:1".into(),
             actor: "Ana".into(),
             accent: LOOK.accent,
+            image: None,
             kind: AuditKind::Update,
             sentence: vec![strong("Ana"), plain(" actualizó el servidor")],
             when: "Hoy a las 14:05".into(),
