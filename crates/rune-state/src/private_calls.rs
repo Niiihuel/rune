@@ -168,6 +168,7 @@ impl Store {
     }
 
     /// Whether `channel` has a call, as the provider said.
+    #[cfg(test)]
     pub fn has_private_call(&self, channel: ChannelId) -> bool {
         self.private_calls.calls.contains_key(&channel)
     }

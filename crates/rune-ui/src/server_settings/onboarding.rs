@@ -40,10 +40,6 @@ impl OnboardingPage {
         self.saving.is_some()
     }
 
-    pub fn loading(&self) -> bool {
-        self.loading.is_some()
-    }
-
     /// Close what floats on the page; false when nothing did.
     pub(super) fn close(&mut self) -> bool {
         std::mem::take(&mut self.picking_mode)

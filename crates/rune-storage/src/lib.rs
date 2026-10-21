@@ -422,6 +422,7 @@ impl Storage {
     }
 
     /// Remove a message and remember its deletion across restarts.
+    #[cfg(test)]
     pub fn delete_message(
         &mut self,
         account: &str,

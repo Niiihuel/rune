@@ -198,6 +198,7 @@ impl DocumentSearch {
 
 impl DocumentViewer {
     /// The pages already rendered, the most recently shown last.
+    #[cfg(test)]
     pub fn rendered(&self) -> impl Iterator<Item = u32> + '_ {
         self.rendered.iter().map(|(page, _)| *page)
     }

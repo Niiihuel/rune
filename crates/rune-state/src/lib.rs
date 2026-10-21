@@ -54,7 +54,6 @@ mod events;
 pub use events::EventAbilities;
 // AutoMod (automod).
 mod automod;
-pub use automod::RECENT_EXECUTIONS;
 
 use std::collections::HashMap;
 use std::sync::Arc;
