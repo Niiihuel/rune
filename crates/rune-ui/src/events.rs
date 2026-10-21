@@ -195,12 +195,15 @@ pub(crate) fn visible(ui: &Ui) -> bool {
 }
 
 /// Ask for the list of the server the column shows, once a session, so
-/// its entry says how many are coming.
+/// its entry says how many are coming. Not while what is shown is the
+/// local store's: the session's Ready forgets the lists and would ask
+/// again, in the burst of reads that follows it.
 pub(crate) fn after_layout(ui: &mut Ui, store: &Store) -> Vec<Intent> {
     let Some(server) = ui.server else {
         return Vec::new();
     };
-    if !store.event_abilities(server).view.allowed()
+    if store.from_cache
+        || !store.event_abilities(server).view.allowed()
         || store.scheduled_events(server).is_some()
         || !ui.events.asked.insert(server)
     {
@@ -579,6 +582,22 @@ pub(crate) fn intercept(ui: &mut Ui, event: &UiEvent) -> Option<Vec<Intent>> {
         }
     }
     Some(Vec::new())
+}
+
+/// Whether a failure is the events' own to show, not a notice's: the
+/// dialog says its own beside what failed, and the list the entry reads in
+/// the background only leaves the entry without its count (the dialog
+/// reads it again when opened, and a new session asks again).
+pub(crate) fn shows_failure(ui: &Ui, failure: &Failure) -> bool {
+    match failure {
+        Failure::ScheduledEvents { .. } => true,
+        Failure::ScheduledEvent { request, .. } | Failure::EventInterest { request, .. } => {
+            ui.events.dialog.as_ref().is_some_and(|dialog| {
+                [dialog.loading, dialog.people, dialog.busy].contains(&Some(*request))
+            })
+        }
+        _ => false,
+    }
 }
 
 /// Follow what the provider answered.

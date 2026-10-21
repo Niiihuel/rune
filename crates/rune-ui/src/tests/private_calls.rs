@@ -251,6 +251,25 @@ fn a_call_in_progress_or_on_another_device_invites_to_join_from_here() {
 }
 
 #[test]
+fn a_direct_call_asks_for_the_cameras_on_its_tiles_under_the_header() {
+    let mut host = Host::new();
+    let (direct, other) = host.pc_direct();
+    host.click(&ids::start(direct.0));
+    host.event(Event::CallChecked {
+        channel: direct,
+        ringable: true,
+    });
+    host.pc_connected(direct);
+    let mut camera = state(other, direct);
+    camera.camera = true;
+    host.event(Event::VoiceChanged(camera));
+    assert_eq!(host.ui.channel(), Some(direct));
+    // 2026-10-21: only a voice channel's stage asked for them, and a
+    // direct call's tiles kept showing faces.
+    assert_eq!(crate::video::cameras(&host.ui, &host.store), vec![other]);
+}
+
+#[test]
 fn without_private_calls_the_header_offers_none() {
     let mut host = Host::new();
     if let Some(info) = host.store.provider.as_mut() {

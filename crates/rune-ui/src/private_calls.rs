@@ -526,7 +526,17 @@ pub(crate) fn call_view(
 ) -> Option<Element> {
     let channel = ui.channel().filter(|channel| callable(store, *channel))?;
     let private = private_stage(ui, store, channel, look)?;
-    let height = (context.window.height * 0.5).clamp(300.0, 480.0);
+    // Cameras take more of the conversation than faces do.
+    let video = ui.video.camera.on
+        || store
+            .voice_in(channel)
+            .iter()
+            .any(|state| state.camera && Some(state.user) != store.me());
+    let height = if video {
+        (context.window.height * 0.65).clamp(360.0, 640.0)
+    } else {
+        (context.window.height * 0.5).clamp(300.0, 480.0)
+    };
     let size = Size::new(width, height);
     voice::stage_of(ui, store, channel, size, Ok(false), Some(private), look)
         .map(|stage| stage.size(None, Some(height)))

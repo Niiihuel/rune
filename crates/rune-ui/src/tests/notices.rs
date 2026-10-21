@@ -274,6 +274,46 @@ fn a_notice_is_projected_once_above_a_modal_then_returns_to_the_conversation() {
 }
 
 #[test]
+fn notices_stack_over_an_offered_update_and_never_cover_its_buttons() {
+    use rune_components::updates::{ids, Stage, UpdateView};
+    let (mut host, channel, _) = draft(2);
+    host.ui.updates.installation = Some("C:/RUNE".into());
+    host.ui.updates.offered = Some(UpdateView {
+        version: "1.2.0".into(),
+        installed: "1.1.0".into(),
+        notes: "Notas.".into(),
+        stage: Stage::Offered,
+    });
+    let titles = ["Primer aviso", "Segundo aviso", "Tercer aviso"];
+    for title in titles {
+        host.ui
+            .notify(title, Some("Detalle".into()), true, host.now);
+    }
+    let frame = layout(&mut host, WINDOW);
+    let install = region(&frame, ids::INSTALL, HitKind::Button);
+    visible(install, WINDOW);
+    assert_eq!(
+        frame
+            .press_region(center(install))
+            .map(|found| found.id.as_str()),
+        Some(ids::INSTALL),
+        "a press on «Actualizar y reiniciar» reaches it"
+    );
+    for title in titles {
+        let notice = alert(&frame, title);
+        visible(notice, WINDOW);
+        assert!(notice.intersection(install).is_none(), "{title} covers it");
+    }
+    // Put off, the notices go back over the composer.
+    host.ui.updates.later = true;
+    let frame = layout(&mut host, WINDOW);
+    let notice = alert(&frame, titles[0]);
+    for control in draft_controls(&frame, channel) {
+        assert!(notice.intersection(control).is_none());
+    }
+}
+
+#[test]
 fn authentication_keeps_one_visible_notice_without_creating_a_composer() {
     let mut host = Host::new();
     host.store

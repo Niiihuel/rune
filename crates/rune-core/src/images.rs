@@ -44,6 +44,10 @@ pub const IMAGE_ENTRIES: usize = 256;
 pub const IMAGE_TEXTURE_ENTRIES: usize = 64;
 const CACHE_BYTES: usize = 16 * 1024 * 1024;
 const RETRY_DELAY: Duration = Duration::from_secs(30);
+/// A picture the server failed to give (5xx) is asked again this soon,
+/// alone: a page's preview the proxy fetches the first time can take long
+/// enough upstream to fail once (2026-10-21).
+const SERVER_RETRY: Duration = Duration::from_secs(5);
 /// Decoded animation frames across the whole cache; past it the least
 /// recently wanted previews keep only their first frame.
 const ANIMATIONS_BYTES: usize = 64 * 1024 * 1024;
@@ -141,6 +145,9 @@ pub(crate) struct Images {
     pending: HashMap<RemoteImage, JoinHandle<()>>,
     cache: HashMap<RemoteImage, Option<Arc<ImageData>>>,
     order: VecDeque<RemoteImage>,
+    /// What the last `load` was asked for: on screen now, so never pushed
+    /// out of the cache to make room (see `insert`).
+    shown: HashSet<RemoteImage>,
     bytes: usize,
     epoch: u64,
     failures: HashMap<RemoteImage, Instant>,
@@ -190,6 +197,7 @@ impl Images {
             pending: HashMap::new(),
             cache: HashMap::new(),
             order: VecDeque::new(),
+            shown: HashSet::new(),
             bytes: 0,
             epoch: 0,
             failures: HashMap::new(),
@@ -223,6 +231,14 @@ impl Images {
     /// Poll completed work, retain only the bounded requested set and start
     /// at most four requests. A full queue leaves initials until a later frame.
     pub fn load(&mut self, wanted: &[RemoteImage]) -> Vec<(RemoteImage, Arc<ImageData>)> {
+        // Before the results arrive, so that none of them pushes out what is
+        // on screen now.
+        self.shown = wanted
+            .iter()
+            .filter(|source| source.url.len() <= 2048)
+            .take(IMAGE_ENTRIES)
+            .cloned()
+            .collect();
         while let Ok(result) = self.results.try_recv() {
             if result.epoch != self.epoch {
                 continue;
@@ -544,8 +560,17 @@ impl Images {
         self.order.push_back(source);
         // A denser screen's pictures take more bytes each: the same count fits.
         let budget = (CACHE_BYTES as f32 * self.density * self.density) as usize;
+        // The least recently wanted goes first, but never what is on screen
+        // now: pushed out, it would be asked for again ahead of what waits
+        // behind it, and the last pictures asked for (a member list's
+        // faces) would never get their turn (2026-10-21). With everything
+        // on screen, the budget waits; the entries stay bounded by what one
+        // load may ask for.
         while self.cache.len() > IMAGE_ENTRIES || self.bytes > budget {
-            if let Some(old) = self.order.pop_front() {
+            let Some(at) = self.order.iter().position(|old| !self.shown.contains(old)) else {
+                break;
+            };
+            if let Some(old) = self.order.remove(at) {
                 self.failures.remove(&old);
                 if let Some(Some(data)) = self.cache.remove(&old) {
                     self.bytes -= weight(&old, &data);
@@ -659,9 +684,15 @@ async fn download(
         .send()
         .await
         .map_err(|_| DownloadError::transient())?;
-    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS
-        || response.status().is_server_error()
-    {
+    // One picture the server could not give is that picture's, not a
+    // reason to hold every other one of its origin.
+    if response.status().is_server_error() {
+        return Err(DownloadError {
+            retry: Some(SERVER_RETRY),
+            origin_cooldown: false,
+        });
+    }
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
         // Unknown Retry-After syntax is held until a new local session instead
         // of guessing a shorter wait than the server requested.
         let delay = match response.headers().get(reqwest::header::RETRY_AFTER) {
@@ -682,6 +713,12 @@ async fn download(
             .content_length()
             .is_some_and(|n| n > max_bytes as u64)
     {
+        // Its origin and the answer only: a path can name a private file.
+        eprintln!(
+            "rune: a picture from {} did not load ({})",
+            response.url().origin().ascii_serialization(),
+            response.status()
+        );
         return Err(DownloadError::permanent());
     }
     let mut bytes = Vec::new();

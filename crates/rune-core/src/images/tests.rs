@@ -484,6 +484,12 @@ async fn successful_download_completes_off_thread_and_cache_evicts_to_its_budget
         images.insert(source(format!("https://example.test/{index}")), None);
     }
     assert_eq!(images.cache.len(), IMAGE_ENTRIES);
+    // What is on screen is never pushed out to make room for the rest.
+    assert!(images.cache.contains_key(&wanted[0]));
+    // Off screen, the least recently wanted goes first.
+    assert!(images.load(&[]).is_empty());
+    images.insert(source("one-more"), None);
+    assert_eq!(images.cache.len(), IMAGE_ENTRIES);
     assert!(!images.cache.contains_key(&wanted[0]));
     let large = Arc::new(ImageData {
         sha256: "0".repeat(64),

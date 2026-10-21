@@ -133,14 +133,19 @@ impl Video {
 
 /// Whose cameras the host should decode: those on the tiles of the stage of
 /// the account's call, while it is connected there and no stream takes the
-/// stage, at most [`MAX_CAMERAS`] in the stage's order.
+/// stage, at most [`MAX_CAMERAS`] in the stage's order. A direct call's
+/// tiles show under its conversation's header, with no stage of their own.
 pub fn cameras(ui: &Ui, store: &Store) -> Vec<UserId> {
     let (Some(call), Some(me)) = (store.call(), store.me()) else {
         return Vec::new();
     };
     let channel = call.channel;
+    let on_stage = ui.voice.stage == Some(channel)
+        || (ui.voice.stage.is_none()
+            && ui.channel() == Some(channel)
+            && crate::private_calls::callable(store, channel));
     let shown = call.phase.is_connected()
-        && ui.voice.stage == Some(channel)
+        && on_stage
         && store
             .watching()
             .iter()
