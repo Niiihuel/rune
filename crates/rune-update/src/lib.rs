@@ -181,7 +181,11 @@ pub fn verify(manifest: &[u8], signature: &str, key: &VerifyingKey) -> Result<Ma
         .ok_or(Error::Signature)?;
     key.verify_strict(manifest, &signature)
         .map_err(|_| Error::Signature)?;
-    serde_json::from_slice(manifest).map_err(|_| Error::Manifest)
+    // Signed by the owner, so its fields are safe to name in the log.
+    serde_json::from_slice(manifest).map_err(|error| {
+        eprintln!("rune: update: unreadable manifest: {error}");
+        Error::Manifest
+    })
 }
 
 /// What `manifest` offers a program at `installed` on `platform`: nothing
@@ -284,7 +288,7 @@ pub fn client() -> Result<reqwest::Client, Error> {
         .connect_timeout(Duration::from_secs(10))
         .read_timeout(Duration::from_secs(30))
         .build()
-        .map_err(|_| Error::Network)
+        .map_err(network)
 }
 
 /// Run `future` to its end on this thread, which must not be the
