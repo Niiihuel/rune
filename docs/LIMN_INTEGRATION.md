@@ -13,7 +13,7 @@ Las excepciones autorizadas por el dueño son WebViews temporales y aisladas
 para el login del proveedor no oficial y para que la persona resuelva un
 hCaptcha. Viven en un proceso auxiliar opcional; no renderizan
 conversaciones ni sustituyen componentes de limn
-([DISCORD_SESSION.md](DISCORD.md), [SECURITY.md](SECURITY.md)).
+([DISCORD.md](DISCORD.md), [SECURITY.md](SECURITY.md)).
 
 ## Si limn no tiene algo
 
@@ -46,59 +46,5 @@ puede apuntar temporalmente a su clon local (`file:///…/lienzo`); antes de
 mezclar en RUNE, la rama se sube a GitHub y `Cargo.toml` vuelve a GitHub.
 Cuando una versión publicada reúna los cambios, se podrá pasar a crates.io.
 
-## Qué usa RUNE
-
-| Pieza de limn | Uso en RUNE |
-| --- | --- |
-| `UiTree`, `Element`, `UiAction`, `UiEvent` | Bucle de cuadros en `apps/desktop`; `rune-ui` traduce acciones en `Intent` |
-| `ScrollArea::measured_list` + `follow_end`, `UiTree::visible_rows`, `anchor_offset`, `scroll_to_end` | Timeline virtualizado de altura variable anclado al cargar historial; marcar leído e «Ir a lo más reciente» |
-| `ScrollArea::uniform_list`, `UiTree::scroll_to_index`, `SearchField` (`clearable`) | Búsqueda, listas largas, buscador de ajustes |
-| `Composer` (`enter_submits`, `pill_controls`, `inline_controls`, `auto_grow`), `TextHighlight::background`, `UiTree::set_input_selection` | Compositor: Enter envía, el editor crece entre «+» y el emoji, pastillas sobre `@palabra` y `#palabra`, selección conservada tras Ctrl+B |
-| `SuggestionList` (`SuggestionItem::leading`, `ink`, `detail`) | Autocompletado de menciones con avatar, color del rol y usuario |
-| `Markdown` (`font_size`, subrayado, tachado, subtexto, código coloreado por lenguaje) y `TextSpan` (`image`, `surface`, `tooltip`, `underline`) | Contenido de mensajes; emoji de servidor en la línea; fecha completa de `<t:…>` y de «(editado)» en su tooltip. Los spoilers y las menciones los arma RUNE sobre los tramos (`text.rs`) |
-| `Element::max_lines` | Tema del canal con emoji, recortado con «…» |
-| `MessageActions`, `hover_region`, `hover_region_id`, `UiTree::hovered_region`, `dim_on_hover` | Acciones del mensaje bajo el puntero, decoración del autor, efecto de tarjeta al 35 % |
-| `ContextMenu::open_action`, `DropdownMenu` (`at`, `checkbox`, `radio`, `description`, `tooltip_with`, `submenu`, `custom`, `destructive`, `leading`), `popover_on_hover` | Menú de mensaje en el punto del clic derecho, menús de canales, voz y servidores, menú de estado; en el menú de una persona en voz, casillas al borde de la fila junto a los submenús, el punto del color de cada rol y las acciones que castigan en rojo |
-| `Popover`, `Modal`, `AlertDialog`, `Toast::layer` | Selector de emoji, tarjeta de perfil, ajustes, confirmaciones, avisos |
-| `Select` (`SelectVariant::Field`, `max_visible_items`), `SwatchPicker`, `ColorPicker`, `RadioOption::icon`, `Switch::track_size`, `Slider` (`mark_labels`, `level`), `Tabs` (`Underlined`), `DateTimePicker` | Formularios de ajustes y administración; nivel del micrófono sobre el umbral de voz |
-| `SegmentedControl`, `PreferencesGroup`, `ActionRow`, `ListRow`, `Kbd` | Ajustes, selector rápido, atajos |
-| `Badge` (`placement`, `outline`), `Tooltip` (`delay_ms`, `title_font_size`, `title_font_family`, `background`, `faces`) | Menciones del riel; tooltip de servidor con quién está en voz |
-| `ScrollbarVisibility::AutoHideUnlessHovered` | Barra de la línea de tiempo |
-| `Avatar` (`color`), `Attachment`, `SkeletonGroup`, `Spinner`, `Empty` | Avatares, archivos, carga, vacíos |
-| `Icon` + `limn_egui::set_icon_pack`, `Icon::Custom`, `Element::small_icon` | Íconos semánticos con el set de RUNE (`assets/glyphs/`, [ARTWORK.md](ARTWORK.md#íconos-de-la-interfaz)); Bootstrap Icons para lo que el set no tiene; la marca |
-| `Element::surface` (`SurfaceFit::Contain`, `ScaleDown`), `surface_mirrored`, `Button::surface`, `DropdownOption::image`/`surface` | GIF y stickers animados en su caja; vista previa de la cámara en espejo; emoji animados en botones y opciones de bots |
-| `Element::zoom_view`, `ImageViewer` (`action`, `thumbnail`, `footer`, `zoom_level`) | Visor de imágenes, PDF y videos ([VISOR.md](VISOR.md)) |
-| `Role::Region` + `UiTree::focusables_within` | Cinco regiones con nombre; F6 las recorre con el aterrizaje propio de RUNE |
-| `limn::Key` completo, `UiEvent::KeyReleased`, `ModifiersChanged`, `UiTree::key_held`, `modifiers`, `observe_keys` | Grabador de teclas, Pulsar para hablar en la ventana, barra de acciones directas con Shift |
-| `limn_egui::font_definitions_with(UiFaces { … semibold })`, `FontFamily::SansSemibold` | Fuente de interfaz elegida por la persona; seminegrita donde la REA del cliente oficial la pide |
-| `limn_egui::set_color_emoji` | Emoji a color (Twemoji de RUNE) sobre el glifo, también en el texto editable ([ARTWORK.md](ARTWORK.md)) |
-| `limn_egui::clear_image_cache`, `set_image_cache_entries` | Decodificación acotada fuera del hilo de UI; caché de texturas que nunca expulsa lo dibujado en el paso actual o el anterior |
-| `set_labels` | Textos propios de limn en el idioma activo |
-
-## Página de autorización
-
-`crates/rune-ui/src/auth.rs` compone la página con componentes de limn.
-Recibe `Store::authentication`, `ProviderInfo` y datos de dominio; no conoce
-adaptadores, endpoints ni credenciales, y no tiene campos para credenciales.
-`SignedIn` abre el espacio de trabajo aunque todavía no haya conversaciones,
-con un estado vacío y la conexión explícitos, sin inventar canales ni
-habilitar composer, presencia o voz sin capacidades. Los botones producen
-`BeginSignIn`, `CancelSignIn` y `SignOut`; en OAuth2, abrir el navegador es
-`Intent::OpenUrl`. `AwaitingExternal` dice que el login sigue en otra ventana
-y ofrece cancelar; Escape cancela una autorización pendiente. `Toast::layer`
-se comparte con la vista de chat para que un fallo de revocación no
-desaparezca al cerrar la sesión. Detalles del proveedor y scopes, en Ajustes
-→ Conexión; el cierre de sesión, en Mi cuenta.
-
-## Lo que todavía falta en limn
-
-| Carencia | Efecto en RUNE | Propuesta |
-| --- | --- | --- |
-| Entrada de archivos por arrastre con posición ligada al lote | Arrastrar archivos se rechaza ([ARCHITECTURE.md](ARCHITECTURE.md#adjuntos-de-salida)) | Conectar el `FileDropReceiver` de `limn-dnd` y su owner Wayland compartido (PR #55 y #62) con el portapapeles de eframe, o migrar a winit 0.31 cuando egui lo haga ([tasks/todo.md](../tasks/todo.md#bloqueado-aguas-arriba)). `Composer::drop_target()` ya marca el destino |
-| El subtítulo de `ListRow` es sólo texto | Un extracto de búsqueda dice `:nombre:` en lugar de la imagen del emoji (`// limn-gap:` en `rune-ui/src/search/view.rs`) | `ListRow::subtitle_element` |
-| Una fila dentro de la columna de un mensaje no recibe ancho acotado | RUNE pasa el ancho del mensaje explícitamente para que `shrink_to_fit` actúe | Que una columna flexible mida a sus hijos con su ancho |
-| `measured_list` tiene una sola estimación de altura por lista y no revisa contenido por fila | Saltos posibles con imágenes o ediciones fuera de vista | `.estimate(\|index\| f32)`, `.row_revision(\|index\| u64)` |
-| Imágenes por referencia | Cada vista entrega su `RasterImage` | `ImageRef` + `UiTree::set_image` |
-
-El corrector ortográfico no está entre las carencias: el dueño decidió el
-2026-10-18 que RUNE no lo tenga.
+Lo que todavía falta en limn está en
+[tasks/todo.md](../tasks/todo.md#limn).
