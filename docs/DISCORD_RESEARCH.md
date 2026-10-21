@@ -37,7 +37,8 @@ Las medidas y colores de la interfaz están en [DISEÑO.md](DISEÑO.md).
 ## Lo que no se usa
 
 Logo, nombre y mascotas de Discord, el color Blurple como acento, las
-tipografías Whitney y gg sans, sus iconos, sus sonidos y los nombres de
-producto («Nitro», «Go Live»…): RUNE usa recursos propios o con licencia
-abierta y terminología genérica en español. Ver
-[ARTWORK.md](ARTWORK.md) y [FONTS.md](FONTS.md).
+tipografías Whitney y gg sans, sus iconos y los nombres de producto
+(«Nitro», «Go Live»…): RUNE usa recursos propios o con licencia abierta y
+terminología genérica. Ver [ARTWORK.md](ARTWORK.md) y [FONTS.md](FONTS.md).
+La excepción son los sonidos predeterminados, efectos públicos de Discord
+que el dueño autorizó el 2026-10-21 ([MEDIA.md](MEDIA.md#sonidos)).
