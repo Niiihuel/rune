@@ -187,8 +187,8 @@ mod tests {
                 at(&plain, 0, 0)[0] < 16,
                 "{size}: a rounded corner is clear"
             );
-            // Red at the tile's foot, under the mark.
-            let [alpha, red, green, blue] = at(&plain, size / 2, size * 7 / 8);
+            // Red at the tile's foot, under the mark and clear of its edge.
+            let [alpha, red, green, blue] = at(&plain, size / 2, size * 13 / 16);
             assert!(alpha > 240, "{size}: {alpha}");
             assert!(
                 red > 180 && green < 90 && blue < 90,
