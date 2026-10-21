@@ -434,7 +434,7 @@ fn emoji(value: &Value) -> (Option<String>, Option<rune_model::RemoteImage>) {
 /// A thumbnail or a gallery's picture: only a picture through the proxy, as
 /// a card's picture; anything else keeps its description. It is explicit
 /// when its scan says so (`content_scan_metadata.flags` bit 1, as the
-/// official client reads it, docs/REA.md) or it shows an explicit file.
+/// official client reads it, docs/DISCORD.md) or it shows an explicit file.
 fn item(value: &Value, budget: &mut Budget) -> Media {
     let source = &value["media"];
     let picture = source["content_type"]

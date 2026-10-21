@@ -230,7 +230,7 @@ Recorrido: **elegir → preparar → añadir al borrador → enviar explícitame
 - **Límites**: la simulación admite diez archivos, 20 MiB por archivo y
   25 MiB por mensaje (texto incluido); la sesión no oficial, diez archivos
   con el límite del plan de la cuenta y el boost del servidor
-  ([DISCORD_SESSION.md](DISCORD_SESSION.md)).
+  ([DISCORD_SESSION.md](DISCORD.md)).
 
 Al cerrar, el runtime pasa a un hilo `rune-core-shutdown`; nunca se drena
 un receptor con bytes en el hilo de UI.

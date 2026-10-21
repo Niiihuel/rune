@@ -18,7 +18,7 @@ use crate::{Applied, Permit, Store};
 /// How long an interaction waits for its app before RUNE stops waiting.
 pub const INTERACTION_WAIT: Duration = Duration::from_secs(30);
 /// How long a modal sent with files waits, uploads included: as the
-/// official client waits (docs/REA.md).
+/// official client waits (docs/DISCORD.md).
 pub const UPLOAD_WAIT: Duration = Duration::from_secs(2 * 60);
 /// How long a list of commands is kept before it is asked for again.
 pub const COMMANDS_KEPT: Duration = Duration::from_secs(5 * 60);

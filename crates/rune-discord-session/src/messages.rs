@@ -221,7 +221,7 @@ impl Messages {
             Command::PinMessage { channel, .. } | Command::UnpinMessage { channel, .. } => {
                 // In a direct conversation anyone in it pins; in a server,
                 // whoever has Discord's pin bit (51) and the history, as the
-                // official client asks (docs/REA.md).
+                // official client asks (docs/DISCORD.md).
                 let known = snapshot.channels.iter().find(|known| known.id == *channel);
                 (
                     *channel,

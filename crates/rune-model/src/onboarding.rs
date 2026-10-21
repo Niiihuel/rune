@@ -3,7 +3,7 @@
 //! take part, and its onboarding: questions whose answers give roles and
 //! open channels. The administration edits that same onboarding. The
 //! limits follow the forms of the official client and of Serein
-//! (docs/REA.md); none was confirmed against a service.
+//! (docs/DISCORD.md); none was confirmed against a service.
 
 use rune_i18n::{t, tr};
 

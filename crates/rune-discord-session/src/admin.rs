@@ -3,7 +3,7 @@
 //! Discord's answers change in the session, and the permission bits RUNE
 //! writes. The requests live in `http::admin`; each route is one Serein
 //! uses, one Discord documents or one the official client's bundle shows
-//! (see docs/DISCORD_SESSION.md). Fixtures only: none was tried against Discord.
+//! (see docs/DISCORD.md). Fixtures only: none was tried against Discord.
 
 mod audit;
 mod decode;

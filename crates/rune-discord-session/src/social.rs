@@ -2,7 +2,7 @@
 //! reports them, and the checks before a write about people or conversations
 //! outside servers (`http::social` sends it, by the routes Serein uses).
 //! Making groups, changing their people and handing them over go by the
-//! official web client's routes (2026-10-17, docs/REA.md).
+//! official web client's routes (2026-10-17, docs/DISCORD.md).
 //!
 //! Relationship rows are untrusted and optional to the account: a malformed
 //! row is dropped without failing the session, and a list that cannot be

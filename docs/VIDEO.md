@@ -9,8 +9,8 @@ imita y lo dice, y el proveedor OAuth2 no lleva video.
 **Estado.** Probado con fixtures locales y con la GPU de esta máquina. El
 dueño transmitió en una llamada real, pero no hay una prueba registrada de
 cada caso contra Discord. El protocolo sale de la REA estática del cliente
-oficial ([REA.md](REA.md)) y de Serein; la parte de red está en
-[DISCORD_SESSION.md](DISCORD_SESSION.md) y la captura en
+oficial ([REA.md](DISCORD.md)) y de Serein; la parte de red está en
+[DISCORD_SESSION.md](DISCORD.md) y la captura en
 [MEDIA.md](MEDIA.md#pantalla-y-cámara).
 
 ## Decisiones del dueño
@@ -172,7 +172,7 @@ sin tumbar la llamada.
   del alto), como el oficial y Serein. Otro clic, «Volver a la grilla»
   (`vz:spotlight:{persona}`) o Escape vuelven a la grilla; un clic en la
   tira enfoca esa.
-- **Como el oficial** (REA en [REA.md](REA.md#llamada-bandeja-y-transmisiones)):
+- **Como el oficial** (REA en [REA.md](DISCORD.md)):
   doble clic en una transmisión mirada la enfoca y la muestra en pantalla
   completa; otro doble clic ahí vuelve al escenario con la grilla, como el
   oficial (Escape sale de la pantalla completa y la deja enfocada). El

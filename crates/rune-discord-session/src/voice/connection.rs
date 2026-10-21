@@ -2065,7 +2065,7 @@ impl Connection<'_> {
     }
 
     /// Tell the voice server which video to forward (op 15): see the
-    /// module. When to repeat it is not confirmed (docs/REA.md).
+    /// module. When to repeat it is not confirmed (docs/DISCORD.md).
     async fn sink_wants(&mut self) -> Result<(), Ended> {
         // Only those who watch say what they want; the one sharing does not.
         if self.video.is_none() || self.sharing() {

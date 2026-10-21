@@ -6,7 +6,7 @@ de una llamada, reproducción de mensajes de voz y adjuntos, sonidos, y la
 captura, codificación y decodificación de pantalla y cámara. No sabe de
 ningún servicio ni de la interfaz: el transporte de voz y video de Discord
 (WebSocket de voz, UDP/RTP, cifrado de transporte, DAVE) vive en
-`rune-discord-session` ([DISCORD_SESSION.md](DISCORD_SESSION.md)), y lo
+`rune-discord-session` ([DISCORD_SESSION.md](DISCORD.md)), y lo
 específico del video de llamadas está en [VIDEO.md](VIDEO.md).
 
 **Estado.** El dueño usó las llamadas con su cuenta, pero no hay una

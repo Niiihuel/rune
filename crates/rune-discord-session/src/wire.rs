@@ -283,7 +283,7 @@ pub(crate) fn attachments(
 }
 
 /// `CONTAINS_EXPLICIT_MEDIA`, the same bit in an attachment's and a card's
-/// `flags`, as the official client reads them (docs/REA.md).
+/// `flags`, as the official client reads them (docs/DISCORD.md).
 pub(crate) const EXPLICIT_MEDIA: u64 = 1 << 4;
 
 /// The ThumbHash that stands in for a picture while it loads, as base64
@@ -305,7 +305,7 @@ fn placeholder(item: &Value) -> Option<RemoteImage> {
 
 /// A voice message's length and loudness. Only its uploads write
 /// `duration_secs` and `waveform`; a length out of bounds keeps the file as a
-/// plain attachment, and a bad waveform only loses the drawing (docs/REA.md).
+/// plain attachment, and a bad waveform only loses the drawing (docs/DISCORD.md).
 fn voice(item: &Value) -> Option<VoiceClip> {
     use base64::Engine as _;
     let duration = item.get("duration_secs")?.as_f64()?;

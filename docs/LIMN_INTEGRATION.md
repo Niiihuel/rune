@@ -13,7 +13,7 @@ Las excepciones autorizadas por el dueño son WebViews temporales y aisladas
 para el login del proveedor no oficial y para que la persona resuelva un
 hCaptcha. Viven en un proceso auxiliar opcional; no renderizan
 conversaciones ni sustituyen componentes de limn
-([DISCORD_SESSION.md](DISCORD_SESSION.md), [SECURITY.md](SECURITY.md)).
+([DISCORD_SESSION.md](DISCORD.md), [SECURITY.md](SECURITY.md)).
 
 ## Si limn no tiene algo
 

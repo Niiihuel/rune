@@ -44,7 +44,7 @@ impl Http {
 }
 
 /// `request` with the headers the official client adds when it repeats a
-/// request after its challenge (see docs/REA.md); Serein sends the same.
+/// request after its challenge (see docs/DISCORD.md); Serein sends the same.
 pub(super) fn with_answer(
     mut request: RequestBuilder,
     solved: &Solved,

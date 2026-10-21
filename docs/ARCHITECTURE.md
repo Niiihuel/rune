@@ -22,12 +22,12 @@ está por encima trabaja sólo con esos tipos. Hay tres, distinguidos por
 - **`rune-discord`**: adaptador OAuth2 experimental de identidad y listado
   básico de servidores por interfaces oficiales; no habilita mensajes ni voz.
   El canje real con la aplicación registrada no está verificado
-  ([DISCORD_OAUTH.md](DISCORD_OAUTH.md)).
+  ([DISCORD_OAUTH.md](DISCORD.md)).
 - **`rune-discord-session`**: sesión personal **no oficial**, autorizada por
   el dueño. Login, identidad y lectura están confirmados por el dueño contra
   Discord; el resto está probado con fixtures locales. Se mantiene separado de
   OAuth2 y su autorización personal no se presenta como aprobación de Discord
-  ([DISCORD_SESSION.md](DISCORD_SESSION.md)).
+  ([DISCORD_SESSION.md](DISCORD.md)).
 
 `apps/desktop` elige e instancia el proveedor
 (`--provider mock|discord|discord-session`, o la última elección guardada);
@@ -560,7 +560,7 @@ cancelación quedan dentro del adaptador. Sus capacidades al día son las de
 `Store::abilities` y se revalida en el proveedor. La credencial vive en
 memoria y en el llavero del sistema (una entrada por cuenta recordada), nunca
 en SQLite; cerrar sesión la borra del llavero, sin afirmar revocación remota.
-Detalle, alcance y riesgos en [DISCORD_SESSION.md](DISCORD_SESSION.md) y
+Detalle, alcance y riesgos en [DISCORD_SESSION.md](DISCORD.md) y
 [SECURITY.md](SECURITY.md).
 
 ## Expresiones y referencias de texto
@@ -614,7 +614,7 @@ alias no implica una mención saliente.
   `rune-core::expression_images`, fuera del hilo de UI.
 - **Reglas y onboarding** (`rune_model::onboarding`): `Store::join_steps`
   dice qué debe la cuenta; las reglas pendientes cierran el compositor con su
-  motivo ([INVITATIONS.md](INVITATIONS.md)).
+  motivo ([INVITATIONS.md](DISCORD.md)).
 - **AutoMod** (`rune_model::automod`): reglas con sus límites;
   `AutoModRule::problem` parsea las expresiones regulares con `regex-syntax`
   antes de mandarlas. Un envío rechazado llega como `Event::AutoModBlocked` y
@@ -635,7 +635,7 @@ impide guardar o moderar con permisos antiguos. El proveedor sigue siendo la
 autoridad final. La interfaz de administración se diseñó a partir de
 capturas del Discord oficial en un servidor de prueba propio, con código y
 recursos propios. Rutas del proveedor no oficial en
-[DISCORD_SESSION.md](DISCORD_SESSION.md).
+[DISCORD_SESSION.md](DISCORD.md).
 
 ## Timeline virtualizado
 

@@ -3,7 +3,7 @@
 //! `group_actions.rs`, read 2026-10-17) and, for making groups and changing
 //! their people or owner, the official web client's private channel actions
 //! (`openPrivateChannel`, `addRecipient`, `removeRecipient`, `setDMOwner`,
-//! docs/REA.md). Each is one attempt, never repeated. The service confirms
+//! docs/DISCORD.md). Each is one attempt, never repeated. The service confirms
 //! what changed: the answer itself names a conversation opened, made,
 //! renamed, handed over or left; the Gateway's `RELATIONSHIP_*` and
 //! `CHANNEL_RECIPIENT_*` dispatches carry every change to a relationship

@@ -254,7 +254,7 @@ en [SECURITY.md](SECURITY.md#actividad-local-rich-presence-y-juegos)):
 Gana la actividad más nueva de un programa; si no hay, el juego. RUNE la
 muestra como la actividad propia y la publica con
 `Command::SetLocalActivity` si el proveedor declara `local_activity`
-([DISCORD_SESSION.md](DISCORD_SESSION.md)).
+([DISCORD_SESSION.md](DISCORD.md)).
 
 ![Actividad](img/escritorio-actividad-2026-10-17.png)
 

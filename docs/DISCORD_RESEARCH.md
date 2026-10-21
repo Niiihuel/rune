@@ -4,7 +4,7 @@ RUNE toma de Discord **patrones de interacción**, no su apariencia. Esta
 tabla junta los valores y comportamientos que el código sigue, con su
 fuente pública y la confianza que merece como afirmación sobre Discord.
 Las rutas y mensajes del proveedor no oficial salen de la REA del cliente
-y de Serein ([REA.md](REA.md), [DISCORD_SESSION.md](DISCORD_SESSION.md)),
+y de Serein ([REA.md](DISCORD.md), [DISCORD_SESSION.md](DISCORD.md)),
 no de este documento.
 
 Confianza: **alta** = lo dice una fuente oficial (Help Center, docs de la

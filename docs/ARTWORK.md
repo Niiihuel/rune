@@ -83,7 +83,7 @@ falla, su ThumbHash (`ImageKind::ThumbHash`) cubre la caja: se decodifica
 al instante, sin red, en a lo sumo 32 px. Una imagen explícita que el filtro
 de la cuenta tapa se pide como `ImageKind::Obscured`: la misma vista previa
 achicada a 24 px y desenfocada en CPU, hasta que la persona la revela
-([DISCORD_SESSION.md](DISCORD_SESSION.md)).
+([DISCORD_SESSION.md](DISCORD.md)).
 
 El adaptador de Discord usa `url` y, para la vista previa, `proxy_url`
 ([objeto Attachment](https://docs.discord.com/developers/resources/message#attachment-object)).

@@ -1,5 +1,5 @@
 //! A server's scheduled events on the personal session (eventos-programados).
-//! Routes and bodies are the official web client's (docs/REA.md, «eventos
+//! Routes and bodies are the official web client's (docs/DISCORD.md, «eventos
 //! programados») and Discord's documented ones:
 //! `GET /guilds/{g}/scheduled-events?with_user_count=true`, what interests
 //! the account in `GET /users/@me/scheduled-events?guild_ids={g}`, who an

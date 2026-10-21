@@ -204,7 +204,7 @@ fn poll_result(mut embed: Embed) -> Embed {
 
 /// A voice card's channel, from its link to it.
 // shortcut: the reference client keeps this card's raw fields but draws and
-// reads none of them (docs/REA.md), so the channel is read only from a link
+// reads none of them (docs/DISCORD.md), so the channel is read only from a link
 // `https://discord.com/channels/{server}/{channel}`; read its fields once a
 // real card shows which name the channel.
 fn voice(mut embed: Embed) -> Embed {

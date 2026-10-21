@@ -711,7 +711,7 @@ pub fn abilities(channel: &Channel, capabilities: Capabilities) -> Abilities {
         ),
         // In a direct conversation anyone of it pins; in a server, whoever
         // may pin and read the history, as the official client asks
-        // (docs/REA.md): managing messages alone no longer offers it.
+        // (docs/DISCORD.md): managing messages alone no longer offers it.
         pin: both(
             capabilities.pins && messages,
             t("fijar mensajes"),

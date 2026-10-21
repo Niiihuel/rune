@@ -54,7 +54,7 @@ expone los plugins GStreamer base, good y bad mediante
 `GST_PLUGIN_SYSTEM_PATH_1_0`; el RPATH del binario no reemplaza esa
 configuración. La ausencia de `autoaudiosink` provocó una caída reproducible
 al inicializar audio en WebKitGTK 2.52.4. Ver
-[DISCORD_SESSION.md](../../docs/DISCORD_SESSION.md#compilar-y-ejecutar).
+[DISCORD_SESSION.md](../../docs/DISCORD.md).
 El dueño confirmó después el login y la identidad; las pruebas descritas
 aquí siguen siendo fixtures locales y no acreditan nuevas operaciones
 sobre la cuenta.
@@ -73,8 +73,8 @@ página propia `https://captcha.rune.invalid/` (`captcha.html` y
 restricciones que el login, sin cambiar el user agent. La persona resuelve el
 desafío; la respuesta vuelve una vez como `{capacidad}:{respuesta}`. Cerrar
 (código 2), vencer (3) o no poder cargar hCaptcha (10) no devuelven nada.
-Ver [INVITATIONS.md](../../docs/INVITATIONS.md) y
-[DISCORD_SESSION.md](../../docs/DISCORD_SESSION.md#verificación-hcaptcha-en-cualquier-escritura).
+Ver [INVITATIONS.md](../../docs/DISCORD.md) y
+[DISCORD_SESSION.md](../../docs/DISCORD.md).
 
 Cada intento abre una sesión WebKit efímera. El puente observa únicamente
 cabeceras Authorization de solicitudes API del documento principal propio;

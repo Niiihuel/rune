@@ -39,10 +39,10 @@ CI lo prueba ahí, pero nada se probó todavía en un Windows real
   perfiles funcionaron; la voz conectó a veces. **El resto no se probó
   contra Discord**: lo que falta probar está en
   [tasks/todo.md](tasks/todo.md) y el detalle de cada función en
-  [docs/DISCORD_SESSION.md](docs/DISCORD_SESSION.md).
+  [docs/DISCORD_SESSION.md](docs/DISCORD.md).
 - **OAuth2 experimental** (`discord`): identidad y servidores; su canje
   público todavía no se validó con una aplicación registrada
-  ([docs/DISCORD_OAUTH.md](docs/DISCORD_OAUTH.md)).
+  ([docs/DISCORD_OAUTH.md](docs/DISCORD.md)).
 
 ## Qué hace
 
@@ -77,7 +77,7 @@ CI lo prueba ahí, pero nada se probó todavía en un Windows real
 
 Las capturas son de la aplicación con la simulación, tomadas con
 `--screenshot`, salvo la pantalla de acceso, que es la de la sesión no
-oficial antes de iniciar sesión ([docs/REA.md](docs/REA.md)); ninguna
+oficial antes de iniciar sesión ([docs/REA.md](docs/DISCORD.md)); ninguna
 muestra cuentas ni datos reales.
 
 ### Sonidos de la llamada
@@ -105,8 +105,8 @@ Proveedores y features:
 | Qué | Cómo |
 | --- | --- |
 | Simulación local | `cargo run -p rune-desktop` (o `-- --provider mock`) |
-| OAuth2 experimental | `cargo run -p rune-desktop -- --provider discord --discord-client-id TU_APPLICATION_ID`, con una aplicación pública y el redirect `http://127.0.0.1:48731/oauth/callback` ([guía](docs/DISCORD_OAUTH.md)); sin secreto de aplicación |
-| Sesión personal no oficial | `nix-shell --arg withLogin true` (o `nix develop .#session`) y `cargo run -p rune-desktop --features session-login -- --provider discord-session` ([guía](docs/DISCORD_SESSION.md)) |
+| OAuth2 experimental | `cargo run -p rune-desktop -- --provider discord --discord-client-id TU_APPLICATION_ID`, con una aplicación pública y el redirect `http://127.0.0.1:48731/oauth/callback` ([guía](docs/DISCORD.md)); sin secreto de aplicación |
+| Sesión personal no oficial | `nix-shell --arg withLogin true` (o `nix develop .#session`) y `cargo run -p rune-desktop --features session-login -- --provider discord-session` ([guía](docs/DISCORD.md)) |
 | Visor de PDF aislado | `nix-shell --arg withLogin true --arg withDocs true` (o `nix develop .#documents`) |
 
 El proveedor elegido en **Ajustes → Conexión** se recuerda para la próxima
@@ -175,13 +175,13 @@ request a [Niiihuel/limn](https://github.com/Niiihuel/limn)
 | [tasks/todo.md](tasks/todo.md) | Lo pendiente y lo que falta probar contra el servicio real |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Crates, flujo de un cuadro, estado, virtualización, idiomas, pruebas |
 | [SECURITY](docs/SECURITY.md) | Reglas, autorizaciones del dueño, credenciales, datos locales, licencias |
-| [DISCORD_SESSION](docs/DISCORD_SESSION.md) | Proveedor no oficial: qué hace y cómo |
-| [DISCORD_OAUTH](docs/DISCORD_OAUTH.md) | Configuración y alcance de OAuth2 |
-| [REA](docs/REA.md) | Qué se analizó del cliente oficial y qué se usa |
+| [DISCORD_SESSION](docs/DISCORD.md) | Proveedor no oficial: qué hace y cómo |
+| [DISCORD_OAUTH](docs/DISCORD.md) | Configuración y alcance de OAuth2 |
+| [REA](docs/DISCORD.md) | Qué se analizó del cliente oficial y qué se usa |
 | [MEDIA](docs/MEDIA.md) · [VIDEO](docs/VIDEO.md) | Audio, voz, pantalla, cámara y video |
 | [FILES](docs/FILES.md) · [VISOR](docs/VISOR.md) · [DOCUMENTS](docs/DOCUMENTS.md) | Adjuntos, descargas, visor de imágenes y videos, PDF |
 | [ARTWORK](docs/ARTWORK.md) · [FONTS](docs/FONTS.md) | Imágenes, emojis, stickers, GIF y fuentes |
-| [PROFILES](docs/PROFILES.md) · [INVITATIONS](docs/INVITATIONS.md) | Perfiles e invitaciones |
+| [PROFILES](docs/PROFILES.md) · [INVITATIONS](docs/DISCORD.md) | Perfiles e invitaciones |
 | [DISEÑO](docs/DISEÑO.md) · [DISCORD_RESEARCH](docs/DISCORD_RESEARCH.md) | Diseño de la interfaz y valores tomados de Discord |
 | [PLATFORM](docs/PLATFORM.md) | Bandeja, instancia única, atajos, temas, registro, Windows |
 | [UPDATES](docs/UPDATES.md) | Releases, actualizaciones obligatorias y opcionales, la clave, instalación |

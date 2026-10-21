@@ -27,7 +27,7 @@ pub(super) enum Rejection {
 // AutoMod (automod).
 /// What a server's AutoMod tells whoever wrote what it refused (JSON codes
 /// 200000 to 200002, `AUTOMOD_MESSAGE_BLOCKED` and its kin in the official
-/// client, which shows the answer's `message`, see docs/REA.md). `None`
+/// client, which shows the answer's `message`, see docs/DISCORD.md). `None`
 /// when it says nothing of its own.
 #[derive(Debug)]
 pub(crate) struct Blocked {
@@ -128,7 +128,7 @@ struct Metadata {
 }
 
 /// The challenge fields the official web client reads
-/// (`extractCaptchaPropsFromResponse`, see docs/REA.md).
+/// (`extractCaptchaPropsFromResponse`, see docs/DISCORD.md).
 #[derive(Deserialize)]
 struct Fields {
     captcha_service: Option<String>,
@@ -206,7 +206,7 @@ fn rejection(bytes: &[u8], data: Metadata, solvable: bool) -> Option<Rejection> 
 
 /// What a refusal about people and conversations means, by the service's
 /// JSON error code (named in the official client's `AbortCodes`, see
-/// docs/DISCORD_SESSION.md).
+/// docs/DISCORD.md).
 fn refusal(code: u64) -> Option<&'static str> {
     Some(match code {
         10013 => es("Esa persona ya no existe."),

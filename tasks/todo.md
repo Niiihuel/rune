@@ -6,7 +6,7 @@ git y en los docs del área). Todo lo del proveedor no oficial está probado
 sólo con fixtures en loopback y la simulación, salvo lo que el dueño ya
 confirmó (login, identidad, servidores, canales, historial, miembros y
 perfiles, 2026-10-14 y 2026-10-17). Las listas detalladas de pasos están en
-[DISCORD_SESSION.md](../docs/DISCORD_SESSION.md) y
+[DISCORD_SESSION.md](../docs/DISCORD.md) y
 [PLATFORM.md](../docs/PLATFORM.md).
 
 ## Orden del dueño (2026-10-18)

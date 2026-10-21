@@ -12,7 +12,7 @@ anterior de manejar esa sesión dentro de la aplicación. No habilita recibir
 credenciales en el chat, importar otros perfiles, copiar evasiones de Serein
 ni inspeccionar sesiones del cliente oficial. El dueño confirmó manualmente
 el login y la identidad; alcance, retención y riesgos en
-[DISCORD_SESSION.md](DISCORD_SESSION.md). Autorizar el experimento personal
+[DISCORD_SESSION.md](DISCORD.md). Autorizar el experimento personal
 no implica aprobación de Discord.
 
 ## Verificación de invitaciones autorizada el 2026-10-16
@@ -42,7 +42,7 @@ pida, para que lo resuelva la persona:
   desafío o la verificación de cuenta remiten a la aplicación oficial.
 
 Discord puede seguir pidiendo verificación por teléfono o restringir la
-cuenta. Ver [INVITATIONS.md](INVITATIONS.md).
+cuenta. Ver [INVITATIONS.md](DISCORD.md).
 
 ## Ampliaciones del 2026-10-17
 
@@ -63,7 +63,7 @@ cuenta. Ver [INVITATIONS.md](INVITATIONS.md).
     registros, eventos ni errores (`Debug` redactado). Un segundo desafío
     en el reintento termina la acción con motivo. El reintento presenta la
     misma identidad que el intento que repite.
-  Detalle en [DISCORD_SESSION.md](DISCORD_SESSION.md).
+  Detalle en [DISCORD_SESSION.md](DISCORD.md).
 - **Paridad con Serein.** Se usan los componentes de bots (botones, menús,
   modales) y los comandos de aplicación como en Serein. El socket local
   `discord-ipc` y la detección de juegos existen apagados por defecto, cada
@@ -117,7 +117,7 @@ cliente web de Discord en un navegador, como hace Serein: user agent,
 `X-Super-Properties`, huella y propiedades del Identify, con una sola
 identidad coherente en REST, Gateway y la WebView donde la persona resuelve
 el hCaptcha. Reimplementado, sin copiar. Valores exactos en
-[DISCORD_SESSION.md](DISCORD_SESSION.md).
+[DISCORD_SESSION.md](DISCORD.md).
 
 - **Una sola identidad** (`rune-discord-session`, módulo `browser`): el
   cliente web en WebKit sobre Linux. La presentan todos los pedidos a la API
@@ -173,7 +173,7 @@ el hCaptcha. Reimplementado, sin copiar. Valores exactos en
      paquete instalado de Discord y los bundles JavaScript públicos de
      discord.com como fuente principal: rutas REST, mensajes de Gateway,
      payloads, comportamiento e interfaz. Cada hallazgo se registra en
-     [REA.md](REA.md) con su evidencia. Se reimplementa: no se copia código,
+     [REA.md](DISCORD.md) con su evidencia. Se reimplementa: no se copia código,
      estilos, íconos, sonidos ni otros recursos. Excluido: leer el perfil,
      la caché, el almacenamiento local o la memoria del cliente oficial, y
      ejecutarlo instrumentado con la cuenta sin una autorización aparte.
@@ -192,7 +192,7 @@ el hCaptcha. Reimplementado, sin copiar. Valores exactos en
    token limitado a `identify guilds` sólo en memoria, obtenido con código y
    PKCE, nunca pegándolo en la interfaz. No se guarda en SQLite, logs ni
    configuración; no se usa refresh token. No hay proveedor de bots. Ver
-   [DISCORD_OAUTH.md](DISCORD_OAUTH.md).
+   [DISCORD_OAUTH.md](DISCORD.md).
 4. **Etiquetado honesto**: cada proveedor declara su tipo y capacidades; la
    UI muestra «Simulación local · sin conexión real» en el panel del
    usuario y en Ajustes → Conexión, y deshabilita con explicación lo que no
@@ -406,12 +406,12 @@ que la persona lo revela. Las descargas explícitas usan su propio cliente
 sin credenciales, archivos parciales privados y publicación sin
 sobrescritura ([FILES.md](FILES.md)); los límites de miniaturas y
 expresiones están en [ARTWORK.md](ARTWORK.md). Los previews de invitaciones
-usan sólo GET público acotado ([INVITATIONS.md](INVITATIONS.md)).
+usan sólo GET público acotado ([INVITATIONS.md](DISCORD.md)).
 
 #### Portadas de Spotify, Twitch y YouTube
 
 Decisión del dueño (2026-10-18): las actividades muestran la portada que
-nombra su clave, como el cliente oficial ([REA.md](REA.md)). El adaptador
+nombra su clave, como el cliente oficial ([REA.md](DISCORD.md)). El adaptador
 suma **sólo** estos orígenes:
 
 | Clave | Dirección | Origen |

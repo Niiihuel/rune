@@ -6,7 +6,7 @@ con limn; abrir una pantalla no envía cambios. `rune-components::profile`
 recibe datos e imágenes decodificadas: no conoce URLs del servicio ni
 credenciales. El proveedor no oficial lee y edita por las rutas que usa
 Serein y el cliente oficial (REA); detalle de rutas y ritmo en
-[DISCORD_SESSION.md](DISCORD_SESSION.md). El dueño vio perfiles y la lista
+[DISCORD_SESSION.md](DISCORD.md). El dueño vio perfiles y la lista
 de miembros con Discord (2026-10-17); **la edición y lo demás, sólo con
 fixtures y la simulación.**
 
