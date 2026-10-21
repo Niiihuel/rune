@@ -1434,9 +1434,45 @@ impl Calls {
                 // A watched stream, or the account's own, may be asked for now.
                 self.tell();
             }
-            // Moved or removed by someone else: this call is over.
-            Some(_) => {
-                events.extend(self.leave_events(Some(es("Te movieron a otro canal de voz."))))
+            Some(state) => {
+                let old_channel = call.channel;
+                let moved_within_guild =
+                    call.guild.is_some() && wire::id(&data["guild_id"]).ok() == call.guild;
+                if moved_within_guild {
+                    note!(
+                        CALL,
+                        "the account was moved by the service: following the new channel"
+                    );
+                    if let Some(call) = self.call.as_mut() {
+                        call.channel = state.channel;
+                        call.forget();
+                        call.session = session.map(|session| Zeroizing::new(session.to_owned()));
+                        call.watches.clear();
+                        call.share = None;
+                        call.keys = None;
+                        call.cameras.send_replace(Vec::new());
+                        call.controls
+                            .send_modify(|controls| controls.camera = false);
+                        call.connected_at = None;
+                        call.rejoins = 0;
+                        call.rejoin_at = None;
+                    }
+                    // Re-assert the destination rather than sending op 4 with
+                    // no channel: the service has already moved the account.
+                    // Asking also covers VOICE_SERVER_UPDATE arriving first.
+                    self.ask();
+                    events.push(Event::CallEnded {
+                        channel: old_channel,
+                        reason: None,
+                    });
+                    events.push(Event::CallPhase {
+                        channel: state.channel,
+                        phase: CallPhase::Joining,
+                        quality: None,
+                    });
+                } else {
+                    events.extend(self.leave_events(Some(es("Te movieron a otro canal de voz."))));
+                }
             }
             None => events.extend(self.leave_events(Some(es("Te desconectaron de la llamada.")))),
         }

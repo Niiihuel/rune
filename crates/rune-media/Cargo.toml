@@ -42,7 +42,8 @@ symphonia = { version = "0.5.5", default-features = false, features = ["aac", "f
 # cpal lists devices and opens streams on every platform RUNE targets. On
 # Linux its PipeWire backend is preferred over ALSA (see docs/ARCHITECTURE.md).
 [target.'cfg(target_os = "linux")'.dependencies]
-cpal = { version = "0.18.2", features = ["pipewire"] }
+# CPAL 0.19 includes the WASAPI fix for packets flagged silent by Windows.
+cpal = { version = "0.19.0", features = ["pipewire"] }
 # Screen and camera preview: reads the video node of the remote the desktop
 # portal grants. The same 0.10 bindings cpal already links; no new library.
 pipewire = "0.10.1"
@@ -76,7 +77,7 @@ zune-jpeg = "0.5.15"
 zune-core = "0.5.3"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-cpal = "0.18.2"
+cpal = "0.19.0"
 
 # Windows (windows-medios): the screen through Windows.Graphics.Capture and
 # Direct3D 11, cameras through Media Foundation, the applications' sound

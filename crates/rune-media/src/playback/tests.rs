@@ -380,7 +380,7 @@ struct Fake {
 }
 
 impl OutputStream for () {
-    fn play(&self) -> Result<(), MediaError> {
+    fn start(&self) -> Result<(), MediaError> {
         Ok(())
     }
 }

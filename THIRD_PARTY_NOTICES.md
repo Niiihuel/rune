@@ -894,8 +894,8 @@ Software.
 
 ### Apache License 2.0
 
+- cpal 0.19.0, <https://github.com/RustAudio/cpal>
 - codespan-reporting 0.13.1, <https://github.com/brendanzab/codespan>
-- cpal 0.18.2, <https://github.com/RustAudio/cpal>
 - self_cell 1.3.0, <https://github.com/Voultapher/self_cell>
 - unicode-linebreak 0.1.5, <https://github.com/axelf4/unicode-linebreak>
 
@@ -8221,7 +8221,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### MIT License
 
-- alsa 0.11.0, <https://github.com/diwic/alsa-rs>
+- alsa 0.12.1, <https://github.com/diwic/alsa-rs>
 
 ````text
 MIT License
@@ -8366,7 +8366,7 @@ SOFTWARE.
 
 ### MIT License
 
-- alsa-sys 0.4.0, <https://github.com/diwic/alsa-sys>
+- alsa-sys 0.6.1, <https://github.com/diwic/alsa-sys>
 
 ````text
 MIT License

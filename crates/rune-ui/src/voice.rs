@@ -554,6 +554,18 @@ pub(crate) fn secondary_click(
 pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied, now: Instant) {
     match applied {
         Applied::Call => {
+            if let (Some(stage), Some(call)) = (ui.voice.stage, store.call()) {
+                let still_here = store
+                    .me()
+                    .is_some_and(|me| store.voice_in(stage).iter().any(|state| state.user == me));
+                if stage != call.channel && !still_here {
+                    // The provider ended the old call and reported its new
+                    // channel after an administrative move. Keep the stage
+                    // with the call RUNE now follows.
+                    ui.voice.stage = Some(call.channel);
+                    ui.voice.chat = None;
+                }
+            }
             if let Some(quality) = store
                 .call()
                 .filter(|call| call.phase.is_connected())

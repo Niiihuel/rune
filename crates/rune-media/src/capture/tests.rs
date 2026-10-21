@@ -335,7 +335,7 @@ struct FakeStream {
 }
 
 impl InputStream for FakeStream {
-    fn play(&self) -> Result<(), MediaError> {
+    fn start(&self) -> Result<(), MediaError> {
         self.trace.send(Trace::Play(self.device.clone())).unwrap();
         Ok(())
     }

@@ -1077,6 +1077,9 @@ pub(crate) fn open_at(
     } else if !store
         .timeline(channel)
         .is_some_and(|timeline| timeline.latest)
+        && store
+            .abilities(channel)
+            .is_none_or(|abilities| abilities.read_history.allowed())
     {
         intents.push(Intent::LoadLatest(channel));
     } else {
@@ -1226,6 +1229,17 @@ fn answer(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instant) -> Ve
             failure: rune_provider::Failure::Context { .. },
             ..
         } => Vec::new(),
+        // An empty timeline shows its history failure in place of the
+        // skeleton; with messages already loaded, keep the usual notice.
+        Applied::Failed {
+            failure: rune_provider::Failure::History { channel, .. },
+            ..
+        } if store
+            .timeline(*channel)
+            .is_none_or(|timeline| timeline.is_empty()) =>
+        {
+            Vec::new()
+        }
         // The search dialog says it beside its results (P2).
         Applied::Failed {
             failure: rune_provider::Failure::Search { .. },
@@ -1715,6 +1729,9 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<Intent
                 if store
                     .timeline(channel)
                     .is_some_and(|timeline| !timeline.latest)
+                    && store
+                        .abilities(channel)
+                        .is_none_or(|abilities| abilities.read_history.allowed())
                 {
                     intents.push(Intent::LoadLatest(channel));
                 }

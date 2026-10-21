@@ -571,6 +571,19 @@ pub fn timeline(
     let Some(conversation) = store.channel(channel) else {
         return Element::spacer();
     };
+    if let Some(permit) = store
+        .abilities(channel)
+        .filter(|abilities| !abilities.read_history.allowed())
+        .map(|abilities| abilities.read_history)
+    {
+        return limn::Empty::new(
+            t("No podés leer el historial de esa conversación."),
+            permit.reason().unwrap_or_default(),
+            look.palette(),
+        )
+        .render()
+        .flex(1.0);
+    }
     if store
         .timeline(channel)
         .is_some_and(|timeline| timeline.is_empty() && timeline.context_source().is_some())
@@ -587,6 +600,14 @@ pub fn timeline(
         .timeline(channel)
         .filter(|timeline| !timeline.is_empty())
     else {
+        if let Some(reason) = store
+            .timeline(channel)
+            .and_then(|timeline| timeline.load_error())
+        {
+            return limn::Empty::new(t("No se pudo cargar el historial."), reason, look.palette())
+                .render()
+                .flex(1.0);
+        }
         // Shapes of messages as many as fill the window, against the end.
         return rune_components::message::history_skeleton(
             format!("{}:loading", timeline_id(channel)),

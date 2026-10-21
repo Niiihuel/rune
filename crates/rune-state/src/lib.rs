@@ -1182,11 +1182,16 @@ impl Store {
                     };
                 }
             }
+            Failure::History { channel, .. } => {
+                self.timelines
+                    .entry(*channel)
+                    .or_default()
+                    .fail_load(reason);
+            }
             // Nothing of these is shown before the provider confirms it.
             Failure::Delete { .. }
             | Failure::Context { .. }
             | Failure::Invitation { .. }
-            | Failure::History { .. }
             | Failure::Status
             | Failure::Server { .. }
             // The interface turns the camera off.
