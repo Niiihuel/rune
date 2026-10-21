@@ -637,17 +637,29 @@ fn main() -> eframe::Result {
     // The window's own title bar (barra-e-icono): as the person chose.
     let title_bar = arguments.title_bar.unwrap_or_else(frame::chosen);
     let chrome = frame::Chrome::current(title_bar);
+    // The opening screen's splash: a small tile in the middle of the screen
+    // until the session says more than its stage, then the usual window
+    // (`WindowFrame::grow`). Captures, the benchmark and a start in the
+    // tray open at the usual size.
+    let compact = arguments.screenshot.is_none() && !arguments.bench && !arguments.start_minimized;
+    let (size, min_size) = if compact {
+        (frame::SPLASH_SIZE, frame::SPLASH_SIZE.into())
+    } else {
+        (frame::SIZE, chrome.min_size())
+    };
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
             .with_title("RUNE")
             .with_app_id("rune")
             .with_icon(frame::icon())
-            .with_inner_size([1280.0, 800.0])
-            .with_min_inner_size(chrome.min_size())
-            .with_decorations(chrome == frame::Chrome::System)
+            .with_inner_size(size)
+            .with_min_inner_size(min_size)
+            .with_decorations(!compact && chrome == frame::Chrome::System)
+            .with_resizable(!compact)
             .with_transparent(transparency > 0)
             .with_visible(!arguments.start_minimized),
+        centered: true,
         ..Default::default()
     };
     let result = eframe::run_native(
@@ -665,7 +677,7 @@ fn main() -> eframe::Result {
                 format!("{} ({:?})", adapter.name, adapter.backend)
             });
             app.attach_window(window::Parent::of(creation), graphics, title_bar);
-            app.frame = frame::WindowFrame::new(chrome);
+            app.frame = frame::WindowFrame::new(chrome, compact);
             rune_ui::themes::window_known(&mut app.ui, transparency, transparency > 0);
             Ok(Box::new(app))
         }),
@@ -4175,6 +4187,11 @@ impl eframe::App for App {
 
         self.drain(&ctx, now);
         self.desktop_step(&ctx, now);
+        // The splash grows into the usual window once the opening screen
+        // says why it waits, or gives way to the login or the interface.
+        if self.frame.compact && !rune_ui::splash::compact(&self.ui, &self.store, now) {
+            self.frame.grow(&ctx);
+        }
         // RUNE's own updates (actualizaciones): installed, RUNE closes
         // (saving first, as any close) to start the new version.
         if self.updates.step(&mut self.ui) {

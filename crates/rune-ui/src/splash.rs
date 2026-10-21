@@ -9,6 +9,8 @@
 //! problems after 10 s and fades out over 200 ms; with reduced motion its
 //! mark stands still. Serein has no such screen: it shows a banner. RUNE
 //! says the stage it is in instead of a tip, and offers what can be done.
+//! While it only says its stage the host keeps the window as small as the
+//! official client's splash ([`compact`]).
 
 use std::time::{Duration, Instant};
 
@@ -107,6 +109,20 @@ fn reason(store: &Store) -> String {
     }
 }
 
+/// Whether the window can stay as small as the official client's splash:
+/// while the screen only says the stage it is in. Once it says why it is
+/// taking long and offers ways out, or gives way to the interface or the
+/// login, the window takes its usual size.
+pub fn compact(ui: &Ui, store: &Store, now: Instant) -> bool {
+    visible(store) && !troubled(ui, store, now)
+}
+
+/// The notice's first sentence: the whole of what the provider can do is
+/// too long for a screen that shows for a moment.
+fn first_sentence(notice: &str) -> &str {
+    notice.find(". ").map_or(notice, |end| &notice[..=end])
+}
+
 /// Whether the screen says why and offers a way out.
 fn troubled(ui: &Ui, store: &Store, now: Instant) -> bool {
     matches!(store.connection, ConnectionState::Disconnected { .. })
@@ -120,8 +136,10 @@ pub fn view(ui: &Ui, store: &Store, look: &Look, context: &ViewContext) -> Eleme
     let notice = store
         .provider
         .as_ref()
-        .map(|info| t(&info.notice).to_owned())
+        .map(|info| first_sentence(t(&info.notice)).to_owned())
         .unwrap_or_default();
+    // As wide as it was, or the window less its sides while it is a splash.
+    let width = (context.window.width - 32.0).clamp(0.0, 420.0);
     let mut parts = vec![
         centered(
             Element::icon(Icon::Custom(rune_components::MARK))
@@ -136,7 +154,10 @@ pub fn view(ui: &Ui, store: &Store, look: &Look, context: &ViewContext) -> Eleme
                 .accessible(Access::new(Role::Status).name(stage)),
         )
         .size(None, Some(24.0)),
-        centered(line(notice, 12.0, look.muted)).size(None, Some(18.0)),
+        text(notice, 12.0, look.muted)
+            .center_content()
+            .max_lines(2)
+            .size(Some(width), None),
     ];
     // While the account is checked, signing in can still be called off
     // (as Escape does): `auth` answers it.
@@ -147,7 +168,7 @@ pub fn view(ui: &Ui, store: &Store, look: &Look, context: &ViewContext) -> Eleme
                 .render(),
         ));
     }
-    let middle = Element::column(parts).gap(14.0).size(Some(420.0), None);
+    let middle = Element::column(parts).gap(14.0).size(Some(width), None);
     let mut column = vec![
         Element::spacer().flex(1.0),
         centered(middle),
