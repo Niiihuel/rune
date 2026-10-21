@@ -1,13 +1,17 @@
 # Local audio dependencies
 
-## RUNE's call sounds
+## Discord's call sounds
 
-`assets/sounds/*.ogg` are RUNE's own: tones synthesized from numbers by
-`scripts/sounds.sh` (ffmpeg's `aevalsrc`, encoded with libopus), with no
-sample or recording of anyone. They are part of RUNE and under its license
-(MIT OR Apache-2.0). Discord's sounds are not extracted, copied or shipped;
-a person may play their own files instead (docs/MEDIA.md, «carpeta de
-sonidos»).
+`assets/sounds/discord/*.mp3` are direct copies of public static sound assets
+served by Discord. The owner authorized their use as RUNE's built-in call and
+notification sounds on 2026-10-21. They remain Discord assets; RUNE's
+MIT OR Apache-2.0 license does not apply to them.
+
+`assets/sounds/discord/SOURCES.md` records the unauthenticated public bundle
+and asset URLs observed for the copy, their event mapping, and the bundle
+checksum. `SHA256SUMS` records each packaged asset's checksum; run
+`scripts/sounds.sh` to verify it. No Discord profile, cache, credential or
+session data was read to obtain these files.
 
 RUNE uses the following packages as dependencies, without copying Serein
 implementation code. Versions below are the versions resolved for the local

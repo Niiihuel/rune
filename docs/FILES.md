@@ -308,8 +308,8 @@ sonar y al cerrarse RUNE.
 
 Ajustes → Notificaciones: activarlas (apagadas hasta que se piden), mostrar
 el contenido (si no, «Nuevo mensaje») y el sonido de mensajes, un tono
-propio (`assets/sounds/message.ogg`). Probado con un demonio falso en un bus
-privado.
+predeterminado de Discord (`assets/sounds/discord/message1.mp3`). Probado
+con un demonio falso en un bus privado.
 
 ![Ajustes de notificaciones](img/notifications-2026-10-17.png)
 

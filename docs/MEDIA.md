@@ -306,16 +306,19 @@ Pedido del dueño (2026-10-19), como el cliente oficial y Serein.
   El host compara cada cuadro con el anterior (`apps/desktop/src/sounds.rs`);
   la primera mirada a una sala con gente no suena, y si pasan varios en un
   cuadro suena uno (los propios primero).
-- **Sonidos de RUNE**: tonos propios generados por `scripts/sounds.sh`
-  (`ffmpeg` `aevalsrc`, Ogg Opus mono, reproducible byte a byte), con su
-  licencia en [AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md). Los
-  de Discord no se extraen ni se empaquetan.
+- **Sonidos predeterminados**: los 15 efectos incorporados son archivos MP3
+  estáticos públicos de Discord, incluidos directamente en
+  `assets/sounds/discord`. `SOURCES.md` fija el bundle observado, las rutas
+  públicas y el mapeo de cada evento; `SHA256SUMS` y `scripts/sounds.sh`
+  verifican los bytes empaquetados. No se leen perfiles, cachés,
+  credenciales ni datos de sesión de Discord. Su procedencia se conserva en
+  [AUDIO-NOTICES.md](../assets/licenses/AUDIO-NOTICES.md).
 - **Ajustes › Voz y video › Sonidos de la llamada**: volumen de los
   sonidos, interruptor y «Probar» por evento, y la **carpeta de sonidos**
   (`sound_folder`), escrita a mano o elegida con el diálogo del sistema. Se
   lee en un hilo (`rune_media::sounds::load`): por evento, el primero de
   `{nombre}.ogg`, `.opus`, `.mp3`, `.wav`, de hasta 1 MiB y 5 s; lo que no
-  cumple suena con el de RUNE, y la página dice cuáles tomó y por qué no
+  cumple suena con el predeterminado, y la página dice cuáles tomó y por qué no
   los otros.
 - Con una llamada que lleva audio van por su mezclador; si no, por la
   salida. Ensordecido no suena nada salvo ensordecer, dejar de ensordecer,
