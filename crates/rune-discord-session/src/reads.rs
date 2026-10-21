@@ -385,8 +385,10 @@ pub(crate) fn passive(
     } else {
         rows("voice_states")
     };
+    // Only objects: setting a key on any other JSON value panics.
     let mut voice: Vec<Value> = joined
         .iter()
+        .filter(|row| row.is_object())
         .map(|row| {
             let mut row = row.clone();
             row["guild_id"] = Value::String(server.to_string());
@@ -620,5 +622,10 @@ pub(crate) mod tests {
             passive(&known, &json!({"guild_id":"11","channels":[]})).0,
             vec![]
         );
+        let (_, voice) = passive(
+            &known,
+            &json!({"guild_id":"10","voice_states":[1,"x",[2],null,{"user_id":"7"}]}),
+        );
+        assert_eq!(voice.len(), 1, "rows that are not objects are skipped");
     }
 }
