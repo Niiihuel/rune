@@ -8,11 +8,11 @@ fuera de OAuth2/bots está prohibido y puede terminar en la suspensión de la
 cuenta ([política](https://support.discord.com/hc/en-us/articles/115002192352-Automated-User-Accounts-Self-Bots)).
 La ruta oficial es otra: [DISCORD_OAUTH.md](DISCORD_OAUTH.md).
 
-**Estado.** El dueño confirmó con su cuenta (2026-10-14) el login, la
-identidad y la lectura de servidores, canales e historial. **Todo lo demás
-de este documento está probado sólo con fixtures en loopback (HTTP,
-WebSocket y UDP en 127.0.0.1) y la simulación; nada se probó contra el
-servicio real.** Lo que el dueño tiene que probar está en
+**Estado.** El dueño confirmó con su cuenta el login, la identidad y la
+lectura de servidores, canales e historial (2026-10-14), y los miembros y
+perfiles (2026-10-17). **Todo lo demás de este documento está probado sólo
+con fixtures en loopback (HTTP, WebSocket y UDP en 127.0.0.1) y la
+simulación.** Lo que el dueño tiene que probar está en
 [tasks/todo.md](../tasks/todo.md).
 
 ## Decisiones del dueño
@@ -46,9 +46,7 @@ en el chat del agente, logs, capturas, SQLite o configuración.
 (`references/serein` y `references/serein-current`, fuera de git) y de la
 REA estática de los bundles públicos del cliente web, bajados sin sesión
 ([REA.md](REA.md)), más la documentación oficial donde existe. Todo está
-reimplementado; no se copia código ni recursos. El módulo de onboarding se
-reescribió desde la REA porque una revisión lo encontró demasiado parecido
-al de Serein.
+reimplementado; no se copia código ni recursos.
 
 ## Compilar y ejecutar
 
@@ -852,8 +850,8 @@ Capacidad `private_calls`, en privados y grupos.
   Rechazada frente a sin respuesta es una **inferencia** (salir de
   `ringing` antes o después de 20 s).
 - La voz identifica con `server_id` = el canal; transmitir usa op 18 de tipo
-  `call` y claves `call:{canal}:{dueño}`. No hay vistas previas de
-  transmisiones en privados.
+  `call` y claves `call:{canal}:{dueño}`. No se piden vistas previas de
+  transmisiones ajenas en privados.
 
 ### Video
 
@@ -885,7 +883,9 @@ en [VIDEO.md](VIDEO.md).
   quien recibe pide lo que falta con NACK (Serein no manda NACK; el cliente
   oficial sí).
 - **Vistas previas:** `GET /streams/{clave}/preview`, aceptada sólo desde
-  el CDN de Discord bajo su clave (`stream_previews`).
+  el CDN de Discord bajo su clave (`stream_previews`); la de la transmisión
+  propia se sube con `POST /streams/{clave}/preview` cada 300 s
+  (`upload_stream_previews`).
 
 ### Diagnóstico
 
