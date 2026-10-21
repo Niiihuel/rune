@@ -3,7 +3,7 @@ resolver = "2"
 members = ["apps/desktop", "crates/rune-i18n", "crates/rune-model", "crates/rune-provider", "crates/rune-discord", "crates/rune-discord-session", "crates/rune-login", "crates/rune-state", "crates/rune-storage", "crates/rune-core", "crates/rune-media", "crates/rune-components", "crates/rune-ui", "crates/rune-platform", "crates/rune-update", "tools/rune-release"]
 
 [workspace.package]
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"
