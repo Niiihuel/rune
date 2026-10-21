@@ -161,6 +161,7 @@ mod linux {
         }
 
         /// A specific bus, for tests on a private one.
+        #[cfg(test)]
         pub fn at(address: impl Into<String>) -> Self {
             Self {
                 address: Some(address.into()),
