@@ -57,9 +57,9 @@ El layout depende de lo visible, no del total: es la propiedad de
 entran. La vista junta autores una vez por racha de un mismo autor
 (`chunk_by`), no por mensaje.
 
-La agrupación por autor camina sólo la racha del autor (`group_starts_at`).
-Una versión recursiva tenía coste exponencial y tardaba 15 s por layout; el
-test `a_long_run_costs_its_length_not_more` protege contra la regresión.
+La agrupación por autor camina sólo la racha del autor (`group_starts_at`);
+el test `a_long_run_costs_its_length_not_more` protege contra un coste
+mayor que el largo de la racha.
 
 ### Memoria y arranque
 
@@ -152,43 +152,33 @@ devuelve lo que suena al micrófono 1 ms después, opaco y con un rebote
 acordes, bajo, bombo y platillos a −20 dBFS, y el juego, otra voz encima.
 Veinte segundos por caso, release:
 `cargo test --release -p rune-media echo_table -- --ignored --nocapture`.
-«Antes» es el mismo arnés sobre el código del 2026-10-19 previo al cambio.
 
 ERLE: cuánto más bajo sale lo que se manda que lo que oyó el micrófono, sólo
 con eco, AEC3 solo. «Se manda eco»: cuadros de 20 ms con eco en el micrófono
 que la cadena por defecto (Aislamiento de voz: AEC3, RNNoise, AGC2 y la
 compuerta) deja salir.
 
-| Caso | ERLE antes | ERLE ahora | Se manda eco, antes | ahora |
-| --- | --- | --- | --- | --- |
-| Voces de la llamada | 62,5 dB | 62,2 dB | 0,0 % | 0,0 % |
-| Voces de la llamada, eco débil | 44,2 dB | 43,6 dB | 0,0 % | 0,0 % |
-| Voces, la salida se queda sin audio 15 ms cada 2,5 s | 29,8 dB | 62,1 dB | 2,4 % | 0,0 % |
-| Voces, 2 s después de dejar de estar silenciado | 13,4 dB | 42,2 dB | 9,5 % | 4,8 % |
-| Juego y música, referencia de RUNE (como antes) | 2,6 dB | 2,6 dB | 100 % | 100 % |
-| Juego y música, referencia del sistema | — | 51,5 dB | — | 0,0 % |
-| Llamada, juego y música, referencia del sistema | — | 54,3 dB | — | 0,0 % |
+| Caso | ERLE | Se manda eco |
+| --- | --- | --- |
+| Voces de la llamada | 62,2 dB | 0,0 % |
+| Voces de la llamada, eco débil | 43,6 dB | 0,0 % |
+| Voces, la salida se queda sin audio 15 ms cada 2,5 s | 62,1 dB | 0,0 % |
+| Voces, 2 s después de dejar de estar silenciado | 42,2 dB | 4,8 % |
+| Juego y música, referencia de RUNE | 2,6 dB | 100 % |
+| Juego y música, referencia del sistema | 51,5 dB | 0,0 % |
+| Llamada, juego y música, referencia del sistema | 54,3 dB | 0,0 % |
 
 Con la persona hablando encima, su voz sale entre −0,8 y +1,1 dB de como
-sale sin eco. Lo que cambió:
+sale sin eco. El sonido de otros programas sólo se cancela con la
+referencia del sistema (el loopback de la salida): RNNoise oye la voz de un
+juego como voz y la deja pasar.
 
-- Un underrun o ensordecer no dejaban rastro en la referencia: lo que sonaba
-  después quedaba corrido respecto del micrófono y AEC3 perdía el retardo.
-- La referencia se pasaba de a 10 ms por cuadro del micrófono, con silencio
-  si todavía no había llegado: lo que esperaba crecía de a 10 ms (se vio
-  entre 21 y 51 ms) y podía quedar después de su propio eco.
-- Silenciarse, un hueco o cambiar el supresor reiniciaban AEC3 entero, y
-  200 ms sin sonido lo apagaban: cada vez tenía que volver a aprender (a
-  los 2 s de dejar de estar silenciado seguía entre 7 y 28 dB).
-- El sonido de otros programas no estaba en ninguna referencia: RNNoise
-  oye la voz de un juego como voz y la deja pasar.
-
-Ahora, al dejar de estar silenciado, el primer medio segundo deja pasar algo
-(14 dB los primeros 250 ms), después nada. Otra cosa que mostró el arnés:
-mientras la persona habla, AEC3 de Sonora quita poco del eco (estimado
-repitiendo todo con el signo del eco invertido: 1 a 4 dB, aun con el retardo
-ideal); lo que lo frena es la supresión cuando la persona calla. No se
-cambió: el ajuste de AEC3 que lo gobierna no está expuesto en Sonora.
+Al dejar de estar silenciado, el primer medio segundo deja pasar algo
+(14 dB los primeros 250 ms), después nada. Mientras la persona habla, AEC3
+de Sonora quita poco del eco (estimado repitiendo todo con el signo del eco
+invertido: 1 a 4 dB, aun con el retardo ideal); lo que lo frena es la
+supresión cuando la persona calla. El ajuste de AEC3 que lo gobierna no está
+expuesto en Sonora.
 
 ## Video
 
@@ -269,7 +259,4 @@ Decisiones que salieron de medir cada etapa:
 
 ## Lo que no se midió
 
-Ver [tasks/todo.md](../tasks/todo.md): memoria con imágenes y GIF reales, una
-cuenta real con muchos servidores, latencia de entrada con teclado real (el
-`--bench` usa rueda sintética), una llamada en la ventana, el arranque en
-frío con el filtro de GPU y máquinas sólo-Intel o de una sola GPU discreta.
+En [tasks/todo.md](../tasks/todo.md#rendimiento).
