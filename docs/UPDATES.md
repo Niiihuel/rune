@@ -71,12 +71,6 @@ obligatoria se descubre recién con **Buscar ahora**.
 
 ![Ajustes › Actualizaciones con una versión disponible, simulado](img/actualizaciones-ajustes-2026-10-19.png)
 
-Capturas en un Xvfb privado de 1280×800 con el feed local
-(`rune-test-feed --mandatory --slow`, `--mandatory --corrupt` y sin opciones) y
-la simulación (`--language es --channel general --action jump:latest
---action update:notes`; `--action me:settings --action
-click:us:page=updates`).
-
 Una copia compilada desde el código (`cargo run`) no busca al iniciar ni se
 instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
 
@@ -100,8 +94,8 @@ instala sola: **Buscar ahora** le avisa si hay una versión nueva, nada más.
    - crea una release borrador con el mensaje del tag como notas (un tag
      con `-`, como `v0.2.0-rc.1`, queda como pre-release y las copias
      instaladas no la ven: `releases/latest` la saltea);
-   - compila el artefacto de Linux en Ubuntu 24.04 y lo sube al borrador;
-     el de Windows también cuando esté encendido ([Windows](#windows));
+   - compila el artefacto de Linux en Ubuntu 24.04 y el de Windows
+     ([Windows](#windows)) y los sube al borrador;
    - arma el manifiesto (`rune-release manifest`, con `minimum_version`), lo
      firma con el secreto (`rune-release sign`, con el programa ya compilado
      para que ningún build script vea el secreto), lo **verifica con la
@@ -161,16 +155,11 @@ releases siguientes).
 
 La firma usa una clave Ed25519 sólo para esto. La mitad pública va
 compilada en RUNE (`crates/rune-update/release-key.pub`, una línea en
-base64); la privada **nunca** entra al repositorio. Hasta que exista,
-`release-key.pub` está vacío: RUNE no confía en ninguna actualización y el
-paso de verificación del CI falla, así que no sale ninguna release.
-
-Una sola vez, en la máquina del dueño:
+base64); la privada **nunca** entra al repositorio. Se generó una vez, en
+la máquina del dueño, con `scripts/update-key.sh`:
 
 ```sh
 nix-shell --run scripts/update-key.sh          # o: scripts/update-key.sh <archivo>
-git add crates/rune-update/release-key.pub
-git commit -m "Actualizaciones: clave pública de las releases"
 ```
 
 El script genera la clave con `cargo run -p rune-release -- keygen` (el
@@ -314,10 +303,6 @@ environment.sessionVariables = {
 La alternativa de siempre sigue: compilar desde el código en `nix-shell`;
 esa copia no se actualiza sola.
 
-Probado en NixOS con el feed local (`rune --install` en un `HOME` de
-prueba, la obligatoria de punta a punta y la opcional). Falta probar el
-binario genérico en una distribución común y en NixOS con `nix-ld`.
-
 ## Windows
 
 **Artefacto**: `rune-x86_64-windows-setup.exe`, en el manifiesto como
@@ -440,9 +425,9 @@ que `rune.exe --licenses` sea `THIRD_PARTY_NOTICES.md`, instala Inno Setup 6.7.3
 SHA-256, arma el instalador (`ISCC /DVersion=…`), deja su tamaño y su
 SHA-256 en el log y en las salidas del job, y lo sube al borrador. El
 paso del manifiesto comprueba que el instalador que bajó del borrador sea
-ése antes de firmar. El job está apagado hasta que la variable del
-repositorio `RUNE_WINDOWS_RELEASES` sea `true`; encendido, si falla, la
-release no se publica.
+ése antes de firmar. El job corre sólo si la variable del repositorio
+`RUNE_WINDOWS_RELEASES` es `true` (lo está); si falla, la release no se
+publica.
 
 **Armarlo y probarlo desde NixOS**, con Wine (Wine no es Windows). ISCC y
 el instalador son de 32 bits: hace falta el Wine WoW64, no el `wine64` de
@@ -470,12 +455,8 @@ publica el workflow con `--platform windows-x86_64 --program <setup.exe>`,
 y RUNE (de depuración, el instalado) se abre con `RUNE_UPDATE_FEED` y
 `RUNE_UPDATE_KEY`; bajo Wine, con `WGPU_BACKEND=gl`.
 
-Con Wine se probó el ciclo entero (armar, instalar en silencio encima de
-otra, actualizar desde el feed local, volver a abrir, borrar
-`rune-updates`, desinstalar sin tocar los datos). Wine no guarda el
-`AppUserModelID` del acceso directo ni encuentra procesos con el Restart
-Manager: eso, el asistente con ventanas, el build MSVC, SmartScreen y todo
-en un Windows real quedan por probar.
+Wine no guarda el `AppUserModelID` del acceso directo ni encuentra procesos
+con el Restart Manager: eso sólo se prueba en un Windows real.
 
 ## Seguridad
 
@@ -492,11 +473,3 @@ en un Windows real quedan por probar.
   (la copia sigue como está, y una obligatoria se descubre al volver la
   red).
 - `RUNE_UPDATE_KEY` sólo existe en compilaciones de depuración.
-
-## Lo que queda del dueño
-
-Encender el job de Windows (variable del repositorio
-`RUNE_WINDOWS_RELEASES` en `true`; para probarlo sin que lo vea ninguna
-copia instalada, una pre-release como `v0.1.0-rc.1`), decidir la
-[firma de código](#windows) y probar en un Windows real: lista en
-[tasks/todo.md](../tasks/todo.md).
