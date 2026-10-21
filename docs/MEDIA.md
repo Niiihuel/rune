@@ -122,21 +122,17 @@ AEC lo que aprendió.
   15 dB encima, entre −42 y −15 dBFS.
 - **Ganancia automática**: AGC2 digital adaptativa (hasta 20 dB); nunca
   toca el volumen del sistema.
-- **Eco** (revisado el 2026-10-19, ver
-  [PERFORMANCE.md](PERFORMANCE.md#eco)): la salida copia a un ring de
-  referencia exactamente lo que sonó, con la ganancia, incluido el silencio
-  de un underrun o de ensordecer: así la referencia lleva el reloj del
-  parlante. Antes de cada cuadro del micrófono la captura le pasa a AEC3
-  todo lo que sonó desde el anterior (hasta 80 ms), apenas llega: el eco
-  siempre viene después de lo que lo hizo y AEC3 encuentra el retardo solo.
-  Antes pasaba 10 ms por cuadro y rellenaba con silencio si todavía no
-  había llegado: la referencia quedaba corrida respecto del micrófono, a
-  veces después de su propio eco. AEC3 es una etapa aparte (Sonora sin
-  supresor) que sigue encendida mientras haya referencia, sin apagarse tras
-  200 ms sin sonido: silenciarse, un hueco o cambiar el supresor ya no le
-  borran lo que aprendió del camino del eco. Al reabrir o reconfigurar la
-  captura se tira lo que sonó mientras no se leía, en el primer cuadro,
-  como al abrir.
+- **Eco** ([PERFORMANCE.md](PERFORMANCE.md#eco)): la salida copia a un
+  ring de referencia exactamente lo que sonó, con la ganancia, incluido el
+  silencio de un underrun o de ensordecer: así la referencia lleva el reloj
+  del parlante. Antes de cada cuadro del micrófono la captura le pasa a
+  AEC3 todo lo que sonó desde el anterior (hasta 80 ms), apenas llega: el
+  eco siempre viene después de lo que lo hizo y AEC3 encuentra el retardo
+  solo. AEC3 es una etapa aparte (Sonora sin supresor) que sigue encendida
+  mientras haya referencia, sin apagarse tras 200 ms sin sonido:
+  silenciarse, un hueco o cambiar el supresor no le borran lo que aprendió
+  del camino del eco. Al reabrir o reconfigurar la captura se tira lo que
+  sonó mientras no se leía, en el primer cuadro, como al abrir.
 - **Sonido de la PC** (`system_echo`, prendido por defecto con la
   cancelación de eco): la referencia pasa a ser el *loopback* de la salida
   que usa RUNE, o sea todo lo que suena ahí (juegos, música, videos y la
@@ -403,8 +399,7 @@ tablas Huffman estándar). El stream dice siempre dónde acepta los búferes
 nodo): memoria compartida, y para la cámara también el DMA-BUF que exporta
 V4L2, mapeado igual. Sin decirlo, un nodo V4L2 deja los búferes en su
 propio mapeo, que otro proceso no puede usar, y PipeWire corta el enlace
-con «use input buffers: -22» (lo que vio el dueño con una UVC sólo
-MJPEG/YUYV). La pantalla no pide DMA-BUF: sin modificadores podría venir
+con «use input buffers: -22». La pantalla no pide DMA-BUF: sin modificadores podría venir
 en mosaico ([VIDEO.md](VIDEO.md#la-captura-y-dma-buf)). Un error del enlace
 se explica (búferes o formato) y lleva el texto de PipeWire detrás.
 Cada plano se valida
@@ -453,8 +448,8 @@ Las mediciones de CPU y ruido están en [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Límites
 
-- Nadie escuchó todavía los tonos, el volumen por persona, la velocidad de
-  los mensajes de voz ni el AGC con voz real; el AEC no se probó con
+- Nadie escuchó todavía el volumen por persona, la velocidad de los
+  mensajes de voz ni el AGC con voz real; el AEC no se probó con
   altavoces de portátil.
 - Eco: medido sólo con señales sintéticas y un camino de eco lineal. Al
   dejar de estar silenciado, el primer medio segundo todavía deja pasar
@@ -467,6 +462,7 @@ Las mediciones de CPU y ruido están en [PERFORMANCE.md](PERFORMANCE.md).
 - Windows: sin codificador por hardware (MFT de Media Foundation), sin
   respaldo DXGI para Windows anterior a 1903, sin miniaturas en el
   selector.
-- Sin DMA-BUF en la captura; AV1 y H.265 fuera de las llamadas.
+- La captura no pasa DMA-BUF al codificador (los cuadros se copian a la
+  CPU); AV1 y H.265 fuera de las llamadas.
 - Los umbrales de `VoiceActivity` se eligieron con el micrófono de esta
   máquina.
