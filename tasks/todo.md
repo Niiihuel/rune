@@ -65,8 +65,6 @@ Pendiente de medir (números actuales en
 
 Pendiente:
 
-- `THIRD_PARTY_NOTICES.md` se regenera después de cada mezcla que cambie
-  `Cargo.lock`; si no, el workflow de release se detiene.
 - `inout 0.2.3` está retirado de crates.io: `cargo update -p inout` la
   próxima vez que se toque `Cargo.lock`.
 - Si se distribuyen con RUNE las bibliotecas nativas LGPL (GTK,
@@ -82,17 +80,9 @@ Pendiente:
 
 Lo hace o prueba el dueño:
 
-- La CI (Linux y Windows) no corrió todavía en GitHub; el primer push dirá
-  si el runner alcanza. Los tests corren sin `--all-features` (sin WebKit);
-  clippy sí las cubre.
-- Actualizaciones: generar la clave (`scripts/update-key.sh`), commitear
-  `release-key.pub`, hacer público el repositorio, poner
-  `RUNE_WINDOWS_RELEASES=true` si se quieren releases de Windows y empujar
-  el primer tag (el job de Windows, primero con una pre-release
-  `v0.1.x-rc.1`). Sin probar: el workflow en Ubuntu, el binario genérico en
-  Ubuntu/Fedora/Arch y en NixOS con `nix-ld`, una actualización opcional y
-  una obligatoria reales desde GitHub Releases. Las releases genéricas no traen el visor de PDF (sus
-  herramientas sólo se aceptan desde `/nix/store`).
+- Actualizaciones, sin probar: el binario genérico en Ubuntu/Fedora/Arch y
+  en NixOS con `nix-ld`, una actualización opcional y una obligatoria reales
+  desde GitHub Releases.
 - Firma Authenticode del instalador de Windows: no hay; SmartScreen avisa
   y el Control inteligente de aplicaciones puede bloquear. Decide el dueño
   (Azure Artifact Signing, CA OV, SignPath Foundation o no firmar);
@@ -263,11 +253,6 @@ hablar, moderar y su chat).
 
 ## Amigos, privados, grupos y llamadas privadas
 
-Hecho (amigos-avatares, 2026-10-19): Amigos (todas las pestañas), los
-diálogos de grupo y las sugerencias de @ piden la foto de quien muestran;
-antes sólo se veía la de quien otra lista ya había pedido (por ejemplo, un
-privado abierto) y el resto quedaba con la inicial.
-
 Pendiente:
 
 - «Rechazada» frente a «sin respuesta» es una inferencia por tiempo (20 s).
@@ -300,14 +285,10 @@ Pendiente:
   (cpal no da la clase del nodo).
 - El panel de voz cuenta desde que la cuenta se conectó; el tiempo del canal
   está en su fila.
-- Menú de una persona (2026-10-19, hecho: casillas al borde, roles con su
-  punto de color y casilla sin cerrar el menú, castigos en rojo): falta
-  confirmar en el bundle qué ítems pinta de rojo el oficial además de
-  `remove-friend` (el resto sale de la captura del dueño); los roles van
-  del más alto al más bajo, como en el perfil.
-- Eco (2026-10-19, hecho: referencia continua, todo lo que sonó antes de
-  cada cuadro, AEC3 que no se reinicia, y el sonido de la PC por el
-  loopback de la salida; ver PERFORMANCE.md#eco). Falta: el primer medio
+- Menú de una persona: falta confirmar en el bundle qué ítems pinta de rojo
+  el oficial además de `remove-friend` (el resto sale de la captura del
+  dueño).
+- Eco ([PERFORMANCE.md](../docs/PERFORMANCE.md#eco)): el primer medio
   segundo tras dejar de estar silenciado; AEC3 de Sonora quita poco eco
   mientras la persona habla (su ajuste no está expuesto: PR a Sonora o
   ajustar a mano); con una salida elegida que no es la predeterminada, lo
@@ -337,16 +318,7 @@ Probar contra el servicio real:
   Ajustes › Voz y video la nota de esa opción dice si escucha la salida. En
   Windows, lo mismo y que el loopback abra.
 
-### Filas de personas en voz (voz-filas-y-arrastre, 2026-10-19)
-
-Hecho: resaltado alineado con el de los canales (mismo margen derecho y
-radio, 1 px adentro arriba y abajo); tarjeta de quien transmite al pasar el
-puntero (vista previa, juego, «Ver transmisión» que abre el escenario);
-arrastre a otro canal con la fila levantada como fantasma, destino rodeado,
-Escape o soltar afuera cancelan. limn: PR #114 (`rune/hover-popover-anchor`,
-47570cc), que mantiene abierta la tarjeta sobre las marcas de la fila.
-Capturas `docs/img/voz-filas-*-2026-10-19.png`; acciones de captura
-`press:{id}` y `move:{id}` para arrastrar.
+### Filas de personas en voz
 
 Pendiente:
 
@@ -394,30 +366,21 @@ Probar contra el servicio real y con hardware:
   cambiar «Aceleración por hardware de H.264» en medio de una transmisión;
   que el sonido de la pantalla no lleve las voces de la llamada.
 - xdg-desktop-portal-hyprland con una cámara real (YUY2/NV12/MJPEG) y
-  `restore_token`. Cámara (2026-10-19): «use input buffers: -22» al probar
-  el video era el stream sin `dataType` en sus búferes (un nodo V4L2 los
-  dejaba en su mapeo propio); arreglado y probado en esta máquina con la
-  UVC USB2.0 FHD (MJPEG 1280×720 a 30 fps por DMA-BUF exportado,
-  `--example camera`, sin guardar cuadros). Falta que el dueño lo vea en
-  «Probar video» y en una llamada; la pantalla ahora también pide memoria
-  compartida explícita (ver que siga compartiendo). La cámara IR de la
-  misma UVC (sólo `GREY`) se lista con el mismo nombre y no se puede leer.
-- Transmisiones (2026-10-19, sólo fixtures): enfocar una y volver a la
+  `restore_token`. La cámara en «Probar video» y en una llamada (probada
+  sólo con `--example camera`), y que la pantalla siga compartiendo con
+  memoria compartida explícita. La cámara IR de la misma UVC (sólo `GREY`)
+  se lista con el mismo nombre y no se puede leer.
+- Transmisiones (sólo fixtures): enfocar una y volver a la
   grilla, su menú propio (volumen y silencio de la transmisión), la vista
   previa en el mosaico pedida como el oficial (`?version`, 120 s, 429) y la
   subida de la propia (`POST /streams/{clave}/preview`, cada 300 s). Falta
   ver que Discord acepte la miniatura de RUNE y que el oficial la muestre;
   la vista previa de una llamada privada (`call:`) no se pide todavía.
-- Llamada como el oficial (2026-10-19, REA de los bundles): la barra con
-  la medida de la bandeja oficial; en una transmisión, doble clic a
-  pantalla completa (otro la devuelve a la grilla), al pasar el puntero su
-  sonido y «⋯», y enfocada «Ventana aparte» y «Pantalla completa» al final
-  de la barra y «Dejar de ver» en lugar de colgar; la única de otros en el
-  canal se enfoca al mirarla. Falta: en una ventana angosta la barra no se
-  achica como la oficial (≤ 550 px esconde la segunda sección), el zoom de
-  la transmisión enfocada, el control de volumen al final de la barra y
-  probar el doble clic con el mouse real (egui da el doble clic a los
-  300 ms, no según el sistema).
+- Barra de la llamada: en una ventana angosta no se achica como la oficial
+  (≤ 550 px esconde la segunda sección); faltan el zoom de la transmisión
+  enfocada y el control de volumen al final de la barra; probar el doble
+  clic con el mouse real (egui da el doble clic a los 300 ms, no según el
+  sistema).
 - Vista previa local (`cargo run -p rune-desktop`, «Sala común»):
   «Compartir pantalla» abre el portal, cancelar avisa, detener desde el
   sistema avisa; «Encender la cámara» pide permiso, desenchufarla avisa;
@@ -589,8 +552,7 @@ comparar user agent y client hints con las herramientas de Edge.
 
 Pendiente:
 
-- Subir `rune/visor-de-medios` y las ramas de integración; mezclar las PR
-  abiertas (#76, #84, #86, #112 y las que dependen de ellas). La PR #84
+- Mezclar las PR abiertas (#76, #84, #86 y las que dependen de ellas). La PR #84
   desde `main` no lleva `UiFaces::semibold` ni `ScaleDown` hasta que entren
   #76 y #66.
 - Al mezclar: #84 (`Tooltip::title_family`) y #85
@@ -604,9 +566,6 @@ Pendiente:
 - PR nuevas que hacen falta: subtítulo de `ListRow` como elemento (emoji en
   búsqueda), `_cursiva_`/`>>>`/encabezados en negrita, texto al final de
   `Tooltip::faces`, inactividad del puntero y resortes (visor).
-
-- PR #113 (`DropdownMenuItem::leading`, rama `rune/menu-leading` sobre
-  la de integración): el workspace apunta a esa rama hasta mezclarla.
 
 Probar: el dueño confirma las opciones nuevas del tooltip del riel
 (demora, título de 16 px en seminegrita, fondo).
@@ -637,5 +596,5 @@ otros, extensiones Wasm, recursos copiados.
 - De los comandos de aplicación, lo que Serein no tiene (2026-10-18):
   opciones de adjunto, índice de apps del usuario, reintento del `202`,
   mensaje provisional, comandos de menú contextual, `ephemerality_reason`.
-- Mandar súper reacciones y listar quién las hizo; subir la vista previa
-  propia de una transmisión; la cámara propia en dos capas de simulcast.
+- Mandar súper reacciones y listar quién las hizo; la cámara propia en dos
+  capas de simulcast.
