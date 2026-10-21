@@ -29,10 +29,13 @@ pub fn socket() -> Option<PathBuf> {
 
 /// Send the window of process `pid` out of sight.
 pub fn hide(socket: &PathBuf, pid: u32) -> std::io::Result<()> {
-    ok(request(
+    dispatch(
         socket,
-        &format!("dispatch movetoworkspacesilent {WORKSPACE},pid:{pid}"),
-    )?)
+        &format!("movetoworkspacesilent {WORKSPACE},pid:{pid}"),
+        &format!(
+            r#"hl.dsp.window.move({{ workspace = "{WORKSPACE}", follow = false, window = "pid:{pid}" }})"#
+        ),
+    )
 }
 
 /// Bring it back to the workspace in view, and focus it.
@@ -42,11 +45,25 @@ pub fn show(socket: &PathBuf, pid: u32) -> std::io::Result<()> {
         .ok()
         .and_then(|workspace| workspace["id"].as_i64())
         .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
-    ok(request(
+    dispatch(
         socket,
-        &format!("dispatch movetoworkspace {id},pid:{pid}"),
-    )?)?;
-    ok(request(socket, &format!("dispatch focuswindow pid:{pid}"))?)
+        &format!("movetoworkspace {id},pid:{pid}"),
+        &format!(r#"hl.dsp.window.move({{ workspace = {id}, window = "pid:{pid}" }})"#),
+    )?;
+    dispatch(
+        socket,
+        &format!("focuswindow pid:{pid}"),
+        &format!(r#"hl.dsp.focus({{ window = "pid:{pid}" }})"#),
+    )
+}
+
+/// A dispatcher in the classic syntax, or, where Hyprland is configured in
+/// Lua (0.55 and later) and refuses that, the same one as a Lua call.
+fn dispatch(socket: &PathBuf, classic: &str, lua: &str) -> std::io::Result<()> {
+    if ok(request(socket, &format!("dispatch {classic}"))?).is_ok() {
+        return Ok(());
+    }
+    ok(request(socket, &format!("dispatch {lua}"))?)
 }
 
 fn ok(answer: String) -> std::io::Result<()> {
@@ -103,6 +120,46 @@ mod tests {
                 "j/activeworkspace",
                 "dispatch movetoworkspace 3,pid:42",
                 "dispatch focuswindow pid:42",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_lua_configured_hyprland_hears_the_same_commands_as_lua_calls() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".socket.sock");
+        let listener = UnixListener::bind(&path).unwrap();
+        let server = std::thread::spawn(move || {
+            let mut heard = Vec::new();
+            for _ in 0..7 {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut command = [0u8; 256];
+                let read = stream.read(&mut command).unwrap();
+                let command = String::from_utf8_lossy(&command[..read]).into_owned();
+                let answer = if command == "j/activeworkspace" {
+                    r#"{"id": 3, "name": "3"}"#
+                } else if command.starts_with("dispatch hl.") {
+                    "ok"
+                } else {
+                    "error: ')' expected"
+                };
+                stream.write_all(answer.as_bytes()).unwrap();
+                heard.push(command);
+            }
+            heard
+        });
+        hide(&path, 42).unwrap();
+        show(&path, 42).unwrap();
+        assert_eq!(
+            server.join().unwrap(),
+            [
+                "dispatch movetoworkspacesilent special:rune,pid:42",
+                r#"dispatch hl.dsp.window.move({ workspace = "special:rune", follow = false, window = "pid:42" })"#,
+                "j/activeworkspace",
+                "dispatch movetoworkspace 3,pid:42",
+                r#"dispatch hl.dsp.window.move({ workspace = 3, window = "pid:42" })"#,
+                "dispatch focuswindow pid:42",
+                r#"dispatch hl.dsp.focus({ window = "pid:42" })"#,
             ]
         );
     }
