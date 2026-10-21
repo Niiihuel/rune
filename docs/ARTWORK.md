@@ -31,7 +31,7 @@ no impide leer la conversación.
 | Respuesta de artwork | 1 MiB, comprobado antes y durante la descarga |
 | Artwork de origen | PNG, WebP o GIF, hasta 512 × 512; asignación del decoder acotada a 4 MiB |
 | Miniatura | PNG de 128 × 128, conserva proporción con margen transparente |
-| Caché | 256 entradas y 16 MiB de base64; LRU en memoria, sin disco |
+| Caché | 256 entradas y 16 MiB de base64, LRU en memoria; en disco, sellada por cuenta ([ARCHITECTURE.md](ARCHITECTURE.md#imágenes-en-disco)) |
 | Red | Cliente separado sin cabeceras de cuenta ni cookies; HTTPS y origen exacto declarado por el proveedor; sin redirecciones |
 | Reintentos | Fallos transitorios: al menos 30 s; 429/5xx conservan la espera por origen aun al purgar la caché; un `Retry-After` ilegible bloquea ese origen hasta cerrar sesión |
 | Cierre de sesión | Cancela tareas, cambia de generación, vacía recursos de core/UI y texturas de limn |
@@ -67,7 +67,7 @@ metadatos reservan el lugar antes de cargar.
 | Concurrencia | Hasta dos vistas previas dentro de los cuatro trabajos de imagen |
 | Caché | La misma de 256 entradas/16 MiB, por el cuadrado de la densidad |
 
-Densidad (2026-10-19): el escritorio pasa los píxeles por punto de la
+Densidad: el escritorio pasa los píxeles por punto de la
 ventana (`Client::set_image_density`) y todo se decodifica para ese paso
 (1, 1,5 o 2; más denso, 2): vistas previas, banners (512 × 256 por la
 densidad) y las imágenes chicas (128 px por la densidad: avatares, íconos,
@@ -97,7 +97,7 @@ como vistas previas.
 
 Como Serein, RUNE separa los presupuestos de imagen fija, animación y visor,
 reserva el espacio antes de cargar y separa las descargas explícitas del
-cacheado visual; no tiene su escalera de resoluciones ni su caché en disco.
+cacheado visual; no tiene su escalera de resoluciones.
 
 ## Selector de expresiones
 
