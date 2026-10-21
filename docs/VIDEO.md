@@ -7,9 +7,8 @@ privadas. Sólo lo hace el proveedor de sesión no oficial; la simulación lo
 imita y lo dice, y el proveedor OAuth2 no lleva video.
 
 **Estado.** Probado con fixtures locales y con la GPU de esta máquina. El
-dueño transmitió en una llamada real (así apareció el problema del sonido
-de la pantalla, ya arreglado), pero no hay una prueba registrada de cada
-caso contra Discord. El protocolo sale de la REA estática del cliente
+dueño transmitió en una llamada real, pero no hay una prueba registrada de
+cada caso contra Discord. El protocolo sale de la REA estática del cliente
 oficial ([REA.md](REA.md)) y de Serein; la parte de red está en
 [DISCORD_SESSION.md](DISCORD_SESSION.md) y la captura en
 [MEDIA.md](MEDIA.md#pantalla-y-cámara).
@@ -116,7 +115,7 @@ lo que llegue (los clientes de escritorio mandan Main).
 | Codificador | 1 cuadro crudo pendiente y 1 unidad codificada; paquetes de ≤ 1200 bytes en lotes cada 2 ms |
 | Historial RTX al enviar | la ventana de reparación del cliente oficial: ≤ 1 s, ≤ 2048 paquetes, ≤ 2 MiB; cada paquete a lo sumo 2 reenvíos, 50 ms entre ellos |
 | Sonido de la pantalla | ≤ 32 aplicaciones, ≤ 200 ms en búfer cada una; cola de 8 cuadros de 20 ms |
-| Vistas previas | ≤ 32 guardadas; ≤ 4 pedidas por vez, cada 60 s por transmisión |
+| Vistas previas | ≤ 32 guardadas; ≤ 4 pedidas por vez, cada 120 s por transmisión |
 | Latencia | objetivo ≤ 300 ms de pantalla a pantalla en LAN; se descarta antes que acumular |
 
 Un SPS o un cuadro fuera de estas cotas se rechaza con un motivo visible,
@@ -167,13 +166,13 @@ sin tumbar la llamada.
   `POST /streams/{clave}/preview {thumbnail: "data:image/jpeg;base64,…"}`
   sólo mientras esa clave es la transmisión propia; la simulación la toma y
   la descarta. Sólo fixtures.
-- **Enfocar** (2026-10-19): un clic en una transmisión mirada
+- **Enfocar**: un clic en una transmisión mirada
   (`vz:stream:{persona}`) la deja sola en el escenario y las demás, con
   quienes transmiten y no se miran, en una tira de 72–124 px debajo (18 %
   del alto), como el oficial y Serein. Otro clic, «Volver a la grilla»
   (`vz:spotlight:{persona}`) o Escape vuelven a la grilla; un clic en la
   tira enfoca esa.
-- **Como el oficial** (2026-10-19, REA en [REA.md](REA.md#llamada-bandeja-y-transmisiones)):
+- **Como el oficial** (REA en [REA.md](REA.md#llamada-bandeja-y-transmisiones)):
   doble clic en una transmisión mirada la enfoca y la muestra en pantalla
   completa; otro doble clic ahí vuelve al escenario con la grilla, como el
   oficial (Escape sale de la pantalla completa y la deja enfocada). El
@@ -181,10 +180,9 @@ sin tumbar la llamada.
   `rune_ui::double_click` lo toma antes que el árbol; va a la transmisión
   del primer clic aunque ese clic haya movido los mosaicos. Al pasar el
   puntero, arriba a la derecha, su sonido (`vz:mute:{clave}`, la de la
-  transmisión) y «⋯» (`vz:stream-more:{persona}`, su menú anclado ahí);
-  los botones de texto se fueron. Con una enfocada, el final de la barra
-  tiene «Ventana aparte» y «Pantalla completa», y el botón rojo pasa a
-  «Dejar de ver». Si es la única de otros en el canal, se enfoca al
+  transmisión) y «⋯» (`vz:stream-more:{persona}`, su menú anclado ahí).
+  Con una enfocada, el final de la barra tiene «Ventana aparte» y
+  «Pantalla completa», y el botón rojo pasa a «Dejar de ver». Si es la única de otros en el canal, se enfoca al
   mirarla; con dos o más queda la grilla.
 - **Barra de la llamada**: la medida de la bandeja oficial: botones de 36
   (ícono 20) a 8 en secciones de 46 con 4 de relleno, borde de 1 y radio
@@ -365,6 +363,6 @@ nodos y clientes de PipeWire simuladas para el sonido.
   informa.
 - El Gateway de voz v8 con video no está confirmado (Serein lo usa).
 - Es un cliente no oficial; el video amplía lo que Discord puede notar.
-- Sin DMA-BUF, sin capas propias de simulcast, sin subir la vista previa
-  propia; AV1 y H265 afuera. La lectura de PipeWire del sonido de la
+- Sin DMA-BUF de la pantalla, sin capas propias de simulcast; AV1 y H265
+  afuera. La lectura de PipeWire del sonido de la
   pantalla no se probó en vivo.
