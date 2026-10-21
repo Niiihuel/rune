@@ -74,11 +74,14 @@ Pendiente:
 - `video::decode::tests::a_key_frame_decodes_…` y otras pruebas de video
   con plazos de 5 s fallaron alguna vez con la máquina cargada: si se
   repite en la CI, medir por cuadros en vez de por tiempo.
-- Código que sólo usan los tests y quedó a propósito (limpieza del
-  2026-10-19): `screencast::camera_present` (su versión con bus la prueban
-  los tests del portal), `StorageWorker::save` (siembra de los tests) y los
-  `pub` de `rune-storage`, `rune-model` y otros que sólo nombran sus tests.
-  Decidir si la cámara se usa o se borra junto con su test.
+- Código que sólo usan los tests (limpieza del 2026-10-21): se borró
+  `screencast::camera_present` y lo que sólo probaba su propio test; lo que
+  siembra o mira los tests de su crate quedó tras `#[cfg(test)]`
+  (`StorageWorker::save`, `Client::account`, `Storage::delete_message`…).
+  Siguen `pub` porque los usan tests de otros crates: `Storage::in_memory`,
+  `save_messages`, `setting` y `count`, los atajos de `MockProvider`,
+  `Timeline::newest`, `Voice::speaking`, `rune_i18n::catalog` y
+  `rune_update::serve`.
 
 Lo hace o prueba el dueño:
 
