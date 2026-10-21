@@ -33,7 +33,7 @@ pub fn page(
     let mark = centered(
         Element::icon(Icon::Custom(MARK))
             .large_icon(32.0)
-            .foreground(look.accent),
+            .foreground(crate::BRAND),
     )
     .size(Some(56.0), Some(56.0))
     .background(tint(18))

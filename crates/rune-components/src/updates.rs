@@ -61,7 +61,7 @@ pub fn screen(view: &UpdateView, window: Size, look: &Look) -> Element {
         centered(
             Element::icon(Icon::Custom(crate::MARK))
                 .large_icon(72.0)
-                .foreground(look.accent),
+                .foreground(crate::BRAND),
         )
         .size(None, Some(80.0)),
         centered(

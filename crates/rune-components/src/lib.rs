@@ -69,8 +69,11 @@ use limn::{Color, Element, FontFamily, Icon};
 
 pub use look::Look;
 
-/// RUNE's mark: an original rune-like glyph drawn with the current color.
+/// RUNE's mark: an R of three blocks at 45°, drawn with the current color.
 pub const MARK: &str = include_str!("../../../assets/rune-mark.svg");
+/// The mark's own red, whatever the theme's accent: where RUNE presents
+/// itself (the opening screen, signing in, its updates) and on its icon.
+pub const BRAND: Color = Color::rgb(214, 45, 45);
 /// Headphones with a slash, for a deafened account.
 pub const HEADPHONES_OFF: &str = glyphs::glyph!("headphones-off");
 
