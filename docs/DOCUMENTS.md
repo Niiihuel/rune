@@ -131,9 +131,3 @@ La metadata de los paquetes Nix consultados declara Poppler 25.10.0 como
 2.42 con varias licencias por componente. RUNE invoca ejecutables separados;
 no copió ni enlazó su código. Esta lista no reemplaza una auditoría de los
 avisos de cada binario si se redistribuyen dentro de un paquete de RUNE.
-
-## Referencia
-
-Serein (`crates/ui/src/attachments.rs`) clasifica PDF y ofrece acciones de
-archivo, pero no se encontró un rasterizador; la vista por páginas es propia
-de RUNE.

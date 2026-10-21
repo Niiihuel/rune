@@ -5,8 +5,7 @@ Lo genérico vive en limn (`Element::zoom_view` e `ImageViewer`); lo de RUNE
 (galería de un mensaje, acciones del proveedor, original al hacer zoom,
 video) en `rune-ui` (`attachments.rs`, `documents.rs`, `voice_messages.rs`).
 
-Se rehízo porque una imagen chica se veía diminuta en un panel negro y el
-zoom no la agrandaba. El comportamiento sale de estudiar visores maduros:
+El comportamiento sale de estudiar visores maduros:
 GNOME Loupe (la referencia principal: casi todos los números), Zed/gpui,
 iced, egui y visores hechos con él (Oculante, simp), Telegram Desktop, el
 visor de medios de Discord (leído de sus bundles públicos) y Fotos de
@@ -40,7 +39,7 @@ previa y RUNE pide el original, que la reemplaza sin mover nada:
 | Filtro | vecino desde 2 píxeles de pantalla por píxel; copia al tamaño en pantalla al achicar a menos de la mitad | Loupe, Oculante, simp |
 | Transparencias | damero de 8 px fijo a la pantalla, sólo si la imagen tiene píxeles transparentes | Telegram |
 | Desde la miniatura | la imagen crece desde el lugar de su miniatura al abrir (sin movimiento reducido) | Discord (0,9 → 1) |
-| Varias imágenes | flechas, ←/→, Inicio/Fin, tira de miniaturas; ahora también entre los archivos de un mismo mensaje, no sólo tarjetas | Discord, Telegram, Fotos |
+| Varias imágenes | flechas, ←/→, Inicio/Fin, tira de miniaturas; entre los archivos de un mismo mensaje y entre las imágenes de una tarjeta | Discord, Telegram, Fotos |
 | Video | el mismo visor, con sus controles abajo, Espacio, ←/→ ±5 s, llena la ventana | Discord, Telegram |
 | Cerrar | Esc, botón, clic al costado de la imagen | Discord, Telegram |
 | Acciones | copiar imagen (Ctrl+C), guardar como (Ctrl+S), abrir en el navegador, reenviar, resolución original, girar (Ctrl+R) | Discord, Telegram, Loupe |
@@ -56,7 +55,7 @@ previa y RUNE pide el original, que la reemplaza sin mover nada:
   `UiAction::Zoomed { id, scale, fitted }` informa la escala;
   `UiTree::zoom_scale(id)` la lee; `zoom_control`, `zoom_dismiss`,
   `zoom_opened_from` y la sombra de la imagen.
-- `ImageViewer` rediseñado alrededor del zoom view: fondo oscuro a
+- `ImageViewer` alrededor del zoom view: fondo oscuro a
   pantalla completa, barra de herramientas, `subtitle`, `picture_size`,
   `placeholder`, `thumbnail`, `footer`, `initial_focus`, `zoom_level`.
   `ImageViewer::zoom` y `MAX_ZOOM` quedan deprecados (el árbol guarda el
