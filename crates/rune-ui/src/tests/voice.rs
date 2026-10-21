@@ -377,6 +377,29 @@ fn the_stage_lists_who_is_in_the_call_and_who_speaks_or_is_muted() {
     assert!(!host.vz_shows(&format!("{}:muted", ids::tile(me.0))));
 }
 
+#[test]
+fn the_stage_follows_a_call_moved_by_an_administrator() {
+    let mut host = Host::new();
+    let old = host.vz_join("Sala común");
+    host.click(&format!("voice:{old}"));
+    let new = host.channel_named("Escenario (simulado)");
+    let mut state = host.store.my_voice().unwrap().clone();
+    state.channel = new;
+    host.event(Event::VoiceChanged(state));
+    host.event(Event::CallEnded {
+        channel: old,
+        reason: None,
+    });
+    host.event(Event::CallPhase {
+        channel: new,
+        phase: CallPhase::Joining,
+        quality: None,
+    });
+
+    assert_eq!(host.ui.voice.stage, Some(new));
+    assert_eq!(host.store.call().unwrap().channel, new);
+}
+
 // Screen and camera are Linux's and Windows' (windows-medios).
 #[cfg(any(target_os = "linux", windows))]
 #[test]

@@ -3089,6 +3089,63 @@ async fn the_gateway_session_tells_this_device_s_voice_state_from_another_s_in_e
 }
 
 #[tokio::test]
+async fn an_administrator_move_follows_the_new_channel_without_leaving_voice() {
+    let (port, _link) = voice_link();
+    let mut calls = Calls::new(Some(port));
+    let mut wanted = calls.gateway();
+    calls.gateway_session(Zeroizing::new("GATEWAY_SESSION".into()));
+    let mut snapshot = snapshot();
+    calls
+        .join(&snapshot, ChannelId(CHANNEL), false, false)
+        .unwrap();
+    wanted.borrow_and_update();
+    calls.dispatch(
+        &mut snapshot,
+        "VOICE_STATE_UPDATE",
+        &own("GATEWAY_SESSION", CHANNEL),
+    );
+    calls.call.as_mut().unwrap().confirmed = true;
+
+    let moved = calls
+        .dispatch(
+            &mut snapshot,
+            "VOICE_STATE_UPDATE",
+            &own("GATEWAY_SESSION", 99),
+        )
+        .unwrap();
+    assert!(matches!(
+        &moved[..],
+        [
+            Event::VoiceChanged(state),
+            Event::CallEnded {
+                channel: ChannelId(CHANNEL),
+                reason: None,
+            },
+            Event::CallPhase {
+                channel: ChannelId(99),
+                phase: CallPhase::Joining,
+                ..
+            }
+        ] if state.channel == ChannelId(99)
+    ));
+    assert_eq!(calls.call.as_ref().unwrap().channel, ChannelId(99));
+    let wanted = wanted.borrow_and_update().unwrap();
+    assert_eq!(wanted.channel, Some(99));
+    assert_eq!(wanted.guild, Some(GUILD));
+
+    calls.dispatch(
+        &mut snapshot,
+        "VOICE_SERVER_UPDATE",
+        &json!({
+            "guild_id": GUILD.to_string(),
+            "token": "SYNTHETIC_VOICE_TOKEN",
+            "endpoint": "c-test.discord.media:443",
+        }),
+    );
+    assert!(calls.call.as_ref().unwrap().connection.is_some());
+}
+
+#[tokio::test]
 async fn stale_own_states_before_the_voice_server_accepts_the_session_are_ignored() {
     let (port, _link) = voice_link();
     let mut calls = Calls::new(Some(port));
