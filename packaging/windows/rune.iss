@@ -45,6 +45,10 @@ MinVersion=10.0
 CloseApplications=force
 RestartApplications=no
 SetupIconFile=..\..\assets\icons\rune.ico
+; Explorer is told to refresh what it shows once installed: an update
+; with a new icon kept showing the old one on the Start menu's shortcut
+; and the taskbar from Windows' icon cache (2026-10-21).
+ChangesAssociations=yes
 WizardStyle=modern
 Compression=lzma2/max
 SolidCompression=yes

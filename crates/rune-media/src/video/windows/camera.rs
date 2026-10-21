@@ -11,6 +11,11 @@ use std::time::{Duration, Instant};
 use rune_i18n::{es, t};
 use windows::core::{implement, Interface, Ref, GUID, HRESULT, PWSTR};
 use windows::Win32::Foundation::E_ACCESSDENIED;
+use windows::Win32::Media::KernelStreaming::{
+    IKsControl, KSIDENTIFIER, KSIDENTIFIER_0, KSIDENTIFIER_0_0,
+    KSPROPERTY_CAMERACONTROL_AUTO_EXPOSURE_PRIORITY, KSPROPERTY_CAMERACONTROL_FLAGS_MANUAL,
+    KSPROPERTY_CAMERACONTROL_S, KSPROPERTY_TYPE_SET, PROPSETID_VIDCAP_CAMERACONTROL,
+};
 use windows::Win32::Media::MediaFoundation::{
     IMF2DBuffer2, IMFActivate, IMFAttributes, IMFMediaEvent, IMFMediaSource, IMFMediaType,
     IMFSample, IMFSourceReader, IMFSourceReaderCallback, IMFSourceReaderCallback_Impl,
@@ -433,6 +438,45 @@ impl IMFSourceReaderCallback_Impl for Reading_Impl {
     }
 }
 
+/// Without the camera slowing down to expose longer in dim light: many
+/// webcams halve their frame rate for it ("auto exposure priority"), so a
+/// format of 30 a second came at 15 (2026-10-21: «delivered 14.8/s» at
+/// 30/1). A camera without the control, or that refuses it, stays as it
+/// is.
+fn steady_rate(source: &IMFMediaSource) {
+    let Ok(control) = source.cast::<IKsControl>() else {
+        return;
+    };
+    let mut set = KSPROPERTY_CAMERACONTROL_S {
+        Property: KSIDENTIFIER {
+            Anonymous: KSIDENTIFIER_0 {
+                Anonymous: KSIDENTIFIER_0_0 {
+                    Set: PROPSETID_VIDCAP_CAMERACONTROL,
+                    Id: KSPROPERTY_CAMERACONTROL_AUTO_EXPOSURE_PRIORITY.0 as u32,
+                    Flags: KSPROPERTY_TYPE_SET,
+                },
+            },
+        },
+        Value: 0,
+        Flags: KSPROPERTY_CAMERACONTROL_FLAGS_MANUAL as u32,
+        Capabilities: 0,
+    };
+    let size = std::mem::size_of::<KSPROPERTY_CAMERACONTROL_S>() as u32;
+    let property = &mut set as *mut KSPROPERTY_CAMERACONTROL_S;
+    let mut returned = 0;
+    // SAFETY: the property leads the struct that is also its data, alive
+    // through the call, `size` bytes each.
+    let _ = unsafe {
+        control.KsProperty(
+            property.cast::<KSIDENTIFIER>(),
+            size,
+            property.cast(),
+            size,
+            &mut returned,
+        )
+    };
+}
+
 /// Read the camera `device` (or the first) into `shared` until it stops,
 /// goes away or fails.
 pub(super) fn read(device: Option<&str>, shared: &Arc<Shared>) -> Result<(), String> {
@@ -486,6 +530,7 @@ pub(super) fn read(device: Option<&str>, shared: &Arc<Shared>) -> Result<(), Str
     let chosen = choose(&offers, max, fps).ok_or_else(|| t(NO_FORMAT).to_owned())?;
     // SAFETY: a native type of this reader's own video stream.
     unsafe { reader.SetCurrentMediaType(VIDEO, None, &offered[chosen].0) }.map_err(unavailable)?;
+    steady_rate(&opened.0);
     let refresh = |format: &Mutex<Option<Format>>| {
         let now = current(&reader);
         if let Some((_, offer)) = now {
