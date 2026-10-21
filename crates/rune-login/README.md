@@ -8,7 +8,7 @@ sin el feature `webview`. Lo común a los dos motores (qué carga cada
 ventana, qué acepta y qué devuelve) está en `surface.rs`; WebKitGTK en
 `webview.rs` y WebView2 en `windows.rs`.
 
-## Windows (WebView2, rama `windows-login`)
+## Windows (WebView2)
 
 Mismo contrato y mismas garantías que en Linux, sobre WebView2
 (`webview2-com`). Cada ventana es un proceso auxiliar con su perfil
@@ -59,9 +59,12 @@ El dueño confirmó después el login y la identidad; las pruebas descritas
 aquí siguen siendo fixtures locales y no acreditan nuevas operaciones
 sobre la cuenta.
 
-## Ventana de verificación de invitaciones
+## Ventana de verificación hCaptcha
 
-Autorizada por el dueño el 2026-10-16 ([SECURITY.md](../../docs/SECURITY.md#verificación-de-invitaciones-autorizada-el-2026-10-16)).
+Autorizada por el dueño el 2026-10-16 para invitaciones
+([SECURITY.md](../../docs/SECURITY.md#verificación-de-invitaciones-autorizada-el-2026-10-16))
+y el 2026-10-17 para cualquier escritura
+([SECURITY.md](../../docs/SECURITY.md#ampliaciones-del-2026-10-17)).
 `HostedLogin::verify` inicia el ejecutable con `--session-captcha-helper` y
 le pasa por la tubería privada la capacidad, `sitekey`, `rqdata` y si el
 desafío es invisible; nunca la sesión ni el `rqtoken`. La ventana carga la
@@ -70,7 +73,8 @@ página propia `https://captcha.rune.invalid/` (`captcha.html` y
 restricciones que el login, sin cambiar el user agent. La persona resuelve el
 desafío; la respuesta vuelve una vez como `{capacidad}:{respuesta}`. Cerrar
 (código 2), vencer (3) o no poder cargar hCaptcha (10) no devuelven nada.
-Ver [INVITATIONS.md](../../docs/INVITATIONS.md).
+Ver [INVITATIONS.md](../../docs/INVITATIONS.md) y
+[DISCORD_SESSION.md](../../docs/DISCORD_SESSION.md#verificación-hcaptcha-en-cualquier-escritura).
 
 Cada intento abre una sesión WebKit efímera. El puente observa únicamente
 cabeceras Authorization de solicitudes API del documento principal propio;
@@ -94,9 +98,9 @@ Pruebas sin credenciales reales:
 ```sh
 node crates/rune-login/tests/handoff.cjs
 node crates/rune-login/tests/captcha.cjs
-rtk nix-shell --run 'rtk cargo test -p rune-login'
-rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --features webview'
-rtk nix-shell --arg withLogin true --run 'rtk cargo test -p rune-login --features webview -- --include-ignored --test-threads=1'
+nix-shell --run 'cargo test -p rune-login'
+nix-shell --arg withLogin true --run 'cargo test -p rune-login --features webview'
+nix-shell --arg withLogin true --run 'cargo test -p rune-login --features webview -- --include-ignored --test-threads=1'
 ```
 
 En Windows, con WebView2 Runtime instalado:
