@@ -531,9 +531,10 @@ impl Backend for CpalBackend {
 /// only there, and resampling is then not needed. Otherwise its own, which
 /// the worker resamples.
 fn input_config(device: &cpal::Device) -> Result<cpal::SupportedStreamConfig, MediaError> {
-    let default = device
-        .default_input_config()
-        .map_err(|_| MediaError(t("No se pudo consultar el micrófono.").into()))?;
+    let default = device.default_input_config().map_err(|error| {
+        eprintln!("rune: microphone: no input format: {error}");
+        MediaError(t("No se pudo consultar el micrófono.").into())
+    })?;
     if default.sample_rate() == PLAYBACK_RATE && input_config_supported(&default) {
         return Ok(default);
     }
