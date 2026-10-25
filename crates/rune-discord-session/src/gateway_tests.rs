@@ -306,6 +306,27 @@ async fn missing_ack_reconnects_and_resumes_from_the_last_sequence() {
 }
 
 #[tokio::test]
+async fn socket_cut_without_close_frame_resumes_instead_of_stopping() {
+    let (listener, gateway) = fixture().await;
+    let (tx, mut rx) = mpsc::channel(32);
+    let task = tokio::spawn(async move { gateway.run(secret(), tx).await });
+    let mut first = peer(&listener, 1000).await;
+    assert_eq!(read(&mut first).await["op"], 2);
+    write(&mut first, ready()).await;
+    assert!(matches!(event(&mut rx).await, GatewayEvent::Ready(_)));
+    // A network drop after hours: the stream ends with no close handshake.
+    drop(first);
+    assert!(matches!(
+        event(&mut rx).await,
+        GatewayEvent::Reconnecting { attempt: 1, .. }
+    ));
+    let mut second = peer(&listener, 1000).await;
+    assert_eq!(read(&mut second).await["op"], 6);
+    task.abort();
+    let _ = task.await;
+}
+
+#[tokio::test]
 async fn invalid_nonresumable_session_reidentifies_and_server_heartbeat_is_acknowledged() {
     let (listener, gateway) = fixture().await;
     let (tx, mut rx) = mpsc::channel(32);
