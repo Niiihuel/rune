@@ -619,7 +619,11 @@ async fn context_http_timeout_is_a_definite_correlated_failure() {
     app.running.commands.send(command(70, 3)).await.unwrap();
     let (_, _unanswered) = context_request(&mut app).await;
     tokio::time::pause();
-    tokio::time::advance(Duration::from_secs(16)).await;
+    // A timed-out read is sent once more a second later, and times out too.
+    // In steps, so the retry is armed on the time it is sent at.
+    for _ in 0..40 {
+        tokio::time::advance(Duration::from_secs(1)).await;
+    }
     context_failure(app.next_data().await, 70, ChannelId(20));
 }
 

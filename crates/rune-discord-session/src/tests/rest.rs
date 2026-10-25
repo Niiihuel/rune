@@ -863,3 +863,54 @@ async fn an_applications_icon_is_read_from_its_public_object_and_a_failure_is_no
     let (http, _) = fixture(response(404, "{}")).await;
     assert!(http.application_icon(&secret(), 7).await.is_none());
 }
+
+/// Nothing listens when the first attempt goes: a read is sent once more a
+/// second later, and reaches the server that came up meanwhile.
+#[tokio::test]
+async fn a_read_is_sent_once_more_after_a_dead_connection() {
+    let probe = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = probe.local_addr().unwrap();
+    drop(probe);
+    let http = Http::local(&format!("http://{address}"));
+    let server = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        let listener = TcpListener::bind(address).await.unwrap();
+        let (mut socket, _) = listener.accept().await.unwrap();
+        request(&mut socket).await;
+        socket
+            .write_all(response(200, &json!([message(100, "older")]).to_string()).as_bytes())
+            .await
+            .unwrap();
+    });
+    let events = http.execute(&secret(), &history(7), "").await.unwrap();
+    assert!(matches!(
+        events.last(),
+        Some(Event::HistoryLoaded { request: 7, .. })
+    ));
+    server.await.unwrap();
+}
+
+/// The same dead connection for a write: it is never sent a second time.
+#[tokio::test]
+async fn a_write_to_a_dead_connection_is_never_sent_twice() {
+    let probe = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = probe.local_addr().unwrap();
+    drop(probe);
+    let http = Http::local(&format!("http://{address}"));
+    let server = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        let listener = TcpListener::bind(address).await.unwrap();
+        // A retry would have arrived about a second after the first attempt.
+        assert!(
+            tokio::time::timeout(Duration::from_millis(1_500), listener.accept())
+                .await
+                .is_err()
+        );
+    });
+    let error = http
+        .execute(&secret(), &send(1), "fixture")
+        .await
+        .unwrap_err();
+    assert!(error.ambiguous);
+    server.await.unwrap();
+}

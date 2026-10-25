@@ -90,6 +90,12 @@ const DISCOVERY_TIMEOUT: Duration = Duration::from_secs(8);
 pub(crate) const MAX_RESUMES: u32 = 3;
 /// Every resumption failed: the call may still be asked for again.
 pub(crate) const LOST: &str = es("No se pudo recuperar la conexión de voz.");
+/// The voice server stopped answering on its socket, or others spoke and no
+/// audio came: the path is dead, so the call rejoins (new socket, new IP
+/// discovery) instead of resuming on this one.
+pub(crate) const NO_ANSWER: &str = es("El servidor de voz dejó de responder.");
+/// Others spoke over the WS and no datagram came for this long: a dead UDP path.
+const UDP_SILENCE: Duration = Duration::from_secs(15);
 /// Closed with 4014: kicked, moved or the channel deleted. Never rejoined.
 pub(crate) const KICKED: &str = es("Discord te desconectó de la llamada.");
 /// IP discovery is asked again this often until [`DISCOVERY_TIMEOUT`]: one
@@ -379,6 +385,8 @@ fn public(ip: IpAddr) -> bool {
 enum Ended {
     /// The socket dropped; a resume may bring it back.
     Dropped(&'static str),
+    /// The network path is dead: rejoin, never resume on the same socket.
+    Lost(&'static str),
     Fatal(&'static str),
 }
 
@@ -461,6 +469,10 @@ struct Connection<'a> {
     /// Audio packets due since the last measure, and those that came.
     expected: u32,
     received: u32,
+    /// When the last datagram came, and when others were last heard
+    /// speaking over the WS (op 5).
+    heard_at: Instant,
+    spoke_at: Option<Instant>,
 }
 
 /// Run the call until `controls` closes (`Ok`) or it cannot go on (`Err`,
@@ -591,6 +603,8 @@ async fn serve(
         heard: HashMap::new(),
         expected: 0,
         received: 0,
+        heard_at: Instant::now(),
+        spoke_at: None,
     };
     // `channel_id` as the official client says it: the call's channel, or
     // a stream's RTC channel.
@@ -749,6 +763,7 @@ async fn serve(
                     resumes = 0;
                 }
             }
+            Some(Ended::Lost(reason)) => return Err(reason),
             Some(Ended::Fatal(reason)) => return Err(reason),
             Some(Ended::Dropped(reason)) => loop {
                 // Only an established session can be resumed.
@@ -792,6 +807,12 @@ async fn serve(
             },
         }
     }
+}
+
+/// Others spoke over the WS after the last datagram, and none came for
+/// [`UDP_SILENCE`] since they started: the UDP path is dead.
+pub(crate) fn silent_path(heard: Instant, spoke: Option<Instant>, now: Instant) -> bool {
+    spoke.is_some_and(|spoke| heard < spoke && now.duration_since(spoke) >= UDP_SILENCE)
 }
 
 fn transient(error: &std::io::Error) -> bool {
@@ -858,7 +879,7 @@ const MALFORMED: Ended = Ended::Fatal(es("El servidor de voz envió un mensaje i
 impl Ended {
     fn reason(self) -> &'static str {
         match self {
-            Ended::Dropped(reason) | Ended::Fatal(reason) => reason,
+            Ended::Dropped(reason) | Ended::Lost(reason) | Ended::Fatal(reason) => reason,
         }
     }
 }
@@ -1015,7 +1036,7 @@ impl Connection<'_> {
                     self.missed
                 );
                 if self.missed >= 2 {
-                    return Err(Ended::Dropped(es("El servidor de voz dejó de responder.")));
+                    return Err(Ended::Lost(NO_ANSWER));
                 }
             }
             self.nonce = self.nonce.wrapping_add(1);
@@ -1025,6 +1046,14 @@ impl Connection<'_> {
             self.beat_sent = Some(now);
             self.awaiting_ack = true;
             self.next_heartbeat = now + interval;
+        }
+        if self.ready() && silent_path(self.heard_at, self.spoke_at, now) {
+            note!(
+                self.scope,
+                "no audio for {} s while others speak: the path is dead",
+                UDP_SILENCE.as_secs()
+            );
+            return Err(Ended::Lost(NO_ANSWER));
         }
         if self.transport.is_some() && now >= self.next_wants {
             self.sink_wants().await?;
@@ -1370,6 +1399,7 @@ impl Connection<'_> {
     }
 
     async fn datagram(&mut self, packet: &[u8]) -> Result<(), Ended> {
+        self.heard_at = Instant::now();
         if packet.len() > rtp::MAX_DATAGRAM {
             return Ok(());
         }
@@ -1889,6 +1919,9 @@ impl Connection<'_> {
                 let ssrc = u32::try_from(number(&data, "ssrc")?).map_err(|_| MALFORMED)?;
                 if who != self.credentials.user {
                     self.map(ssrc, who);
+                    if data["speaking"].as_u64().is_some_and(|flags| flags != 0) {
+                        self.spoke_at = Some(Instant::now());
+                    }
                 }
             }
             // Resumed.

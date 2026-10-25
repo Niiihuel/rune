@@ -79,6 +79,8 @@ const REJOIN_DELAYS: [Duration; 3] = [
     Duration::from_secs(3),
     Duration::from_secs(10),
 ];
+/// No voice server came in time: the Gateway may be away, so it is waited for.
+pub(crate) const NO_SERVER: &str = es("Discord no asignó un servidor de voz a tiempo.");
 /// Connected this long, a later loss starts from the first attempt again.
 const REJOIN_STABLE: Duration = Duration::from_secs(30);
 /// The account's voice went on with another session: another device.
@@ -916,7 +918,15 @@ impl Calls {
         {
             call.rejoins = 0;
         }
-        let delay = REJOIN_DELAYS.get(call.rejoins as usize);
+        // A dead network path is rejoined without a budget, 1 s doubling to
+        // 10 s; any other loss, a server that never came included, has the
+        // three attempts of REJOIN_DELAYS.
+        let network = reason == connection::NO_ANSWER;
+        let delay = if network {
+            Some(Duration::from_secs((1u64 << call.rejoins.min(4)).min(10)))
+        } else {
+            REJOIN_DELAYS.get(call.rejoins as usize).copied()
+        };
         let Some(delay) = delay.filter(|_| call.joined) else {
             if call.joined {
                 note!(CALL, "lost: {reason}; no rejoin attempts left");
@@ -943,7 +953,7 @@ impl Calls {
         call.verify = None;
         call.verifying = None;
         call.quality = None;
-        call.rejoin_at = Some(Instant::now() + *delay);
+        call.rejoin_at = Some(Instant::now() + delay);
         vec![Event::CallPhase {
             channel: call.channel,
             phase: CallPhase::Reconnecting {
@@ -1746,10 +1756,16 @@ impl Calls {
             }
             _ = async {
                 match call.deadline { Some(deadline) => sleep_until(deadline).await, None => std::future::pending().await }
-            } => es("Discord no asignó un servidor de voz a tiempo."),
+            } => NO_SERVER,
             _ = async {
                 match call.rejoin_at { Some(at) => sleep_until(at).await, None => std::future::pending().await }
             } => {
+                // Streams are asked for again, as READY does: the path they used is gone.
+                if let Some(call) = self.call.as_mut() {
+                    for watch in call.watches.iter_mut().chain(call.share.as_mut()) {
+                        watch.forget();
+                    }
+                }
                 self.ask();
                 self.start();
                 return Vec::new();

@@ -3277,6 +3277,149 @@ async fn a_rejoin_identifies_again_with_the_same_session_and_server() {
     calls.leave();
 }
 
+#[tokio::test]
+async fn a_dead_voice_socket_ends_for_a_rejoin_instead_of_a_resume() {
+    let mut server = Server::new().await;
+    let (port, _link) = voice_link();
+    let (_controls, watched) = watch::channel(Controls::default());
+    let (phase_tx, mut phases) = watch::channel(CallPhase::Joining);
+    let call = tokio::spawn(connection::run(
+        credentials(server.url()),
+        port,
+        None,
+        watched,
+        phase_tx,
+    ));
+    let mut acks = Vec::new();
+    let mut peer = server.accept().await;
+    // Beats every 3 s: two in a row unanswered are a dead socket.
+    server
+        .text(&mut peer, 8, json!({"heartbeat_interval": 3_000}))
+        .await;
+    expect(&mut peer, &mut acks, 0).await;
+    let udp_port = server.udp.local_addr().unwrap().port();
+    server
+        .text(
+            &mut peer,
+            2,
+            json!({"ssrc": 11, "ip": "127.0.0.1", "port": udp_port,
+            "modes": ["aead_aes256_gcm_rtpsize", rtp::MODE]}),
+        )
+        .await;
+    let mut datagram = [0u8; 4096];
+    let (_, client): (usize, SocketAddr) = timeout(WAIT, server.udp.recv_from(&mut datagram))
+        .await
+        .unwrap()
+        .unwrap();
+    let mut reply = [0u8; 74];
+    reply[..4].copy_from_slice(&[0, 2, 0, 70]);
+    reply[4..8].copy_from_slice(&11u32.to_be_bytes());
+    reply[8..17].copy_from_slice(b"127.0.0.1");
+    reply[72..].copy_from_slice(&client.port().to_be_bytes());
+    server.udp.send_to(&reply, client).await.unwrap();
+    expect(&mut peer, &mut acks, 1).await;
+    server
+        .text(
+            &mut peer,
+            4,
+            json!({"mode": rtp::MODE, "secret_key": KEY.to_vec(), "dave_protocol_version": 1}),
+        )
+        .await;
+    phase(&mut phases, CallPhase::Waiting).await;
+    // The server stops answering: the socket is dead, so the connection ends
+    // with the path's reason and never resumes on a new socket.
+    let ended = timeout(Duration::from_secs(20), call)
+        .await
+        .expect("the connection ends")
+        .unwrap();
+    assert_eq!(ended, Err(connection::NO_ANSWER));
+    assert!(
+        timeout(Duration::from_millis(300), server.listener.accept())
+            .await
+            .is_err(),
+        "no resume on a new socket"
+    );
+}
+
+#[test]
+fn a_silent_udp_path_is_dead_only_when_others_spoke_and_nothing_came_since() {
+    use tokio::time::Instant;
+    let heard = Instant::now();
+    let spoke = heard + Duration::from_secs(60);
+    // Quiet with nobody speaking is no fault.
+    assert!(!connection::silent_path(
+        heard,
+        None,
+        spoke + Duration::from_secs(60)
+    ));
+    // Someone started speaking: silence for the whole window is a dead path.
+    assert!(!connection::silent_path(
+        heard,
+        Some(spoke),
+        spoke + Duration::from_secs(14)
+    ));
+    assert!(connection::silent_path(
+        heard,
+        Some(spoke),
+        spoke + Duration::from_secs(15)
+    ));
+    // Audio came after they started: the path is alive.
+    let came = spoke + Duration::from_secs(1);
+    assert!(!connection::silent_path(
+        came,
+        Some(spoke),
+        spoke + Duration::from_secs(60)
+    ));
+}
+
+#[tokio::test]
+async fn a_dead_network_path_rejoins_without_a_budget_and_asks_for_streams_again() {
+    use tokio::time::Instant;
+    tokio::time::pause();
+    let (port, _link) = voice_link();
+    let mut calls = Calls::new(Some(port));
+    let _wanted = calls.gateway();
+    let snapshot = snapshot();
+    calls
+        .join(&snapshot, ChannelId(CHANNEL), false, false)
+        .unwrap();
+    let (phase, lose) = connect_ending(&mut calls, connection::NO_ANSWER);
+    phase.send_replace(CallPhase::Connected);
+    calls.next().await;
+    // A stream watched, with its own connection, which must go on rejoin.
+    let mut watch = super::Watch::new(42);
+    watch.deadline = None;
+    watch.connection = Some(Box::pin(std::future::pending::<Result<(), &'static str>>()));
+    calls.call.as_mut().unwrap().watches.push(watch);
+    let _ = lose.send(());
+    let mut attempt = reconnecting(&mut calls).await;
+    assert_eq!(attempt, 1);
+    // Each loss is rejoined after 1, 2, 4, 8 and then 10 s, and the call is
+    // never ended: the path is dead, not the call.
+    for (number, wait) in [1u64, 2, 4, 8, 10, 10].into_iter().enumerate() {
+        let lost_at = Instant::now();
+        assert!(calls.next().await.is_empty());
+        let waited = lost_at.elapsed();
+        assert!(
+            waited >= Duration::from_secs(wait)
+                && waited < Duration::from_secs(wait) + Duration::from_millis(10),
+            "loss {}: {waited:?}",
+            number + 1
+        );
+        if number == 0 {
+            // The first rejoin asks for the stream again: its connection went.
+            assert!(calls.call.as_ref().unwrap().watches[0].connection.is_none());
+            calls.call.as_mut().unwrap().watches.clear();
+        }
+        // The service answers and the new connection is lost at once.
+        let (_phase, lose) = connect_ending(&mut calls, connection::NO_ANSWER);
+        let _ = lose.send(());
+        attempt += 1;
+        assert_eq!(reconnecting(&mut calls).await, attempt);
+    }
+    assert_eq!(attempt, 7);
+}
+
 // Private calls.
 mod private;
 // Voice protocol (voz-protocolo).

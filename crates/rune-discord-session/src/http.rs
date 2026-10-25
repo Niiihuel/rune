@@ -297,7 +297,16 @@ impl Http {
             request = request.json(&body);
         }
         request = self.admin.apply(request);
-        let response = request.send().await.map_err(|error| {
+        // A GET is sent once more, a second later, after a dead connection or
+        // a timeout; a write is never sent twice.
+        let again = (!mutating).then(|| request.try_clone()).flatten();
+        let mut sent = request.send().await;
+        let dead = matches!(&sent, Err(error) if error.is_connect() || error.is_timeout());
+        if let (true, Some(again)) = (dead, again) {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            sent = again.send().await;
+        }
+        let response = sent.map_err(|error| {
             // Only the kind: the error's own text may name the route.
             let reason = if error.is_connect() {
                 es("No se pudo conectar con Discord. Revisá la conexión a internet.")
