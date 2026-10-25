@@ -611,6 +611,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("El identificador del micrófono no es válido.", "The microphone's identifier isn't valid."),
     ("El micrófono seleccionado no está disponible.", "The selected microphone isn't available."),
     ("No hay un micrófono disponible.", "There's no microphone available."),
+    ("Micrófono {n}", "Microphone {n}"),
+    ("Altavoz {n}", "Speaker {n}"),
     ("No se pudo consultar el micrófono.", "Couldn't query the microphone."),
     (
         "El formato de audio del micrófono no es compatible.",

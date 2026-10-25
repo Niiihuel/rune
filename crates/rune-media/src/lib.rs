@@ -10,6 +10,7 @@
 use std::time::Duration;
 
 use cpal::traits::{DeviceTrait, HostTrait};
+use rune_i18n::tr;
 
 /// The media of one call: gate, Opus, jitter and mix, off the UI thread.
 pub mod call;
@@ -100,28 +101,102 @@ pub fn devices() -> Result<Devices, MediaError> {
             .map(|id| id.to_string())
             .unwrap_or_else(|_| device.to_string())
     };
+    let found = |device: &cpal::Device| Found {
+        id: id(device),
+        name: device.to_string(),
+        manufacturer: device
+            .description()
+            .ok()
+            .and_then(|it| it.manufacturer().map(str::to_owned)),
+    };
     let default_input = host.default_input_device().map(|device| id(&device));
     let default_output = host.default_output_device().map(|device| id(&device));
-    let describe = |device: cpal::Device, default: &Option<String>| {
-        let id = id(&device);
-        DeviceInfo {
-            default: default.as_deref() == Some(id.as_str()),
-            name: device.to_string(),
-            id,
-        }
-    };
+    let inputs: Vec<Found> = host
+        .input_devices()?
+        .filter(|device| !output_monitor(&host, device))
+        .map(|device| found(&device))
+        .collect();
+    let outputs: Vec<Found> = host
+        .output_devices()?
+        .map(|device| found(&device))
+        .collect();
     Ok(Devices {
         backend: format!("{:?}", host.id()),
-        inputs: host
-            .input_devices()?
-            .filter(|device| !output_monitor(&host, device))
-            .map(|device| describe(device, &default_input))
-            .collect(),
-        outputs: host
-            .output_devices()?
-            .map(|device| describe(device, &default_output))
-            .collect(),
+        inputs: listed(inputs, default_input.as_deref(), |n| {
+            tr!("Micrófono {n}", n)
+        }),
+        outputs: listed(outputs, default_output.as_deref(), |n| {
+            tr!("Altavoz {n}", n)
+        }),
     })
+}
+
+/// A device as cpal reports it, before `listed` decides what to show.
+struct Found {
+    id: String,
+    /// What cpal's `to_string` gives: often the name, sometimes "unknown".
+    name: String,
+    manufacturer: Option<String>,
+}
+
+/// The names the audio system gives its virtual default nodes. They route
+/// to whatever the default is, which RUNE offers as "Predeterminado del
+/// sistema", so they are not listed. PipeWire's are the `*_default` ones;
+/// ALSA's are `default`, `pipewire` and `pulse`.
+const VIRTUAL_NODES: [&str; 10] = [
+    "default",
+    "default_input",
+    "default_output",
+    "default_sink",
+    "default_source",
+    "input_default",
+    "output_default",
+    "sink_default",
+    "pipewire",
+    "pulse",
+];
+
+/// Whether `id` (as `devices` lists it) is one of the virtual default nodes.
+/// A saved one still opens: it means the system's default.
+pub fn is_virtual_device(id: &str) -> bool {
+    let node = id.split_once(':').map_or(id, |(_, node)| node);
+    VIRTUAL_NODES.contains(&node)
+}
+
+/// What `devices` lists from `found`: no virtual default nodes; a device
+/// without a usable name is named by its manufacturer, else `fallback(n)`,
+/// n counting from 1 among those; a device listed once per id and name.
+/// `default` is the system's default id, which marks it.
+fn listed(
+    found: Vec<Found>,
+    default: Option<&str>,
+    fallback: impl Fn(usize) -> String,
+) -> Vec<DeviceInfo> {
+    let usable = |name: &str| !name.trim().is_empty() && name.trim() != "unknown";
+    let mut listed: Vec<DeviceInfo> = Vec::new();
+    let mut unnamed = 0;
+    for device in found {
+        if is_virtual_device(&device.id) {
+            continue;
+        }
+        let name = if usable(&device.name) {
+            device.name
+        } else if let Some(manufacturer) = device.manufacturer.filter(|it| usable(it)) {
+            manufacturer
+        } else {
+            unnamed += 1;
+            fallback(unnamed)
+        };
+        let info = DeviceInfo {
+            default: default == Some(device.id.as_str()),
+            id: device.id,
+            name,
+        };
+        if !listed.contains(&info) {
+            listed.push(info);
+        }
+    }
+    listed
 }
 
 /// Whether `device`, an input of `host`, records what an output plays.
@@ -379,6 +454,63 @@ mod tests {
         for backend in ["Alsa", "Wasapi", "CoreAudio"] {
             assert!(!records_output(backend, Duplex), "{backend}");
         }
+    }
+
+    fn found(id: &str, name: &str, manufacturer: Option<&str>) -> Found {
+        Found {
+            id: id.into(),
+            name: name.into(),
+            manufacturer: manufacturer.map(Into::into),
+        }
+    }
+
+    #[test]
+    fn virtual_default_nodes_are_not_listed_and_a_saved_one_is_recognised() {
+        let rows = vec![
+            found("PipeWire:input_default", "default_input", None),
+            found("PipeWire:alsa_input.pci", "Ryzen HD Audio", None),
+            found("Alsa:pipewire", "pipewire", None),
+        ];
+        let listed = listed(rows, Some("PipeWire:input_default"), |n| format!("Mic {n}"));
+        assert_eq!(
+            listed,
+            [DeviceInfo {
+                id: "PipeWire:alsa_input.pci".into(),
+                name: "Ryzen HD Audio".into(),
+                default: false,
+            }]
+        );
+        assert!(is_virtual_device("PipeWire:input_default"));
+        assert!(is_virtual_device("Alsa:default"));
+        assert!(!is_virtual_device("PipeWire:alsa_input.pci"));
+    }
+
+    #[test]
+    fn unknown_names_fall_back_to_manufacturer_then_a_numbered_name() {
+        let rows = vec![
+            found("PipeWire:a", "unknown", Some("Logitech")),
+            found("PipeWire:b", "unknown", None),
+            found("PipeWire:c", "", None),
+            found("PipeWire:d", "Real", None),
+        ];
+        let names: Vec<_> = listed(rows, None, |n| format!("Mic {n}"))
+            .into_iter()
+            .map(|it| it.name)
+            .collect();
+        assert_eq!(names, ["Logitech", "Mic 1", "Mic 2", "Real"]);
+    }
+
+    #[test]
+    fn an_exact_duplicate_is_listed_once_and_the_default_is_marked() {
+        let rows = vec![
+            found("PipeWire:a", "Mic", None),
+            found("PipeWire:a", "Mic", None),
+            found("PipeWire:b", "Other", None),
+        ];
+        let listed = listed(rows, Some("PipeWire:b"), |n| format!("Mic {n}"));
+        assert_eq!(listed.len(), 2);
+        assert!(!listed[0].default);
+        assert!(listed[1].default);
     }
 
     #[test]

@@ -271,7 +271,10 @@ pub(crate) fn devices(ui: &Ui, output: bool) -> DeviceList {
         glyph,
         label: label.into(),
         devices: found,
-        chosen: chosen.clone(),
+        // A saved virtual node is the system default, which is offered first.
+        chosen: chosen
+            .clone()
+            .filter(|id| !rune_media::is_virtual_device(id)),
         open: ui.settings_state.select == Some(name),
     }
 }
