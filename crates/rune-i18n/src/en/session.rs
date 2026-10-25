@@ -299,10 +299,6 @@ pub(super) const ENTRIES: super::Entries = &[
         "Couldn't prepare the Gateway retry.",
     ),
     (
-        "No se pudo recuperar la conexión con Discord. Volvé a conectar.",
-        "Couldn't recover the connection to Discord. Connect again.",
-    ),
-    (
         "Un evento de Discord excedió el límite local.",
         "A Discord event exceeded the local limit.",
     ),

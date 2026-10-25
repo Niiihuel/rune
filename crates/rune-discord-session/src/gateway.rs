@@ -56,7 +56,17 @@ const MAX_PAYLOAD: usize = 8 * 1024 * 1024;
 const MAX_DISPATCH: usize = 1024 * 1024;
 const IO_TIMEOUT: Duration = Duration::from_secs(10);
 const READY_TIMEOUT: Duration = Duration::from_secs(60);
-const MAX_RETRIES: u32 = 6;
+/// Discord's reconnect backoff: it starts at a second, grows by up to twice
+/// itself each failure and never passes a minute. Transport failures never
+/// stop it; only terminal closes and local limits do.
+const BACKOFF_START_MS: u64 = 1000;
+const BACKOFF_MAX_MS: u64 = 60_000;
+/// From this many failures in a row on, the session is forgotten and the
+/// next attempt identifies, as Discord's client does.
+const FRESH_AFTER: u32 = 4;
+/// How long an expedited heartbeat (asked after a network change) may wait
+/// for its ACK before the connection is taken as dead.
+const EXPEDITED_ACK: Duration = Duration::from_secs(5);
 /// Discord allows one IDENTIFY every 5 s; asking to hurry never cuts it.
 const IDENTIFY_GAP: Duration = Duration::from_secs(5);
 /// Member list frames per minute, at most, and the least time between two
@@ -355,6 +365,11 @@ fn jitter(max: u64) -> Result<u64, Failure> {
     Ok(u64::from_le_bytes(bytes) % max.max(1))
 }
 
+/// Discord's next backoff: `current` plus up to twice itself, capped.
+fn next_backoff(current: u64) -> Result<u64, Failure> {
+    Ok((current + jitter(2 * current)?).min(BACKOFF_MAX_MS))
+}
+
 /// A presence update (op 3, Discord's documented shape) for `own`: its
 /// status, and its custom status as the activity of type 4 unless invisible.
 /// The `local` activity of this device (P6) goes first, also unless invisible.
@@ -610,6 +625,7 @@ impl Gateway {
     ) -> Result<(), LoginError> {
         let mut state = Session::default();
         let mut failures = 0;
+        let mut backoff_ms = BACKOFF_START_MS;
         // Whether the attempt under way was asked for by the person.
         let mut hurried = false;
         loop {
@@ -631,6 +647,7 @@ impl Gateway {
                         &mut calls,
                         &mut shown,
                     ),
+                    &now,
                 )
                 .await
             {
@@ -657,28 +674,24 @@ impl Gateway {
                         .is_some_and(|at| at.elapsed() >= Duration::from_secs(60))
                     {
                         failures = 0;
+                        backoff_ms = BACKOFF_START_MS;
                     }
                     // An attempt the person hurried that failed before READY
-                    // uses none of the budget: a few clicks on a dead network
-                    // would give up in seconds.
+                    // leaves the backoff as it is: a few clicks on a dead
+                    // network would only lengthen the wait.
                     let asked = std::mem::take(&mut hurried) && state.ready_at.is_none();
                     if !asked || failures == 0 {
                         failures += 1;
+                        backoff_ms = next_backoff(backoff_ms)
+                            .map_err(|_| LoginError::new(es("No se pudo preparar Gateway.")))?;
                     }
-                    if failures > MAX_RETRIES {
-                        return Err(LoginError::new(es(
-                            "No se pudo recuperar la conexión con Discord. Volvé a conectar.",
-                        )));
+                    if failures > FRESH_AFTER {
+                        state.forget_resume();
                     }
                     let backoff = if self.test_mode() {
                         self.test_wait()
                     } else {
-                        Duration::from_millis(
-                            (1u64 << (failures - 1)).min(30) * 1000
-                                + jitter(1000).map_err(|_| {
-                                    LoginError::new(es("No se pudo preparar Gateway."))
-                                })?,
-                        )
+                        Duration::from_millis(backoff_ms)
                     };
                     // Without a session to resume, the next attempt identifies.
                     let spacing = match state.identified_at {
@@ -733,6 +746,7 @@ impl Gateway {
         output: &mpsc::Sender<GatewayEvent>,
         state: &mut Session,
         (members, voice, presence, lookups, activity, calls, shown): Wishes<'_>,
+        now: &Notify,
     ) -> Result<(), Failure> {
         let address = state.resume_url.as_deref().unwrap_or(ENDPOINT);
         #[cfg(test)]
@@ -789,6 +803,8 @@ impl Gateway {
         };
         let mut next_heartbeat = Instant::now() + Duration::from_millis(initial);
         let mut awaiting_ack: Option<Instant> = None;
+        // Set by an expedited heartbeat: past it, an ACK still missing ends the connection.
+        let mut expedited: Option<Instant> = None;
         let ready_deadline = Instant::now() + READY_TIMEOUT;
         let mut writes = WriteBudget::default();
         let resuming = state.id.is_some() && state.sequence.is_some();
@@ -896,6 +912,22 @@ impl Gateway {
                     send(&mut socket, &mut writes, 1, state.sequence).await?;
                     awaiting_ack.get_or_insert(Instant::now());
                     next_heartbeat = Instant::now() + interval;
+                }
+                // Asked after a network change (or by the person) once READY:
+                // a heartbeat now, as Discord's client does. Before READY the
+                // ask waits for the next wait between attempts instead.
+                _ = now.notified(), if state.ready_at.is_some() => {
+                    note!(GATEWAY, "heartbeat now, as asked");
+                    send(&mut socket, &mut writes, 1, state.sequence).await?;
+                    awaiting_ack.get_or_insert(Instant::now());
+                    expedited = Some(Instant::now() + EXPEDITED_ACK);
+                }
+                _ = sleep_until(expedited.unwrap_or_else(Instant::now)), if expedited.is_some() => {
+                    expedited = None;
+                    if awaiting_ack.is_some() {
+                        note!(GATEWAY, "expedited heartbeat not acknowledged");
+                        return Err(Failure::Retry { fresh: false });
+                    }
                 }
                 changed = members.changed(), if watching => watching = changed.is_ok(),
                 changed = voice.changed(), if voicing => voicing = changed.is_ok(),

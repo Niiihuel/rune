@@ -19,6 +19,8 @@ pub mod hyprland;
 /// Hiding the window in the tray on KDE Plasma under Wayland.
 #[cfg(target_os = "linux")]
 pub mod kwin;
+/// The system reporting that the network is back or the machine woke up.
+pub mod network;
 /// Desktop notifications and which one was clicked.
 pub mod notifications;
 /// Web addresses and folders opened with the system's handler.

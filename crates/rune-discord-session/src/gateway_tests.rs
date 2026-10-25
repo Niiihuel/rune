@@ -602,37 +602,161 @@ async fn acknowledged_heartbeats_keep_the_connection_alive() {
     let _ = task.await;
 }
 
+/// Closes the peer with a transient code, as a server does when it restarts.
+async fn drop_transiently(socket: &mut Peer) {
+    socket
+        .send(Message::Close(Some(CloseFrame {
+            code: CloseCode::from(4000),
+            reason: "SYNTHETIC_TRANSIENT".into(),
+        })))
+        .await
+        .unwrap();
+}
+
 #[tokio::test]
-async fn transient_failures_exhaust_a_finite_reconnect_budget() {
+async fn transient_failures_keep_reconnecting_past_any_old_budget_and_a_terminal_close_stops() {
     let (listener, gateway) = fixture().await;
     let (tx, mut rx) = mpsc::channel(32);
     let task = tokio::spawn(async move { gateway.run(secret(), tx).await });
-    for _ in 0..=MAX_RETRIES {
+    // Well past the six attempts the old budget allowed.
+    let failures = 10;
+    for _ in 0..failures {
         let mut socket = peer(&listener, 1000).await;
         assert_eq!(read(&mut socket).await["op"], 2);
-        socket
-            .send(Message::Close(Some(CloseFrame {
-                code: CloseCode::from(4000),
-                reason: "SYNTHETIC_TRANSIENT".into(),
-            })))
-            .await
-            .unwrap();
+        drop_transiently(&mut socket).await;
     }
+    let mut socket = peer(&listener, 1000).await;
+    assert_eq!(read(&mut socket).await["op"], 2);
+    socket
+        .send(Message::Close(Some(CloseFrame {
+            code: CloseCode::from(4004),
+            reason: "SYNTHETIC_TERMINAL".into(),
+        })))
+        .await
+        .unwrap();
     let error = timeout(Duration::from_secs(2), task)
         .await
         .unwrap()
         .unwrap()
         .unwrap_err();
+    assert_eq!(error.gateway_close_code(), Some(4004));
     assert!(!error.to_string().contains("SYNTHETIC"));
     let mut retries = 0;
     while let Some(event) = rx.recv().await {
         assert!(matches!(event, GatewayEvent::Reconnecting { .. }));
         retries += 1;
     }
-    assert_eq!(retries, MAX_RETRIES);
+    assert_eq!(retries, failures);
     assert!(timeout(Duration::from_millis(80), listener.accept())
         .await
         .is_err());
+}
+
+#[tokio::test]
+async fn five_failures_in_a_row_forget_the_session_and_identify_again() {
+    let (listener, gateway) = fixture().await;
+    let (tx, mut rx) = mpsc::channel(32);
+    let task = tokio::spawn(async move { gateway.run(secret(), tx).await });
+    let mut first = peer(&listener, 1000).await;
+    assert_eq!(read(&mut first).await["op"], 2);
+    write(&mut first, ready()).await;
+    let _ = event(&mut rx).await;
+    drop_transiently(&mut first).await;
+    // The first four failures still resume the same session.
+    for _ in 0..4 {
+        assert!(matches!(
+            event(&mut rx).await,
+            GatewayEvent::Reconnecting { .. }
+        ));
+        let mut socket = peer(&listener, 1000).await;
+        assert_eq!(read(&mut socket).await["op"], 6);
+        drop_transiently(&mut socket).await;
+    }
+    // The fifth failure forgets it: the next attempt identifies.
+    assert!(matches!(
+        event(&mut rx).await,
+        GatewayEvent::Reconnecting { .. }
+    ));
+    let mut socket = peer(&listener, 1000).await;
+    assert_eq!(read(&mut socket).await["op"], 2);
+    task.abort();
+    let _ = task.await;
+}
+
+#[test]
+fn the_backoff_grows_from_a_second_and_never_passes_a_minute() {
+    let mut current = BACKOFF_START_MS;
+    let mut reached_cap = false;
+    for _ in 0..200 {
+        let next = next_backoff(current).ok().expect("random bytes");
+        assert!(next >= current && next <= BACKOFF_MAX_MS, "{next}");
+        reached_cap |= next == BACKOFF_MAX_MS;
+        current = next;
+    }
+    assert!(reached_cap);
+}
+
+#[tokio::test]
+async fn a_press_during_a_failed_connect_cuts_the_next_wait_short() {
+    let (listener, gateway) = fixture().await;
+    let gateway = gateway.waiting(Duration::from_secs(60));
+    let (tx, mut rx) = mpsc::channel(32);
+    let now = Arc::new(Notify::new());
+    let hurry = now.clone();
+    let task = tokio::spawn(async move { gateway.run_hurried(secret(), tx, hurry).await });
+    let mut first = peer(&listener, 1000).await;
+    assert_eq!(read(&mut first).await["op"], 2);
+    // Pressed before READY, and the attempt then fails: the press is kept
+    // (notify_one stores it) for the wait that follows.
+    now.notify_one();
+    write(&mut first, json!({"op":7,"d":null})).await;
+    assert!(matches!(
+        event(&mut rx).await,
+        GatewayEvent::Reconnecting {
+            retry_in_ms: 60_000,
+            ..
+        }
+    ));
+    // The next attempt connects well before the 60 s wait would have ended.
+    timeout(Duration::from_secs(5), listener.accept())
+        .await
+        .expect("the pressed wait was not cut short")
+        .unwrap();
+    task.abort();
+    let _ = task.await;
+}
+
+#[tokio::test]
+async fn a_network_change_while_connected_heartbeats_now_and_drops_a_dead_connection() {
+    let (listener, gateway) = fixture().await;
+    let (tx, mut rx) = mpsc::channel(32);
+    let now = Arc::new(Notify::new());
+    let hurry = now.clone();
+    let task = tokio::spawn(async move { gateway.run_hurried(secret(), tx, hurry).await });
+    let mut socket = peer(&listener, 60_000).await;
+    assert_eq!(read(&mut socket).await["op"], 2);
+    write(&mut socket, ready()).await;
+    let _ = event(&mut rx).await;
+    // The first heartbeat is the scheduled one; leave it unanswered.
+    assert_eq!(read(&mut socket).await["op"], 1);
+    write(&mut socket, json!({"op":11})).await;
+    // Let that ACK land first: one arriving after the signal would count as life.
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    // The network changed: a heartbeat goes out at once, and no ACK follows.
+    now.notify_one();
+    assert_eq!(read(&mut socket).await["op"], 1);
+    // Taken as dead after the expedited deadline, then the session resumes.
+    assert!(matches!(
+        timeout(Duration::from_secs(8), rx.recv())
+            .await
+            .unwrap()
+            .unwrap(),
+        GatewayEvent::Reconnecting { .. }
+    ));
+    let mut second = peer(&listener, 1000).await;
+    assert_eq!(read(&mut second).await["op"], 6);
+    task.abort();
+    let _ = task.await;
 }
 
 #[tokio::test]

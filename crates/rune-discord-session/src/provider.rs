@@ -1322,7 +1322,8 @@ impl DiscordSessionProvider {
                         // The opening screen: the Gateway tries again now, if it waits to.
                         Command::ReconnectNow => {
                             if let Some(active) = session.as_ref() {
-                                active.retry.notify_waiters();
+                                // notify_one keeps a press made during a connect for the next wait.
+                                active.retry.notify_one();
                             }
                         }
                         // Sent by the Gateway, the newest only; nobody waits on it.
@@ -1407,8 +1408,13 @@ impl DiscordSessionProvider {
                             let (activity, published) = watch::channel(None);
                             let retry = Arc::new(tokio::sync::Notify::new());
                             let hurry = retry.clone();
+                            let network = retry.clone();
                             incoming = Some(received);
-                            gateway = Some(Box::pin(async move { transport.run_watching(shared, sent, watched, voice, told, looked, published, asked, shown, hurry).await }));
+                            gateway = Some(Box::pin(async move {
+                                // A network change asks the Gateway to try now; the watch ends with this attempt.
+                                let _network = rune_platform::network::watch(move || network.notify_one());
+                                transport.run_watching(shared, sent, watched, voice, told, looked, published, asked, shown, hurry).await
+                            }));
                             // Saved again when restored too: the entry keeps its
                             // name current and becomes the last used. Best
                             // effort: without a keyring the session stays in RAM.
