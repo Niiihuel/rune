@@ -946,6 +946,21 @@ fn deafening_mutes_and_hearing_again_restores_the_microphone_as_it_was() {
     host.click("me:deafen");
     host.click("me:deafen");
     assert!(host.ui.muted, "it was muted before, so it stays muted");
+    // As in Discord: the microphone, while deafened, brings back both.
+    host.click("me:deafen");
+    host.click("me:mute");
+    assert!(!host.ui.deafened && !host.ui.muted);
+    host.click("me:mute");
+    host.click("me:deafen");
+    host.click("me:mute");
+    assert!(
+        !host.ui.deafened && !host.ui.muted,
+        "even if it was muted before"
+    );
+    // The headphones alone only flip the sound; the microphone follows.
+    host.click("me:deafen");
+    host.click("me:deafen");
+    assert!(!host.ui.deafened && !host.ui.muted);
 }
 
 #[test]
