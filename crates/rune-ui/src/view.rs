@@ -76,7 +76,7 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let window = context.window;
     let mut ground = look.canvas;
     // A stream watched shown alone fills the window, full screen.
-    if let Some(focused) = crate::video::focused_view(ui, store, window) {
+    if let Some(focused) = crate::video::focused_view(ui, store, window, context.now) {
         return with_notices(focused, ui, look, None);
     }
     let body = if let Some(editor) = profile::editor_view(ui, store, context) {

@@ -53,8 +53,10 @@ publish = false
 # rune/menu-check-end: a person's menu in voice, 2026-10-19).
 # And a hover card that stays open across its row's icons (PR #114, branch
 # rune/hover-popover-anchor: a live person's card in voice, 2026-10-19).
-limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
-limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-19", default-features = false }
+# And Cursor::Hidden, the pointer hidden over a stream at rest (PR #119;
+# branch rune/hidden-cursor, on top of rune/integration-2026-10-19, 2026-10-25).
+limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/hidden-cursor", default-features = false }
+limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/hidden-cursor", default-features = false }
 eframe = { version = "0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }
 # The core owns async provider sessions, HTTP I/O and the loopback OAuth callback.
 # Async filesystem writes keep explicit attachment downloads off the UI thread.

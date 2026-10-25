@@ -1380,7 +1380,7 @@ fn someone_streaming_is_watched_on_the_stage_ends_with_why_and_is_let_go() {
         "it is in one already"
     );
     let size = limn::Size::new(960.0, 540.0);
-    assert!(crate::video_window(&host.ui, &host.store, other, size).is_some());
+    assert!(crate::video_window(&host.ui, &host.store, other, size, host.now).is_some());
     crate::video_window_closed(&mut host.ui, other);
     assert!(crate::video_windows(&host.ui, &host.store).is_empty());
     host.click(&ids::window(other.0));

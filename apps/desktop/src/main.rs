@@ -2946,6 +2946,8 @@ impl App {
         {
             return false;
         }
+        // What hides over a stream at rest shows again (transmisiones).
+        rune_ui::stir(&mut self.ui, &event, now);
         if self.host_keys(ctx, &event) {
             return true;
         }
@@ -4502,7 +4504,8 @@ impl eframe::App for App {
         limn_egui::paint_at(ui, &laid_out, area.min);
         let paint = paint_started.elapsed();
         // A stream shown alone, or in a window of its own.
-        self.video.show_windows(&ctx, &mut self.ui, &self.store);
+        self.video
+            .show_windows(&ctx, &mut self.ui, &self.store, now);
         let times = FrameTimes {
             view,
             layout,
@@ -4544,6 +4547,8 @@ impl eframe::App for App {
         sooner(rune_ui::moments_tick(&self.ui, &self.store));
         // The call's clock moves each second.
         sooner(rune_ui::call_tick(&self.store, now));
+        // A stream at rest hides its controls and the pointer (transmisiones).
+        sooner(rune_ui::stream_idle_tick(&self.ui, &self.store, now));
         // And a voice room's time in the column each minute (voz-protocolo).
         sooner(rune_ui::voice_since_tick(&self.store, wall_clock()));
         // A ring plays again while it rings (private calls).

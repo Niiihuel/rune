@@ -885,7 +885,7 @@ impl Video {
 
     /// Full screen while a stream watched is shown alone; each stream asked
     /// for in a window of its own drawn in a viewport, until it is closed.
-    pub fn show_windows(&mut self, ctx: &egui::Context, ui: &mut Ui, store: &Store) {
+    pub fn show_windows(&mut self, ctx: &egui::Context, ui: &mut Ui, store: &Store, now: Instant) {
         let fullscreen = rune_ui::video_fullscreen(ui, store);
         if fullscreen != self.fullscreen {
             self.fullscreen = fullscreen;
@@ -915,7 +915,17 @@ impl Video {
             let closed = ctx.show_viewport_immediate(viewport, builder, |inner, _| {
                 let area = inner.max_rect();
                 let size = limn::Size::new(area.width(), area.height());
-                if let Some(view) = rune_ui::video_window(ui, store, owner, size) {
+                // Its note and title hide once the pointer rests on it, and
+                // the pointer too, as on the stage (transmisiones).
+                let stirred =
+                    inner.input(|input| input.pointer.is_moving() || input.pointer.any_pressed());
+                if stirred {
+                    rune_ui::video_window_stirred(ui, owner, now);
+                }
+                if rune_ui::video_window_idle(ui, owner, now) {
+                    limn_egui::set_cursor(inner.ctx(), Some(limn::Cursor::Hidden));
+                }
+                if let Some(view) = rune_ui::video_window(ui, store, owner, size, now) {
                     tree.set_root(view);
                     let laid_out = tree.layout(size);
                     #[cfg(any(target_os = "linux", windows))]
@@ -926,6 +936,9 @@ impl Video {
                         }
                     }
                     limn_egui::paint_at(inner, &laid_out, area.min);
+                    if let Some(after) = tree.animation_repaint_after() {
+                        inner.ctx().request_repaint_after(after);
+                    }
                 }
                 inner.input(|input| input.viewport().close_requested())
             });

@@ -559,8 +559,17 @@ pub(crate) fn call_view(
         (context.window.height * 0.5).clamp(300.0, 480.0)
     };
     let size = Size::new(width, height);
-    voice::stage_of(ui, store, channel, size, Ok(false), Some(private), look)
-        .map(|stage| stage.size(None, Some(height)))
+    voice::stage_of(
+        ui,
+        store,
+        channel,
+        size,
+        Ok(false),
+        Some(private),
+        look,
+        context.now,
+    )
+    .map(|stage| stage.size(None, Some(height)))
 }
 
 /// The notice of the oldest call coming in, over `root`: not while its
