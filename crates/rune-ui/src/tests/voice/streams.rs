@@ -422,3 +422,108 @@ fn the_accounts_own_streams_picture_goes_up_as_the_official_client_sends_it() {
     assert_eq!(due(&mut host, 721_500), None);
     assert_eq!(host.ui.video.own_preview, None);
 }
+
+#[test]
+fn a_secondary_click_on_a_stream_or_its_streamer_offers_to_stop_watching() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let me = host.vz_me();
+    let owners = host.tr_streamers(room, 4, 2);
+    let (first, second) = (owners[0], owners[1]);
+    let count = |host: &mut Host, id: &str| {
+        host.frame()
+            .regions
+            .iter()
+            .filter(|region| region.id == id)
+            .count()
+    };
+    host.tr_watch(room, first);
+    host.click(&ids::stream_tile(first.0));
+    assert_eq!(host.ui.video.spotlight, Some(first));
+    let stop = ids::stop_watching(first.0);
+    assert_eq!(count(&mut host, &stop), 1, "the bar's");
+
+    // Anywhere on the stream focused: its menu, with «Dejar de ver».
+    let at = middle(host.tr_surface(first));
+    host.send(UiEvent::ContextMenu { position: at });
+    assert_eq!(host.ui.video.menu.map(|(shown, _)| shown), Some(first));
+    assert_eq!(count(&mut host, &stop), 2, "the bar's and the menu's");
+    host.click(ids::MENU_DISMISS);
+
+    // The streamer stays on the stage, in the strip, as in the official
+    // client: their own menu lets go of their stream too.
+    host.vz_right_click(&ids::tile(first.0));
+    assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(first));
+    assert_eq!(count(&mut host, &stop), 2, "from the streamer's tile");
+    host.click(ids::MENU_DISMISS);
+    // Someone streaming and not watched: «Ver transmisión» in theirs.
+    host.vz_right_click(&ids::tile(second.0));
+    assert_eq!(count(&mut host, &ids::watch(second.0)), 1);
+    host.click(&ids::watch(second.0));
+    assert!(host
+        .store
+        .watching()
+        .iter()
+        .any(|shown| shown.owner == second));
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: second,
+        phase: StreamPhase::Live,
+    });
+    host.ui.video.streams.retain(|(shown, _)| *shown != second);
+    host.ui
+        .video
+        .streams
+        .push((second, crate::Live::Showing(1280, 720)));
+    assert_eq!(host.ui.video.spotlight, Some(first), "still focused");
+
+    // The thumbnail in the strip, under the one focused.
+    let at = middle(host.tr_surface(second));
+    host.send(UiEvent::ContextMenu { position: at });
+    assert_eq!(host.ui.video.menu.map(|(shown, _)| shown), Some(second));
+    assert_eq!(count(&mut host, &ids::stop_watching(second.0)), 1);
+    host.click(ids::MENU_DISMISS);
+
+    // Let go of from the streamer's tile: the grid comes back.
+    host.vz_right_click(&ids::tile(first.0));
+    let from = host.sent.len();
+    let item = host
+        .frame()
+        .regions
+        .iter()
+        .rev()
+        .find(|region| region.id == stop)
+        .map(|region| middle(region.rect))
+        .expect("in the menu");
+    host.send(UiEvent::PointerDown(item));
+    host.send(UiEvent::PointerUp(item));
+    assert!(matches!(
+        host.sent[from..],
+        [Command::StopWatching { owner: stopped, .. }] if stopped == first
+    ));
+    assert_eq!(host.ui.video.spotlight, None);
+
+    // The account's own stream: «Dejar de compartir».
+    host.store.begin_share(room);
+    host.ui.video.screen.on = true;
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: me,
+        phase: StreamPhase::Live,
+    });
+    host.vz_right_click(&ids::tile(me.0));
+    assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(me));
+    let from = host.sent.len();
+    let item = host
+        .frame()
+        .regions
+        .iter()
+        .rev()
+        .find(|region| region.id == ids::STOP_SCREEN)
+        .map(|region| middle(region.rect))
+        .expect("in the menu");
+    host.send(UiEvent::PointerDown(item));
+    host.send(UiEvent::PointerUp(item));
+    assert_eq!(host.sent[from..], [Command::StopStream { channel: room }]);
+}

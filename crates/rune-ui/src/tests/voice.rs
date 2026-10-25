@@ -1343,7 +1343,8 @@ fn someone_streaming_is_watched_on_the_stage_ends_with_why_and_is_let_go() {
     assert_eq!(host.ui.video.spotlight, Some(other));
     let stop = ids::stop_watching(other.0);
     assert!(host.vz_usable(&stop));
-    assert!(!host.vz_shows(&ids::tile(other.0)));
+    // Their tile stays, in the strip, without the way to watch.
+    assert!(host.vz_shows(&ids::tile(other.0)) && !host.vz_shows(&watch));
     let shown: Vec<String> = host
         .frame()
         .commands

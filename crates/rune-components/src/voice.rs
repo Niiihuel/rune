@@ -375,8 +375,28 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
             .variant(ButtonVariant::Secondary)
             .render()
     }));
-    let title = chip(strong_line(&view.title, 14.0, look.text)).shrink_to_fit();
+    // A stream's title says it is a screen, as the official client's pill.
+    let title = match &view.stream {
+        Some(_) => Element::row(vec![
+            icon(Icon::Screen, look.text)
+                .size(Some(16.0), Some(16.0))
+                .centered_y(),
+            strong_line(&view.title, 14.0, look.text)
+                .centered_y()
+                .shrink_to_fit(),
+        ])
+        .gap(6.0),
+        None => strong_line(&view.title, 14.0, look.text),
+    };
+    let title = chip(title).shrink_to_fit();
     let over = match &view.stream {
+        // In the strip, a stream watched says it is live at its top right.
+        Some(_) if compact => Element::column(vec![
+            Element::row(vec![Element::spacer().flex(1.0), live(22.0, look)]),
+            Element::spacer().flex(1.0),
+            Element::row(vec![title, Element::spacer().flex(1.0)]),
+        ])
+        .padding(8.0),
         _ if compact => Element::column(vec![
             Element::spacer().flex(1.0),
             Element::row(vec![title, Element::spacer().flex(1.0)]),
@@ -1570,8 +1590,40 @@ pub fn stage(view: Stage, look: &Look) -> Element {
             .centered_y()
             .min_size(80.0, 0.0)
             .shrink_to_fit(),
-        Element::spacer().flex(1.0),
     ];
+    // The stream focused, after the channel, and how it comes, as the
+    // official client's header: «General · Pantalla de Ana  720p EN VIVO».
+    if let Some(shown) = view.watching.iter().find(|shown| shown.focused) {
+        header.push(line("·", 16.0, look.faint).centered_y());
+        header.push(
+            strong_line(&shown.title, 16.0, look.text)
+                .centered_y()
+                .shrink_to_fit(),
+        );
+        header.push(Element::spacer().flex(1.0));
+        let mut badge = Vec::new();
+        if let Some((_, height)) = shown.frame {
+            badge.push(
+                Element::panel(Element::row(vec![
+                    gap(6.0, 0.0),
+                    Element::text(format!("{height}p"))
+                        .font_family(FontFamily::SansBold)
+                        .font_size(13.0)
+                        .foreground(look.text)
+                        .centered_y(),
+                    gap(6.0, 0.0),
+                ]))
+                .size(None, Some(22.0))
+                .radius(4.0)
+                .background(look.menu)
+                .shrink_to_fit(),
+            );
+        }
+        badge.push(live(22.0, look));
+        header.push(Element::row(badge).gap(2.0).centered_y());
+    } else {
+        header.push(Element::spacer().flex(1.0));
+    }
     if let Some((note, ink)) = note {
         header.push(
             line(note, 13.0, ink)
@@ -1653,18 +1705,13 @@ fn call(view: &Stage, look: &Look) -> Element {
         view.size.width - 2.0 * STAGE_INSET,
         view.size.height - crate::sidebar::HEADER - 1.0 - STAGE_INSET - below,
     );
-    // The streams watched take the stage, with those streaming and not
-    // watched, to watch them too; the people stay in the column.
-    let (previews, people): (&[Preview], Vec<&Participant>) = if view.watching.is_empty() {
-        (&view.previews, view.people.iter().collect())
-    } else {
-        let watched = |person: &Participant| {
-            let surface = ids::stream_surface(person.user);
-            view.watching.iter().any(|shown| shown.surface == surface)
-        };
-        let streaming = view.people.iter();
-        let streaming = streaming.filter(|person| person.streaming && !watched(person));
-        (&view.watching, streaming.collect())
+    // The streams watched first, then the account's own, then everyone, as
+    // the official client: a streamer keeps their tile while watched.
+    let previews: Vec<&Preview> = view.watching.iter().chain(&view.previews).collect();
+    let people: Vec<&Participant> = view.people.iter().collect();
+    let watched = |person: &Participant| {
+        let surface = ids::stream_surface(person.user);
+        view.watching.iter().any(|shown| shown.surface == surface)
     };
     // Private calls: whom it rings, after who is in it.
     let ringing = view
@@ -1715,7 +1762,7 @@ fn call(view: &Stage, look: &Look) -> Element {
                 gap(0.0, STAGE_INSET),
                 Element::row(vec![
                     gap(STAGE_INSET, 0.0),
-                    preview(&previews[index], main, look),
+                    preview(previews[index], main, look),
                     gap(STAGE_INSET, 0.0),
                 ]),
             ];
@@ -1737,7 +1784,11 @@ fn call(view: &Stage, look: &Look) -> Element {
                 .iter()
                 .map(|shown| preview(shown, layout.tile, look))
                 .collect();
-            tiles.extend(people.iter().map(|shown| person(shown, layout.tile, true)));
+            tiles.extend(
+                people
+                    .iter()
+                    .map(|shown| person(shown, layout.tile, !watched(shown))),
+            );
             tiles.extend(
                 ringing
                     .iter()
@@ -3017,7 +3068,10 @@ mod tests {
         );
         let ids = controls(&laid);
         assert!(ids.contains(&ids::stop_watching(2)));
-        assert!(!ids.contains(&ids::tile(1)), "the stream takes the stage");
+        // Everyone stays, as in the official client: the streamer's tile
+        // no longer offers to watch.
+        assert!(ids.contains(&ids::tile(1)) && ids.contains(&ids::tile(2)));
+        assert!(!ids.contains(&ids::watch(2)));
         assert!(laid.commands.iter().any(|command| matches!(
             command,
             limn::DrawCommand::Surface { id, .. } if *id == ids::stream_surface(2)
@@ -3166,7 +3220,15 @@ mod tests {
             ids.contains(&ids::stream_tile(3)),
             "the strip's focus it instead"
         );
-        assert!(ids.contains(&ids::tile(4)) && !ids.contains(&ids::watch(4)));
+        // The header names the stream focused and how it comes; the one in
+        // the strip says it is live, as the official client's.
+        let said = texts(&focused);
+        let count = |text: &str| said.iter().filter(|shown| *shown == text).count();
+        assert_eq!(count("Pantalla de Persona 2"), 2, "header and pill");
+        assert_eq!(count("720p"), 1);
+        assert!(count("EN VIVO") >= 2, "header and the strip's stream");
+        // The streamer focused keeps their tile; the strip's offer no watching.
+        assert!(ids.contains(&ids::tile(2)) && !ids.contains(&ids::watch(3)));
         // The bar lets go of the one focused in place of hanging up, and
         // its end shows it apart or full screen.
         assert!(ids.contains(&ids::stop_watching(2)) && !ids.contains(&ids::stop_watching(3)));
