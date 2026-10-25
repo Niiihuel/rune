@@ -1,7 +1,7 @@
 //! Credential-free artwork and attachment previews, separate from account HTTP.
 
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{BTreeMap, HashMap, HashSet},
     io::Cursor,
     sync::Arc,
     time::{Duration, Instant},
@@ -76,6 +76,53 @@ pub enum Encoding {
     Gif,
 }
 
+/// Cached sources by how recently they were wanted, the oldest first. A hit
+/// moves its source to the newest place in O(log n), where a queue searched
+/// for it on every hit.
+#[derive(Default)]
+struct Recency {
+    newest: u64,
+    stamps: HashMap<RemoteImage, u64>,
+    by_stamp: BTreeMap<u64, RemoteImage>,
+}
+
+impl Recency {
+    fn touch(&mut self, source: &RemoteImage) {
+        self.forget(source);
+        self.newest += 1;
+        self.stamps.insert(source.clone(), self.newest);
+        self.by_stamp.insert(self.newest, source.clone());
+    }
+
+    fn forget(&mut self, source: &RemoteImage) {
+        if let Some(stamp) = self.stamps.remove(source) {
+            self.by_stamp.remove(&stamp);
+        }
+    }
+
+    fn retain(&mut self, keep: impl Fn(&RemoteImage) -> bool) {
+        self.stamps.retain(|source, _| keep(source));
+        self.by_stamp.retain(|_, source| keep(source));
+    }
+
+    /// The least recently wanted source that `shown` does not name.
+    fn oldest_not_in(&self, shown: &HashSet<RemoteImage>) -> Option<RemoteImage> {
+        self.by_stamp
+            .values()
+            .find(|source| !shown.contains(*source))
+            .cloned()
+    }
+
+    fn oldest_first(&self) -> impl Iterator<Item = &RemoteImage> {
+        self.by_stamp.values()
+    }
+
+    fn clear(&mut self) {
+        self.stamps.clear();
+        self.by_stamp.clear();
+    }
+}
+
 /// A validated, normalized PNG for an existing native UI image component.
 #[derive(Clone)]
 pub struct ImageData {
@@ -147,7 +194,7 @@ pub(crate) struct Images {
     results: mpsc::Receiver<Completed>,
     pending: HashMap<RemoteImage, JoinHandle<()>>,
     cache: HashMap<RemoteImage, Option<Arc<ImageData>>>,
-    order: VecDeque<RemoteImage>,
+    order: Recency,
     /// What the last `load` was asked for: on screen now, so never pushed
     /// out of the cache to make room (see `insert`).
     shown: HashSet<RemoteImage>,
@@ -199,7 +246,7 @@ impl Images {
             results,
             pending: HashMap::new(),
             cache: HashMap::new(),
-            order: VecDeque::new(),
+            order: Recency::default(),
             shown: HashSet::new(),
             bytes: 0,
             epoch: 0,
@@ -282,8 +329,9 @@ impl Images {
             .collect();
         // Stop downloads which no currently displayed component needs. Decodes
         // already running keep the semaphore until their bounded work finishes.
+        let wanted_set: HashSet<&RemoteImage> = wanted.iter().copied().collect();
         self.pending.retain(|source, task| {
-            if wanted.contains(&source) {
+            if wanted_set.contains(source) {
                 true
             } else {
                 task.abort();
@@ -305,14 +353,13 @@ impl Images {
                 if at <= Instant::now() {
                     self.failures.remove(source);
                     self.cache.remove(source);
-                    self.order.retain(|old| old != source);
+                    self.order.forget(source);
                 } else {
                     self.retry_at = Some(self.retry_at.map_or(at, |old| old.min(at)));
                 }
             }
             if let Some(data) = self.cache.get(source) {
-                self.order.retain(|old| old != source);
-                self.order.push_back(source.clone());
+                self.order.touch(source);
                 if let Some(data) = data {
                     ready.push((source.clone(), data.clone()));
                 }
@@ -559,17 +606,16 @@ impl Images {
                 .collect();
             for other in others {
                 self.cache.remove(&other);
-                self.order.retain(|old| old != &other);
+                self.order.forget(&other);
                 self.failures.remove(&other);
             }
         }
         if let Some(Some(old)) = self.cache.remove(&source) {
             self.bytes -= weight(&source, &old);
         }
-        self.order.retain(|old| old != &source);
         self.bytes += data.as_ref().map_or(0, |data| weight(&source, data));
         self.cache.insert(source.clone(), data);
-        self.order.push_back(source);
+        self.order.touch(&source);
         // A denser screen's pictures take more bytes each: the same count fits.
         let budget = (CACHE_BYTES as f32 * self.density * self.density) as usize;
         // The least recently wanted goes first, but never what is on screen
@@ -579,14 +625,13 @@ impl Images {
         // on screen, the budget waits; the entries stay bounded by what one
         // load may ask for.
         while self.cache.len() > IMAGE_ENTRIES || self.bytes > budget {
-            let Some(at) = self.order.iter().position(|old| !self.shown.contains(old)) else {
+            let Some(old) = self.order.oldest_not_in(&self.shown) else {
                 break;
             };
-            if let Some(old) = self.order.remove(at) {
-                self.failures.remove(&old);
-                if let Some(Some(data)) = self.cache.remove(&old) {
-                    self.bytes -= weight(&old, &data);
-                }
+            self.order.forget(&old);
+            self.failures.remove(&old);
+            if let Some(Some(data)) = self.cache.remove(&old) {
+                self.bytes -= weight(&old, &data);
             }
         }
         let mut animated: usize = self
@@ -596,7 +641,7 @@ impl Images {
             .filter_map(|data| data.animation.as_ref())
             .map(|animation| animation.bytes())
             .sum();
-        for old in &self.order {
+        for old in self.order.oldest_first() {
             if animated <= ANIMATIONS_BYTES {
                 break;
             }

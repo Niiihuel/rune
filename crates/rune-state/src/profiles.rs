@@ -4,6 +4,7 @@
 //! again. A loaded profile is kept only when it answers the one request in
 //! flight, for the person and the scope that request named.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use rune_i18n::{t, tr};
@@ -270,7 +271,14 @@ impl Store {
     /// `server`'s member list as its provider orders it, when one arrived.
     pub fn member_list(&self, server: ServerId) -> Option<&MemberList> {
         self.member_list
-            .as_ref()
+            .as_deref()
+            .filter(|list| list.server == server)
+    }
+
+    /// The same list, shared: a frame takes it without copying every row.
+    pub fn member_list_shared(&self, server: ServerId) -> Option<Arc<MemberList>> {
+        self.member_list
+            .clone()
             .filter(|list| list.server == server)
     }
 
@@ -280,7 +288,7 @@ impl Store {
             return Applied::Nothing;
         }
         let server = list.server;
-        self.member_list = Some(list);
+        self.member_list = Some(Arc::new(list));
         Applied::Members(server)
     }
 }

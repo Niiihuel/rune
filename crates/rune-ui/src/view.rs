@@ -833,7 +833,7 @@ fn member_list(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> Element
             .flatten();
         Some(MemberListRow::Person(Box::new(row), card))
     };
-    let (count, key, row): (usize, KeyOf, RowOf) = match store.member_list(server) {
+    let (count, key, row): (usize, KeyOf, RowOf) = match store.member_list_shared(server) {
         Some(list) => {
             let people: HashMap<u32, (u64, MemberListRow)> = list
                 .rows
@@ -861,7 +861,7 @@ fn member_list(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> Element
                 }
             }
             let people = Arc::new(people);
-            let shown = Arc::new(list.clone());
+            let shown = Arc::clone(&list);
             (
                 list.len().min(LIST_SHOWN) as usize,
                 Box::new(move |index| {

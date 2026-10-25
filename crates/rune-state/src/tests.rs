@@ -4,6 +4,7 @@ mod context;
 // Commands and interactions (P3).
 mod interactions;
 // Presence, identity and expressions (P5).
+mod channel_index;
 mod identity;
 mod message_patches;
 mod profile_edit;

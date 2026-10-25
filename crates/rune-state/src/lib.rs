@@ -55,7 +55,9 @@ pub use events::EventAbilities;
 // AutoMod (automod).
 mod automod;
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -366,6 +368,92 @@ pub struct Watching {
     pub phase: StreamPhase,
 }
 
+/// The channels by id. Reads go through `Deref`; a change goes through the
+/// methods below, which drop the index so the next read rebuilds it.
+#[derive(Clone, Debug, Default)]
+struct Channels {
+    map: HashMap<ChannelId, Channel>,
+    index: OnceCell<ChannelIndex>,
+}
+
+impl Channels {
+    fn index(&self) -> &ChannelIndex {
+        self.index.get_or_init(|| ChannelIndex::of(&self.map))
+    }
+
+    fn insert(&mut self, id: ChannelId, channel: Channel) -> Option<Channel> {
+        self.index.take();
+        self.map.insert(id, channel)
+    }
+
+    fn remove(&mut self, id: &ChannelId) -> Option<Channel> {
+        self.index.take();
+        self.map.remove(id)
+    }
+
+    fn get_mut(&mut self, id: &ChannelId) -> Option<&mut Channel> {
+        self.index.take();
+        self.map.get_mut(id)
+    }
+}
+
+impl Deref for Channels {
+    type Target = HashMap<ChannelId, Channel>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.map
+    }
+}
+
+impl From<HashMap<ChannelId, Channel>> for Channels {
+    fn from(map: HashMap<ChannelId, Channel>) -> Self {
+        Self {
+            map,
+            index: OnceCell::new(),
+        }
+    }
+}
+
+// Equal channels are equal whether or not the index was built yet.
+impl PartialEq for Channels {
+    fn eq(&self, other: &Self) -> bool {
+        self.map == other.map
+    }
+}
+
+/// The orders `channel_tree`, `threads` and `server_unread` read, sorted once
+/// per change: sorting every channel on each call costs too much per frame.
+#[derive(Clone, Debug, Default)]
+struct ChannelIndex {
+    /// Every channel of a server, threads too, in `(position, id)` order.
+    of_server: HashMap<ServerId, Vec<ChannelId>>,
+    /// The threads under each parent, the most recently active first.
+    threads: HashMap<ChannelId, Vec<ChannelId>>,
+}
+
+impl ChannelIndex {
+    fn of(channels: &HashMap<ChannelId, Channel>) -> Self {
+        let mut by_position: Vec<&Channel> = channels.values().collect();
+        by_position.sort_by_key(|channel| (channel.position, channel.id));
+        let mut index = Self::default();
+        for channel in by_position {
+            if let Some(server) = channel.server {
+                index.of_server.entry(server).or_default().push(channel.id);
+            }
+            if let (true, Some(parent)) = (channel.is_thread(), channel.parent) {
+                index.threads.entry(parent).or_default().push(channel.id);
+            }
+        }
+        for threads in index.threads.values_mut() {
+            threads.sort_by_key(|id| {
+                let last = channels[id].thread.as_ref().map(|t| t.last_activity);
+                (std::cmp::Reverse(last), std::cmp::Reverse(*id))
+            });
+        }
+        index
+    }
+}
+
 #[derive(Default)]
 pub struct Store {
     pub provider: Option<ProviderInfo>,
@@ -383,7 +471,7 @@ pub struct Store {
     me: Option<UserId>,
     users: HashMap<UserId, User>,
     servers: Vec<Server>,
-    channels: HashMap<ChannelId, Channel>,
+    channels: Channels,
     members: HashMap<ServerId, Vec<Member>>,
     /// Where each person is in their server's `members`.
     member_index: HashMap<(ServerId, UserId), usize>,
@@ -441,7 +529,7 @@ pub struct Store {
     /// Profiles loaded lately, the newest last.
     profiles: Vec<rune_model::UserProfile>,
     /// The member list the provider keeps current, when it orders one.
-    member_list: Option<rune_model::MemberList>,
+    member_list: Option<Arc<rune_model::MemberList>>,
     // Attachments and platform (07/08).
     /// The largest file the account may attach, by server; `None` outside
     /// servers and for a server without its own value.
@@ -1310,9 +1398,10 @@ impl Store {
             .channels
             .into_iter()
             .map(|channel| (channel.id, channel))
-            .collect();
+            .collect::<HashMap<_, _>>()
+            .into();
         if same_account {
-            self.keep_paged_threads(read_by_page.into_values());
+            self.keep_paged_threads(read_by_page.map.into_values());
         }
         self.members.clear();
         self.member_index.clear();
@@ -1873,15 +1962,19 @@ impl Store {
         server: ServerId,
         keep: impl Fn(&Channel) -> bool,
     ) -> Vec<(Option<&Channel>, Vec<&Channel>)> {
-        let mut of_server: Vec<&Channel> = self
+        let of_server: Vec<&Channel> = self
             .channels
-            .values()
+            .index()
+            .of_server
+            .get(&server)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.channels.get(id))
             // Threads hang from their channel, not from a category: see `threads`.
             .filter(|channel| {
                 channel.server == Some(server) && !channel.is_thread() && keep(channel)
             })
             .collect();
-        of_server.sort_by_key(|channel| (channel.position, channel.id));
         let mut tree: Vec<(Option<&Channel>, Vec<&Channel>)> = vec![(None, Vec::new())];
         for category in of_server
             .iter()
@@ -1910,21 +2003,18 @@ impl Store {
         if !self.channel(parent).is_some_and(Self::visible) {
             return Vec::new();
         }
-        let mut threads: Vec<&Channel> = self
-            .channels
-            .values()
+        self.channels
+            .index()
+            .threads
+            .get(&parent)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.channels.get(id))
             .filter(|channel| {
-                channel.is_thread()
-                    && channel.parent == Some(parent)
-                    && Self::visible(channel)
+                Self::visible(channel)
                     && (archived || !channel.thread.as_ref().is_some_and(|t| t.archived))
             })
-            .collect();
-        threads.sort_by_key(|channel| {
-            let last = channel.thread.as_ref().map(|t| t.last_activity);
-            (std::cmp::Reverse(last), std::cmp::Reverse(channel.id))
-        });
-        threads
+            .collect()
     }
 
     /// The first channel with messages of `server`.
@@ -2006,12 +2096,13 @@ impl Store {
     /// Whether anything in `server` is unread, and how many mentions wait there.
     pub fn server_unread(&self, server: ServerId) -> (bool, u32) {
         self.channels
-            .values()
-            .filter(|channel| {
-                channel.server == Some(server)
-                    && channel.kind.has_messages()
-                    && Self::visible(channel)
-            })
+            .index()
+            .of_server
+            .get(&server)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.channels.get(id))
+            .filter(|channel| channel.kind.has_messages() && Self::visible(channel))
             .map(|channel| self.read(channel.id))
             .fold((false, 0), |(unread, mentions), read| {
                 (

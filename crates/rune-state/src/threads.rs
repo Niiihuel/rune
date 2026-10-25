@@ -418,10 +418,17 @@ impl Store {
         if !fresh {
             return;
         }
+        // Other channels' messages keep the index: only a thread's activity sorts it.
+        if !self
+            .channels
+            .get(&message.channel)
+            .is_some_and(Channel::is_thread)
+        {
+            return;
+        }
         if let Some(thread) = self
             .channels
             .get_mut(&message.channel)
-            .filter(|c| c.is_thread())
             .and_then(|c| c.thread.as_mut())
         {
             thread.messages = thread.messages.saturating_add(1);
