@@ -94,6 +94,8 @@ pub(crate) const LOST: &str = es("No se pudo recuperar la conexión de voz.");
 /// audio came: the path is dead, so the call rejoins (new socket, new IP
 /// discovery) instead of resuming on this one.
 pub(crate) const NO_ANSWER: &str = es("El servidor de voz dejó de responder.");
+/// The voice socket was cut without a close frame: rejoined, as NO_ANSWER.
+pub(crate) const CUT: &str = es("Se cortó la conexión de voz.");
 /// Others spoke over the WS and no datagram came for this long: a dead UDP path.
 const UDP_SILENCE: Duration = Duration::from_secs(15);
 /// Closed with 4014: kicked, moved or the channel deleted. Never rejoined.
@@ -749,11 +751,11 @@ async fn serve(
                 Some(Ok(message)) => connection.message(message).await.err(),
                 Some(Err(error)) => {
                     note!(scope, "voice gateway socket failed: {}", super::diag::socket_error(&error));
-                    Some(Ended::Dropped(es("Se cortó la conexión de voz.")))
+                    Some(Ended::Lost(CUT))
                 }
                 None => {
                     note!(scope, "voice gateway socket ended without a close frame");
-                    Some(Ended::Dropped(es("Se cortó la conexión de voz.")))
+                    Some(Ended::Lost(CUT))
                 }
             },
         };
@@ -1706,7 +1708,7 @@ impl Connection<'_> {
             }
             Message::Close(None) => {
                 note!(self.scope, "voice gateway closed by Discord without a code");
-                Err(Ended::Dropped(es("Se cortó la conexión de voz.")))
+                Err(Ended::Lost(CUT))
             }
             Message::Pong(_) => Ok(()),
             Message::Frame(_) => Err(MALFORMED),

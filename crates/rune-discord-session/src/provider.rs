@@ -1486,6 +1486,9 @@ impl DiscordSessionProvider {
                     // Told after the new snapshot: a call that went to another device ends.
                     let call = match &event {
                         GatewayEvent::Ready(data) => calls.ready(data),
+                        // The Gateway resumed: a voice rejoin waiting for it goes now.
+                        GatewayEvent::Resumed => calls.resumed(),
+                        GatewayEvent::Reconnecting { .. } => calls.gateway_away(),
                         // A server after READY: a call held for it goes on (voz-protocolo).
                         GatewayEvent::Dispatch { kind, data } if kind.as_str() == "GUILD_CREATE" => calls.guild_created(data),
                         _ => Vec::new(),

@@ -1167,6 +1167,8 @@ async fn a_lost_connection_rejoins_three_times_then_ends_and_a_stable_call_earns
     let (port, _link) = voice_link();
     let mut calls = Calls::new(Some(port));
     let mut wanted = calls.gateway();
+    // The Gateway is connected: a voice server that never answers is budgeted.
+    calls.resumed();
     let snapshot = snapshot();
     // Lost before it ever connected: no rejoin.
     calls
@@ -3277,11 +3279,19 @@ async fn a_rejoin_identifies_again_with_the_same_session_and_server() {
     calls.leave();
 }
 
-#[tokio::test]
-async fn a_dead_voice_socket_ends_for_a_rejoin_instead_of_a_resume() {
-    let mut server = Server::new().await;
-    let (port, _link) = voice_link();
-    let (_controls, watched) = watch::channel(Controls::default());
+/// Handshake up to a connection waiting alone in the channel, with beats
+/// every `heartbeat` ms and the server's peer kept by the caller.
+async fn alone_on_the_socket(
+    server: &mut Server,
+    heartbeat: u64,
+) -> (
+    tokio::task::JoinHandle<Result<(), &'static str>>,
+    Peer,
+    watch::Sender<Controls>,
+    rune_provider::voice::VoiceLink,
+) {
+    let (port, link) = voice_link();
+    let (controls, watched) = watch::channel(Controls::default());
     let (phase_tx, mut phases) = watch::channel(CallPhase::Joining);
     let call = tokio::spawn(connection::run(
         credentials(server.url()),
@@ -3292,9 +3302,8 @@ async fn a_dead_voice_socket_ends_for_a_rejoin_instead_of_a_resume() {
     ));
     let mut acks = Vec::new();
     let mut peer = server.accept().await;
-    // Beats every 3 s: two in a row unanswered are a dead socket.
     server
-        .text(&mut peer, 8, json!({"heartbeat_interval": 3_000}))
+        .text(&mut peer, 8, json!({"heartbeat_interval": heartbeat}))
         .await;
     expect(&mut peer, &mut acks, 0).await;
     let udp_port = server.udp.local_addr().unwrap().port();
@@ -3326,13 +3335,40 @@ async fn a_dead_voice_socket_ends_for_a_rejoin_instead_of_a_resume() {
         )
         .await;
     phase(&mut phases, CallPhase::Waiting).await;
-    // The server stops answering: the socket is dead, so the connection ends
-    // with the path's reason and never resumes on a new socket.
+    (call, peer, controls, link)
+}
+
+#[tokio::test]
+async fn a_dead_voice_socket_ends_for_a_rejoin_instead_of_a_resume() {
+    let mut server = Server::new().await;
+    // Beats every 3 s: two in a row unanswered are a dead socket.
+    let (call, _peer, _controls, _link) = alone_on_the_socket(&mut server, 3_000).await;
+    // The server stops answering: the connection ends with the path's reason
+    // and never resumes on a new socket.
     let ended = timeout(Duration::from_secs(20), call)
         .await
         .expect("the connection ends")
         .unwrap();
     assert_eq!(ended, Err(connection::NO_ANSWER));
+    assert!(
+        timeout(Duration::from_millis(300), server.listener.accept())
+            .await
+            .is_err(),
+        "no resume on a new socket"
+    );
+}
+
+#[tokio::test]
+async fn a_socket_cut_without_a_close_frame_rejoins_instead_of_a_resume() {
+    let mut server = Server::new().await;
+    let (call, peer, _controls, _link) = alone_on_the_socket(&mut server, QUIET).await;
+    // The socket is cut: no close frame, nothing to resume on.
+    drop(peer);
+    let ended = timeout(WAIT, call)
+        .await
+        .expect("the connection ends")
+        .unwrap();
+    assert_eq!(ended, Err(connection::CUT));
     assert!(
         timeout(Duration::from_millis(300), server.listener.accept())
             .await
@@ -3418,6 +3454,42 @@ async fn a_dead_network_path_rejoins_without_a_budget_and_asks_for_streams_again
         assert_eq!(reconnecting(&mut calls).await, attempt);
     }
     assert_eq!(attempt, 7);
+}
+
+#[tokio::test]
+async fn a_gateway_outage_is_waited_out_and_the_call_rejoins_when_it_is_back() {
+    tokio::time::pause();
+    let (port, _link) = voice_link();
+    let mut calls = Calls::new(Some(port));
+    let mut wanted = calls.gateway();
+    let snapshot = snapshot();
+    calls
+        .join(&snapshot, ChannelId(CHANNEL), false, false)
+        .unwrap();
+    let (phase, lose) = connect_ending(&mut calls, connection::NO_ANSWER);
+    phase.send_replace(CallPhase::Connected);
+    calls.next().await;
+    // The main Gateway goes away, and the voice connection with the path.
+    assert!(calls.gateway_away().is_empty());
+    let _ = lose.send(());
+    assert_eq!(reconnecting(&mut calls).await, 1);
+    // The rejoin is asked for after its second, but no voice server answers
+    // while the Gateway is away: that is no attempt spent.
+    assert!(calls.next().await.is_empty());
+    assert_eq!(reconnecting(&mut calls).await, 1);
+    // Far longer than the three attempts' 45 s: the call neither ends nor
+    // asks again.
+    assert!(timeout(Duration::from_secs(120), calls.next())
+        .await
+        .is_err());
+    let call = calls.call.as_ref().expect("the call is still there");
+    assert!(call.awaiting_gateway && call.rejoin_at.is_none());
+    // The Gateway is back: the rejoin goes at once.
+    let _ = wanted.borrow_and_update();
+    assert!(calls.resumed().is_empty());
+    assert!(wanted.has_changed().unwrap());
+    let call = calls.call.as_ref().expect("the call is still there");
+    assert!(!call.awaiting_gateway && call.deadline.is_some());
 }
 
 // Private calls.

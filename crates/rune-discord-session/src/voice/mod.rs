@@ -409,6 +409,8 @@ struct Call {
     rejoins: u32,
     /// When to ask the service for the call again.
     rejoin_at: Option<Instant>,
+    /// Waiting for the main Gateway to come back before asking again.
+    awaiting_gateway: bool,
     // Desktop, language and local voice (P6).
     /// The connection's privacy code, as it changes.
     privacy: Option<watch::Receiver<Option<String>>>,
@@ -440,6 +442,17 @@ impl Call {
         } else {
             self.watches.iter_mut().find(|watch| watch.owner == owner)
         }
+    }
+
+    /// The connection and its keys go; the session and server stay.
+    fn drop_connection(&mut self) {
+        self.connection = None;
+        self.phase = None;
+        self.deadline = None;
+        self.privacy = None;
+        self.verify = None;
+        self.verifying = None;
+        self.quality = None;
     }
 
     /// Forget the voice session, server and connection (and its keys): the
@@ -477,6 +490,9 @@ pub(crate) struct Calls {
     /// it are this device's, with another one another device's: the
     /// official client tells them apart so.
     gateway_session: Option<Zeroizing<String>>,
+    /// The main Gateway is connected (not reconnecting). While it is not, a
+    /// voice server that never answers is waited for, not counted.
+    gateway_up: bool,
     // Private calls.
     /// The conversations whose call this Gateway session told, and whom
     /// each rings, the oldest first.
@@ -504,6 +520,7 @@ impl Calls {
             #[cfg(test)]
             local: None,
             gateway_session: None,
+            gateway_up: true,
             known: Vec::new(),
             ring: None,
             status: watch::channel(None).0,
@@ -597,6 +614,7 @@ impl Calls {
             connected_at: None,
             rejoins: 0,
             rejoin_at: None,
+            awaiting_gateway: false,
             privacy: None,
             verify: None,
             verifying: None,
@@ -899,6 +917,7 @@ impl Calls {
             return;
         };
         call.rejoin_at = None;
+        call.awaiting_gateway = false;
         // Asking ends any wait for its server (voz-protocolo).
         call.guild_wait = None;
         call.deadline = Some(Instant::now() + JOIN_TIMEOUT);
@@ -918,10 +937,28 @@ impl Calls {
         {
             call.rejoins = 0;
         }
+        // The Gateway is away, so no server can answer it: the wait is for its
+        // return (`resumed` or `ready`), and no attempt is spent on it.
+        if reason == NO_SERVER && !self.gateway_up && call.joined {
+            note!(
+                CALL,
+                "lost: {reason}; the Gateway is reconnecting: waiting for it, no attempt spent"
+            );
+            call.drop_connection();
+            call.rejoin_at = None;
+            call.awaiting_gateway = true;
+            return vec![Event::CallPhase {
+                channel: call.channel,
+                phase: CallPhase::Reconnecting {
+                    attempt: call.rejoins,
+                },
+                quality: None,
+            }];
+        }
         // A dead network path is rejoined without a budget, 1 s doubling to
         // 10 s; any other loss, a server that never came included, has the
         // three attempts of REJOIN_DELAYS.
-        let network = reason == connection::NO_ANSWER;
+        let network = reason == connection::NO_ANSWER || reason == connection::CUT;
         let delay = if network {
             Some(Duration::from_secs((1u64 << call.rejoins.min(4)).min(10)))
         } else {
@@ -946,13 +983,7 @@ impl Calls {
         // server until the service names another: the official client
         // identifies again with them, without asking the Gateway; op 4
         // goes again too, as Serein does, in case the service moves it.
-        call.connection = None;
-        call.phase = None;
-        call.deadline = None;
-        call.privacy = None;
-        call.verify = None;
-        call.verifying = None;
-        call.quality = None;
+        call.drop_connection();
         call.rejoin_at = Some(Instant::now() + delay);
         vec![Event::CallPhase {
             channel: call.channel,
@@ -979,10 +1010,30 @@ impl Calls {
         }]
     }
 
+    /// The main Gateway is reconnecting: see `lost`.
+    pub(crate) fn gateway_away(&mut self) -> Vec<Event> {
+        self.gateway_up = false;
+        Vec::new()
+    }
+
+    /// The main Gateway resumed: a rejoin waiting for it goes at once.
+    pub(crate) fn resumed(&mut self) -> Vec<Event> {
+        self.gateway_up = true;
+        let Some(call) = self.call.as_ref() else {
+            return Vec::new();
+        };
+        if call.rejoin_at.is_some() || call.awaiting_gateway {
+            self.ask();
+            self.start();
+        }
+        Vec::new()
+    }
+
     /// A new Gateway session (`READY`): the service forgot this device's
     /// call. Ask for it again, unless the account's voice already went on
     /// with another device.
     pub(crate) fn ready(&mut self, data: &Value) -> Vec<Event> {
+        self.gateway_up = true;
         let (Some(call), Some(me)) = (self.call.as_mut(), self.me) else {
             return Vec::new();
         };
