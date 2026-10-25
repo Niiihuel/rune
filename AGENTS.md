@@ -47,13 +47,13 @@ con la interfaz hecha en [limn](https://github.com/Niiihuel/limn). Leer
   rutas, mensajes de Gateway, comportamiento e interfaz, y usar lo
   encontrado en el proveedor no oficial. Se reimplementa; no se copia
   código ni recursos. Excepción autorizada explícitamente por el dueño el
-  2026-10-21: RUNE puede copiar y empaquetar como sus sonidos
-  predeterminados los efectos de sonido públicos de Discord (mute, desmute,
-  ensordecimiento, llamada, mensaje, transmisión y similares), incluidos sus
-  archivos de audio. Se obtienen sin autenticación del bundle público que
-  sirve Discord; esta excepción no abarca código, otros recursos, perfiles,
-  cachés, credenciales ni datos de sesión, ni contenidos de servidores o
-  cuentas ajenas.
+  2026-10-21: RUNE puede extraer, analizar, copiar y empaquetar como sus
+  sonidos predeterminados los efectos de sonido públicos de Discord (mute,
+  desmute, ensordecimiento, llamada, mensaje, transmisión y similares),
+  incluidos sus archivos de audio. Se pueden descargar sin autenticación del
+  bundle público que sirve Discord y guardarse en `assets/sounds`; esta
+  excepción no abarca código, otros recursos, perfiles, cachés, credenciales
+  ni datos de sesión, ni contenidos de servidores o cuentas ajenas.
   El 2026-10-17 fijó el objetivo de paridad con Serein: todo lo que haga
   Serein lo hace RUNE, reimplementado y con mejor interfaz e integraciones.
   Eso incluye usar los componentes de bots (botones, menús, modales) y los
