@@ -48,6 +48,11 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         }
         return Some(Vec::new());
     }
+    // Full screen, a click on the stream only wakes what hides at rest; a
+    // double click brings the stage back.
+    if crate::video::fullscreen(ui, store) && number(id, "vz:stream:").is_some() {
+        return Some(Vec::new());
+    }
     let owner = number(id, "vz:stream:").or_else(|| number(id, "vz:spotlight:"))?;
     let owner = UserId(owner);
     ui.video.spotlight =

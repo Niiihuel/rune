@@ -182,6 +182,16 @@ pub mod ids {
     pub fn spotlight(user: u64) -> String {
         format!("vz:spotlight:{user}")
     }
+
+    /// The stage's bar, a hover region: while the pointer is on it, what
+    /// hides once the pointer rests stays.
+    pub const BAR: &str = "vz:bar";
+
+    /// The controls over `user`'s stream, a hover region as [`BAR`] is.
+    pub const STREAM_CONTROLS: &str = "vz:stream-controls:";
+    pub fn stream_controls(user: u64) -> String {
+        format!("{STREAM_CONTROLS}{user}")
+    }
 }
 
 /// Why the camera and the screen cannot be used on this system.
@@ -313,9 +323,10 @@ pub struct Preview {
 
 /// A stream watched, as its tile offers it (transmisiones), as in the
 /// official client: a click focuses it, a double click shows it full
-/// screen, and under the pointer its sound and «⋯» show at its top right.
-/// While it is focused, its window and full screen go at the bar's end and
-/// hanging up gives way to «Dejar de ver».
+/// screen. Its name goes in a pill at the bottom left and its controls,
+/// icons in round chips, at the bottom right: its sound and «⋯», and while
+/// it takes the stage its own window and full screen too. Then hanging up
+/// gives way to «Dejar de ver».
 #[derive(Clone, Debug, PartialEq)]
 pub struct StreamTile {
     pub owner: u64,
@@ -327,11 +338,96 @@ pub struct StreamTile {
     pub windowed: bool,
     /// Its menu, while open from its «⋯».
     pub menu: Option<Vec<MenuEntry>>,
+    /// It fills the window, full screen: its way back in place of full
+    /// screen.
+    pub fullscreen: bool,
+    /// The pointer rested on it a while: what is drawn over it fades out,
+    /// the bar under it too, and the pointer hides over it, as the official
+    /// client's (REA: 3 s). Only while it takes the stage or the window.
+    pub idle: bool,
 }
 
 /// RUNE's own glyphs for «Dejar de ver» and «Ventana aparte».
 const SCREEN_STOP: &str = crate::glyphs::glyph!("screen-stop");
 const POP_OUT: &str = crate::glyphs::glyph!("pop-out");
+
+/// What is drawn over a picture, as the official client's chips: black at
+/// 60 %, 80 % under the pointer, with white on it whatever the theme (REA).
+const OVER: Color = Color::rgba(0, 0, 0, 153);
+const OVER_HOVER: Color = Color::rgba(0, 0, 0, 204);
+const OVER_INK: Color = Color::rgb(255, 255, 255);
+/// The round buttons over a picture, 32 across.
+const OVER_BUTTON: f32 = 32.0;
+
+/// A round icon button over a picture, named and hinted by `hint`.
+fn over_button(
+    id: impl Into<String>,
+    glyph: Icon,
+    hint: &str,
+    fill: Color,
+    look: &Look,
+) -> Element {
+    let hover = if fill == OVER {
+        OVER_HOVER
+    } else {
+        lighter(fill, 18)
+    };
+    IconButton::new(id, glyph, filled(fill, hover, look))
+        .variant(ButtonVariant::Raised)
+        .sizing(ButtonSizing {
+            height: OVER_BUTTON,
+            font_size: 14.0,
+            icon_size: 18.0,
+            horizontal_padding: 7.0,
+            inner_spacing: 6.0,
+        })
+        .width(OVER_BUTTON)
+        .round()
+        .ink(OVER_INK)
+        .hover_ink(OVER_INK)
+        .tooltip(hint)
+        .accessibility_label(hint)
+        .render()
+}
+
+/// A preview's title in a pill at its bottom left; a stream's says it is a
+/// screen, as the official client's.
+fn name_pill(view: &Preview) -> Element {
+    let mut name = vec![gap(10.0, 0.0)];
+    if view.stream.is_some() {
+        name.push(
+            icon(Icon::Screen, OVER_INK)
+                .size(Some(16.0), Some(16.0))
+                .centered_y(),
+        );
+        name.push(gap(6.0, 0.0));
+    }
+    name.push(
+        strong_line(&view.title, 14.0, OVER_INK)
+            .centered_y()
+            .shrink_to_fit(),
+    );
+    name.push(gap(12.0, 0.0));
+    Element::panel(Element::row(name))
+        .size(None, Some(OVER_BUTTON))
+        .radius(OVER_BUTTON / 2.0)
+        .background(OVER)
+        .shrink_to_fit()
+}
+
+/// A small note over a picture, such as that it is simulated: it says, it
+/// is no button.
+fn badge(note: &str) -> Element {
+    Element::panel(Element::row(vec![
+        gap(8.0, 0.0),
+        line(note, 12.0, OVER_INK).centered_y().shrink_to_fit(),
+        gap(8.0, 0.0),
+    ]))
+    .size(None, Some(22.0))
+    .radius(4.0)
+    .background(OVER)
+    .shrink_to_fit()
+}
 
 /// A preview's tile: the frame as large as fits, its note and the way to
 /// stop it on top, its title in a chip at the bottom left. The camera's is
@@ -355,40 +451,7 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         }
         None => centered(line(&view.waiting, 14.0, look.muted)),
     };
-    let chip = |child: Element| {
-        Element::panel(child.padding(8.0))
-            .size(None, Some(34.0))
-            .radius(8.0)
-            .background(Look::alpha(look.rail, 200))
-    };
-    let stop = Button::new(view.stop.0.clone(), t(view.stop.1), look.palette())
-        .variant(ButtonVariant::Destructive)
-        .icon(Icon::StopFill)
-        .render();
-    // What else it offers goes at the top, so a narrow tile keeps its title.
-    let mut top = vec![
-        chip(line(&view.note, 13.0, look.text)).shrink_to_fit(),
-        Element::spacer().flex(1.0),
-    ];
-    top.extend(view.actions.iter().map(|(id, label)| {
-        Button::new(id.clone(), t(label), look.palette())
-            .variant(ButtonVariant::Secondary)
-            .render()
-    }));
-    // A stream's title says it is a screen, as the official client's pill.
-    let title = match &view.stream {
-        Some(_) => Element::row(vec![
-            icon(Icon::Screen, look.text)
-                .size(Some(16.0), Some(16.0))
-                .centered_y(),
-            strong_line(&view.title, 14.0, look.text)
-                .centered_y()
-                .shrink_to_fit(),
-        ])
-        .gap(6.0),
-        None => strong_line(&view.title, 14.0, look.text),
-    };
-    let title = chip(title).shrink_to_fit();
+    let title = name_pill(view);
     let over = match &view.stream {
         // In the strip, a stream watched says it is live at its top right.
         Some(_) if compact => Element::column(vec![
@@ -403,23 +466,44 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         ])
         .padding(8.0),
         // A stream watched: its ways out are in its menu and the bar.
-        Some(stream) => Element::column(vec![
-            Element::row(vec![
-                chip(line(&view.note, 13.0, look.text)).shrink_to_fit(),
+        Some(stream) => stream_over(view, stream, title, look),
+        // The account's own: pausing it and stopping it, as icons.
+        None => {
+            let mut buttons: Vec<Element> = view
+                .actions
+                .iter()
+                .map(|(id, hint)| {
+                    let glyph = match id.as_str() {
+                        ids::RESUME => Icon::Play,
+                        _ => Icon::Pause,
+                    };
+                    over_button(id.clone(), glyph, t(hint), OVER, look)
+                })
+                .collect();
+            let glyph = match view.stop.0.as_str() {
+                ids::STOP_SCREEN => Icon::Custom(SCREEN_STOP),
+                ids::STOP_CAMERA => Icon::VideoOff,
+                _ => Icon::StopFill,
+            };
+            buttons.push(over_button(
+                view.stop.0.clone(),
+                glyph,
+                t(view.stop.1),
+                look.danger,
+                look,
+            ));
+            Element::column(vec![
+                Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]),
                 Element::spacer().flex(1.0),
-                stream_buttons(stream, look),
+                Element::row(vec![
+                    title,
+                    Element::spacer().flex(1.0),
+                    Element::row(buttons).gap(8.0),
+                ])
+                .gap(8.0),
             ])
-            .gap(8.0),
-            Element::spacer().flex(1.0),
-            Element::row(vec![title, Element::spacer().flex(1.0)]),
-        ])
-        .padding(12.5),
-        None => Element::column(vec![
-            Element::row(top).gap(8.0),
-            Element::spacer().flex(1.0),
-            Element::row(vec![title, Element::spacer().flex(1.0), stop]).gap(8.0),
-        ])
-        .padding(12.5),
+            .padding(12.5)
+        }
     };
     let shown = Element::stack(vec![
         Element::panel(picture)
@@ -430,42 +514,56 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         over,
     ]);
     match &view.stream {
-        Some(stream) => Element::clickable(ids::stream_tile(stream.owner), shown)
-            .radius(TILE_RADIUS)
-            .hover_region(),
+        Some(stream) => {
+            let tile = Element::clickable(ids::stream_tile(stream.owner), shown)
+                .radius(TILE_RADIUS)
+                .hover_region();
+            if stream.idle && (view.focused || stream.fullscreen) {
+                tile.cursor(limn::Cursor::Hidden)
+            } else {
+                tile
+            }
+        }
         None => shown,
     }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
 }
 
-/// A stream's sound and «⋯» at its tile's top right, 32 across, shown
-/// while the pointer is on it, as the official client's: the sound stays
-/// while silenced, the «⋯» while its menu is open.
-fn stream_buttons(stream: &StreamTile, look: &Look) -> Element {
-    let button = |id: String, glyph: Icon, hint: &str| {
-        IconButton::new(
-            id,
-            glyph,
-            filled(Look::alpha(look.rail, 200), look.raised, look),
-        )
-        .variant(ButtonVariant::Raised)
-        .sizing(ButtonSizing {
-            height: 32.0,
-            font_size: 14.0,
-            icon_size: 18.0,
-            horizontal_padding: 7.0,
-            inner_spacing: 6.0,
-        })
-        .width(32.0)
-        .radius(RadiusRole::Card)
-        .ink(look.text)
-        .hover_ink(look.text)
-        .tooltip(hint)
-        .render()
-    };
+/// What goes over a stream watched: its note as a badge at the top left,
+/// its name at the bottom left and its controls at the bottom right. In
+/// the grid the controls show under the pointer; while it takes the stage
+/// or the window all of it shows until the pointer rests, then fades.
+fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look) -> Element {
+    let big = view.focused || stream.fullscreen;
+    if big && stream.idle {
+        return Element::spacer();
+    }
+    let over = Element::column(vec![
+        Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]),
+        Element::spacer().flex(1.0),
+        Element::row(vec![
+            title,
+            Element::spacer().flex(1.0),
+            stream_buttons(stream, big, look),
+        ])
+        .gap(8.0),
+    ])
+    .padding(12.5);
+    if big {
+        over.animate_presence(format!("{}:over", ids::stream_tile(stream.owner)))
+    } else {
+        over
+    }
+}
+
+/// A stream's controls at its tile's bottom right, as the official
+/// client's: its sound, its own window and full screen while `big`, and
+/// «⋯». In the grid only its sound and «⋯», under the pointer: the sound
+/// stays while silenced, the «⋯» while its menu is open.
+fn stream_buttons(stream: &StreamTile, big: bool, look: &Look) -> Element {
     let reveal = |shown: Element, kept: bool, what: &str| {
-        if kept {
+        if kept || big {
             shown
         } else {
             shown.reveal_on_hover(format!("{}:{what}", ids::stream_tile(stream.owner)))
@@ -476,13 +574,47 @@ fn stream_buttons(stream: &StreamTile, look: &Look) -> Element {
     } else {
         (Icon::Volume, t("Silenciar"))
     };
-    let sound = button(ids::local_mute(stream.sound), glyph, hint);
+    let mut buttons = vec![reveal(
+        over_button(ids::local_mute(stream.sound), glyph, hint, OVER, look),
+        stream.silenced,
+        "sound",
+    )];
+    if big {
+        if !stream.windowed {
+            buttons.push(over_button(
+                ids::window(stream.owner),
+                Icon::Custom(POP_OUT),
+                t("Ventana aparte"),
+                OVER,
+                look,
+            ));
+        }
+        buttons.push(if stream.fullscreen {
+            over_button(
+                ids::FULLSCREEN_EXIT,
+                Icon::Collapse,
+                t("Salir de pantalla completa"),
+                OVER,
+                look,
+            )
+        } else {
+            over_button(
+                ids::fullscreen(stream.owner),
+                Icon::Fullscreen,
+                t("Pantalla completa"),
+                OVER,
+                look,
+            )
+        });
+    }
     let open = stream.menu.is_some();
     let more = DropdownMenu::new(
-        button(
+        over_button(
             ids::stream_more(stream.owner),
             Icon::More,
             t("Más opciones"),
+            OVER,
+            look,
         ),
         menu_entries(stream.menu.clone().unwrap_or_default(), look),
         open,
@@ -491,18 +623,19 @@ fn stream_buttons(stream: &StreamTile, look: &Look) -> Element {
     )
     .context_menu_style()
     .width(MENU_WIDTH)
-    .placement(PopoverPlacement::BottomEnd)
+    .placement(PopoverPlacement::TopEnd)
     .render();
-    Element::row(vec![
-        reveal(sound, stream.silenced, "sound"),
-        reveal(more, open, "more"),
-    ])
-    .gap(8.0)
+    buttons.push(reveal(more, open, "more"));
+    // The pointer on them keeps them, and the bar, from hiding.
+    Element::row(buttons)
+        .gap(8.0)
+        .hover_region_id(ids::stream_controls(stream.owner))
 }
 
 /// A stream in a window of its own: the frame as large as fits, its note
 /// and its title, nothing to click (the window's own close lets it go).
-pub fn stream_window(view: &Preview, size: Size, look: &Look) -> Element {
+/// Once the pointer rests on it (`idle`) they fade out, as on the stage.
+pub fn stream_window(view: &Preview, size: Size, idle: bool, look: &Look) -> Element {
     let picture = match view.frame {
         Some((width, height)) => {
             let scale = (size.width / width as f32).min(size.height / height as f32);
@@ -513,30 +646,23 @@ pub fn stream_window(view: &Preview, size: Size, look: &Look) -> Element {
         }
         None => centered(line(&view.waiting, 14.0, look.muted)),
     };
-    let chip = |child: Element| {
-        Element::panel(child.padding(8.0))
-            .size(None, Some(34.0))
-            .radius(8.0)
-            .background(Look::alpha(look.rail, 200))
-            .shrink_to_fit()
+    let over = if idle {
+        Element::spacer()
+    } else {
+        Element::column(vec![
+            Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]),
+            Element::spacer().flex(1.0),
+            Element::row(vec![name_pill(view), Element::spacer().flex(1.0)]),
+        ])
+        .padding(12.5)
+        .animate_presence(format!("{}:over", view.surface))
     };
     Element::stack(vec![
         Element::panel(picture)
             .size(Some(size.width), Some(size.height))
             .background(Color::rgb(0, 0, 0))
             .clip_children(),
-        Element::column(vec![
-            Element::row(vec![
-                chip(line(&view.note, 13.0, look.text)),
-                Element::spacer().flex(1.0),
-            ]),
-            Element::spacer().flex(1.0),
-            Element::row(vec![
-                chip(strong_line(&view.title, 14.0, look.text)),
-                Element::spacer().flex(1.0),
-            ]),
-        ])
-        .padding(12.5),
+        over,
     ])
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
@@ -1742,7 +1868,11 @@ fn call(view: &Stage, look: &Look) -> Element {
             } else {
                 0.0
             };
-            let main = Size::new(area.width, area.height - strip - TILE_GAP.min(strip));
+            // 16:9 as the official client's tiles, so what is over the
+            // stream sits on its picture rather than on black bars.
+            let room = Size::new(area.width, area.height - strip - TILE_GAP.min(strip));
+            let width = room.width.min(room.height * 16.0 / 9.0);
+            let main = Size::new(width, width * 9.0 / 16.0);
             let fits = ((area.width + TILE_GAP) / (strip * 16.0 / 9.0 + TILE_GAP)).floor() as usize;
             let small = Size::new(strip * 16.0 / 9.0, strip);
             let mut rest: Vec<Element> = previews
@@ -1760,10 +1890,11 @@ fn call(view: &Stage, look: &Look) -> Element {
             rest.truncate(fits.max(1));
             let mut column = vec![
                 gap(0.0, STAGE_INSET),
+                Element::spacer().flex(1.0),
                 Element::row(vec![
-                    gap(STAGE_INSET, 0.0),
+                    Element::spacer().flex(1.0),
                     preview(previews[index], main, look),
-                    gap(STAGE_INSET, 0.0),
+                    Element::spacer().flex(1.0),
                 ]),
             ];
             if strip > 0.0 {
@@ -1816,11 +1947,23 @@ fn call(view: &Stage, look: &Look) -> Element {
             ])
         }
     };
+    // With a stream focused the bar fades with what is over it once the
+    // pointer rests, as the official client's (REA); the grid never hides.
+    let focused = view
+        .watching
+        .iter()
+        .filter(|shown| shown.focused)
+        .find_map(|shown| shown.stream.as_ref());
+    let bar = match focused {
+        Some(stream) if stream.idle => Element::spacer(),
+        Some(_) => bar(view, look).animate_presence(ids::BAR),
+        None => bar(view, look),
+    };
     Element::stack(vec![
         tiles,
         Element::column(vec![
             Element::spacer().flex(1.0),
-            bar(view, look),
+            bar.size(None, Some(BAR_HEIGHT)),
             gap(0.0, BAR_BOTTOM),
         ]),
     ])
@@ -1961,8 +2104,7 @@ fn bar(view: &Stage, look: &Look) -> Element {
     .placement(PopoverPlacement::TopEnd)
     .render();
     // Streams (transmisiones): with one focused, as in the official client,
-    // hanging up gives way to letting it go, and its window and full screen
-    // go at the bar's end.
+    // hanging up gives way to letting it go.
     let focused = view
         .watching
         .iter()
@@ -1992,53 +2134,19 @@ fn bar(view: &Stage, look: &Look) -> Element {
     .hover_ink(Color::rgb(255, 255, 255))
     .tooltip(hint)
     .render();
-    let mut end = vec![Element::spacer().flex(1.0)];
-    if let Some(stream) = focused {
-        let button = |id: String, glyph: Icon, hint: &str| {
-            IconButton::new(
-                id,
-                glyph,
-                filled(Color::rgba(0, 0, 0, 0), look.raised, look),
-            )
-            .variant(ButtonVariant::Raised)
-            .sizing(ButtonSizing {
-                icon_size: 24.0,
-                horizontal_padding: 6.0,
-                ..sizing
-            })
-            .radius(RadiusRole::Card)
-            .ink(look.muted)
-            .hover_ink(look.text)
-            .tooltip(hint)
-            .render()
-            .centered_y()
-        };
-        if !stream.windowed {
-            end.push(button(
-                ids::window(stream.owner),
-                Icon::Custom(POP_OUT),
-                t("Ventana aparte"),
-            ));
-        }
-        end.push(button(
-            ids::fullscreen(stream.owner),
-            Icon::Fullscreen,
-            t("Pantalla completa"),
-        ));
-    }
-    // Centered in the stage whatever its ends hold, as the official grid of
-    // three columns does.
+    // Centered in the stage. Its own window and full screen are over the
+    // stream focused, with its other controls. The pointer on it keeps
+    // it from hiding.
     Element::row(vec![
-        gap(BAR_BOTTOM, 0.0),
         Element::spacer().flex(1.0),
         Element::row(vec![
             group(vec![microphone, sound, camera]),
             group(vec![screen, more]),
             hang_up,
         ])
-        .gap(BAR_GAP),
-        Element::row(end).gap(20.0).flex(1.0),
-        gap(BAR_BOTTOM, 0.0),
+        .gap(BAR_GAP)
+        .hover_region_id(ids::BAR),
+        Element::spacer().flex(1.0),
     ])
     .size(None, Some(BAR_HEIGHT))
 }
@@ -3095,7 +3203,7 @@ mod tests {
             focused: false,
         };
         let (_, laid) = frame(
-            stream_window(&stream, Size::new(960.0, 540.0), &look),
+            stream_window(&stream, Size::new(960.0, 540.0), false, &look),
             Size::new(960.0, 540.0),
         );
         assert!(controls(&laid).is_empty());
@@ -3140,6 +3248,8 @@ mod tests {
                 silenced: false,
                 windowed: false,
                 menu: None,
+                fullscreen: false,
+                idle: false,
             }),
             focused,
         };
@@ -3229,8 +3339,9 @@ mod tests {
         assert!(count("EN VIVO") >= 2, "header and the strip's stream");
         // The streamer focused keeps their tile; the strip's offer no watching.
         assert!(ids.contains(&ids::tile(2)) && !ids.contains(&ids::watch(3)));
-        // The bar lets go of the one focused in place of hanging up, and
-        // its end shows it apart or full screen.
+        // The bar lets go of the one focused in place of hanging up; its
+        // own window and full screen are icons over it at its bottom right,
+        // after its sound and before its «⋯», as the official client's.
         assert!(ids.contains(&ids::stop_watching(2)) && !ids.contains(&ids::stop_watching(3)));
         assert!(!ids.contains(&ids::LEAVE.to_owned()));
         assert!(ids.contains(&ids::fullscreen(2)) && !ids.contains(&ids::fullscreen(3)));
@@ -3242,13 +3353,16 @@ mod tests {
                 .unwrap_or_else(|| panic!("{id}"))
                 .rect
         };
-        let (window, full) = (
+        let (sound, window, full, more) = (
+            at(&focused, &ids::local_mute(1_002)),
             at(&focused, &ids::window(2)),
             at(&focused, &ids::fullscreen(2)),
+            at(&focused, &ids::stream_more(2)),
         );
-        let hang_up = at(&focused, &ids::stop_watching(2));
-        assert!(window.x < full.x && full.x + full.width <= size.width - BAR_BOTTOM + 0.5);
-        assert!(window.x > hang_up.x + hang_up.width, "at the bar's end");
+        assert!(sound.x < window.x && window.x < full.x && full.x < more.x);
+        assert!(more.x + more.width <= big.x + big.width + 0.5);
+        assert!(more.y > big.y + big.height / 2.0, "at the bottom");
+        assert_eq!((full.width, full.height), (OVER_BUTTON, OVER_BUTTON));
         // Already in a window of its own: only full screen.
         let mut windowed = stream(2, true);
         windowed.stream.as_mut().unwrap().windowed = true;
@@ -3804,5 +3918,147 @@ mod tests {
         let words = texts(&laid);
         assert!(words.iter().any(|text| text == "Cargando la vista previa…"));
         assert!(!words.iter().any(|text| text.starts_with("Transmitiendo")));
+    }
+
+    // Streams (transmisiones): icons over a stream, hidden once the pointer
+    // rests, as the official client's.
+    #[test]
+    fn over_a_stream_focused_its_controls_are_named_icons_that_rest_hides() {
+        let stream = |idle: bool, fullscreen: bool| Preview {
+            surface: ids::stream_surface(2),
+            title: "Pantalla de Persona 2".into(),
+            frame: Some((1280, 720)),
+            waiting: "Esperando video…".into(),
+            stop: (ids::stop_watching(2), "Dejar de ver"),
+            note: "En vivo · simulada".into(),
+            actions: Vec::new(),
+            stream: Some(StreamTile {
+                owner: 2,
+                sound: 1_002,
+                silenced: false,
+                windowed: false,
+                menu: None,
+                fullscreen,
+                idle,
+            }),
+            focused: !fullscreen,
+        };
+        let look = Look::ONYX;
+        let size = Size::new(960.0, 540.0);
+        let (_, laid) = frame(preview(&stream(false, false), size, &look), size);
+        let shown = controls(&laid);
+        for id in [
+            ids::local_mute(1_002),
+            ids::window(2),
+            ids::fullscreen(2),
+            ids::stream_more(2),
+        ] {
+            assert!(shown.contains(&id), "{id}");
+            let node = laid
+                .access
+                .iter()
+                .find(|node| node.id == id)
+                .unwrap_or_else(|| panic!("{id} has no node"));
+            assert_eq!(node.role, limn::Role::Button);
+            assert!(!node.name.is_empty(), "{id} is named");
+        }
+        // No words to press: what is written is its name and the badge that
+        // says it is simulated.
+        let mut said = texts(&laid);
+        said.sort();
+        assert_eq!(said, ["En vivo · simulada", "Pantalla de Persona 2"]);
+        // Full screen: the way back in place of full screen, an icon too.
+        let (_, laid) = frame(preview(&stream(false, true), size, &look), size);
+        let shown = controls(&laid);
+        assert!(shown.contains(&ids::FULLSCREEN_EXIT.to_owned()));
+        assert!(!shown.contains(&ids::fullscreen(2)));
+        assert!(!texts(&laid).contains(&"Salir de pantalla completa".to_owned()));
+        // At rest: the picture alone, and no pointer over it.
+        let (mut tree, laid) = frame(preview(&stream(true, false), size, &look), size);
+        assert_eq!(controls(&laid), [ids::stream_tile(2)]);
+        assert!(texts(&laid).is_empty());
+        tree.handle_event(limn::UiEvent::PointerMove(limn::Point::new(480.0, 270.0)));
+        assert_eq!(tree.cursor(), Some(limn::Cursor::Hidden));
+        // The account's own screen: pausing and stopping are icons too.
+        let own = Preview {
+            surface: ids::SCREEN_SURFACE.into(),
+            title: "Tu pantalla".into(),
+            frame: Some((1280, 720)),
+            waiting: "Esperando al sistema…".into(),
+            stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
+            note: "Solo vos lo ves".into(),
+            actions: vec![(ids::PAUSE.into(), "Pausar")],
+            stream: None,
+            focused: false,
+        };
+        let (_, laid) = frame(preview(&own, size, &look), size);
+        let shown = controls(&laid);
+        assert!(
+            shown.contains(&ids::STOP_SCREEN.to_owned()) && shown.contains(&ids::PAUSE.to_owned())
+        );
+        let said = texts(&laid);
+        assert!(
+            !said.contains(&"Dejar de compartir".to_owned())
+                && !said.contains(&"Pausar".to_owned())
+        );
+    }
+
+    #[test]
+    fn a_stream_focused_at_rest_takes_the_bar_with_it_and_the_grid_never_rests() {
+        let stream = |focused: bool, idle: bool| Preview {
+            surface: ids::stream_surface(2),
+            title: "Pantalla de Persona 2".into(),
+            frame: Some((1280, 720)),
+            waiting: "Esperando video…".into(),
+            stop: (ids::stop_watching(2), "Dejar de ver"),
+            note: "En vivo".into(),
+            actions: Vec::new(),
+            stream: Some(StreamTile {
+                owner: 2,
+                sound: 1_002,
+                silenced: false,
+                windowed: false,
+                menu: None,
+                fullscreen: false,
+                idle,
+            }),
+            focused,
+        };
+        let view = |watching| Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![
+                person(1, false, false, false),
+                person(2, false, false, false),
+            ],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size: Size::new(980.0, 762.0),
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        let (_, moving) = frame(stage(view(vec![stream(true, false)]), &look), size);
+        assert!(controls(&moving).contains(&ids::MUTE.to_owned()));
+        let (_, rest) = frame(stage(view(vec![stream(true, true)]), &look), size);
+        let shown = controls(&rest);
+        assert!(!shown.contains(&ids::MUTE.to_owned()) && !shown.contains(&ids::stop_watching(2)));
+        assert!(shown.contains(&ids::tile(1)), "the strip stays");
+        // In the grid nothing rests: the bar is there however long it stays.
+        let (_, grid) = frame(stage(view(vec![stream(false, true)]), &look), size);
+        assert!(controls(&grid).contains(&ids::MUTE.to_owned()));
     }
 }

@@ -423,6 +423,7 @@ impl Host {
     /// then the tree, then the actions it reports.
     fn send(&mut self, event: UiEvent) {
         self.frame();
+        stir(&mut self.ui, &event, self.now);
         capture_composer_selection(&mut self.ui, &self.tree);
         let focused = self.tree.focused_id().map(str::to_owned);
         if let UiEvent::ContextMenu { position } = &event {

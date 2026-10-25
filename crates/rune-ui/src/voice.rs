@@ -1013,12 +1013,13 @@ pub(crate) fn stage_view(
     let private = crate::private_calls::callable(store, channel)
         .then(|| crate::private_calls::private_stage(ui, store, channel, look))
         .flatten();
-    stage_of(ui, store, channel, size, chat, private, look)
+    stage_of(ui, store, channel, size, chat, private, look, context.now)
 }
 
 /// The stage of `channel` in `size`: a voice channel's, with whether its
 /// chat shows beside it or why it cannot, or a conversation's call, with
-/// what that adds (`private`).
+/// what that adds (`private`); at `now`, for a stream at rest.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn stage_of(
     ui: &Ui,
     store: &Store,
@@ -1027,6 +1028,7 @@ pub(crate) fn stage_of(
     chat: Result<bool, String>,
     private: Option<rune_components::private_call::PrivateStage>,
     look: &Look,
+    now: Instant,
 ) -> Option<Element> {
     let found = store.channel(channel)?;
     let phase = store
@@ -1089,7 +1091,7 @@ pub(crate) fn stage_of(
                 Some(reason) => Err(reason),
                 None => Ok(()),
             },
-            watching: video::streams(ui, store, channel),
+            watching: video::streams(ui, store, channel, now),
             private,
             quick: crate::quick_voice::view(ui, store, look, true),
             camera_panel: crate::quick_voice::camera_view(ui, store, look),

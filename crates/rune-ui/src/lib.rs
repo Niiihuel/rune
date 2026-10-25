@@ -150,10 +150,12 @@ pub use uploads::{
 pub use uploads::{dirty_draft_files, draft_files_dirty, draft_files_kept};
 pub use video::{
     camera_sending as video_camera_sending, cameras as video_cameras, ended as video_ended,
-    fullscreen as video_fullscreen, screen_chosen as video_screen_chosen, sending as video_sending,
-    sound as video_sound, sound_failed as video_sound_failed, stream_previews as video_previews,
-    window_closed as video_window_closed, window_view as video_window, windows as video_windows,
-    Live, Share, Video,
+    fullscreen as video_fullscreen, idle_tick as stream_idle_tick,
+    screen_chosen as video_screen_chosen, sending as video_sending, sound as video_sound,
+    sound_failed as video_sound_failed, stir, stir_window as video_window_stirred,
+    stream_previews as video_previews, window_closed as video_window_closed,
+    window_idle as video_window_idle, window_view as video_window, windows as video_windows, Live,
+    Share, Video,
 };
 // Streams (transmisiones).
 pub use video::{
@@ -1352,6 +1354,7 @@ pub fn after_layout(ui: &mut Ui, store: &mut Store, tree: &UiTree, active: bool)
     intents.extend(context::after_layout(ui, store, tree));
     intents.extend(navigation::after_layout(ui, store, tree));
     voice_messages::after_layout(ui, store, tree);
+    video::hold(ui, tree);
     if active && !blocked_before && !reads::obscured(ui) {
         intents.extend(read_and_load(ui, store, tree));
     }
