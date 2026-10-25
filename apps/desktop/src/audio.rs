@@ -68,6 +68,8 @@ pub struct Audio {
     /// A failing device is retried by an explicit test, device change or new call.
     failed: Option<(Option<ChannelId>, Option<String>)>,
     active: bool,
+    /// Asks the interface to repaint: the call's speaking marks wake it.
+    wake: Arc<dyn Fn() + Send + Sync>,
     /// The voice message, audio or video file: its request, its file, kept
     /// to play again without fetching it, and its playback.
     message: Option<(u64, Arc<[u8]>, Option<Playing>)>,
@@ -100,6 +102,7 @@ impl Default for Audio {
             speaking_user: None,
             failed: None,
             active: false,
+            wake: Arc::new(|| {}),
             message: None,
             watch: Watch::default(),
             sound: None,
@@ -110,10 +113,12 @@ impl Default for Audio {
 }
 
 impl Audio {
-    /// With the provider's audio path: a connected call carries sound.
-    pub fn with_link(link: Option<VoiceLink>) -> Self {
+    /// With the provider's audio path: a connected call carries sound. `wake`
+    /// asks the interface for a repaint when the call's speaking marks change.
+    pub fn with_link(link: Option<VoiceLink>, wake: Arc<dyn Fn() + Send + Sync>) -> Self {
         Self {
             link: link.map(|link| Arc::new(Mutex::new(link))),
+            wake,
             ..Self::default()
         }
     }
@@ -124,10 +129,26 @@ impl Audio {
         self.failed = None;
     }
 
-    /// Poll while opening as well as while running; no UI wake is needed from
-    /// the real-time callback. Idle windows do not poll audio.
-    pub fn active(&self) -> bool {
-        self.active
+    /// When the interface looks at the audio again. A remote speaker wakes it
+    /// by itself (see `wake`); what needs a look is the meter, a playing sound
+    /// or voice message (50 ms), and the local speaking mark, which follows
+    /// the microphone while it can be heard in a call (100 ms). Otherwise
+    /// nothing polls.
+    pub fn next_poll(&self, ui: &Ui, store: &Store) -> Option<Duration> {
+        if !self.active {
+            return None;
+        }
+        let voice = ui
+            .voice_player
+            .as_ref()
+            .is_some_and(|player| player.state == VoiceState::Playing);
+        if ui.audio.testing || voice || self.sounding() {
+            Some(Duration::from_millis(50))
+        } else if audible_call(ui, store).is_some() {
+            Some(Duration::from_millis(100))
+        } else {
+            None
+        }
     }
 
     /// Play `sound` once, as the call's sounds play.
@@ -381,6 +402,7 @@ impl Audio {
         {
             let (microphone, tap) = rune_media::tap(TRANSMIT_QUEUE);
             let (outgoing, incoming) = (link.clone(), link.clone());
+            let wake = self.wake.clone();
             let started = CallMedia::start(
                 tap,
                 playback.feed(),
@@ -399,6 +421,7 @@ impl Audio {
                         packet: packet.opus,
                     })
                 },
+                move || wake(),
             );
             match started {
                 Ok(media) => {
@@ -853,7 +876,7 @@ mod tests {
         ui.deafened = true;
         assert!(output_request(&ui, true, false).unwrap().deafened);
         // A simulated provider hands no link: its call never opens the output.
-        let audio = Audio::with_link(None);
+        let audio = Audio::with_link(None, Arc::new(|| {}));
         assert!(audio.link.is_none() && store.call().is_some());
         assert!(audio.call.is_none());
     }
@@ -957,7 +980,30 @@ mod tests {
         let mut audio = Audio::default();
         audio.step(&mut ui, &mut store, now);
         assert!(store.my_voice().unwrap().speaking);
-        assert!(!audio.active());
+        assert_eq!(audio.next_poll(&ui, &store), None);
+    }
+
+    #[test]
+    fn audio_is_polled_only_for_what_the_interface_shows() {
+        // No device opens under test, so the capture is taken as running.
+        let (mut ui, store, _) = call();
+        let audio = Audio {
+            active: true,
+            ..Audio::default()
+        };
+        assert_eq!(
+            audio.next_poll(&ui, &store),
+            Some(Duration::from_millis(100)),
+            "the local speaking mark in an unmuted call"
+        );
+        ui.muted = true;
+        assert_eq!(audio.next_poll(&ui, &store), None, "muted: nothing to mark");
+        ui.audio.testing = true;
+        assert_eq!(
+            audio.next_poll(&ui, &store),
+            Some(Duration::from_millis(50)),
+            "a meter shown"
+        );
     }
 
     #[test]

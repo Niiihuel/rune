@@ -164,6 +164,7 @@ fn main() {
             })
         },
         || {},
+        || {},
     );
     let started = Instant::now();
     let mut shown = 0u32;

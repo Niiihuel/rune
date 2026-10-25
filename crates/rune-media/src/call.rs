@@ -88,6 +88,27 @@ pub struct CallStatus {
     pub failed: Option<String>,
 }
 
+/// What the interface last saw of the status: the speaking marks and failure.
+#[derive(Default)]
+struct Shown {
+    speaking: Vec<(u64, bool)>,
+    failed: bool,
+}
+
+impl Shown {
+    /// Whether `status` differs from what was seen, and remembers it. Counters
+    /// such as the jitter statistics change every tick and do not count.
+    fn changed(&mut self, status: &CallStatus) -> bool {
+        let failed = status.failed.is_some();
+        if self.speaking == status.speaking && self.failed == failed {
+            return false;
+        }
+        self.speaking.clone_from(&status.speaking);
+        self.failed = failed;
+        true
+    }
+}
+
 struct Shared {
     controls: Mutex<CallControls>,
     /// A voice message to mix in, until the engine takes it.
@@ -109,11 +130,14 @@ type Send = Box<dyn FnMut(Vec<u8>) + std::marker::Send>;
 type Receive = Box<dyn FnMut() -> Option<Incoming> + std::marker::Send>;
 
 impl CallMedia {
+    /// `wake` is called when [`CallStatus`] changes what the interface shows
+    /// (the speaking marks or the failure), so it repaints instead of polling.
     pub fn start(
         microphone: Tap,
         output: Feed,
         send: impl FnMut(Vec<u8>) + std::marker::Send + 'static,
         receive: impl FnMut() -> Option<Incoming> + std::marker::Send + 'static,
+        wake: impl Fn() + std::marker::Send + 'static,
     ) -> Result<Self, MediaError> {
         let mut engine = Engine::new(microphone, output, Box::new(send), Box::new(receive))?;
         let shared = Arc::new(Shared {
@@ -128,6 +152,7 @@ impl CallMedia {
             .name("rune-call".into())
             .spawn(move || {
                 let mut deadline = Instant::now();
+                let mut shown = Shown::default();
                 while !worker_shared.shutdown.load(Ordering::Acquire) {
                     if let Ok(controls) = worker_shared.controls.try_lock() {
                         engine.configure(&controls);
@@ -147,8 +172,12 @@ impl CallMedia {
                     }
                     let status = engine.tick(Instant::now());
                     let failed = status.failed.is_some();
-                    if let Ok(mut shown) = worker_shared.status.lock() {
-                        *shown = status;
+                    let changed = shown.changed(&status);
+                    if let Ok(mut current) = worker_shared.status.lock() {
+                        *current = status;
+                    }
+                    if changed {
+                        wake();
                     }
                     if failed {
                         break;
@@ -570,7 +599,7 @@ mod tests {
     fn dropping_the_handle_stops_the_thread_and_releases_the_output() {
         let (mic, tap) = crate::tap(4_800);
         let (output, heard) = Feed::pair(4_800);
-        let media = CallMedia::start(tap, output, |_| {}, || None).unwrap();
+        let media = CallMedia::start(tap, output, |_| {}, || None, || {}).unwrap();
         media.set_controls(CallControls::default());
         drop(media);
         let deadline = Instant::now() + Duration::from_secs(5);
@@ -578,5 +607,25 @@ mod tests {
             assert!(Instant::now() < deadline, "the thread let go of both ends");
             thread::sleep(Duration::from_millis(5));
         }
+    }
+
+    #[test]
+    fn the_interface_wakes_only_when_its_speaking_marks_or_failure_change() {
+        let mut shown = Shown::default();
+        let mut status = CallStatus::default();
+        assert!(
+            !shown.changed(&status),
+            "nothing shown yet, nothing changed"
+        );
+        status.received.received += 1;
+        assert!(!shown.changed(&status), "counters alone do not wake");
+        status.speaking = vec![(7, true)];
+        assert!(shown.changed(&status), "a speaking mark wakes once");
+        assert!(!shown.changed(&status), "the same marks do not");
+        status.speaking = vec![(7, false)];
+        assert!(shown.changed(&status));
+        status.failed = Some("cut".into());
+        assert!(shown.changed(&status), "a failure wakes");
+        assert!(!shown.changed(&status));
     }
 }

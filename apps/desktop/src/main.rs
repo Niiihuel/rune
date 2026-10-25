@@ -1251,7 +1251,10 @@ impl App {
             fonts_attached: false,
             focus: None,
             // Only a provider that carries audio hands its link over.
-            audio: audio::Audio::with_link(provider.take_voice_link()),
+            audio: audio::Audio::with_link(provider.take_voice_link(), {
+                let wake = ctx.clone();
+                Arc::new(move || wake.request_repaint())
+            }),
             global_ptt: ptt::GlobalPushToTalk::default(),
             pressed: Vec::new(),
             alerts: alerts::Alerts::new({
@@ -2255,7 +2258,10 @@ impl App {
         limn_egui::clear_image_cache();
         self.animations.clear();
         self.video.clear();
-        self.audio = audio::Audio::with_link(provider.take_voice_link());
+        self.audio = audio::Audio::with_link(provider.take_voice_link(), {
+            let wake = ctx.clone();
+            Arc::new(move || wake.request_repaint())
+        });
         self.video = video::Video::with_link(provider.take_video_link());
         let intents = rune_ui::provider_changed(&mut self.ui, key);
         account_settings(&mut self.kept, &mut self.ui, &self.store, &self.client);
@@ -4562,9 +4568,8 @@ impl eframe::App for App {
         if self.ui.show_metrics {
             sooner(Some(Duration::from_millis(80)));
         }
-        if self.audio.active() {
-            sooner(Some(Duration::from_millis(50)));
-        }
+        // The meter, sounds and the local speaking mark look at the audio.
+        sooner(self.audio.next_poll(&self.ui, &self.store));
         // A video playing shows its pictures as they come, up to 30 a second.
         if self.ui.voice_player.as_ref().is_some_and(|player| {
             player.kind == rune_ui::Played::Video && player.state == rune_ui::VoiceState::Playing

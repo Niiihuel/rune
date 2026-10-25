@@ -61,8 +61,9 @@ struct Held {
     shown: Option<f32>,
 }
 
-/// How often a watched stream is looked at: up to 60 frames a second.
-const STREAM_POLL: Duration = Duration::from_millis(16);
+/// A decoded watched stream wakes the interface with each picture, so it is
+/// only looked at this often as a safety net (a lost wake, a late surface).
+const WATCH_POLL: Duration = Duration::from_millis(250);
 /// The simulated stream: its size and pace.
 const SIMULATED: (u32, u32) = (640, 360);
 const SIMULATED_PACE: Duration = Duration::from_millis(66);
@@ -171,10 +172,13 @@ impl Watched {
         owner: UserId,
         kind: VideoKind,
         engines: &'static [Engine],
+        ctx: &egui::Context,
         now: Instant,
     ) -> Option<Self> {
         let pictures = match (router, simulated) {
-            (Some(router), _) => Pictures::Decoded(decoding(router.clone(), owner, kind, engines)),
+            (Some(router), _) => {
+                Pictures::Decoded(decoding(router.clone(), owner, kind, engines, ctx))
+            }
             (None, true) => Pictures::Simulated(now, None),
             (None, false) => return None,
         };
@@ -366,14 +370,30 @@ impl Video {
         false
     }
 
-    /// When to look for the next frame, while a source is held.
+    /// When to look for the next frame, while a source is held. Decoded
+    /// streams repaint by themselves; made-up pictures and the own preview
+    /// keep their pace.
     pub fn next_poll(&self) -> Option<std::time::Duration> {
         #[cfg(any(target_os = "linux", windows))]
         {
-            if !self.streams.is_empty() || !self.cameras.is_empty() {
-                return Some(STREAM_POLL);
+            if !self.active() {
+                return None;
             }
-            self.active().then_some(rune_media::video::PREVIEW_INTERVAL)
+            let made_up = self
+                .streams
+                .iter()
+                .chain(&self.cameras)
+                .any(|held| matches!(held.pictures, Pictures::Simulated(..)));
+            let watched = if made_up {
+                Some(SIMULATED_PACE)
+            } else if !self.streams.is_empty() || !self.cameras.is_empty() {
+                Some(WATCH_POLL)
+            } else {
+                None
+            };
+            let preview = (self.screen.is_some() || self.camera.is_some())
+                .then_some(rune_media::video::PREVIEW_INTERVAL);
+            [watched, preview].into_iter().flatten().min()
         }
         #[cfg(not(any(target_os = "linux", windows)))]
         None
@@ -404,11 +424,14 @@ impl Video {
         );
         #[cfg(any(target_os = "linux", windows))]
         {
-            self.set_engines(if ui.prefs.video_hardware {
-                HARDWARE
-            } else {
-                &[]
-            });
+            self.set_engines(
+                ctx,
+                if ui.prefs.video_hardware {
+                    HARDWARE
+                } else {
+                    &[]
+                },
+            );
             let (screen, camera) = ui.video.wanted(store);
             let account = store.me();
             let device = ui.video.device.clone();
@@ -594,7 +617,7 @@ impl Video {
     /// watched starts again with them from a key frame, keeping its source
     /// and last picture.
     #[cfg(any(target_os = "linux", windows))]
-    fn set_engines(&mut self, engines: &'static [Engine]) {
+    fn set_engines(&mut self, ctx: &egui::Context, engines: &'static [Engine]) {
         if engines == self.engines {
             return;
         }
@@ -618,7 +641,7 @@ impl Video {
         for (held, kind) in streams.chain(cameras) {
             if let Pictures::Decoded(_) = held.pictures {
                 held.pictures =
-                    Pictures::Decoded(decoding(router.clone(), held.owner, kind, engines));
+                    Pictures::Decoded(decoding(router.clone(), held.owner, kind, engines, ctx));
                 held.hardware = !engines.is_empty();
                 held.decoder = None;
             }
@@ -820,6 +843,7 @@ impl Video {
                     *user,
                     VideoKind::Camera,
                     self.engines,
+                    ctx,
                     now,
                 );
                 self.cameras.extend(started);
@@ -869,6 +893,7 @@ impl Video {
                     *owner,
                     VideoKind::Screen,
                     self.engines,
+                    ctx,
                     now,
                 );
                 self.streams.extend(started);
@@ -986,7 +1011,9 @@ fn decoding(
     owner: UserId,
     kind: VideoKind,
     engines: &'static [Engine],
+    ctx: &egui::Context,
 ) -> rune_media::video::decode::Decoding {
+    let wake = ctx.clone();
     let queue = Arc::new(Mutex::new(Queue::default()));
     let requests = router.clone();
     let mut joined = false;
@@ -1012,6 +1039,7 @@ fn decoding(
                     .try_send(VideoRequest::KeyFrame { user: owner, kind });
             }
         },
+        move || wake.request_repaint(),
     )
 }
 
@@ -1535,7 +1563,7 @@ mod tests {
         };
         key_frame();
         // OpenH264 either way, so no GPU is opened: only the choice differs.
-        video.set_engines(&[Engine::Software]);
+        video.set_engines(&ctx, &[Engine::Software]);
         assert!(video.cameras[0].hardware);
         key_frame();
         video.clear();

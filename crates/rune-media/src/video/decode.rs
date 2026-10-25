@@ -60,18 +60,20 @@ pub struct Decoding {
 
 impl Decoding {
     /// Decode what `receive` gives with the first of the GPU's `engines`
-    /// that works ([`gpu::HARDWARE`], or none), OpenH264 after them.
+    /// that works ([`gpu::HARDWARE`], or none), OpenH264 after them. `wake`
+    /// is called after each picture is queued, so the host repaints for it.
     pub fn start(
         engines: &'static [Engine],
         receive: impl FnMut() -> Option<Unit> + Send + 'static,
         key: impl FnMut() + Send + 'static,
+        wake: impl Fn() + Send + 'static,
     ) -> Self {
         let shared = Arc::new(Shared::new());
         let engine = Arc::new(Mutex::new(DecodeEngine::default()));
         let (worker, told) = (shared.clone(), engine.clone());
         let spawned = thread::Builder::new()
             .name("rune-video-decode".into())
-            .spawn(move || work(&worker, &told, engines, receive, key));
+            .spawn(move || work(&worker, &told, engines, receive, key, wake));
         let worker = match spawned {
             Ok(handle) => Some(handle.thread().clone()),
             Err(_) => {
@@ -135,6 +137,7 @@ fn work(
     mut engines: &'static [Engine],
     mut receive: impl FnMut() -> Option<Unit>,
     mut key: impl FnMut(),
+    wake: impl Fn(),
 ) {
     let failed = || {
         shared.end(Some(
@@ -176,7 +179,10 @@ fn work(
         if let Codec::Gpu(gpu) = &mut decoder {
             loop {
                 match gpu.pull() {
-                    Ok(Some(frame)) => shared.push(frame),
+                    Ok(Some(frame)) => {
+                        shared.push(frame);
+                        wake();
+                    }
                     Ok(None) => break,
                     Err(()) => {
                         broken = true;
@@ -204,6 +210,7 @@ fn work(
                 Ok(Some(picture)) => {
                     if let Some(frame) = rgba(&picture) {
                         shared.push(frame);
+                        wake();
                     }
                 }
                 Ok(None) => {}
@@ -384,6 +391,7 @@ mod tests {
             move || {
                 asked.fetch_add(1, Ordering::SeqCst);
             },
+            || {},
         );
         wait(|| (keys.load(Ordering::SeqCst) == 1).then_some(()));
         // A delta before any key frame is never shown.
