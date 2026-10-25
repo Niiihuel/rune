@@ -611,6 +611,15 @@ pub struct Audio {
     pub system_echo: Option<bool>,
 }
 
+/// Whether the device lists are in use: a call, a meter test, the voice page
+/// or the quick voice panel. While they are, the app lists them again often.
+pub fn devices_in_use(ui: &Ui, store: &Store) -> bool {
+    ui.audio.testing
+        || ui.settings == Some(settings::SettingsPage::Voice)
+        || ui.profiles.devices.is_some()
+        || store.call().is_some_and(|call| call.phase.is_connected())
+}
+
 /// Push-to-talk outside the window, through the desktop's global shortcuts.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum GlobalKeys {

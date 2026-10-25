@@ -7,7 +7,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use rune_i18n::t;
+use rune_i18n::{t, tr};
 use rune_media::call::{CallControls, CallMedia, Incoming};
 use rune_media::mixer::STREAM_SOUND;
 use rune_media::{
@@ -82,6 +82,10 @@ pub struct Audio {
     sounds: Vec<Playing>,
     /// RUNE's sounds, and the person's own folder's.
     library: Library,
+    /// The microphone (speaker) is the default standing in for a chosen one
+    /// that is missing: said once when that changes.
+    input_fell_back: bool,
+    output_fell_back: bool,
 }
 
 impl Default for Audio {
@@ -108,6 +112,8 @@ impl Default for Audio {
             sound: None,
             sounds: Vec::new(),
             library: Library::default(),
+            input_fell_back: false,
+            output_fell_back: false,
         }
     }
 }
@@ -533,6 +539,10 @@ impl Audio {
     fn apply_output(&mut self, ui: &mut Ui, snapshot: &PlaybackSnapshot, now: Instant) {
         ui.audio.output_starting =
             ui.audio.loopback && matches!(snapshot.state, CaptureState::Starting);
+        if snapshot.state == CaptureState::Running && snapshot.fallback != self.output_fell_back {
+            self.output_fell_back = snapshot.fallback;
+            announce_switch(ui, false, snapshot.fallback, now);
+        }
         if let CaptureState::Failed(error) = &snapshot.state {
             self.output_failed(ui, error.clone(), now);
         }
@@ -581,6 +591,14 @@ impl Audio {
     }
 
     fn apply(&mut self, ui: &mut Ui, store: &mut Store, snapshot: &CaptureSnapshot, now: Instant) {
+        if snapshot.state == CaptureState::Idle {
+            self.input_fell_back = false;
+        } else if snapshot.state == CaptureState::Running
+            && snapshot.fallback != self.input_fell_back
+        {
+            self.input_fell_back = snapshot.fallback;
+            announce_switch(ui, true, snapshot.fallback, now);
+        }
         ui.audio.starting = ui.audio.testing && matches!(snapshot.state, CaptureState::Starting);
         // Said once the canceller has heard something: before that, it
         // has not chosen its reference yet.
@@ -649,6 +667,35 @@ impl Audio {
             store.set_speaking(me, false);
         }
     }
+}
+
+/// Says which device is in use now, by name, after a fallback or a return.
+/// Nothing is said while the device list is not loaded.
+fn announce_switch(ui: &mut Ui, input: bool, fallback: bool, now: Instant) {
+    let Some(Ok(devices)) = &ui.audio.devices else {
+        return;
+    };
+    let (list, chosen) = if input {
+        (&devices.inputs, &ui.audio.input)
+    } else {
+        (&devices.outputs, &ui.audio.output)
+    };
+    // While the default stands in, it is the one in use; else the chosen one.
+    let device = if fallback {
+        list.iter().find(|device| device.default)
+    } else {
+        list.iter()
+            .find(|device| Some(&device.id) == chosen.as_ref())
+    };
+    let Some(name) = device.map(|device| device.name.clone()) else {
+        return;
+    };
+    let title = if input {
+        tr!("Entrada cambiada a {name}", name)
+    } else {
+        tr!("Salida cambiada a {name}", name)
+    };
+    ui.notify(title, None, false, now);
 }
 
 fn audible_call(ui: &Ui, store: &Store) -> Option<ChannelId> {

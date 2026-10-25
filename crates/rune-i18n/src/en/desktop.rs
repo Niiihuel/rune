@@ -138,6 +138,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "Couldn't use the audio output",
     ),
     ("No se pudo usar el micrófono", "Couldn't use the microphone"),
+    ("Entrada cambiada a {name}", "Input switched to {name}"),
+    ("Salida cambiada a {name}", "Output switched to {name}"),
     (
         "El sonido dejó de estar disponible.",
         "The sound is no longer available.",

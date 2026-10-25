@@ -176,6 +176,7 @@ pub(crate) fn simulate(scene: &Scene) -> Heard {
         consumer,
         signals: ingress.signals.clone(),
         rate: RATE as u32,
+        default: None,
     };
     let mut active = Active::new(opened, &scene.request).unwrap();
     let (mut played, reference) = EchoReference::pair(REFERENCE_RING);

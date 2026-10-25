@@ -12,13 +12,18 @@ use cpal::{FromSample, SampleFormat, SizedSample};
 use rtrb::{Consumer, Producer, RingBuffer};
 use rune_i18n::t;
 
-use crate::playback::Linear;
+use crate::playback::{device_id, next_try, Linear, Reopen, DEFAULT_CHECK, RETRIES};
 use crate::{
     CaptureProcessor, EchoReference, Feed, MediaError, ProcessingMode, PLAYBACK_RATE,
     REFERENCE_FRAME,
 };
 
 const POLL_INTERVAL: Duration = Duration::from_millis(4);
+/// A lost loopback waits this long, doubling per loss up to 16 times it.
+#[cfg(not(test))]
+const LOOPBACK_RETRY: Duration = Duration::from_secs(2);
+#[cfg(test)]
+const LOOPBACK_RETRY: Duration = Duration::from_millis(5);
 /// Reference queued beyond this is old: dropping it bounds the misalignment
 /// the canceller's own delay estimate has to absorb. Running steadily it is
 /// never reached: everything waiting is fed before each capture frame.
@@ -93,6 +98,9 @@ pub struct CaptureSnapshot {
     /// The canceller's reference is the system's loopback: what every
     /// application plays on the output, RUNE included.
     pub system_echo: bool,
+    /// The chosen microphone is missing: the system default is captured in
+    /// its place, and the chosen one is opened again once it is back.
+    pub fallback: bool,
 }
 
 struct Desired {
@@ -423,6 +431,8 @@ struct Opened<S> {
     consumer: Consumer<Sample>,
     signals: Arc<StreamSignals>,
     rate: u32,
+    /// The system default this stream opened, when it captures the default.
+    default: Option<String>,
 }
 
 /// An open loopback of an output: the stream, kept only to stay open, a
@@ -442,6 +452,10 @@ trait Backend {
     ) -> Result<Opened<Self::Stream>, MediaError>;
     /// What the system plays on `output` (`None`: the default output).
     fn open_loopback(&mut self, output: Option<&str>) -> Result<Loopback, MediaError>;
+    /// The system's default microphone now.
+    fn default_input(&mut self) -> Option<String>;
+    /// Whether the microphone with this id is connected now.
+    fn present(&mut self, id: &str) -> bool;
 }
 
 struct CpalBackend;
@@ -513,6 +527,7 @@ impl Backend for CpalBackend {
             consumer,
             signals,
             rate,
+            default: id.is_none().then(|| device_id(&device)),
         })
     }
 
@@ -523,6 +538,19 @@ impl Backend for CpalBackend {
             failed,
             reference,
         })
+    }
+
+    fn default_input(&mut self) -> Option<String> {
+        cpal::default_host()
+            .default_input_device()
+            .map(|device| device_id(&device))
+    }
+
+    fn present(&mut self, id: &str) -> bool {
+        id.parse()
+            .ok()
+            .and_then(|id| cpal::default_host().device_by_id(&id))
+            .is_some()
     }
 }
 
@@ -637,7 +665,10 @@ where
         .build_input_stream::<T, _, _>(
             config,
             move |samples, _| ingress.write(samples),
-            move |_| {
+            move |error| {
+                // The worker reopens the device: a default change, an unplug
+                // or a sleep all end the stream here.
+                eprintln!("rune: microphone: stream lost: {error}");
                 signals.failed.store(true, Ordering::Release);
             },
             Some(Duration::from_secs(2)),
@@ -663,6 +694,10 @@ struct Active<S> {
     /// The output whose loopback could not be opened: not tried again
     /// until the request changes.
     system_failed: Option<Option<String>>,
+    /// A loopback that died is opened again at this time, after a pause
+    /// that doubles with each loss.
+    system_retry: Option<Instant>,
+    system_lost: u32,
     /// The capture started over (opened, a new request such as a mute, a
     /// gap): what waits in the references played before it.
     fresh: bool,
@@ -745,6 +780,8 @@ impl<S> Active<S> {
             monitor: request.monitor,
             system: None,
             system_failed: None,
+            system_retry: None,
+            system_lost: 0,
             fresh: true,
             reference: vec![0.0; REFERENCE_FRAME],
             frame,
@@ -777,6 +814,7 @@ impl<S> Active<S> {
         self.next_sequence = None;
         self.fresh = true;
         self.system_failed = None;
+        self.system_retry = None;
         // Admission is closed while reconfiguring. An in-flight callback can
         // still finish; generation tags reject its samples in step().
         for _ in 0..self.opened.rate as usize / 5 {
@@ -796,22 +834,49 @@ impl<S> Active<S> {
 
     /// Open or close the system's loopback as `request` asks: with echo
     /// cancellation and [`CaptureRequest::system_echo`], on its output. A
-    /// failed one is not retried until the request changes.
-    fn steer_system<B: Backend>(&mut self, backend: &mut B, request: &CaptureRequest) {
+    /// failed one is not retried until the request changes; a lost one is
+    /// retried after a pause (see [`Self::system_due`]).
+    fn steer_system<B: Backend>(
+        &mut self,
+        backend: &mut B,
+        request: &CaptureRequest,
+        now: Instant,
+    ) {
         let wanted = (request.echo_cancellation && request.system_echo).then_some(&request.output);
+        let lost = self.system.as_ref().is_some_and(|(loopback, output, _)| {
+            Some(output) == wanted && loopback.failed.load(Ordering::Acquire)
+        });
         if self.system.as_ref().is_some_and(|(loopback, output, _)| {
             Some(output) != wanted || loopback.failed.load(Ordering::Acquire)
         }) {
             self.system = None;
         }
-        let Some(output) = wanted
-            .filter(|output| self.system.is_none() && self.system_failed.as_ref() != Some(*output))
-        else {
+        if lost {
+            self.system_lost = self.system_lost.saturating_add(1);
+            self.system_retry = Some(now + LOOPBACK_RETRY * (1_u32 << self.system_lost.min(4)));
+        }
+        let Some(output) = wanted.filter(|output| {
+            self.system.is_none()
+                && self.system_failed.as_ref() != Some(*output)
+                && self.system_retry.is_none_or(|at| now >= at)
+        }) else {
             return;
         };
         match backend.open_loopback(output.as_deref()) {
-            Ok(loopback) => self.system = Some((loopback, output.clone(), 0)),
+            Ok(loopback) => {
+                self.system = Some((loopback, output.clone(), 0));
+                self.system_retry = None;
+            }
             Err(_) => self.system_failed = Some(output.clone()),
+        }
+    }
+
+    /// Whether the loopback needs [`Self::steer_system`] now: it died, or its
+    /// pause after a loss is over.
+    fn system_due(&self, now: Instant) -> bool {
+        match &self.system {
+            Some((loopback, ..)) => loopback.failed.load(Ordering::Acquire),
+            None => self.system_retry.is_some_and(|at| now >= at),
         }
     }
 
@@ -1016,11 +1081,43 @@ impl Drop for WorkerLife {
     }
 }
 
+/// Opens and starts `target` for `request`: `None` when the request went
+/// obsolete meanwhile, and nothing is kept then.
+fn open_active<B: Backend>(
+    backend: &mut B,
+    shared: &Arc<Shared>,
+    generation: u64,
+    request: &CaptureRequest,
+    target: Option<String>,
+) -> Result<Option<Active<B::Stream>>, MediaError> {
+    let opened = backend.open(target.as_deref(), shared.clone())?;
+    // A delayed device open cannot activate an obsolete request.
+    if !shared.current(generation) {
+        return Ok(None);
+    }
+    let mut next = Active::new(opened, request)?;
+    next.device = target;
+    // Admission stays closed until play returns and is checked again, so even
+    // a concurrent stop cannot admit samples.
+    if !shared.current(generation) {
+        return Ok(None);
+    }
+    next.opened.stream.start()?;
+    Ok(shared.current(generation).then_some(next))
+}
+
 fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
     let _life = WorkerLife(shared.clone());
     let mut generation = 0;
     let mut active: Option<Active<B::Stream>> = None;
     let mut links = Links::default();
+    // The device the latest request named, and whether the system default
+    // stands in for it while it is missing.
+    let mut requested: Option<Option<String>> = None;
+    let mut fallback = false;
+    // The next attempt to open the device: after a failure or a lost stream.
+    let mut reopen: Option<Reopen> = None;
+    let mut checked = Instant::now();
     loop {
         if shared.shutdown.load(Ordering::Acquire) {
             if active.is_some() {
@@ -1048,9 +1145,17 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                     eprintln!("rune: microphone: capture stopped");
                 }
                 active = None;
+                reopen = None;
+                requested = None;
+                fallback = false;
                 shared.publish(generation, CaptureSnapshot::default());
                 continue;
             };
+            if requested.as_ref() != Some(&request.device) {
+                fallback = false;
+            }
+            requested = Some(request.device.clone());
+            reopen = None;
             shared.publish(
                 generation,
                 CaptureSnapshot {
@@ -1066,9 +1171,13 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                 request.automatic_gain,
                 request.speech_gate
             );
+            let target = if fallback {
+                None
+            } else {
+                request.device.clone()
+            };
             let result = if active.as_ref().is_some_and(|active| {
-                active.device == request.device
-                    && !active.opened.signals.failed.load(Ordering::Acquire)
+                active.device == target && !active.opened.signals.failed.load(Ordering::Acquire)
             }) {
                 active
                     .as_mut()
@@ -1077,29 +1186,13 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                 Ok(())
             } else {
                 active = None;
-                backend
-                    .open(request.device.as_deref(), shared.clone())
-                    .and_then(|opened| {
-                        if !shared.current(generation) {
-                            return Ok(());
-                        }
-                        let next = Active::new(opened, request)?;
-                        // A delayed device open cannot activate an obsolete request.
-                        // Admission stays closed until play returns and is checked
-                        // again, so even a concurrent stop cannot admit samples.
-                        if !shared.current(generation) {
-                            return Ok(());
-                        }
-                        next.opened.stream.start()?;
-                        if shared.current(generation) {
-                            eprintln!("rune: microphone: capture started");
-                            active = Some(next);
-                        }
-                        Ok(())
-                    })
+                open_active(&mut backend, &shared, generation, request, target).map(|next| {
+                    active = next;
+                })
             };
             if let Some(current) = active.as_mut().filter(|_| result.is_ok()) {
-                current.steer_system(&mut backend, request);
+                current.steer_system(&mut backend, request, Instant::now());
+                current.snapshot.fallback = fallback;
             }
             match result {
                 Ok(()) if shared.current(generation) && active.is_some() => {
@@ -1116,41 +1209,127 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                 Err(error) => {
                     eprintln!("rune: microphone: capture failed: {error}");
                     active = None;
-                    shared.publish(
-                        generation,
-                        CaptureSnapshot {
-                            state: CaptureState::Failed(error.0),
-                            ..CaptureSnapshot::default()
-                        },
-                    );
+                    // A device that will not open is tried again, then the
+                    // default stands in for a chosen one, then it fails.
+                    let now = Instant::now();
+                    let failed = Reopen {
+                        at: now,
+                        left: RETRIES,
+                        fallback,
+                    };
+                    reopen = next_try(&failed, request.device.is_some(), now);
+                    if reopen.is_none() {
+                        shared.publish(
+                            generation,
+                            CaptureSnapshot {
+                                state: CaptureState::Failed(error.0),
+                                ..CaptureSnapshot::default()
+                            },
+                        );
+                    }
                 }
                 _ => {}
             }
         }
-        if let Some(current) = &mut active {
-            match current.step(&shared, generation, Instant::now(), &mut links) {
-                Ok(true) => shared.publish(generation, current.snapshot.clone()),
-                Ok(false) => {}
-                Err(error) => {
-                    eprintln!("rune: microphone: capture failed: {error}");
-                    shared.ready.store(0, Ordering::Release);
-                    active = None;
-                    shared.publish(
-                        generation,
-                        CaptureSnapshot {
-                            state: CaptureState::Failed(error.0),
-                            ..CaptureSnapshot::default()
-                        },
-                    );
+        if let Some(due) = reopen.take_if(|due| Instant::now() >= due.at) {
+            if let Some(request) = &desired.request {
+                fallback = due.fallback;
+                shared.publish(
+                    generation,
+                    CaptureSnapshot {
+                        state: CaptureState::Starting,
+                        ..CaptureSnapshot::default()
+                    },
+                );
+                let target = if fallback {
+                    None
+                } else {
+                    request.device.clone()
+                };
+                match open_active(&mut backend, &shared, generation, request, target) {
+                    Ok(Some(mut next)) => {
+                        next.snapshot.fallback = fallback;
+                        shared.ready.store(generation, Ordering::Release);
+                        shared.publish(generation, next.snapshot.clone());
+                        active = Some(next);
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        eprintln!("rune: microphone: capture failed: {error}");
+                        reopen = next_try(&due, request.device.is_some(), Instant::now());
+                        if reopen.is_none() {
+                            shared.publish(
+                                generation,
+                                CaptureSnapshot {
+                                    state: CaptureState::Failed(error.0),
+                                    ..CaptureSnapshot::default()
+                                },
+                            );
+                        }
+                    }
                 }
             }
+        }
+        // Set when the open stream has to be opened again.
+        let mut restart: Option<Reopen> = None;
+        if let (Some(current), Some(request)) = (&mut active, &desired.request) {
+            let now = Instant::now();
+            if current.system_due(now) {
+                current.steer_system(&mut backend, request, now);
+            }
+            // On the default: follow it, and look for a chosen microphone that
+            // was missing; either one reopens the stream at once.
+            if current.device.is_none() && now.saturating_duration_since(checked) >= DEFAULT_CHECK {
+                checked = now;
+                let returned = fallback
+                    && request
+                        .device
+                        .as_deref()
+                        .is_some_and(|id| backend.present(id));
+                if returned || backend.default_input() != current.opened.default {
+                    restart = Some(Reopen {
+                        at: now,
+                        left: RETRIES,
+                        fallback: fallback && !returned,
+                    });
+                }
+            }
+            if restart.is_none() {
+                match current.step(&shared, generation, now, &mut links) {
+                    Ok(true) => shared.publish(generation, current.snapshot.clone()),
+                    Ok(false) => {}
+                    Err(error) => {
+                        // The stream was lost: open it again at once.
+                        eprintln!("rune: microphone: capture failed: {error}");
+                        restart = Some(Reopen {
+                            at: now,
+                            left: RETRIES,
+                            fallback,
+                        });
+                    }
+                }
+            }
+        }
+        if let Some(due) = restart {
+            active = None;
+            shared.ready.store(0, Ordering::Release);
+            shared.publish(
+                generation,
+                CaptureSnapshot {
+                    state: CaptureState::Starting,
+                    ..CaptureSnapshot::default()
+                },
+            );
+            reopen = Some(due);
         }
         // A backend call may itself park and consume the thread's unpark token.
         // Recheck desired state after all such calls, before going idle.
         if !shared.current(generation) {
             continue;
         }
-        if active.is_none() || shared.muted.load(Ordering::Acquire) {
+        if let Some(due) = &reopen {
+            thread::park_timeout(due.at.saturating_duration_since(Instant::now()));
+        } else if active.is_none() || shared.muted.load(Ordering::Acquire) {
             thread::park();
         } else {
             thread::park_timeout(POLL_INTERVAL);

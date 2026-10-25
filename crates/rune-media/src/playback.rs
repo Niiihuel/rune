@@ -42,11 +42,19 @@ const MAX_RATE: u32 = 192_000;
 const MIN_RATE: u32 = 8_000;
 const MAX_CHANNELS: u16 = 8;
 const POLL_INTERVAL: Duration = Duration::from_millis(4);
-/// A lost device is reopened this often, this many times, before failing.
-const RETRY: Duration = Duration::from_millis(500);
-const RETRIES: u32 = 10;
-/// How often the system's default output is checked while following it.
-const DEFAULT_CHECK: Duration = Duration::from_secs(1);
+/// A lost device is reopened this often, this many times, before the system
+/// default takes over (or playback fails when there is no chosen device).
+#[cfg(not(test))]
+pub(crate) const RETRY: Duration = Duration::from_millis(500);
+#[cfg(test)]
+pub(crate) const RETRY: Duration = Duration::from_millis(5);
+pub(crate) const RETRIES: u32 = 10;
+/// How often the default is checked while following it, and while on the
+/// default for a chosen device that may be plugged in again.
+#[cfg(not(test))]
+pub(crate) const DEFAULT_CHECK: Duration = Duration::from_secs(1);
+#[cfg(test)]
+pub(crate) const DEFAULT_CHECK: Duration = Duration::from_millis(10);
 
 /// What plays.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -89,6 +97,9 @@ pub struct PlaybackSnapshot {
     pub output_latency_micros: u64,
     /// Audio queued for the callback when last measured.
     pub queued_micros: u64,
+    /// The chosen output is missing: the system default plays in its place,
+    /// and the chosen one is opened again once it is back.
+    pub fallback: bool,
 }
 
 struct Desired {
@@ -541,11 +552,13 @@ trait Backend {
     ) -> Result<Opened<Self::Stream>, MediaError>;
     /// The system's default output now.
     fn default_output(&mut self) -> Option<String>;
+    /// Whether the output with this id is connected now.
+    fn present(&mut self, id: &str) -> bool;
 }
 
 struct CpalBackend;
 
-fn device_id(device: &cpal::Device) -> String {
+pub(crate) fn device_id(device: &cpal::Device) -> String {
     device
         .id()
         .map(|id| id.to_string())
@@ -620,6 +633,13 @@ impl Backend for CpalBackend {
             .default_output_device()
             .map(|device| device_id(&device))
     }
+
+    fn present(&mut self, id: &str) -> bool {
+        id.parse()
+            .ok()
+            .and_then(|id| cpal::default_host().device_by_id(&id))
+            .is_some()
+    }
 }
 
 /// 48 kHz when the device offers it, so the callback does not resample, with
@@ -669,7 +689,7 @@ where
             move |error| {
                 // CPAL 0.19 reports xruns with the affected data callback;
                 // its error callback therefore means the stream was lost.
-                let _ = error;
+                eprintln!("rune: speaker: stream lost: {error}");
                 signals.failed.store(true, Ordering::Release);
             },
             Some(Duration::from_secs(2)),
@@ -943,11 +963,31 @@ impl Drop for WorkerLife {
     }
 }
 
-/// When to try opening the device again, and how many more tries are left
-/// after this one fails.
-struct Reopen {
-    at: Instant,
-    left: u32,
+/// When to try the device again, how many tries are left after the attempt
+/// at `at` fails, and whether it opens the system default in place of the
+/// chosen device, which is missing (`fallback`).
+#[derive(Clone)]
+pub(crate) struct Reopen {
+    pub(crate) at: Instant,
+    pub(crate) left: u32,
+    pub(crate) fallback: bool,
+}
+
+/// After a failed attempt described by `from`: another try later while tries
+/// are left; then, for a chosen device, the system default once; else nothing.
+pub(crate) fn next_try(from: &Reopen, chosen: bool, now: Instant) -> Option<Reopen> {
+    if from.left > 0 {
+        return Some(Reopen {
+            at: now + RETRY,
+            left: from.left - 1,
+            fallback: from.fallback,
+        });
+    }
+    (chosen && !from.fallback).then_some(Reopen {
+        at: now,
+        left: 0,
+        fallback: true,
+    })
 }
 
 fn take<T>(slot: &Mutex<Option<T>>, into: &mut Option<T>) {
@@ -964,6 +1004,8 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
     let mut request: Option<PlaybackRequest> = None;
     let mut active: Option<Active<B::Stream>> = None;
     let mut reopen: Option<Reopen> = None;
+    // The chosen device is missing: the default plays until it is back.
+    let mut fallback = false;
     let mut feed = None;
     let mut sounds = Vec::new();
     let mut reference = None;
@@ -985,7 +1027,11 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
         let desired = shared.desired.load_full();
         if desired.generation != generation {
             generation = desired.generation;
+            let previous = request.take().map(|wanted| wanted.device);
             request = desired.request.clone();
+            if request.as_ref().map(|wanted| &wanted.device) != previous.as_ref() {
+                fallback = false;
+            }
             tone = Tone::default();
             snapshot = PlaybackSnapshot::default();
             match &request {
@@ -994,23 +1040,35 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                     reopen = None;
                 }
                 Some(wanted) => {
-                    if active
-                        .as_ref()
-                        .is_none_or(|active| active.device != wanted.device)
-                    {
+                    let target = if fallback {
+                        None
+                    } else {
+                        wanted.device.clone()
+                    };
+                    if active.as_ref().is_none_or(|active| active.device != target) {
                         active = None;
-                        reopen = Some(Reopen { at: now, left: 0 });
+                        reopen = Some(Reopen {
+                            at: now,
+                            left: 0,
+                            fallback,
+                        });
                     }
                 }
             }
             shared.playing.store(false, Ordering::Release);
         }
-        if let (Some(wanted), Some(due)) = (&request, &reopen) {
+        if let (Some(wanted), Some(due)) = (&request, reopen.clone()) {
             if now >= due.at {
                 snapshot.state = CaptureState::Starting;
                 shared.publish(generation, snapshot.clone());
-                let left = due.left;
-                match backend.open(wanted.device.as_deref(), shared.clone()) {
+                fallback = due.fallback;
+                let target = if fallback {
+                    None
+                } else {
+                    wanted.device.clone()
+                };
+                let chosen = wanted.device.is_some();
+                match backend.open(target.as_deref(), shared.clone()) {
                     Ok(opened) => {
                         if !shared.current(generation) {
                             continue;
@@ -1019,46 +1077,73 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                             Ok(()) => {
                                 snapshot.rate = opened.ends.rate;
                                 snapshot.channels = opened.ends.channels;
+                                snapshot.fallback = fallback;
                                 checked = now;
                                 active = Some(Active {
                                     _stream: opened.stream,
                                     ends: opened.ends,
-                                    device: wanted.device.clone(),
+                                    device: target,
                                     default: opened.default,
                                 });
                                 reopen = None;
                             }
                             Err(error) => {
-                                reopen =
-                                    retry(&shared, generation, &mut snapshot, left, error, now);
+                                reopen = retry(
+                                    &shared,
+                                    generation,
+                                    &mut snapshot,
+                                    &due,
+                                    chosen,
+                                    error,
+                                    now,
+                                );
                             }
                         }
                     }
                     Err(error) => {
-                        reopen = retry(&shared, generation, &mut snapshot, left, error, now);
+                        reopen =
+                            retry(&shared, generation, &mut snapshot, &due, chosen, error, now);
                     }
                 }
             }
         }
         if let (Some(current), Some(wanted)) = (&mut active, &request) {
             let lost = current.ends.signals.failed.load(Ordering::Acquire);
-            let moved = current.device.is_none()
-                && now.saturating_duration_since(checked) >= DEFAULT_CHECK
-                && {
-                    checked = now;
-                    backend.default_output() != current.default
-                };
-            if lost || moved {
+            // On the default, look at it, and at the chosen device while it is missing.
+            let mut returned = false;
+            let mut moved = false;
+            if current.device.is_none() && now.saturating_duration_since(checked) >= DEFAULT_CHECK {
+                checked = now;
+                returned = fallback
+                    && wanted
+                        .device
+                        .as_deref()
+                        .is_some_and(|id| backend.present(id));
+                moved = !returned && backend.default_output() != current.default;
+            }
+            if lost || moved || returned {
                 active = None;
                 shared.playing.store(false, Ordering::Release);
-                // A new default opens at once; a lost device gets retries.
-                reopen = Some(if lost {
+                // A chosen device that is back opens at once, as does a new
+                // default; a lost device gets retries first.
+                reopen = Some(if returned {
+                    Reopen {
+                        at: now,
+                        left: RETRIES,
+                        fallback: false,
+                    }
+                } else if lost {
                     Reopen {
                         at: now + RETRY,
                         left: RETRIES,
+                        fallback,
                     }
                 } else {
-                    Reopen { at: now, left: 0 }
+                    Reopen {
+                        at: now,
+                        left: 0,
+                        fallback,
+                    }
                 });
                 snapshot.state = CaptureState::Starting;
                 shared.publish(generation, snapshot.clone());
@@ -1075,6 +1160,7 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
                 overruns: shared.overruns.load(Ordering::Relaxed),
                 output_latency_micros: shared.latency_micros.load(Ordering::Relaxed),
                 queued_micros: (current.queued() * 1_000 / MS) as u64,
+                fallback,
             };
             if next != snapshot {
                 snapshot = next;
@@ -1095,20 +1181,18 @@ fn run<B: Backend>(mut backend: B, shared: Arc<Shared>) {
     }
 }
 
-/// After a failed open: try again later while tries are left, else fail.
+/// After a failed attempt: the next try, else the default, else failure.
 fn retry(
     shared: &Shared,
     generation: u64,
     snapshot: &mut PlaybackSnapshot,
-    left: u32,
+    due: &Reopen,
+    chosen: bool,
     error: MediaError,
     now: Instant,
 ) -> Option<Reopen> {
-    if left > 0 {
-        return Some(Reopen {
-            at: now + RETRY,
-            left: left - 1,
-        });
+    if let Some(next) = next_try(due, chosen, now) {
+        return Some(next);
     }
     *snapshot = PlaybackSnapshot {
         state: CaptureState::Failed(error.0),

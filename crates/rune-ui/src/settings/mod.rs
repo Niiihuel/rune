@@ -905,7 +905,8 @@ fn go_to_page(ui: &mut Ui, store: &Store, page: SettingsPage) -> Vec<Intent> {
     let mut intents = Vec::new();
     if page != SettingsPage::Voice {
         intents.extend(stop_meter(ui));
-    } else if ui.audio.devices.is_none() {
+    } else {
+        // Listed again each time: the app drops a repeat while one is pending.
         intents.push(Intent::RefreshDevices);
     }
     ui.settings = Some(page);

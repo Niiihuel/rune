@@ -139,7 +139,10 @@ where
         .build_input_stream::<T, _, _>(
             config,
             move |samples, _| monitor.write(samples),
-            move |_| failed.store(true, Ordering::Release),
+            move |error| {
+                eprintln!("rune: loopback: stream lost: {error}");
+                failed.store(true, Ordering::Release);
+            },
             Some(Duration::from_secs(2)),
         )
         .ok()

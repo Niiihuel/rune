@@ -97,9 +97,8 @@ pub(crate) fn update(
     if camera {
         return Some(intents);
     }
-    if ui.audio.devices.is_none() {
-        intents.push(Intent::RefreshDevices);
-    }
+    // Listed again each time: the app drops a repeat while one is pending.
+    intents.push(Intent::RefreshDevices);
     // The call holds the microphone already: its level costs nothing more.
     if !output && !ui.audio.testing && live(ui, store) {
         intents.extend(settings::clicked(ui, store, ids::METER, now));

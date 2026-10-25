@@ -66,6 +66,9 @@ use metrics::{FrameTimes, Metrics};
 /// Provider events applied per frame at most; the rest wait for the next,
 /// which is asked for at once, so a burst never stalls a frame.
 const EVENTS_PER_FRAME: usize = 256;
+/// While the device lists are in use (a call, a test, the voice page), they
+/// are listed again this often, so a plugged-in device shows up.
+const DEVICES_POLL: Duration = Duration::from_secs(2);
 
 /// Only host controls are copied; text, paste and IME payloads stay in the converter.
 #[derive(Clone, Copy)]
@@ -1112,6 +1115,8 @@ struct App {
     drop_rejection: Option<uploads::NativeDropRejection>,
     read_marks_to_restore: Option<(rune_model::UserId, Vec<(ChannelId, rune_model::ReadMark)>)>,
     devices: Option<mpsc::Receiver<Result<rune_media::Devices, String>>>,
+    /// When the device lists were last asked for, while they are in use.
+    devices_at: Instant,
     /// The public application ID for the OAuth2 provider, to start it later.
     discord_client_id: Option<String>,
     /// This run may keep data on this device: not a benchmark, nor a
@@ -1279,6 +1284,7 @@ impl App {
             drop_rejection: None,
             read_marks_to_restore,
             devices: None,
+            devices_at: Instant::now(),
             discord_client_id: arguments.discord_client_id,
             local_data: local,
             metrics: Metrics::new(started),
@@ -2523,7 +2529,11 @@ impl App {
         if let Some(receiver) = &self.devices {
             match receiver.try_recv() {
                 Ok(found) => {
-                    self.ui.audio.devices = Some(found);
+                    // Replaced only on a change: an unchanged list keeps its
+                    // selection and does not repaint the settings.
+                    if self.ui.audio.devices.as_ref() != Some(&found) {
+                        self.ui.audio.devices = Some(found);
+                    }
                     self.devices = None;
                 }
                 Err(mpsc::TryRecvError::Disconnected) => {
@@ -4472,6 +4482,15 @@ impl eframe::App for App {
         self.run(&ctx, intents);
         if let Some(poll) = self.video.next_poll() {
             ctx.request_repaint_after(poll);
+        }
+        // The device lists are asked again while they are in use; the worker
+        // never runs two enumerations at once.
+        if rune_ui::devices_in_use(&self.ui, &self.store) {
+            ctx.request_repaint_after(DEVICES_POLL);
+            if self.devices.is_none() && self.devices_at.elapsed() >= DEVICES_POLL {
+                self.devices_at = Instant::now();
+                self.run(&ctx, vec![Intent::RefreshDevices]);
+            }
         }
         let old_count = self.ui.images.len();
         self.ui.images.retain(|source, _| retained.contains(source));

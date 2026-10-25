@@ -186,6 +186,7 @@ fn active(shared: Arc<Shared>, channels: u16) -> (Ingress, Active<()>) {
         consumer,
         signals: ingress.signals.clone(),
         rate: 48_000,
+        default: None,
     };
     (ingress, Active::new(opened, &request("synthetic")).unwrap())
 }
@@ -347,6 +348,20 @@ impl Drop for FakeStream {
     }
 }
 
+/// What the fake hardware has: the default microphone (`None`: none at all),
+/// and chosen microphones that are unplugged, which cannot be opened.
+struct Hardware {
+    default: Mutex<Option<String>>,
+    missing: Mutex<Vec<String>>,
+}
+
+fn hardware() -> Arc<Hardware> {
+    Arc::new(Hardware {
+        default: Mutex::new(Some("default".into())),
+        missing: Mutex::new(Vec::new()),
+    })
+}
+
 struct FakeBackend {
     trace: Sender<Trace>,
     inputs: Sender<Ingress>,
@@ -354,6 +369,19 @@ struct FakeBackend {
     loopbacks: Sender<rtrb::Producer<f32>>,
     first_open_gate: Option<Receiver<()>>,
     fail_first: bool,
+    hardware: Arc<Hardware>,
+}
+
+impl FakeBackend {
+    fn present_now(&self, id: &str) -> bool {
+        !self
+            .hardware
+            .missing
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|m| m == id)
+    }
 }
 
 impl Backend for FakeBackend {
@@ -364,6 +392,15 @@ impl Backend for FakeBackend {
         device: Option<&str>,
         shared: Arc<Shared>,
     ) -> Result<Opened<Self::Stream>, MediaError> {
+        // A chosen microphone that is missing, or no default at all.
+        let absent = match device {
+            Some(id) => !self.present_now(id),
+            None => self.hardware.default.lock().unwrap().is_none(),
+        };
+        let default = device
+            .is_none()
+            .then(|| self.hardware.default.lock().unwrap().clone())
+            .flatten();
         let device = device.unwrap_or("default").to_owned();
         self.trace.send(Trace::Open(device.clone())).unwrap();
         let stream = FakeStream {
@@ -372,6 +409,9 @@ impl Backend for FakeBackend {
         };
         if let Some(gate) = self.first_open_gate.take() {
             gate.recv().unwrap();
+        }
+        if absent {
+            return Err(MediaError("synthetic: no such microphone".into()));
         }
         if std::mem::take(&mut self.fail_first) {
             return Err(MediaError("synthetic open failed".into()));
@@ -386,7 +426,16 @@ impl Backend for FakeBackend {
             consumer,
             signals,
             rate: 48_000,
+            default,
         })
+    }
+
+    fn default_input(&mut self) -> Option<String> {
+        self.hardware.default.lock().unwrap().clone()
+    }
+
+    fn present(&mut self, id: &str) -> bool {
+        self.present_now(id)
     }
 
     fn open_loopback(&mut self, output: Option<&str>) -> Result<Loopback, MediaError> {
@@ -406,6 +455,14 @@ fn fake(
     blocked: bool,
     fail_first: bool,
 ) -> (Capture, Receiver<Trace>, Receiver<Ingress>, Sender<()>) {
+    fake_with(blocked, fail_first, hardware())
+}
+
+fn fake_with(
+    blocked: bool,
+    fail_first: bool,
+    hardware: Arc<Hardware>,
+) -> (Capture, Receiver<Trace>, Receiver<Ingress>, Sender<()>) {
     let (trace, traces) = mpsc::channel();
     let (inputs, input) = mpsc::channel();
     let (release, gate) = mpsc::channel();
@@ -415,6 +472,7 @@ fn fake(
         loopbacks: mpsc::channel().0,
         first_open_gate: blocked.then_some(gate),
         fail_first,
+        hardware,
     })
     .unwrap();
     (capture, traces, input, release)
@@ -508,33 +566,119 @@ fn obsolete_failures_cannot_replace_idle_and_drop_does_not_wait_for_open() {
 }
 
 #[test]
-fn failed_requests_need_an_explicit_retry_and_stream_errors_close_capture() {
+fn a_failed_open_is_retried_and_a_lost_stream_opens_again() {
     let (mut capture, trace, inputs, _release) = fake(false, true);
-    let desired = request("retry");
-    capture.configure(Some(desired.clone()));
-    wait(&capture, |snapshot| {
-        matches!(snapshot.state, CaptureState::Failed(_))
-    });
-    let generation = capture.generation;
-    capture.configure(Some(desired.clone()));
-    assert_eq!(capture.generation, generation);
-    assert!(matches!(capture.snapshot().state, CaptureState::Failed(_)));
-    capture.configure(None);
-    capture.configure(Some(desired));
+    capture.configure(Some(request("retry")));
+    // The first open fails; the retry gets the stream.
     let input = receive(&inputs);
     wait(&capture, |snapshot| snapshot.state == CaptureState::Running);
     input.signals.failed.store(true, Ordering::Release);
-    wait(&capture, |snapshot| {
-        matches!(snapshot.state, CaptureState::Failed(_))
-    });
-    assert_eq!(capture.snapshot().raw_level, 0.0);
+    let input = receive(&inputs);
+    wait(&capture, |snapshot| snapshot.state == CaptureState::Running);
+    assert!(!input.signals.failed.load(Ordering::Acquire));
     assert_eq!(
         trace
             .try_iter()
             .filter(|event| matches!(event, Trace::Open(_)))
             .count(),
-        2
+        3
     );
+}
+
+#[test]
+fn a_missing_microphone_is_replaced_by_the_default_and_returns() {
+    let hardware = hardware();
+    *hardware.missing.lock().unwrap() = vec!["usb".into()];
+    let (mut capture, _trace, inputs, _release) = fake_with(false, false, hardware.clone());
+    capture.configure(Some(request("usb")));
+    // The retries fail, so the default takes over.
+    let _default = receive(&inputs);
+    wait(&capture, |snapshot| {
+        snapshot.state == CaptureState::Running && snapshot.fallback
+    });
+    hardware.missing.lock().unwrap().clear();
+    let _chosen = receive(&inputs);
+    wait(&capture, |snapshot| {
+        snapshot.state == CaptureState::Running && !snapshot.fallback
+    });
+}
+
+#[test]
+fn the_default_microphone_is_followed_when_it_moves() {
+    let hardware = hardware();
+    let (mut capture, trace, inputs, _release) = fake_with(false, false, hardware.clone());
+    capture.configure(Some(CaptureRequest {
+        device: None,
+        ..request("unused")
+    }));
+    let _first = receive(&inputs);
+    *hardware.default.lock().unwrap() = Some("second".into());
+    let _second = receive(&inputs);
+    wait(&capture, |snapshot| snapshot.state == CaptureState::Running);
+    assert_eq!(
+        trace
+            .try_iter()
+            .filter(|event| matches!(event, Trace::Open(name) if name == "default"))
+            .count(),
+        2,
+        "reopened on the new default"
+    );
+}
+
+#[test]
+fn no_microphone_at_all_fails_after_the_retries_without_spinning() {
+    let hardware = hardware();
+    *hardware.default.lock().unwrap() = None;
+    let (mut capture, trace, _inputs, _release) = fake_with(false, false, hardware);
+    capture.configure(Some(CaptureRequest {
+        device: None,
+        ..request("unused")
+    }));
+    wait(&capture, |snapshot| {
+        matches!(snapshot.state, CaptureState::Failed(_))
+    });
+    thread::sleep(Duration::from_millis(30));
+    assert_eq!(
+        trace
+            .try_iter()
+            .filter(|event| matches!(event, Trace::Open(_)))
+            .count(),
+        1 + RETRIES as usize,
+        "one attempt, then the retries, then it stops"
+    );
+}
+
+#[test]
+fn a_lost_loopback_waits_a_pause_before_it_is_opened_again() {
+    let shared = shared();
+    let (_input, mut active) = active(shared, 1);
+    let (mut backend, traces, _opened) = loopback_backend();
+    let wanted = CaptureRequest {
+        echo_cancellation: true,
+        system_echo: true,
+        output: Some("headset".into()),
+        ..request("synthetic")
+    };
+    active.reconfigure(&wanted);
+    let now = Instant::now();
+    active.steer_system(&mut backend, &wanted, now);
+    assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
+    active
+        .system
+        .as_ref()
+        .unwrap()
+        .0
+        .failed
+        .store(true, Ordering::Release);
+    assert!(active.system_due(now));
+    active.steer_system(&mut backend, &wanted, now);
+    assert!(active.system.is_none());
+    assert!(traces.try_recv().is_err(), "not at once");
+    assert!(!active.system_due(now));
+    let later = now + LOOPBACK_RETRY * 100;
+    assert!(active.system_due(later));
+    active.steer_system(&mut backend, &wanted, later);
+    assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
 }
 
 fn frames(
@@ -638,6 +782,7 @@ fn loopback_backend() -> (FakeBackend, Receiver<Trace>, Receiver<rtrb::Producer<
             loopbacks,
             first_open_gate: None,
             fail_first: false,
+            hardware: hardware(),
         },
         traces,
         opened,
@@ -662,7 +807,7 @@ fn the_system_loopback_replaces_runes_reference_and_hands_back_when_silent() {
         ..request("synthetic")
     };
     active.reconfigure(&wanted);
-    active.steer_system(&mut backend, &wanted);
+    active.steer_system(&mut backend, &wanted, Instant::now());
     assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
     let mut system = receive(&opened);
     frames(&mut input, &mut active, &shared, &mut links, 1);
@@ -674,7 +819,7 @@ fn the_system_loopback_replaces_runes_reference_and_hands_back_when_silent() {
     assert_eq!(links.reference.as_ref().unwrap().available(), 0);
     assert!(system.slots() == system.buffer().capacity(), "all read");
     // The same request keeps it open; nothing is opened twice.
-    active.steer_system(&mut backend, &wanted);
+    active.steer_system(&mut backend, &wanted, Instant::now());
     assert!(traces.try_recv().is_err());
     // Half a second without anything from it: RUNE's own stands in.
     frames(
@@ -693,9 +838,9 @@ fn the_system_loopback_replaces_runes_reference_and_hands_back_when_silent() {
         system_echo: false,
         ..wanted.clone()
     };
-    active.steer_system(&mut backend, &off);
+    active.steer_system(&mut backend, &off, Instant::now());
     assert!(active.system.is_none());
-    active.steer_system(&mut backend, &wanted);
+    active.steer_system(&mut backend, &wanted, Instant::now());
     assert_eq!(receive(&traces), Trace::Loopback("headset".into()));
     active.steer_system(
         &mut backend,
@@ -703,6 +848,7 @@ fn the_system_loopback_replaces_runes_reference_and_hands_back_when_silent() {
             echo_cancellation: false,
             ..wanted
         },
+        Instant::now(),
     );
     assert!(active.system.is_none());
 }
@@ -726,7 +872,7 @@ fn what_the_system_plays_is_never_sent_or_heard_back() {
         ..request("synthetic")
     };
     active.reconfigure(&wanted);
-    active.steer_system(&mut backend, &wanted);
+    active.steer_system(&mut backend, &wanted, Instant::now());
     let mut system = receive(&opened);
     let now = Instant::now();
     let mut loud = crate::processing::eval::Rng::new(9);
@@ -772,6 +918,7 @@ fn a_microphone_at_another_rate_is_processed_at_48_khz_so_rnnoise_runs() {
         consumer,
         signals: input.signals.clone(),
         rate: 44_100,
+        default: None,
     };
     let mut active = Active::new(
         opened,

@@ -377,6 +377,14 @@ struct Fake {
     opened: Sender<Opening>,
     default: Arc<Mutex<Option<String>>>,
     fail: Arc<AtomicBool>,
+    /// Chosen outputs that are unplugged: they cannot be opened.
+    missing: Arc<Mutex<Vec<String>>>,
+}
+
+impl Fake {
+    fn is_missing(&self, id: &str) -> bool {
+        self.missing.lock().unwrap().iter().any(|m| m == id)
+    }
 }
 
 impl OutputStream for () {
@@ -393,7 +401,7 @@ impl Backend for Fake {
         device: Option<&str>,
         shared: Arc<Shared>,
     ) -> Result<Opened<()>, MediaError> {
-        if self.fail.load(Ordering::Acquire) {
+        if self.fail.load(Ordering::Acquire) || device.is_some_and(|id| self.is_missing(id)) {
             return Err(MediaError("no está".into()));
         }
         let (egress, ends) = rings(48_000, 2, shared)?;
@@ -414,6 +422,10 @@ impl Backend for Fake {
     fn default_output(&mut self) -> Option<String> {
         self.default.lock().unwrap().clone()
     }
+
+    fn present(&mut self, id: &str) -> bool {
+        !self.is_missing(id)
+    }
 }
 
 struct Harness {
@@ -421,16 +433,19 @@ struct Harness {
     opened: Receiver<Opening>,
     default: Arc<Mutex<Option<String>>>,
     fail: Arc<AtomicBool>,
+    missing: Arc<Mutex<Vec<String>>>,
 }
 
 fn harness() -> Harness {
     let (sender, opened) = mpsc::channel();
     let default = Arc::new(Mutex::new(Some("first".to_owned())));
     let fail = Arc::new(AtomicBool::new(false));
+    let missing = Arc::new(Mutex::new(Vec::new()));
     let playback = Playback::with_backend(Fake {
         opened: sender,
         default: default.clone(),
         fail: fail.clone(),
+        missing: missing.clone(),
     })
     .unwrap();
     Harness {
@@ -438,6 +453,7 @@ fn harness() -> Harness {
         opened,
         default,
         fail,
+        missing,
     }
 }
 
@@ -526,6 +542,26 @@ fn following_the_default_moves_with_it() {
     *harness.default.lock().unwrap() = Some("second".into());
     let (device, _, _) = next_open(&harness);
     assert_eq!(device, None, "reopened on the new default");
+}
+
+#[test]
+fn a_missing_output_plays_the_default_and_returns_when_back() {
+    let mut harness = harness();
+    harness.missing.lock().unwrap().push("gone".into());
+    harness.playback.configure(Some(tone(Some("gone"), 1.0)));
+    let (device, _, _) = next_open(&harness);
+    assert_eq!(device, None, "the default plays in its place");
+    wait(|| {
+        let snapshot = harness.playback.snapshot();
+        snapshot.state == CaptureState::Running && snapshot.fallback
+    });
+    harness.missing.lock().unwrap().clear();
+    let (device, _, _) = next_open(&harness);
+    assert_eq!(device.as_deref(), Some("gone"), "back on the chosen output");
+    wait(|| {
+        let snapshot = harness.playback.snapshot();
+        snapshot.state == CaptureState::Running && !snapshot.fallback
+    });
 }
 
 #[test]
