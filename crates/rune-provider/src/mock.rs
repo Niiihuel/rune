@@ -3580,7 +3580,7 @@ mod tests {
         for owner in [quiet, streamer] {
             session
                 .send(Command::LoadStreamPreview {
-                    server,
+                    server: Some(server),
                     channel,
                     owner,
                 })

@@ -206,6 +206,23 @@ fn live(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
         .collect()
 }
 
+/// The streams whose pictures show: those of [`previewed`], and first the
+/// card of someone live under the pointer, watched or not
+/// (voz-filas-y-arrastre).
+fn shown(
+    ui: &Ui,
+    store: &Store,
+    live: &[(ServerId, rune_model::VoiceState)],
+) -> Vec<(ServerId, rune_model::VoiceState)> {
+    let mut shown = previewed(ui, store);
+    let hovered = ui.profiles.hovered;
+    if let Some(card) = live.iter().find(|(_, state)| Some(state.user) == hovered) {
+        shown.retain(|(_, state)| state.user != card.1.user);
+        shown.insert(0, card.clone());
+    }
+    shown
+}
+
 /// The pictures of the streams the column and the stage show, asked for
 /// as the official client does (REA): again [`PREVIEW_FRESH`] after one
 /// came; after none, [`PREVIEW_BACKOFF`] times how many came so in a row,
@@ -213,14 +230,7 @@ fn live(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
 /// host runs these each frame.
 pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
     let live = live(ui, store);
-    let mut shown = previewed(ui, store);
-    // The card of someone live under the pointer shows it, watched or not
-    // (voz-filas-y-arrastre); it goes first.
-    let hovered = ui.profiles.hovered;
-    if let Some(card) = live.iter().find(|(_, state)| Some(state.user) == hovered) {
-        shown.retain(|(_, state)| state.user != card.1.user);
-        shown.insert(0, card.clone());
-    }
+    let shown = shown(ui, store, &live);
     let asked = &mut ui.video.previews;
     // Kept while they stream, so a card shown again waits as long.
     asked.retain(|user, _| live.iter().any(|(_, state)| state.user == *user));
@@ -254,8 +264,11 @@ pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> 
                 (Some(before), _) => before.failures + 1,
             };
             asked.insert(state.user, Asked { at: now, failures });
+            // shortcut: only a server's voice channels ask; a conversation's
+            // call shows no stream picture yet. When one does, ask it with
+            // `server: None` (the provider takes `call:` keys).
             Intent::Command(Command::LoadStreamPreview {
-                server,
+                server: Some(server),
                 channel: state.channel,
                 owner: state.user,
             })
@@ -318,9 +331,10 @@ pub fn own_preview_failed(ui: &mut Ui, now: Instant) {
     }
 }
 
-/// The images of the pictures the column shows, for the host to load.
+/// The images of the pictures the column and the card under the pointer
+/// show, for the host to load.
 pub(crate) fn preview_images(ui: &Ui, store: &Store) -> Vec<rune_model::RemoteImage> {
-    previewed(ui, store)
+    shown(ui, store, &live(ui, store))
         .into_iter()
         .filter_map(|(_, state)| {
             store

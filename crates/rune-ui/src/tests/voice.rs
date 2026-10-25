@@ -1441,7 +1441,7 @@ fn a_stream_s_picture_shows_under_its_owner_in_the_column_asked_for_now_and_then
     assert!(asked.iter().any(|intent| matches!(
         intent,
         Intent::Command(Command::LoadStreamPreview { server: on, channel, owner })
-            if (*on, *channel, *owner) == (server, room, other)
+            if (*on, *channel, *owner) == (Some(server), room, other)
     )));
     // Not again for a while: unanswered, ten seconds (see `streams`).
     let later = |seconds| now + Duration::from_secs(seconds);

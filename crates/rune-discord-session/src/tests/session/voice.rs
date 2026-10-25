@@ -458,3 +458,62 @@ async fn a_direct_call_is_asked_about_first_and_a_refusal_is_a_plain_failure() {
         }
     ));
 }
+
+// Streams (transmisiones).
+#[tokio::test]
+async fn a_stream_preview_that_cannot_be_asked_is_answered_with_none_and_a_calls_is_asked() {
+    let mut app = Harness::new().await;
+    let preview = |server, owner| Command::LoadStreamPreview {
+        server,
+        channel: ChannelId(20),
+        owner: rune_model::UserId(owner),
+    };
+    // Not a voice channel of that server, or nobody's: none at once, never
+    // a request, so the interface's backoff runs.
+    for (server, owner) in [(Some(rune_model::ServerId(10)), 2), (None, 0)] {
+        app.running
+            .commands
+            .send(preview(server, owner))
+            .await
+            .unwrap();
+        let answer = app
+            .until(|event| matches!(event, Event::StreamPreview { .. }))
+            .await;
+        assert_eq!(
+            answer,
+            Event::StreamPreview {
+                channel: ChannelId(20),
+                owner: rune_model::UserId(owner),
+                image: None,
+                retry_after: None,
+            }
+        );
+    }
+    assert!(app.requests.try_recv().is_err());
+    // The conversation's call: asked under its call key, as the official
+    // client asks it.
+    app.running.commands.send(preview(None, 2)).await.unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(
+        request.starts_with("GET /api/v10/streams/call:20:2/preview?version="),
+        "{request}"
+    );
+    let url = "https://cdn.discordapp.com/streams/call:20:2/abc.jpg";
+    reply
+        .send(response(200, &json!({ "url": url }).to_string()))
+        .unwrap();
+    let answer = app
+        .until(|event| matches!(event, Event::StreamPreview { .. }))
+        .await;
+    assert!(
+        matches!(&answer, Event::StreamPreview { image: Some(image), .. } if image.url == url),
+        "{answer:?}"
+    );
+    let lines = crate::voice::diag::captured::lines();
+    for wanted in [
+        "rune: stream preview: GET not asked: not a known voice channel or call",
+        "rune: stream preview: GET not asked: no owner",
+    ] {
+        assert!(lines.iter().any(|line| line == wanted), "{wanted}");
+    }
+}

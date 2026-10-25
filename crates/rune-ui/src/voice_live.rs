@@ -33,12 +33,14 @@ pub(crate) fn card(
     let picture = match store.stream_preview(channel, user) {
         _ if simulated => Ok(Thumbnail::Simulated),
         _ if !offered => Err(t("Vista previa no disponible").to_owned()),
-        Some(Some(image)) => ui
-            .images
-            .get(image)
-            .cloned()
-            .map(Thumbnail::Image)
-            .ok_or_else(|| t("Cargando la vista previa…").to_owned()),
+        Some(Some(image)) => match ui.images.get(image) {
+            Some(loaded) => Ok(Thumbnail::Image(loaded.clone())),
+            // Its address did not load: asked for again on its own time.
+            None if ui.image_failures.contains(image) => {
+                Err(t("Vista previa no disponible").to_owned())
+            }
+            None => Err(t("Cargando la vista previa…").to_owned()),
+        },
         Some(None) => Err(t("Vista previa no disponible").to_owned()),
         None => Err(t("Cargando la vista previa…").to_owned()),
     };

@@ -26,6 +26,9 @@ const PREVIEW_SIDE: u32 = 4096;
 const PREVIEW_WIDTH: u32 = 768;
 const PREVIEW_HEIGHT: u32 = 512;
 const BANNER_SIDE: u32 = 2048;
+/// A wide picture's file: a server's banner at 1024 px, as a dense screen
+/// asks for it, is a PNG past 1 MiB (one measured 1.07 MiB, 2026-10-25).
+const BANNER_BYTES: usize = 4 * 1024 * 1024;
 const BANNER_PIXELS: u64 = 2 * 1024 * 1024;
 const BANNER_WIDTH: u32 = 512;
 const BANNER_HEIGHT: u32 = 256;
@@ -442,6 +445,11 @@ impl Images {
                 };
                 let kind = source.kind;
                 let path = url.path().to_owned();
+                // Streams (transmisiones): a stream's picture is stale in two
+                // minutes; it is never kept, and one that did not load is
+                // asked for again, its address being the same each time.
+                let stream = path.starts_with("/streams/");
+                let disk = disk.filter(|_| !stream);
                 // Kept from an earlier run: the network is not asked.
                 let kept = match disk.clone() {
                     Some(disk) => {
@@ -482,6 +490,10 @@ impl Images {
                         )
                     }
                     Err(error) => (None, error.retry, error.origin_cooldown),
+                };
+                let retry = match (&data, stream) {
+                    (None, true) => retry.or(Some(RETRY_DELAY)),
+                    _ => retry,
                 };
                 if sender
                     .send(Completed {
@@ -665,7 +677,8 @@ pub(crate) fn validated_resource_url(
 
 fn byte_limit(kind: ImageKind) -> usize {
     match kind {
-        ImageKind::Artwork | ImageKind::Banner | ImageKind::ThumbHash => MAX_BYTES,
+        ImageKind::Artwork | ImageKind::ThumbHash => MAX_BYTES,
+        ImageKind::Banner => BANNER_BYTES,
         ImageKind::AttachmentPreview
         | ImageKind::Clip
         | ImageKind::Original
@@ -708,18 +721,25 @@ async fn download(
             origin_cooldown: true,
         });
     }
-    if response.status() != reqwest::StatusCode::OK
-        || response
-            .content_length()
-            .is_some_and(|n| n > max_bytes as u64)
-    {
-        // Its origin and the answer only: a path can name a private file.
+    // Its origin and the answer only: a path can name a private file.
+    let origin = response.url().origin().ascii_serialization();
+    if response.status() != reqwest::StatusCode::OK {
         eprintln!(
-            "rune: a picture from {} did not load ({})",
-            response.url().origin().ascii_serialization(),
+            "rune: a picture from {origin} did not load ({})",
             response.status()
         );
         return Err(DownloadError::permanent());
+    }
+    let too_large = |bytes: u64| {
+        eprintln!(
+            "rune: a picture from {origin} did not load (200 OK, {} KiB past its {} KiB)",
+            bytes / 1024,
+            max_bytes / 1024
+        );
+        DownloadError::permanent()
+    };
+    if let Some(declared) = response.content_length().filter(|n| *n > max_bytes as u64) {
+        return Err(too_large(declared));
     }
     let mut bytes = Vec::new();
     while let Some(chunk) = response
@@ -727,8 +747,9 @@ async fn download(
         .await
         .map_err(|_| DownloadError::transient())?
     {
-        if bytes.len().saturating_add(chunk.len()) > max_bytes {
-            return Err(DownloadError::permanent());
+        let read = bytes.len().saturating_add(chunk.len());
+        if read > max_bytes {
+            return Err(too_large(read as u64));
         }
         bytes.extend_from_slice(&chunk);
     }

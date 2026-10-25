@@ -316,7 +316,7 @@ fn a_streams_picture_is_asked_for_as_the_official_client_does_and_shows_on_its_t
                 matches!(
                     intent,
                     Intent::Command(Command::LoadStreamPreview { server: on, channel, owner: of })
-                        if (*on, *channel, *of) == (server, room, owner)
+                        if (*on, *channel, *of) == (Some(server), room, owner)
                 )
             })
     };

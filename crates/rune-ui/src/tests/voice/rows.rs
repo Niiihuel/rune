@@ -45,7 +45,7 @@ fn the_pointer_on_someone_live_shows_their_stream_s_card_and_it_watches_it() {
     assert!(matches!(
         asked.first(),
         Some(Intent::Command(Command::LoadStreamPreview { server: on, channel, owner }))
-            if (*on, *channel, *owner) == (server, room, other)
+            if (*on, *channel, *owner) == (Some(server), room, other)
     ));
     // In the call, «Ver transmisión» watches it.
     host.vz_join("Sala común");
@@ -77,4 +77,55 @@ fn the_pointer_on_someone_live_shows_their_stream_s_card_and_it_watches_it() {
     host.rows_point(&ids::row(quiet.0));
     assert!(!host.vz_shows(&watch));
     assert!(!host.vz_shows(&ids::live_watch(quiet.0)));
+}
+
+#[test]
+fn a_live_card_s_picture_is_loaded_watched_or_not_and_one_that_failed_says_so() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let other = host.vz_other(room);
+    let mut state = host
+        .store
+        .voice_in(room)
+        .into_iter()
+        .find(|state| state.user == other)
+        .cloned()
+        .unwrap();
+    state.streaming = true;
+    host.event(Event::VoiceChanged(state));
+    // As a real service: nothing made up.
+    host.store.provider.as_mut().unwrap().capabilities.voice = rune_provider::VoiceSupport::Real;
+    let image = rune_model::RemoteImage {
+        url: "https://cdn.discordapp.com/streams/guild:1:2:3/a.jpg".into(),
+        kind: rune_model::ImageKind::Banner,
+    };
+    host.event(Event::StreamPreview {
+        channel: room,
+        owner: other,
+        image: Some(image.clone()),
+        retry_after: None,
+    });
+    // Watched, its card under the pointer still wants its picture.
+    host.rows_point(&ids::row(other.0));
+    host.click(&ids::live_watch(other.0));
+    assert!(host
+        .store
+        .watching()
+        .iter()
+        .any(|watching| watching.owner == other));
+    host.rows_point(&ids::row(other.0));
+    let wanted = crate::wanted_images(&host.ui, &host.store, &host.tree);
+    assert!(wanted.contains(&image), "{wanted:?}");
+    assert!(host
+        .vz_texts()
+        .contains(&"Cargando la vista previa…".to_owned()));
+    // It did not load: said so, not «Cargando…» for ever.
+    host.ui.image_failures.insert(image);
+    host.frame();
+    let shown = host.vz_texts();
+    assert!(
+        shown.contains(&"Vista previa no disponible".to_owned()),
+        "{shown:?}"
+    );
+    assert!(!shown.contains(&"Cargando la vista previa…".to_owned()));
 }

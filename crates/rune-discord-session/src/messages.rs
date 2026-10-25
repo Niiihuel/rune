@@ -286,6 +286,11 @@ impl Messages {
             }
             // Desktop (P6): about no conversation; checked as they arrive.
             Command::SetLocalActivity(_) | Command::LoadDetectableGames => return Ok(()),
+            // Streams (transmisiones): checked as they arrive, against the
+            // channel and the account's own stream; nobody waits on them.
+            Command::LoadStreamPreview { .. } | Command::UploadStreamPreview { .. } => {
+                return Ok(())
+            }
             // Private calls.
             Command::RingCall { .. } | Command::StopRinging { .. } | Command::CheckCall { .. } => {
                 return crate::voice::private::allowed(snapshot, command)
@@ -690,6 +695,28 @@ mod tests {
                 forum: Default::default(),
             }],
             ..Default::default()
+        }
+    }
+
+    // Streams (transmisiones): until 2026-10-25 both fell to «todavía no
+    // está disponible» here, so no stream picture was ever asked or sent.
+    #[test]
+    fn stream_pictures_get_past_the_generic_refusal() {
+        let cache = Messages::default();
+        for command in [
+            Command::LoadStreamPreview {
+                server: None,
+                channel: ChannelId(20),
+                owner: UserId(43),
+            },
+            Command::UploadStreamPreview {
+                server: None,
+                channel: ChannelId(20),
+                owner: UserId(42),
+                jpeg: vec![0xFF, 0xD8, 0xFF],
+            },
+        ] {
+            assert_eq!(cache.needs_preflight(&account(), &command), Ok(false));
         }
     }
 
