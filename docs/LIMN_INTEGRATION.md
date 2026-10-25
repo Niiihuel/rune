@@ -37,9 +37,10 @@ Varios agregados chicos que tocan los mismos archivos de limn (`tree.rs`,
 
 ## Cómo depende RUNE de limn
 
-`Cargo.toml` del workspace apunta a la rama `rune/integration-2026-10-19` de
-[Niiihuel/limn](https://github.com/Niiihuel/limn), que reúne las extensiones
-que RUNE necesitó y todavía no están todas en `main`. El commit consumido lo
+`Cargo.toml` del workspace apunta a la rama `rune/hidden-cursor` de
+[Niiihuel/limn](https://github.com/Niiihuel/limn): `rune/integration-2026-10-19`,
+que reúne las extensiones que RUNE necesitó y todavía no están todas en
+`main`, más `Cursor::Hidden` (PR #119). El commit consumido lo
 fija `Cargo.lock`, no la cabeza de la rama. Es una dependencia **git**, no de
 ruta: así `cargo fmt --all` no reformatea las fuentes de limn. Un trabajador
 puede apuntar temporalmente a su clon local (`file:///…/lienzo`); antes de

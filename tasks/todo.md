@@ -229,8 +229,9 @@ falla contra Discord, mandar las líneas `rune: …` del registro
   columna flexible que mida a sus hijos con su ancho; imágenes por
   referencia (`ImageRef`).
 - PR nuevas: subtítulo de `ListRow` como elemento, `_cursiva_`/`>>>`/
-  encabezados, texto al final de `Tooltip::faces`, inactividad del puntero y
-  resortes.
+  encabezados, texto al final de `Tooltip::faces` y resortes.
+- Mezclar la #119 (`Cursor::Hidden`: el puntero se oculta sobre una
+  transmisión en reposo); RUNE usa mientras tanto `rune/hidden-cursor`.
 
 ## Paridad con Serein
 

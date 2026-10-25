@@ -316,7 +316,7 @@ fn a_streams_picture_is_asked_for_as_the_official_client_does_and_shows_on_its_t
                 matches!(
                     intent,
                     Intent::Command(Command::LoadStreamPreview { server: on, channel, owner: of })
-                        if (*on, *channel, *of) == (server, room, owner)
+                        if (*on, *channel, *of) == (Some(server), room, owner)
                 )
             })
     };
@@ -421,4 +421,263 @@ fn the_accounts_own_streams_picture_goes_up_as_the_official_client_sends_it() {
     host.store.stop_share();
     assert_eq!(due(&mut host, 721_500), None);
     assert_eq!(host.ui.video.own_preview, None);
+}
+
+#[test]
+fn a_secondary_click_on_a_stream_or_its_streamer_offers_to_stop_watching() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let me = host.vz_me();
+    let owners = host.tr_streamers(room, 4, 2);
+    let (first, second) = (owners[0], owners[1]);
+    let count = |host: &mut Host, id: &str| {
+        host.frame()
+            .regions
+            .iter()
+            .filter(|region| region.id == id)
+            .count()
+    };
+    host.tr_watch(room, first);
+    host.click(&ids::stream_tile(first.0));
+    assert_eq!(host.ui.video.spotlight, Some(first));
+    let stop = ids::stop_watching(first.0);
+    assert_eq!(count(&mut host, &stop), 1, "the bar's");
+
+    // Anywhere on the stream focused: its menu, with «Dejar de ver».
+    let at = middle(host.tr_surface(first));
+    host.send(UiEvent::ContextMenu { position: at });
+    assert_eq!(host.ui.video.menu.map(|(shown, _)| shown), Some(first));
+    assert_eq!(count(&mut host, &stop), 2, "the bar's and the menu's");
+    host.click(ids::MENU_DISMISS);
+
+    // The streamer stays on the stage, in the strip, as in the official
+    // client: their own menu lets go of their stream too.
+    host.vz_right_click(&ids::tile(first.0));
+    assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(first));
+    assert_eq!(count(&mut host, &stop), 2, "from the streamer's tile");
+    host.click(ids::MENU_DISMISS);
+    // Someone streaming and not watched: «Ver transmisión» in theirs.
+    host.vz_right_click(&ids::tile(second.0));
+    assert_eq!(count(&mut host, &ids::watch(second.0)), 1);
+    host.click(&ids::watch(second.0));
+    assert!(host
+        .store
+        .watching()
+        .iter()
+        .any(|shown| shown.owner == second));
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: second,
+        phase: StreamPhase::Live,
+    });
+    host.ui.video.streams.retain(|(shown, _)| *shown != second);
+    host.ui
+        .video
+        .streams
+        .push((second, crate::Live::Showing(1280, 720)));
+    assert_eq!(host.ui.video.spotlight, Some(first), "still focused");
+
+    // The thumbnail in the strip, under the one focused.
+    let at = middle(host.tr_surface(second));
+    host.send(UiEvent::ContextMenu { position: at });
+    assert_eq!(host.ui.video.menu.map(|(shown, _)| shown), Some(second));
+    assert_eq!(count(&mut host, &ids::stop_watching(second.0)), 1);
+    host.click(ids::MENU_DISMISS);
+
+    // Let go of from the streamer's tile: the grid comes back.
+    host.vz_right_click(&ids::tile(first.0));
+    let from = host.sent.len();
+    let item = host
+        .frame()
+        .regions
+        .iter()
+        .rev()
+        .find(|region| region.id == stop)
+        .map(|region| middle(region.rect))
+        .expect("in the menu");
+    host.send(UiEvent::PointerDown(item));
+    host.send(UiEvent::PointerUp(item));
+    assert!(matches!(
+        host.sent[from..],
+        [Command::StopWatching { owner: stopped, .. }] if stopped == first
+    ));
+    assert_eq!(host.ui.video.spotlight, None);
+
+    // The account's own stream: «Dejar de compartir».
+    host.store.begin_share(room);
+    host.ui.video.screen.on = true;
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: me,
+        phase: StreamPhase::Live,
+    });
+    host.vz_right_click(&ids::tile(me.0));
+    assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(me));
+    let from = host.sent.len();
+    let item = host
+        .frame()
+        .regions
+        .iter()
+        .rev()
+        .find(|region| region.id == ids::STOP_SCREEN)
+        .map(|region| middle(region.rect))
+        .expect("in the menu");
+    host.send(UiEvent::PointerDown(item));
+    host.send(UiEvent::PointerUp(item));
+    assert_eq!(host.sent[from..], [Command::StopStream { channel: room }]);
+}
+
+impl Host {
+    /// Watch the only stream in a call of three, focused on the stage, and
+    /// rest the pointer on its picture: whose it is.
+    fn tr_focused(&mut self) -> UserId {
+        let room = self.vz_join("Sala común");
+        self.click(&format!("voice:{room}"));
+        let owner = self.tr_streamers(room, 3, 1)[0];
+        self.tr_watch(room, owner);
+        if self.ui.video.spotlight != Some(owner) {
+            self.click(&ids::stream_tile(owner.0));
+        }
+        assert_eq!(self.ui.video.spotlight, Some(owner));
+        let at = middle(self.tr_surface(owner));
+        self.send(UiEvent::PointerMove(at));
+        owner
+    }
+
+    /// The pointer stays where it is for `millis`, after the frame that
+    /// follows what was last done, as the window paints one.
+    fn tr_rest(&mut self, millis: u64) {
+        self.frame();
+        self.now += Duration::from_millis(millis);
+        self.frame();
+    }
+
+    /// What is over the stream focused, and the bar, show.
+    fn tr_controls_show(&mut self, owner: UserId) -> bool {
+        self.vz_usable(&ids::fullscreen(owner.0)) && self.vz_usable(ids::MUTE)
+    }
+}
+
+// Resting on a stream (transmisiones): as the official client's stage, what
+// is over the stream focused and the bar fade after 3 s without the pointer
+// moving, and the pointer hides; any move brings them back at once.
+#[test]
+fn a_stream_focused_hides_its_controls_and_the_pointer_once_the_pointer_rests() {
+    let mut host = Host::new();
+    let owner = host.tr_focused();
+    let at = middle(host.tr_surface(owner));
+    assert!(host.tr_controls_show(owner));
+    assert_eq!(
+        crate::stream_idle_tick(&host.ui, &host.store, host.now),
+        Some(crate::video::IDLE_AFTER),
+        "the host is asked to paint again when it rests"
+    );
+    host.tr_rest(2_900);
+    assert!(host.tr_controls_show(owner), "not yet");
+    host.tr_rest(100);
+    assert!(!host.tr_controls_show(owner));
+    assert!(!host.vz_shows(&ids::stop_watching(owner.0)));
+    assert!(
+        host.vz_usable(&ids::stream_tile(owner.0)),
+        "the picture is still there to click"
+    );
+    assert_eq!(host.tree.cursor(), Some(limn::Cursor::Hidden));
+    assert_eq!(
+        crate::stream_idle_tick(&host.ui, &host.store, host.now),
+        None
+    );
+    // A move, however small: all of it back, and the pointer.
+    host.send(UiEvent::PointerMove(Point::new(at.x + 1.0, at.y)));
+    assert!(host.tr_controls_show(owner));
+    assert_eq!(host.tree.cursor(), None);
+    // A key too, unlike the official client.
+    host.tr_rest(3_000);
+    assert!(!host.tr_controls_show(owner));
+    host.key(Key::Tab, false, false);
+    assert!(host.tr_controls_show(owner));
+}
+
+#[test]
+fn a_stream_never_hides_its_controls_on_the_bar_with_a_menu_open_or_in_the_grid() {
+    let mut host = Host::new();
+    let owner = host.tr_focused();
+    // The pointer resting on the bar keeps it.
+    let mute = host.vz_rect(ids::MUTE);
+    host.send(UiEvent::PointerMove(middle(mute)));
+    host.tr_rest(10_000);
+    assert!(host.tr_controls_show(owner));
+    assert_eq!(
+        crate::stream_idle_tick(&host.ui, &host.store, host.now),
+        None
+    );
+    // On the stream's own controls too.
+    let full = host.vz_rect(&ids::fullscreen(owner.0));
+    host.send(UiEvent::PointerMove(middle(full)));
+    host.tr_rest(10_000);
+    assert!(host.tr_controls_show(owner));
+    // Its menu open, the pointer back on the picture.
+    host.click(&ids::stream_more(owner.0));
+    assert!(host.ui.video.menu.is_some());
+    let at = middle(host.tr_surface(owner));
+    host.send(UiEvent::PointerMove(at));
+    host.tr_rest(10_000);
+    assert!(host.tr_controls_show(owner) && host.ui.video.menu.is_some());
+    host.click(&ids::stream_more(owner.0));
+    assert!(host.ui.video.menu.is_none());
+    host.send(UiEvent::PointerMove(at));
+    host.tr_rest(3_000);
+    assert!(!host.tr_controls_show(owner), "closed, it rests again");
+    host.send(UiEvent::PointerMove(at));
+    // A control focused from the keyboard keeps them.
+    host.key(Key::Tab, false, false);
+    host.tr_rest(10_000);
+    assert!(host.tr_controls_show(owner), "the keyboard is at work");
+    // Back to the grid: nothing hides there, however long it rests.
+    host.click(&ids::stream_tile(owner.0));
+    assert_eq!(host.ui.video.spotlight, None);
+    let at = middle(host.tr_surface(owner));
+    host.send(UiEvent::PointerMove(at));
+    host.tr_rest(10_000);
+    assert!(host.vz_usable(ids::MUTE));
+    assert_eq!(host.tree.cursor(), None);
+    assert_eq!(
+        crate::stream_idle_tick(&host.ui, &host.store, host.now),
+        None
+    );
+}
+
+#[test]
+fn full_screen_and_a_window_of_its_own_rest_as_the_stage_does() {
+    let mut host = Host::new();
+    let owner = host.tr_focused();
+    host.click(&ids::fullscreen(owner.0));
+    assert!(crate::video_fullscreen(&host.ui, &host.store));
+    // A click on the picture only wakes it: it stays full screen.
+    host.click(&ids::stream_tile(owner.0));
+    assert!(crate::video_fullscreen(&host.ui, &host.store));
+    assert!(host.vz_usable(ids::FULLSCREEN_EXIT));
+    host.tr_rest(3_000);
+    assert!(!host.vz_shows(ids::FULLSCREEN_EXIT));
+    assert_eq!(host.tree.cursor(), Some(limn::Cursor::Hidden));
+    host.send(UiEvent::PointerMove(Point::new(10.0, 10.0)));
+    host.click(ids::FULLSCREEN_EXIT);
+    assert!(!crate::video_fullscreen(&host.ui, &host.store));
+    // Its own window: its title goes once the pointer rests over it.
+    host.click(&ids::window(owner.0));
+    let size = limn::Size::new(960.0, 540.0);
+    let shows_title = |host: &Host| {
+        let view = crate::video_window(&host.ui, &host.store, owner, size, host.now).unwrap();
+        let mut tree = limn::UiTree::new(view);
+        tree.set_reduced_motion(true);
+        tree.layout(size).commands.iter().any(|command| {
+            matches!(command, limn::DrawCommand::Text { text, .. } if text.starts_with("Pantalla de "))
+        })
+    };
+    crate::video_window_stirred(&mut host.ui, owner, host.now);
+    assert!(shows_title(&host));
+    host.now += Duration::from_millis(3_000);
+    assert!(!shows_title(&host) && crate::video_window_idle(&host.ui, owner, host.now));
+    crate::video_window_stirred(&mut host.ui, owner, host.now);
+    assert!(shows_title(&host));
 }

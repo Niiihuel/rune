@@ -92,7 +92,7 @@ fn moment(value: &Value) -> Option<Timestamp> {
 /// Twitch or YouTube cover comes from that service's own image host, as
 /// the official client builds it (owner-approved 2026-10-18; see
 /// SECURITY.md): only its exact host, over HTTPS, as a still JPEG within
-/// a banner's limits (1 MiB, 2048 px), not an attachment's.
+/// a banner's limits (4 MiB, 2048 px), not an attachment's.
 fn asset(application: Option<u64>, key: &Value) -> Option<RemoteImage> {
     let key = key.as_str().filter(|key| key.len() <= 1024)?;
     if let Some(url) = cover(key) {

@@ -25,13 +25,16 @@ use crate::{
     http::{Answer, Http, Issued, RestError, Solved, Upload},
     members::{Lists, Watch},
     messages::{send_nonce, write_target, Messages},
-    voice::Calls,
+    voice::{diag::note, Calls},
     wire, ChallengeAnswer, LoginError, SessionLogin, SessionSecret,
 };
 use zeroize::Zeroizing;
 
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(600);
 const COMMAND_QUEUE: usize = 16;
+// Streams (transmisiones): stream pictures waiting at once, as many as the
+// interface asks for together, so they never crowd out what a person did.
+const PREVIEWS_QUEUED: usize = 4;
 // Leave room for two 15-second HTTP phases before core's 60-second deadline.
 const INVITATION_QUEUE_TTL: Duration = Duration::from_secs(20);
 // Time left after solving for the one retry, within core's deadline.
@@ -1120,17 +1123,35 @@ impl DiscordSessionProvider {
                                 Ok(()) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
-                        // A stream's picture: a GET of its own, one at a time,
-                        // only of a voice channel of that server.
+                        // A stream's picture: a GET of its own, only of a voice
+                        // channel of that server or of a conversation's call, one
+                        // queued per stream. One that cannot be asked is answered
+                        // with none at once and said why, so the interface's
+                        // backoff runs instead of waiting.
                         command @ Command::LoadStreamPreview { server, channel, owner } => {
-                            let preview = |queued: &Command| matches!(queued, Command::LoadStreamPreview { .. });
-                            let known = session.as_ref().filter(|session| session.online).is_some_and(|session| {
-                                owner.0 != 0 && session.snapshot.channels.iter().any(|known| {
-                                    known.id == channel && known.server == Some(server) && known.kind == ChannelKind::Voice
-                                })
-                            });
-                            if known && !queue.iter().any(|queued| preview(&queued.command)) && queue.len() < COMMAND_QUEUE {
-                                queue.push_back(Queued { command, at: Instant::now() });
+                            let same = |queued: &Command| matches!(queued,
+                                Command::LoadStreamPreview { channel: at, owner: of, .. } if *at == channel && *of == owner);
+                            let previews = queue.iter().filter(|queued| matches!(queued.command, Command::LoadStreamPreview { .. })).count();
+                            let refused = match session.as_ref().filter(|session| session.online) {
+                                None => Some("offline"),
+                                Some(_) if owner.0 == 0 => Some("no owner"),
+                                Some(session) if !session.snapshot.channels.iter().any(|known| {
+                                    known.id == channel && known.server == server && match server {
+                                        Some(_) => known.kind == ChannelKind::Voice,
+                                        None => matches!(known.kind, ChannelKind::Direct | ChannelKind::Group),
+                                    }
+                                }) => Some("not a known voice channel or call"),
+                                Some(_) if previews >= PREVIEWS_QUEUED || queue.len() >= COMMAND_QUEUE => Some("too many queued"),
+                                Some(_) => None,
+                            };
+                            match refused {
+                                // Its answer is on its way.
+                                _ if queue.iter().any(|queued| same(&queued.command)) => {}
+                                None => queue.push_back(Queued { command, at: Instant::now() }),
+                                Some(why) => {
+                                    note!(crate::http::PREVIEW, "GET not asked: {why}");
+                                    emit(events, Event::StreamPreview { channel, owner, image: None, retry_after: None }).await?;
+                                }
                             }
                         }
                         // Streams (transmisiones): the picture of the account's own
@@ -1143,8 +1164,12 @@ impl DiscordSessionProvider {
                                 .and_then(|session| session.snapshot.me.as_ref())
                                 .is_some_and(|me| me.id == owner)
                                 && calls.own_stream_key() == Some(crate::http::stream_key(server, channel, owner));
-                            if own && crate::http::preview_fits(&command) && queue.len() < COMMAND_QUEUE {
-                                queue.push_back(Queued { command, at: Instant::now() });
+                            let fits = crate::http::preview_fits(&command);
+                            match (own, fits, queue.len() < COMMAND_QUEUE) {
+                                (true, true, true) => queue.push_back(Queued { command, at: Instant::now() }),
+                                (false, _, _) => note!(crate::http::PREVIEW, "POST not sent: not the account's stream now"),
+                                (_, false, _) => note!(crate::http::PREVIEW, "POST not sent: not a JPEG within its size"),
+                                (_, _, false) => note!(crate::http::PREVIEW, "POST not sent: too many queued"),
                             }
                         }
                         // Desktop (P6): the newest activity wins over one queued or

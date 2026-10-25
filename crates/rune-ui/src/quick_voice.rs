@@ -1,18 +1,18 @@
-//! The quick voice panel (2026-10-18), as Serein has it: the arrow beside
-//! the microphone or the headphones, in the account's panel or the call's
-//! bar, opens the input's or the output's half of the voice settings over
-//! it. Its controls are the voice page's (`us:…`), so they share their
-//! state; this opens and closes it, and fills it.
+//! The menus of the arrows beside the microphone and the headphones, in the
+//! account's panel or the call's bar, as Discord has them (2026-10-25), and
+//! the camera's panel of the bar (2026-10-18). Their controls are the voice
+//! page's (`us:…`), so they share their state; this opens and closes them,
+//! and fills them.
 //!
-//! The devices are listed once when it opens, without opening them. Its
-//! level meter shows only while the microphone is open already, by the
-//! call or by «Probar micrófono»; closing the panel stops what it tested.
+//! The devices are listed once when one opens, without opening them. The
+//! microphone's level shows only in a call, while the call holds it open;
+//! closing the menu stops what it measured.
 
 use std::time::Instant;
 
 use limn::{Element, UiAction};
 use rune_components::profile::{ids as profile_ids, Device};
-use rune_components::quick_voice::{self as parts, ids, DeviceList, Input, Output};
+use rune_components::quick_voice::{self as parts, ids, AudioMenu, DeviceList};
 use rune_components::voice::ids as voice_ids;
 use rune_components::Look;
 use rune_i18n::{t, tr};
@@ -32,8 +32,6 @@ pub struct QuickVoice {
     pub output: bool,
     /// Opened from the call's bar; else from the account's panel.
     pub bar: bool,
-    /// The call's privacy code is unfolded.
-    pub privacy: bool,
     /// The camera's panel, from the arrow beside the bar's camera
     /// (llamadas-y-panel-de-voz); `output` is then false.
     pub camera: bool,
@@ -61,11 +59,22 @@ pub(crate) fn update(
             intents.extend(settings::clicked(ui, store, "us:page=voice", now));
             return Some(intents);
         }
-        ids::PRIVACY => {
-            if let Some(quick) = ui.profiles.devices.as_mut() {
-                quick.privacy ^= true;
-            }
-            return Some(Vec::new());
+        // A device or a profile chosen in a menu closes it, as in Discord.
+        chosen
+            if ui.profiles.devices.is_some_and(|quick| !quick.camera)
+                && [
+                    "us:mic=",
+                    "us:mic-default",
+                    "us:speaker=",
+                    "us:speaker-default",
+                    "us:profile=",
+                ]
+                .iter()
+                .any(|prefix| chosen.starts_with(prefix)) =>
+        {
+            let mut intents = close(ui);
+            intents.extend(settings::clicked(ui, store, chosen, now));
+            return Some(intents);
         }
         _ => return None,
     };
@@ -82,7 +91,6 @@ pub(crate) fn update(
     ui.profiles.devices = Some(QuickVoice {
         output,
         bar,
-        privacy: false,
         camera,
     });
     // The cameras are listed when the system gives access to one.
@@ -141,22 +149,36 @@ fn live(ui: &Ui, store: &Store) -> bool {
             .is_some_and(|call| call.phase.is_connected() && !call.muted)
 }
 
-/// The panel open from the call's bar (`bar`) or from the account's panel,
-/// with whether it is the output's.
+/// The menu open from the call's bar (`bar`) or from the account's panel,
+/// with whether it is the headphones'.
 pub(crate) fn view(ui: &Ui, store: &Store, look: &Look, bar: bool) -> Option<(bool, Element)> {
     let quick = ui
         .profiles
         .devices
         .filter(|quick| quick.bar == bar && !quick.camera)?;
-    let (title, body) = if quick.output {
-        (
-            t("Ajustes de salida"),
-            parts::output(&output(ui, store, quick, look), look),
-        )
-    } else {
-        (t("Ajustes de entrada"), parts::input(&input(ui), look))
+    let output = quick.output;
+    let prefs = &ui.prefs;
+    let menu = AudioMenu {
+        output,
+        devices: devices(ui, output),
+        volume: if output {
+            prefs.output_volume
+        } else {
+            prefs.input_volume
+        },
+        most: if output {
+            rune_media::MAX_VOLUME
+        } else {
+            rune_media::MAX_INPUT_VOLUME
+        },
+        profile: (!output).then(|| prefs.input_profile.key()),
+        level: (!output && crate::video::in_call(store)).then(|| {
+            let heard = ui.audio.testing && !ui.audio.starting;
+            ui.audio.levels.last().copied().filter(|_| heard)
+        }),
+        push_to_talk: (!output && prefs.push_to_talk_key.is_some()).then_some(prefs.push_to_talk),
     };
-    Some((quick.output, parts::panel(title, body, BODY_HEIGHT, look)))
+    Some((output, parts::audio_menu(&menu, look)))
 }
 
 /// The camera's panel over the bar's camera arrow, while open: the camera,
@@ -292,47 +314,4 @@ pub(crate) fn threshold(ui: &Ui) -> Option<f32> {
 /// The volumes are not as they start.
 pub(crate) fn levels_changed(ui: &Ui) -> bool {
     ui.prefs.input_volume != 1.0 || ui.prefs.output_volume != 1.0
-}
-
-fn input(ui: &Ui) -> Input {
-    let testing = ui.audio.testing && !ui.audio.starting;
-    Input {
-        devices: devices(ui, false),
-        volume: ui.prefs.input_volume,
-        most: rune_media::MAX_INPUT_VOLUME,
-        testing: ui.audio.testing,
-        level: ui.audio.levels.last().copied().filter(|_| testing),
-        threshold: threshold(ui),
-        reading: if ui.audio.starting {
-            Some(t("Abriendo micrófono…").into())
-        } else {
-            reading(ui)
-        },
-        push_to_talk: ui.prefs.push_to_talk,
-        suppression: ui.prefs.effective_processing().suppression != rune_media::ProcessingMode::Off,
-        changed: levels_changed(ui),
-    }
-}
-
-fn output(ui: &Ui, store: &Store, quick: QuickVoice, look: &Look) -> Output {
-    let real = store
-        .provider
-        .as_ref()
-        .is_some_and(|info| info.capabilities.voice == VoiceSupport::Real);
-    let in_call = store.call().is_some();
-    Output {
-        devices: devices(ui, true),
-        volume: ui.prefs.output_volume,
-        most: rune_media::MAX_VOLUME,
-        note: Some(
-            if in_call && !real {
-                t("La voz es simulada: no se reproduce audio de la llamada. «Probar sonido» suena igual.")
-            } else {
-                t("«Probar sonido» toca el sonido de entrar a la llamada, también durante una.")
-            }
-            .into(),
-        ),
-        privacy: crate::desktop::privacy(ui, store, look)
-            .map(|code| quick.privacy.then_some(code)),
-    }
 }

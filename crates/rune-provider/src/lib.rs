@@ -468,10 +468,11 @@ pub enum Command {
         paused: bool,
     },
     /// The latest picture of the screen `owner` streams in the voice
-    /// channel `channel` of `server`, for its row in the column. Answered
-    /// by [`Event::StreamPreview`]; nobody waits on its failure.
+    /// channel `channel` of `server` (`None`: a conversation's call), for
+    /// its row in the column. Answered by [`Event::StreamPreview`], with
+    /// none when it cannot be asked; nobody waits on its failure.
     LoadStreamPreview {
-        server: ServerId,
+        server: Option<ServerId>,
         channel: ChannelId,
         owner: UserId,
     },

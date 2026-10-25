@@ -410,7 +410,7 @@ fn samples() -> Vec<Command> {
         },
         Command::LeaveGroup { channel: GROUP },
         Command::LoadStreamPreview {
-            server: SERVER,
+            server: Some(SERVER),
             channel: VOICE,
             owner: PEER,
         },

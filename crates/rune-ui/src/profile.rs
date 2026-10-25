@@ -1345,6 +1345,12 @@ pub fn user_panel(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Eleme
                 look,
             )
         });
+    // What the server holds in the call the account is in.
+    let held = store.my_voice().filter(|state| {
+        store
+            .call()
+            .is_some_and(|call| call.channel == state.channel)
+    });
     chrome::user_panel(
         UserPanel {
             image: user.and_then(|user| ui.picture(user.picture())),
@@ -1364,6 +1370,8 @@ pub fn user_panel(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Eleme
             },
             muted: ui.muted,
             deafened: ui.deafened,
+            server_muted: held.is_some_and(|state| state.server_muted),
+            server_deafened: held.is_some_and(|state| state.server_deafened),
             voice: store
                 .provider
                 .as_ref()

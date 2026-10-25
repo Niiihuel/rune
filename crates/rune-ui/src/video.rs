@@ -78,6 +78,16 @@ pub struct Video {
     /// When the picture of the account's own stream goes up next, while it
     /// shares its screen.
     pub own_preview: Option<Instant>,
+    // Resting over a stream: its controls and the pointer hide.
+    /// When the pointer last moved or pressed, or a key was used, in the
+    /// window; `None` before anything did.
+    pub stirred: Option<Instant>,
+    /// Something keeps the stream's controls from hiding, as of the last
+    /// layout: the pointer on them or on the bar, a menu open, a control
+    /// focused from the keyboard.
+    pub held: bool,
+    /// When the pointer last moved over each stream's window of its own.
+    pub window_stirred: Vec<(UserId, Instant)>,
 }
 
 /// A stream's picture asked for: when, and how many answers in a row before
@@ -206,6 +216,23 @@ fn live(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
         .collect()
 }
 
+/// The streams whose pictures show: those of [`previewed`], and first the
+/// card of someone live under the pointer, watched or not
+/// (voz-filas-y-arrastre).
+fn shown(
+    ui: &Ui,
+    store: &Store,
+    live: &[(ServerId, rune_model::VoiceState)],
+) -> Vec<(ServerId, rune_model::VoiceState)> {
+    let mut shown = previewed(ui, store);
+    let hovered = ui.profiles.hovered;
+    if let Some(card) = live.iter().find(|(_, state)| Some(state.user) == hovered) {
+        shown.retain(|(_, state)| state.user != card.1.user);
+        shown.insert(0, card.clone());
+    }
+    shown
+}
+
 /// The pictures of the streams the column and the stage show, asked for
 /// as the official client does (REA): again [`PREVIEW_FRESH`] after one
 /// came; after none, [`PREVIEW_BACKOFF`] times how many came so in a row,
@@ -213,14 +240,7 @@ fn live(ui: &Ui, store: &Store) -> Vec<(ServerId, rune_model::VoiceState)> {
 /// host runs these each frame.
 pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
     let live = live(ui, store);
-    let mut shown = previewed(ui, store);
-    // The card of someone live under the pointer shows it, watched or not
-    // (voz-filas-y-arrastre); it goes first.
-    let hovered = ui.profiles.hovered;
-    if let Some(card) = live.iter().find(|(_, state)| Some(state.user) == hovered) {
-        shown.retain(|(_, state)| state.user != card.1.user);
-        shown.insert(0, card.clone());
-    }
+    let shown = shown(ui, store, &live);
     let asked = &mut ui.video.previews;
     // Kept while they stream, so a card shown again waits as long.
     asked.retain(|user, _| live.iter().any(|(_, state)| state.user == *user));
@@ -254,8 +274,11 @@ pub fn stream_previews(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> 
                 (Some(before), _) => before.failures + 1,
             };
             asked.insert(state.user, Asked { at: now, failures });
+            // shortcut: only a server's voice channels ask; a conversation's
+            // call shows no stream picture yet. When one does, ask it with
+            // `server: None` (the provider takes `call:` keys).
             Intent::Command(Command::LoadStreamPreview {
-                server,
+                server: Some(server),
                 channel: state.channel,
                 owner: state.user,
             })
@@ -318,9 +341,10 @@ pub fn own_preview_failed(ui: &mut Ui, now: Instant) {
     }
 }
 
-/// The images of the pictures the column shows, for the host to load.
+/// The images of the pictures the column and the card under the pointer
+/// show, for the host to load.
 pub(crate) fn preview_images(ui: &Ui, store: &Store) -> Vec<rune_model::RemoteImage> {
-    previewed(ui, store)
+    shown(ui, store, &live(ui, store))
         .into_iter()
         .filter_map(|(_, state)| {
             store
@@ -643,17 +667,17 @@ pub(crate) fn pause(store: &Store, paused: bool) -> Vec<Intent> {
 }
 
 /// The streams watched in `channel`, as the stage shows them.
-pub(crate) fn streams(ui: &Ui, store: &Store, channel: ChannelId) -> Vec<Preview> {
+pub(crate) fn streams(ui: &Ui, store: &Store, channel: ChannelId, now: Instant) -> Vec<Preview> {
     store
         .watching()
         .iter()
         .filter(|watching| watching.channel == channel)
-        .map(|watching| stream(ui, store, watching))
+        .map(|watching| stream(ui, store, watching, now))
         .collect()
 }
 
-/// A stream watched, as the stage shows it.
-fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
+/// A stream watched, as the stage shows it at `now`.
+fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant) -> Preview {
     let server = store
         .channel(watching.channel)
         .and_then(|found| found.server);
@@ -688,6 +712,8 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
         windowed: ui.video.windows.contains(&owner),
         menu: (ui.video.menu == Some((owner, None)))
             .then(|| crate::streams::menu_entries(ui, store, owner)),
+        fullscreen: ui.video.focus == Some(owner),
+        idle: idle(ui, store, now),
     };
     let shown = ui
         .video
@@ -713,19 +739,121 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching) -> Preview {
 
 /// The stream watched shown alone, if it still is: it fills the window,
 /// with the way out of full screen in place of the way to stop it.
-pub(crate) fn focused_view(ui: &Ui, store: &Store, size: limn::Size) -> Option<limn::Element> {
+pub(crate) fn focused_view(
+    ui: &Ui,
+    store: &Store,
+    size: limn::Size,
+    now: Instant,
+) -> Option<limn::Element> {
     let watching = store
         .watching()
         .iter()
         .find(|watching| Some(watching.owner) == ui.video.focus)?;
     let shown = Preview {
-        stop: (ids::FULLSCREEN_EXIT.into(), t("Salir de pantalla completa")),
-        actions: Vec::new(),
-        stream: None,
         focused: false,
-        ..stream(ui, store, watching)
+        ..stream(ui, store, watching, now)
     };
     Some(rune_components::voice::preview(&shown, size, &ui.look()))
+}
+
+/// How long the pointer rests over a stream focused or full screen before
+/// its controls, the bar and the pointer itself hide, as the official
+/// client's stage (REA: 3000 ms).
+pub const IDLE_AFTER: Duration = Duration::from_millis(3000);
+
+/// When what is over the stream focused or full screen hides unless the
+/// pointer moves first: `None` while nothing is to hide or something holds
+/// it (the pointer on the controls, a menu, the keyboard). The grid never
+/// hides.
+fn idle_at(ui: &Ui, store: &Store) -> Option<Instant> {
+    let shown = ui.video.focus.or(ui.video.spotlight).is_some_and(|owner| {
+        store
+            .watching()
+            .iter()
+            .any(|watching| watching.owner == owner)
+    });
+    if !shown || ui.video.held || held_by_menus(ui) {
+        return None;
+    }
+    Some(ui.video.stirred? + IDLE_AFTER)
+}
+
+/// A menu, a card or a picker open over the stage keeps everything shown.
+fn held_by_menus(ui: &Ui) -> bool {
+    ui.video.menu.is_some()
+        || ui.video.picker
+        || ui.voice.menu.is_some()
+        || ui.voice.card.is_some()
+        || ui.voice.more
+}
+
+/// The stream focused or full screen rests at `now`: what is over it
+/// fades out, the bar too, and the pointer hides over it.
+pub(crate) fn idle(ui: &Ui, store: &Store, now: Instant) -> bool {
+    idle_at(ui, store).is_some_and(|at| now >= at)
+}
+
+/// The window of `owner`'s stream rests at `now`, as the stage does.
+pub fn window_idle(ui: &Ui, owner: UserId, now: Instant) -> bool {
+    ui.video
+        .window_stirred
+        .iter()
+        .any(|(shown, at)| *shown == owner && now >= *at + IDLE_AFTER)
+}
+
+/// The pointer moved or pressed, or a key was used, in the window: what
+/// hides over a stream at rest shows again at once. A key too, unlike the
+/// official client, for whoever goes by keyboard.
+pub fn stir(ui: &mut Ui, event: &limn::UiEvent, now: Instant) {
+    use limn::UiEvent::*;
+    if matches!(
+        event,
+        PointerMove(_)
+            | PointerDown(_)
+            | PointerDownModified { .. }
+            | PointerDownEditor { .. }
+            | PointerUp(_)
+            | ContextMenu { .. }
+            | Scroll { .. }
+            | ScrollDirect { .. }
+            | Scroll2D { .. }
+            | Key { .. }
+            | Text(_)
+    ) {
+        ui.video.stirred = Some(now);
+    }
+}
+
+/// The pointer moved or pressed over the window of `owner`'s stream.
+pub fn stir_window(ui: &mut Ui, owner: UserId, now: Instant) {
+    ui.video.window_stirred.retain(|(shown, _)| *shown != owner);
+    ui.video.window_stirred.push((owner, now));
+}
+
+/// After the layout: the pointer on a stream's controls or on the bar, a
+/// popover open or a control focused from the keyboard keep what is over a
+/// stream from hiding.
+pub(crate) fn hold(ui: &mut Ui, tree: &limn::UiTree) {
+    let on_controls = tree
+        .hovered_region()
+        .is_some_and(|region| region == ids::BAR || region.starts_with(ids::STREAM_CONTROLS));
+    ui.video.held = on_controls || tree.has_open_popover() || tree.has_keyboard_focus();
+}
+
+/// When to paint again for what is over a stream, or a window of its own,
+/// to hide: once the pointer will have rested long enough.
+pub fn idle_tick(ui: &Ui, store: &Store, now: Instant) -> Option<Duration> {
+    let windows = ui
+        .video
+        .window_stirred
+        .iter()
+        .map(|(_, at)| *at + IDLE_AFTER);
+    idle_at(ui, store)
+        .into_iter()
+        .chain(windows)
+        .filter(|at| *at > now)
+        .min()
+        .map(|at| at - now)
 }
 
 /// The window should be full screen: a stream watched is shown alone.
@@ -800,12 +928,14 @@ pub fn windows(ui: &Ui, store: &Store) -> Vec<(UserId, String)> {
         .collect()
 }
 
-/// What the window of `owner`'s stream shows at `size`, while watched.
+/// What the window of `owner`'s stream shows at `size` and `now`, while
+/// watched: its note and title hide once the pointer rests over it.
 pub fn window_view(
     ui: &Ui,
     store: &Store,
     owner: UserId,
     size: limn::Size,
+    now: Instant,
 ) -> Option<limn::Element> {
     let watching = store
         .watching()
@@ -813,11 +943,12 @@ pub fn window_view(
         .find(|watching| watching.owner == owner)?;
     let shown = Preview {
         surface: ids::window_surface(owner.0),
-        ..stream(ui, store, watching)
+        ..stream(ui, store, watching, now)
     };
     Some(rune_components::voice::stream_window(
         &shown,
         size,
+        window_idle(ui, owner, now),
         &ui.look(),
     ))
 }
@@ -825,6 +956,7 @@ pub fn window_view(
 /// The window of `owner`'s stream was closed: it stays on the stage.
 pub fn window_closed(ui: &mut Ui, owner: UserId) {
     ui.video.windows.retain(|shown| *shown != owner);
+    ui.video.window_stirred.retain(|(shown, _)| *shown != owner);
 }
 
 /// «Ver transmisión»: `owner`'s stream in the account's call, besides the

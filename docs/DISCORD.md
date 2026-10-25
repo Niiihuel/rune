@@ -57,8 +57,10 @@ o, si la compilación la trae, la sesión no oficial.
 
 ## Diagnóstico
 
-Voz, Gateway e invitaciones dejan líneas `rune: voice …`, `rune: gateway: …`
-y `rune: invitation: …` en stderr y en el registro
+Voz, Gateway, invitaciones y vistas previas de transmisiones dejan líneas
+`rune: voice …`, `rune: gateway: …`, `rune: invitation: …` y
+`rune: stream preview: …` (estado HTTP, si vino una dirección, el motivo del
+rechazo y su host) en stderr y en el registro
 (`~/.local/state/rune/rune.log`, en Windows `%LOCALAPPDATA%\RUNE\logs`).
 Nunca llevan token, `session_id`, claves ni ids de personas: si algo falla
 contra Discord, mandar esas líneas y el texto del aviso.

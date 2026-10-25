@@ -464,7 +464,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Dispositivo de salida", "Output device"),
     ("Volumen de entrada", "Input volume"),
     ("Volumen de salida", "Output volume"),
-    ("Detener", "Stop"),
     ("Probar sonido", "Test sound"),
     ("Abriendo micrófono…", "Opening microphone…"),
     ("Escuchando.", "Listening."),

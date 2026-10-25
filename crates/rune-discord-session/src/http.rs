@@ -48,7 +48,11 @@ pub(crate) use threads::MAX_ACTIVE;
 use tokio::time::Instant;
 pub(crate) use uploads::Upload;
 
-use crate::{wire, LoginError, SessionSecret};
+use crate::{voice::diag::note, wire, LoginError, SessionSecret};
+
+// Streams (transmisiones).
+/// The diagnostic lines of stream pictures: `rune: stream preview: …`.
+pub(crate) const PREVIEW: &str = "stream preview";
 
 /// The message flag that keeps a message from notifying anyone (P4).
 pub(crate) const SUPPRESS_NOTIFICATIONS: u64 = 1 << 12;
@@ -68,6 +72,9 @@ pub(crate) struct Http {
     /// Stream pictures' own hold, as typing's: a 429 there never holds a
     /// message, and says how long until the next picture.
     preview_cooldown: Arc<Mutex<Option<Instant>>>,
+    /// The status of the latest stream picture request, for its diagnostic
+    /// line; the session sends them one at a time.
+    preview_status: Arc<Mutex<Option<StatusCode>>>,
     /// A person's answer to a challenge, for the one write it belongs to.
     answer: Arc<Mutex<Option<Answer>>>,
     /// What an administration request adds to itself and leaves behind.
@@ -179,6 +186,7 @@ impl Http {
             cooldown: Arc::default(),
             typing_cooldown: Arc::default(),
             preview_cooldown: Arc::default(),
+            preview_status: Arc::default(),
             answer: Arc::default(),
             admin: Default::default(),
             invitation: Arc::default(),
@@ -196,6 +204,7 @@ impl Http {
             cooldown: Arc::default(),
             typing_cooldown: Arc::default(),
             preview_cooldown: Arc::default(),
+            preview_status: Arc::default(),
             answer: Arc::default(),
             admin: Default::default(),
             invitation: Arc::default(),
@@ -249,6 +258,9 @@ impl Http {
         let typing = method == Method::POST && path.ends_with("/typing");
         // Streams (transmisiones): a stream's picture, read or sent.
         let preview = path.starts_with("/streams/") && path.contains("/preview");
+        if preview {
+            self.set_preview_status(None);
+        }
         let held = |hold: &Mutex<Option<Instant>>| {
             hold.lock()
                 .map(|until| until.is_some_and(|until| until > Instant::now()))
@@ -297,6 +309,9 @@ impl Http {
             RestError::response(LoginError::new(reason), mutating)
         })?;
         let status = response.status();
+        if preview {
+            self.set_preview_status(Some(status));
+        }
         let delay = if status == StatusCode::TOO_MANY_REQUESTS {
             response.headers().get(RETRY_AFTER)
         } else if response
@@ -668,36 +683,56 @@ impl Http {
         }
     }
 
-    /// The latest picture of `owner`'s stream in `channel` of `server`, as
-    /// Serein reads it: `{url}` on Discord's CDN, under that stream's key,
-    /// with `version` the time asked, as the official client asks it (REA).
-    /// A 429 holds stream pictures alone for its `retry_after`, which the
-    /// answer carries; that, a missing preview or a malformed answer is no
-    /// picture, never a failure the interface reports. Only a rejected
-    /// session ends.
+    /// The latest picture of `owner`'s stream in `channel` of `server`
+    /// (`None`: a conversation's call), as the official client asks it
+    /// (REA): `{url}` under that stream's key, with `version` the time
+    /// asked. A 429 holds stream pictures alone for its `retry_after`, which
+    /// the answer carries; that, a missing preview or a malformed answer is
+    /// no picture, never a failure the interface reports. Only a rejected
+    /// session ends. Each answer leaves one diagnostic line: its status and
+    /// why there is no picture, never the key or the address.
     pub async fn stream_preview(
         &self,
         secret: &SessionSecret,
-        server: rune_model::ServerId,
+        server: Option<rune_model::ServerId>,
         channel: ChannelId,
         owner: rune_model::UserId,
     ) -> Result<Vec<Event>, RestError> {
-        let key = stream_key(Some(server), channel, owner);
+        let key = stream_key(server, channel, owner);
         let version = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |since| since.as_millis());
         let path = format!("/streams/{key}/preview?version={version}");
-        let (image, retry_after) = match self.request(secret, Method::GET, &path, None, 4096).await
-        {
-            Ok(value) => (
-                preview_url(&value, &key).map(|url| rune_model::RemoteImage {
-                    url,
-                    kind: rune_model::ImageKind::Banner,
-                }),
-                None,
-            ),
-            Err(error) if error.ends_session => return Err(error),
-            Err(_) => (None, self.preview_hold()),
+        let answer = self.request(secret, Method::GET, &path, None, 4096).await;
+        let status = self.preview_answered();
+        let (image, retry_after) = match answer {
+            Ok(value) => match preview_url(&value, &key) {
+                Ok(url) => {
+                    note!(PREVIEW, "GET {status}: a picture on {}", preview_host(&url));
+                    let kind = rune_model::ImageKind::Banner;
+                    (Some(rune_model::RemoteImage { url, kind }), None)
+                }
+                Err(why) => {
+                    let host = value["url"].as_str().map(preview_host);
+                    let on = host.map(|host| format!(" ({host})")).unwrap_or_default();
+                    note!(PREVIEW, "GET {status}: no picture, {why}{on}");
+                    (None, None)
+                }
+            },
+            Err(error) if error.ends_session => {
+                note!(PREVIEW, "GET {status}: the session was rejected");
+                return Err(error);
+            }
+            Err(_) => {
+                let hold = self.preview_hold();
+                let held = if hold.is_some() {
+                    ", held for a 429"
+                } else {
+                    ""
+                };
+                note!(PREVIEW, "GET {status}: no picture{held}");
+                (None, hold)
+            }
         };
         Ok(vec![Event::StreamPreview {
             channel,
@@ -705,6 +740,20 @@ impl Http {
             image,
             retry_after,
         }])
+    }
+
+    fn set_preview_status(&self, status: Option<StatusCode>) {
+        if let Ok(mut seen) = self.preview_status.lock() {
+            *seen = status;
+        }
+    }
+
+    /// How the latest stream picture request was answered, for its line.
+    fn preview_answered(&self) -> String {
+        match self.preview_status.lock().ok().and_then(|seen| *seen) {
+            Some(status) => format!("answered {}", status.as_u16()),
+            None => "not answered".into(),
+        }
     }
 
     /// Every route is held for a 429.
@@ -740,10 +789,20 @@ impl Http {
         );
         let body = json!({ "thumbnail": thumbnail });
         let path = format!("/streams/{key}/preview");
-        match self
+        let answer = self
             .request_answer(secret, Method::POST, &path, Some(body), 4096, true)
-            .await
-        {
+            .await;
+        let status = self.preview_answered();
+        let sent = if answer.is_ok() { "sent" } else { "not sent" };
+        // shortcut: a picture not sent waits for the next one (5 min), not
+        // the official client's 60 s; an answer to the interface would let
+        // it try sooner.
+        note!(
+            PREVIEW,
+            "POST {status}: own picture {sent} ({} KiB)",
+            jpeg.len() / 1024
+        );
+        match answer {
             Err(error) if error.ends_session => Err(error),
             _ => Ok(Vec::new()),
         }
@@ -920,23 +979,69 @@ pub(crate) fn preview_fits(command: &Command) -> bool {
         if jpeg.starts_with(&[0xFF, 0xD8, 0xFF]) && jpeg.len() <= MAX_PREVIEW_JPEG)
 }
 
-fn preview_url(value: &Value, key: &str) -> Option<String> {
-    let url = value["url"].as_str()?;
-    let path = [
-        format!("https://cdn.discordapp.com/streams/{key}/"),
-        format!("https://media.discordapp.net/streams/{key}/"),
-    ]
-    .into_iter()
-    .find_map(|prefix| url.strip_prefix(prefix.as_str()))?;
-    let name = path.split_once('?').map_or(path, |(name, _)| name);
-    let hash = name.strip_suffix(".png").unwrap_or(name);
-    let plausible = url.len() <= 2048
-        && !url
+/// The hosts of Discord's media a stream's picture may be on: its CDN and
+/// its media proxy, as Serein reads it (the official client shows the
+/// address as it comes, REA).
+const PREVIEW_HOSTS: [&str; 2] = ["cdn.discordapp.com", "media.discordapp.net"];
+
+/// Where a stream's picture comes from, as a diagnostic line may say it:
+/// the host alone, printable and short.
+pub(crate) fn preview_host(raw: &str) -> String {
+    url::Url::parse(raw)
+        .ok()
+        .and_then(|url| url.host_str().map(crate::voice::diag::shown_endpoint))
+        .unwrap_or_else(|| "no host".into())
+}
+
+/// The address of the picture `value` names for the stream `key`, or why
+/// it is not one to load: https on Discord's media hosts, without a user,
+/// port or fragment, under `/streams/{key}/` (its colons as they are or
+/// percent-encoded), the file below it named in plain characters. The
+/// file's name and kind are not assumed: the service has not shown them.
+fn preview_url(value: &Value, key: &str) -> Result<String, &'static str> {
+    let raw = value["url"].as_str().ok_or("no url in the answer")?;
+    if raw.len() > 2048 || raw.chars().any(|c| c.is_control() || c == '\\') {
+        return Err("a malformed url");
+    }
+    let url = url::Url::parse(raw).map_err(|_| "a malformed url")?;
+    if url.scheme() != "https" {
+        return Err("not https");
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err("a user in the url");
+    }
+    if url.port().is_some() {
+        return Err("a port in the url");
+    }
+    if url.fragment().is_some() {
+        return Err("a fragment in the url");
+    }
+    if !url
+        .host_str()
+        .is_some_and(|host| PREVIEW_HOSTS.contains(&host))
+    {
+        return Err("a host not of Discord's media");
+    }
+    // Parsing resolved any `..`, plain or encoded: what is left is where it
+    // leads.
+    let (segment, file) = url
+        .path()
+        .strip_prefix("/streams/")
+        .and_then(|rest| rest.split_once('/'))
+        .ok_or("not under /streams/")?;
+    if segment.replace("%3A", ":").replace("%3a", ":") != key {
+        return Err("another stream's key");
+    }
+    let plain = !file.is_empty()
+        && file.len() <= 256
+        && file.split('/').all(|part| !part.is_empty())
+        && file
             .bytes()
-            .any(|byte| byte.is_ascii_control() || byte == b'\\')
-        && (16..=128).contains(&hash.len())
-        && hash.bytes().all(|byte| byte.is_ascii_hexdigit());
-    plausible.then(|| url.to_owned())
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'/'));
+    if !plain {
+        return Err("no plain file name");
+    }
+    Ok(url.into())
 }
 
 fn status_error(status: StatusCode, mutating: bool) -> RestError {

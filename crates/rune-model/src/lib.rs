@@ -304,8 +304,9 @@ pub struct RemoteImage {
 pub enum ImageKind {
     #[default]
     Artwork,
-    /// Wide profile artwork, and the still cover of an activity (a JPEG
-    /// under 1 MiB); normalized without square padding.
+    /// Wide profile artwork, the still cover of an activity and a stream's
+    /// picture (a JPEG or PNG under 4 MiB); normalized without square
+    /// padding.
     Banner,
     AttachmentPreview,
     /// A short silent looping video, such as a card's GIF: decoded into

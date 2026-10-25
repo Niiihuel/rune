@@ -76,7 +76,7 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let window = context.window;
     let mut ground = look.canvas;
     // A stream watched shown alone fills the window, full screen.
-    if let Some(focused) = crate::video::focused_view(ui, store, window) {
+    if let Some(focused) = crate::video::focused_view(ui, store, window, context.now) {
         return with_notices(focused, ui, look, None);
     }
     let body = if let Some(editor) = profile::editor_view(ui, store, context) {
@@ -497,7 +497,7 @@ fn conversation(
 ) -> Element {
     if crate::relationships::visible(ui) {
         let mut column = Vec::new();
-        column.extend(connection_banner(store, look));
+        column.extend(connection_banner(ui, store, look));
         column.push(crate::relationships::view(ui, store, look).flex(1.0));
         return Element::column(column);
     }
@@ -526,7 +526,7 @@ fn conversation(
             )
         };
         let mut content = Vec::new();
-        content.extend(connection_banner(store, look));
+        content.extend(connection_banner(ui, store, look));
         content.push(
             centered(
                 Empty::new(title, detail, look.palette())
@@ -612,7 +612,7 @@ fn conversation(
     );
     if conversation.kind == ChannelKind::Forum {
         let mut column = vec![header, separator(look)];
-        column.extend(connection_banner(store, look));
+        column.extend(connection_banner(ui, store, look));
         let mut row = vec![crate::threads::forum_page(
             ui,
             store,
@@ -741,19 +741,20 @@ fn conversation(
         column.push(call);
         column.push(separator(look));
     }
-    column.extend(connection_banner(store, look));
+    column.extend(connection_banner(ui, store, look));
     column.push(Element::row(row).flex(1.0));
     Element::column(column)
 }
 
 /// The line over the conversation while the connection is not there, with
-/// «Reintentar ya» inside the Gateway's wait when the provider allows it.
-fn connection_banner(store: &Store, look: &Look) -> Option<Element> {
+/// «Reintentar ya» inside the Gateway's wait when the provider allows it, or
+/// «Reintentar» once it gave up.
+fn connection_banner(ui: &Ui, store: &Store, look: &Look) -> Option<Element> {
     let sentence = connection_line(store)?;
     Some(chrome::connection_banner(
         &sentence,
         true,
-        crate::splash::retry_now(store, look),
+        crate::splash::retry_now(store, look).or_else(|| crate::splash::reconnect(ui, store, look)),
         look,
     ))
 }

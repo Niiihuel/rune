@@ -251,7 +251,15 @@ fn socket_error(error: WsError) -> Failure {
         WsError::Capacity(_) => Failure::Stop(LoginError::new(es(
             "Un evento de Discord excedió el límite local.",
         ))),
-        WsError::Http(_) | WsError::HttpFormat(_) | WsError::Protocol(_) | WsError::Utf8(_) => {
+        // A cut stream (no closing handshake, as after hours on a flaky
+        // network) or a busy Gateway is worth the bounded retries.
+        WsError::Protocol(_) => Failure::Retry { fresh: false },
+        WsError::Http(response)
+            if response.status().is_server_error() || response.status().as_u16() == 429 =>
+        {
+            Failure::Retry { fresh: false }
+        }
+        WsError::Http(_) | WsError::HttpFormat(_) | WsError::Utf8(_) => {
             // Includes rejected/redirected handshakes. Never expose the response
             // body, redirect target or websocket error through LoginError.
             Failure::Stop(LoginError::new(es("Discord rechazó la conexión Gateway.")))

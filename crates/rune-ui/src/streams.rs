@@ -48,6 +48,11 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         }
         return Some(Vec::new());
     }
+    // Full screen, a click on the stream only wakes what hides at rest; a
+    // double click brings the stage back.
+    if crate::video::fullscreen(ui, store) && number(id, "vz:stream:").is_some() {
+        return Some(Vec::new());
+    }
     let owner = number(id, "vz:stream:").or_else(|| number(id, "vz:spotlight:"))?;
     let owner = UserId(owner);
     ui.video.spotlight =
@@ -91,14 +96,21 @@ pub(crate) fn double_click(
         ui.video.spotlight = None;
         return Some(Vec::new());
     }
-    let under = UserId(number(target?, "vz:stream:")?);
+    // A double click on another control is its own (words in a message).
+    if target.is_some_and(|target| !target.starts_with("vz:")) {
+        return None;
+    }
     // The first click of the two focused it or let it go, which moves the
-    // tiles: the press is the clicked one's even if another is under it now.
+    // tiles: the press is the clicked one's even if a person or a gap
+    // between tiles is under it now.
+    // shortcut: `clicked` is not cleared by clicks other parts answer, so a
+    // later double click on an empty spot can still reach it; time it if seen.
     let owner = ui
         .video
         .clicked
+        .take()
         .filter(|clicked| watched(store, *clicked))
-        .unwrap_or(under);
+        .or_else(|| number(target?, "vz:stream:").map(UserId))?;
     if !watched(store, owner) {
         return None;
     }

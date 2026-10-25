@@ -300,7 +300,8 @@ async fn response_limits_apply_to_declared_length_and_streamed_chunks() {
     }
     assert_eq!(byte_limit(ImageKind::AttachmentPreview), 8 * 1024 * 1024);
     assert_eq!(byte_limit(ImageKind::Artwork), 1024 * 1024);
-    assert_eq!(byte_limit(ImageKind::Banner), 1024 * 1024);
+    // A dense screen's server banner (1024 px) passes 1 MiB.
+    assert_eq!(byte_limit(ImageKind::Banner), 4 * 1024 * 1024);
 }
 
 #[tokio::test]
@@ -945,4 +946,39 @@ async fn the_provider_s_address_for_a_dense_screen_is_what_is_fetched() {
         matches!(&ready[..], [(_, data)] if data.width == 2 * THUMBNAIL),
         "{ready:?}"
     );
+}
+
+// Streams (transmisiones).
+#[tokio::test]
+async fn a_stream_picture_that_did_not_load_is_failed_and_asked_again_unlike_others() {
+    for (path, retried) in [("/streams/guild:1:2:3/a.jpg", true), ("/banner.png", false)] {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let wanted = vec![RemoteImage {
+            url: format!("http://{}{path}", listener.local_addr().unwrap()),
+            kind: ImageKind::Banner,
+        }];
+        let (wake, mut woken) = mpsc::channel(8);
+        let mut images = Images::new(
+            Handle::current(),
+            &[],
+            Arc::new(move || {
+                let _ = wake.try_send(());
+            }),
+        );
+        images.loopback = true;
+        images.load(&wanted);
+        let (mut socket, _) = listener.accept().await.unwrap();
+        headers(&mut socket).await;
+        socket
+            .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n")
+            .await
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(1), woken.recv())
+            .await
+            .unwrap();
+        images.load(&wanted);
+        // The interface is told, so it never shows it loading for ever.
+        assert!(images.failures(&wanted).contains(&wanted[0]), "{path}");
+        assert_eq!(images.next_retry().is_some(), retried, "{path}");
+    }
 }

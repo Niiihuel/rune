@@ -514,7 +514,7 @@ fn pf_the_editor_opened_over_the_settings_goes_back_to_them() {
 }
 
 #[test]
-fn pf_the_arrows_open_the_quick_voice_panel_and_choose_there() {
+fn pf_the_arrows_open_discords_device_menus_and_choose_there() {
     use rune_components::quick_voice::ids as quick;
     let mut host = Host::new();
     let device = |id: &str, name: &str, default: bool| rune_media::DeviceInfo {
@@ -542,55 +542,65 @@ fn pf_the_arrows_open_the_quick_voice_panel_and_choose_there() {
     }));
     let painted = host.painted();
     for text in [
-        "Ajustes de entrada",
         "Dispositivo de entrada",
-        "Pulsar para hablar",
-        "Todos los ajustes de voz",
+        "Predeterminado del sistema",
+        "Perfil de entrada",
+        "Aislamiento de voz",
+        "Volumen de entrada",
+        "Ajustes de voz",
     ] {
         assert!(painted.iter().any(|it| it == text), "{text}: {painted:?}");
     }
-    // A list open in it chooses without closing the panel.
-    host.click("us:select:mic");
-    assert_eq!(host.ui.settings_state.select, Some("mic"));
+    // Out of a call there is no level, and without its key no push-to-talk.
+    assert!(!painted.iter().any(|it| it == "Nivel de entrada"));
+    assert!(!painted.iter().any(|it| it == "Pulsar para hablar"));
+    // A device chosen from its list closes the menu, as in Discord.
+    host.pf_hover("qv:mic");
     host.click("us:mic=mic-b");
     assert_eq!(host.ui.audio.input.as_deref(), Some("mic-b"));
-    assert!(host.ui.profiles.devices.is_some(), "the panel stays");
-    assert_eq!(host.ui.settings_state.select, None);
-    // How the microphone goes through, and noise suppression.
-    host.click("us:input=ptt");
+    assert!(host.ui.profiles.devices.is_none(), "choosing closes it");
+    // Every profile it offers is one the voice page keeps.
+    for (key, _) in rune_components::quick_voice::PROFILES {
+        host.click(ids::INPUT);
+        host.pf_hover("qv:profile");
+        host.click(&format!("us:profile={key}"));
+        assert_eq!(host.ui.prefs.input_profile.key(), key);
+        assert!(host.ui.profiles.devices.is_none());
+    }
+    // With a key for it, push-to-talk is a check box that keeps it open.
+    host.ui.prefs.push_to_talk_key = Some("Ctrl+T".into());
+    host.click(ids::INPUT);
+    host.click(quick::PUSH_TO_TALK);
     assert!(host.ui.prefs.push_to_talk);
-    let suppression = |host: &Host| host.ui.prefs.effective_processing().suppression;
-    assert_ne!(suppression(&host), rune_media::ProcessingMode::Off);
-    host.click(quick::NOISE);
-    assert_eq!(suppression(&host), rune_media::ProcessingMode::Off);
-    host.click(quick::NOISE);
-    assert_eq!(suppression(&host), rune_media::ProcessingMode::RnNoise);
-    // Testing the microphone from here stops with the panel.
-    host.click(quick::METER);
-    assert!(host.ui.audio.testing);
-    host.ui.audio.starting = false;
-    host.ui.audio.levels = vec![0.5];
-    assert!(host.painted().iter().any(|it| it.contains("dBFS")));
-    let closed = update(
-        &mut host.ui,
-        &mut host.store,
-        &UiAction::Clicked {
-            id: quick::DISMISS.into(),
-        },
-        host.now,
+    assert!(
+        host.ui.profiles.devices.is_some(),
+        "a check box keeps it open"
     );
-    assert_eq!(closed, vec![Intent::StopMeter]);
-    assert!(host.ui.profiles.devices.is_none() && !host.ui.audio.testing);
-    // The output's half: its sound test is a call sound.
+    host.click(quick::VOICE_MODE);
+    assert!(!host.ui.prefs.push_to_talk);
+    host.click(ids::INPUT);
+    assert!(host.ui.profiles.devices.is_none(), "its arrow closes it");
+    // The headphones' menu: the output, its volume and the voice settings.
     host.click(ids::OUTPUT);
     assert!(host
         .ui
         .profiles
         .devices
         .is_some_and(|it| it.output && !it.bar));
-    assert!(host.painted().iter().any(|it| it == "Ajustes de salida"));
-    host.click(quick::SOUND_TEST);
-    assert_eq!(host.ui.call_sounds.preview, Some(crate::CallSound::Join));
+    let painted = host.painted();
+    for text in [
+        "Dispositivo de salida",
+        "Volumen de salida",
+        "Ajustes de voz",
+    ] {
+        assert!(painted.iter().any(|it| it == text), "{text}: {painted:?}");
+    }
+    assert!(!painted.iter().any(|it| it == "Perfil de entrada"));
+    host.pf_hover("qv:speaker");
+    host.click("us:speaker=out-a");
+    assert_eq!(host.ui.audio.output.as_deref(), Some("out-a"));
+    assert!(host.ui.profiles.devices.is_none());
+    host.click(ids::OUTPUT);
     host.click(ids::OUTPUT);
     assert!(host.ui.profiles.devices.is_none(), "its arrow closes it");
     // All the voice settings, from its foot.

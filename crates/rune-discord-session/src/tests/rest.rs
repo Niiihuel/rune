@@ -607,7 +607,7 @@ async fn typing_accepts_its_documented_answer_and_a_reaction_only_no_content() {
 
 fn stream_preview() -> Command {
     Command::LoadStreamPreview {
-        server: rune_model::ServerId(40),
+        server: Some(rune_model::ServerId(40)),
         channel: ChannelId(30),
         owner: rune_model::UserId(2),
     }
@@ -624,6 +624,17 @@ fn preview_image(events: &[Event]) -> Option<rune_model::RemoteImage> {
         }] => image.clone(),
         other => panic!("{other:?}"),
     }
+}
+
+/// The picture `url` names for the stream of [`stream_preview`], when
+/// Discord answers `{url}`.
+async fn previewed(url: &str) -> Option<rune_model::RemoteImage> {
+    let (http, _) = fixture(response(200, &json!({ "url": url }).to_string())).await;
+    let events = http
+        .execute(&secret(), &stream_preview(), "")
+        .await
+        .unwrap();
+    preview_image(&events)
 }
 
 #[tokio::test]
@@ -645,19 +656,44 @@ async fn a_stream_preview_is_a_get_under_its_key_and_only_a_cdn_picture_of_it_is
     let image = preview_image(&events).unwrap();
     assert_eq!(image.url, good);
     assert_eq!(image.kind, rune_model::ImageKind::Banner);
-    // Elsewhere, another stream's, or not a plain hash: no picture.
+    // What the service has not shown is not assumed: either host, the key's
+    // colons encoded, any plain file name, a signed query.
+    for shape in [
+        "https://media.discordapp.net/streams/guild:40:30:2/0123456789abcdef.png",
+        "https://cdn.discordapp.com/streams/guild%3A40%3A30%3A2/0123456789abcdef.png",
+        "https://cdn.discordapp.com/streams/guild%3a40%3a30%3a2/preview.jpg",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/preview?ex=6720f1a2&is=671fa022&hm=ab12",
+        "https://media.discordapp.net/streams/guild:40:30:2/1730000000000/thumb.jpeg?width=512&height=288",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/0123",
+    ] {
+        let image = previewed(shape).await.unwrap_or_else(|| panic!("{shape}"));
+        assert!(image.url.starts_with("https://"), "{shape}");
+    }
+    // Elsewhere, another stream's, a way out of it, or anything an address
+    // could smuggle: no picture.
     for bad in [
         "https://evil.example/streams/guild:40:30:2/0123456789abcdef.png",
+        "https://cdn.discordapp.com.evil.example/streams/guild:40:30:2/a.png",
+        "https://evil.cdn.discordapp.com/streams/guild:40:30:2/a.png",
+        "http://cdn.discordapp.com/streams/guild:40:30:2/a.png",
+        "https://cdn.discordapp.com:8443/streams/guild:40:30:2/a.png",
+        "https://user:pass@cdn.discordapp.com/streams/guild:40:30:2/a.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/a.png#x",
         "https://cdn.discordapp.com/streams/guild:40:30:3/0123456789abcdef.png",
+        "https://cdn.discordapp.com/streams/guild%3A40%3A30%3A3/a.png",
         "https://cdn.discordapp.com/streams/guild:40:30:2/../token.png",
-        "https://cdn.discordapp.com/streams/guild:40:30:2/0123.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/%2e%2e/token.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/%2E%2E/%2E%2E/attachments/a.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/a%2Fb.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/",
+        "https://cdn.discordapp.com/streams/guild:40:30:2",
+        "https://cdn.discordapp.com/attachments/guild:40:30:2/a.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/a\\b.png",
+        "https://cdn.discordapp.com/streams/guild:40:30:2/a\nb.png",
+        "data:image/jpeg;base64,AAAA",
+        "",
     ] {
-        let (http, _) = fixture(response(200, &json!({"url": bad}).to_string())).await;
-        let events = http
-            .execute(&secret(), &stream_preview(), "")
-            .await
-            .unwrap();
-        assert_eq!(preview_image(&events), None, "{bad}");
+        assert_eq!(previewed(bad).await, None, "{bad}");
     }
     // None yet: no picture, and nothing for the interface to report.
     let (http, _) = fixture(response(404, "{}")).await;
@@ -666,6 +702,53 @@ async fn a_stream_preview_is_a_get_under_its_key_and_only_a_cdn_picture_of_it_is
         .await
         .unwrap();
     assert_eq!(preview_image(&events), None);
+    let (http, _) = fixture(response(200, "{}")).await;
+    let events = http
+        .execute(&secret(), &stream_preview(), "")
+        .await
+        .unwrap();
+    assert_eq!(preview_image(&events), None);
+    // Each answer said how it went, and never with what: no key, id or
+    // address.
+    let lines: Vec<_> = crate::voice::diag::captured::lines()
+        .into_iter()
+        .filter(|line| line.starts_with("rune: stream preview: GET "))
+        .collect();
+    for wanted in [
+        "rune: stream preview: GET answered 200: a picture on cdn.discordapp.com",
+        "rune: stream preview: GET answered 200: a picture on media.discordapp.net",
+        "rune: stream preview: GET answered 200: no picture, a host not of Discord's media (evil.example)",
+        "rune: stream preview: GET answered 200: no picture, a port in the url (cdn.discordapp.com)",
+        "rune: stream preview: GET answered 200: no picture, another stream's key (cdn.discordapp.com)",
+        "rune: stream preview: GET answered 200: no picture, not under /streams/ (cdn.discordapp.com)",
+        "rune: stream preview: GET answered 200: no picture, no url in the answer",
+        "rune: stream preview: GET answered 404: no picture",
+    ] {
+        assert!(lines.iter().any(|line| line == wanted), "{wanted}: {lines:#?}");
+    }
+    for line in &lines {
+        assert!(
+            !line.contains("guild") && !line.contains("30:2") && !line.contains("0123456789"),
+            "{line}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_calls_stream_preview_is_asked_under_its_call_key() {
+    let good = "https://media.discordapp.net/streams/call%3A30%3A2/abc.jpg";
+    let (http, captured) = fixture(response(200, &json!({"url": good}).to_string())).await;
+    let command = Command::LoadStreamPreview {
+        server: None,
+        channel: ChannelId(30),
+        owner: rune_model::UserId(2),
+    };
+    let events = http.execute(&secret(), &command, "").await.unwrap();
+    assert!(captured
+        .await
+        .unwrap()
+        .starts_with("GET /api/v10/streams/call:30:2/preview?version="));
+    assert_eq!(preview_image(&events).unwrap().url, good);
 }
 
 #[tokio::test]

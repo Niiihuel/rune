@@ -212,7 +212,15 @@ fn inside_the_gateways_wait_it_can_try_again_at_once() {
     host.event(Event::Connection(ConnectionState::Disconnected {
         reason: "sin red".into(),
     }));
-    assert!(!host.painted().join(" ").contains("Reintentar ya"));
+    let text = host.painted().join(" ");
+    assert!(!text.contains("Reintentar ya"), "{text}");
+    // But the provider can start again from the same line, without a restart.
+    assert!(text.contains("Reintentar"), "{text}");
+    let current = host.ui.providers.current.unwrap();
+    assert_eq!(
+        click(&mut host, crate::splash::ids::RECONNECT),
+        vec![Intent::UseProvider(current)]
+    );
 }
 
 #[test]

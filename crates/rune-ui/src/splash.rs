@@ -32,6 +32,8 @@ pub mod ids {
     /// The Gateway's wait between attempts, cut short: here or in the line
     /// over the conversation of a loaded session.
     pub const RETRY_NOW: &str = "connection:retry-now";
+    /// The provider started again from the line over the conversation.
+    pub const RECONNECT: &str = "connection:reconnect";
     /// A remembered account to go on with: `splash:account={id}`.
     pub const ACCOUNT: &str = "splash:account=";
     pub const ADD_ACCOUNT: &str = "splash:add-account";
@@ -220,6 +222,18 @@ pub fn retry_now(store: &Store, look: &Look) -> Option<Element> {
     })
 }
 
+/// «Reintentar» on the line over the conversation once the connection gave
+/// up: the provider starts again, as the screen's own button does.
+pub fn reconnect(ui: &Ui, store: &Store, look: &Look) -> Option<Element> {
+    (ui.providers.current.is_some()
+        && matches!(store.connection, ConnectionState::Disconnected { .. }))
+    .then(|| {
+        Button::new(ids::RECONNECT, t("Reintentar"), look.accent_palette())
+            .variant(ButtonVariant::Default)
+            .render()
+    })
+}
+
 fn ways_out(ui: &Ui, store: &Store, look: &Look) -> Element {
     let capabilities = store.provider.as_ref().map(|info| info.capabilities);
     let mut buttons: Vec<Element> = retry_now(store, look).into_iter().collect();
@@ -336,6 +350,9 @@ pub fn update(store: &Store, ui: &mut Ui, action: &limn::UiAction) -> Option<Vec
     };
     if id == ids::RETRY_NOW {
         return Some(vec![Intent::Command(Command::ReconnectNow)]);
+    }
+    if id == ids::RECONNECT {
+        return Some(vec![Intent::UseProvider(ui.providers.current?)]);
     }
     if !visible(store) {
         return None;
