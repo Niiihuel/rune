@@ -46,6 +46,17 @@ pub const INVITE_AGES: [(u32, &str); 7] = [
     (7 * 24 * 60 * 60, es("7 días")),
     (0, es("Nunca")),
 ];
+/// The history a ban deletes, as the dialog offers it: its seconds, and what
+/// it says. Discord's most is seven days.
+pub const BAN_HISTORY: [(u32, &str); 7] = [
+    (0, es("No eliminar nada")),
+    (60 * 60, es("Última hora")),
+    (6 * 60 * 60, es("Últimas 6 horas")),
+    (12 * 60 * 60, es("Últimas 12 horas")),
+    (24 * 60 * 60, es("Últimas 24 horas")),
+    (3 * 24 * 60 * 60, es("Últimos 3 días")),
+    (7 * 24 * 60 * 60, es("Últimos 7 días")),
+];
 /// How many times a new invitation can be used; 0 has no limit.
 pub const INVITE_USES: [(u32, &str); 7] = [
     (0, es("Sin límite")),
@@ -134,7 +145,7 @@ pub struct Advanced {
     pub delete_webhook: Option<WebhookId>,
     pub delete_integration: Option<IntegrationId>,
     /// The dropdown of a dialog that is open: `timeout-length`, `invite-channel`,
-    /// `invite-age`, `invite-uses`, `prune-days`, `webhook-channel`.
+    /// `invite-age`, `invite-uses`, `prune-days`, `webhook-channel`, `removal-history`.
     pub select: Option<&'static str>,
 }
 
@@ -288,6 +299,17 @@ pub(super) fn clicked(
     let advanced = &mut settings.advanced;
     match parts {
         ["select", "dismiss"] => advanced.select = None,
+
+        // The history a ban deletes, in its dialog.
+        ["removal", "history"] => advanced.toggle("removal-history"),
+        ["removal-history", choice] => {
+            if let (Some(removal), Some(choice)) = (&mut settings.removal, index(choice)) {
+                if choice < BAN_HISTORY.len() {
+                    removal.history = choice;
+                }
+            }
+            advanced.select = None;
+        }
 
         // Timeouts, from the members page.
         ["member", id, "timeout"] => {

@@ -182,8 +182,23 @@ fn moderation_needs_the_permission_and_a_higher_rank() {
         server: SERVER,
         user: PEER,
         reason: Some("x".repeat(REASON_MAX + 1)),
+        delete_message_seconds: 0,
     };
     assert!(refused(&snapshot, long).contains("motivo"));
+    let too_much = Command::Ban {
+        server: SERVER,
+        user: PEER,
+        reason: None,
+        delete_message_seconds: MAX_DELETE_SECONDS + 1,
+    };
+    assert!(allowed(&snapshot, &too_much).is_err());
+    let most = Command::Ban {
+        server: SERVER,
+        user: PEER,
+        reason: None,
+        delete_message_seconds: MAX_DELETE_SECONDS,
+    };
+    assert!(allowed(&snapshot, &most).is_ok());
     // Without the role, nothing.
     let mut plain = session();
     plain.members[0].roles.clear();

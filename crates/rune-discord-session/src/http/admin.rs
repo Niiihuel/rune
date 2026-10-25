@@ -608,13 +608,14 @@ impl Http {
                 server,
                 user,
                 reason,
+                delete_message_seconds,
             } => {
                 self.reasoned(reason.as_deref())
                     .send(
                         secret,
                         Method::PUT,
                         &format!("/guilds/{server}/bans/{user}"),
-                        Some(json!({"delete_message_seconds": 0})),
+                        Some(json!({"delete_message_seconds": delete_message_seconds})),
                         ANSWER,
                     )
                     .await?;

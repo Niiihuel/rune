@@ -38,6 +38,8 @@ pub(crate) const INVITE_MAX_AGE: u32 = 7 * 24 * 60 * 60;
 pub(crate) const INVITE_MAX_USES: u32 = 100;
 /// The most characters of an audit log reason, as Discord takes it.
 pub(crate) const REASON_MAX: usize = 512;
+/// The most history a ban deletes: seven days, in seconds.
+pub(crate) const MAX_DELETE_SECONDS: u32 = 7 * 24 * 60 * 60;
 
 const NOT_ALLOWED: &str = es("No tenés permiso para esta acción en el servidor.");
 const ABOVE: &str = es("Su rol está a la altura del tuyo o por encima.");
@@ -603,9 +605,18 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             }
             Ok(())
         }
-        Command::Ban { user, reason, .. } => {
+        Command::Ban {
+            user,
+            reason,
+            delete_message_seconds,
+            ..
+        } => {
             standing.needs(Permissions::BAN)?;
             standing.member_below(*user)?;
+            // Discord keeps the history of up to seven days to delete.
+            if *delete_message_seconds > MAX_DELETE_SECONDS {
+                return Err(wire::invalid());
+            }
             valid_reason(reason.as_deref())
         }
         Command::Unban { user, .. } => {

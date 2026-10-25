@@ -322,6 +322,7 @@ fn samples() -> Vec<Command> {
             server: SERVER,
             user: PEER,
             reason: None,
+            delete_message_seconds: 0,
         },
         Command::Unban {
             server: SERVER,

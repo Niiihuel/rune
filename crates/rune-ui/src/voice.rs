@@ -654,7 +654,8 @@ pub(crate) fn participant(
             .watched
             .iter()
             .find(|(shown, _)| *shown == user)
-            .and_then(|(_, live)| live.frame()),
+            .and_then(|(_, live)| live.frame())
+            .filter(|_| !ui.prefs.video_hidden(user.0)),
         thumbnail: None,
         image: ui.picture(store.avatar_in(server, user)),
         decoration: ui.picture(

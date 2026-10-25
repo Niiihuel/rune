@@ -7,6 +7,7 @@ use rune_model::{Member, Permissions, Role, RoleId, RoleStyle, ServerId, UserId}
 
 use super::*;
 use crate::person_menu::{entries, Place};
+use crate::server_settings::advanced::invite_channels;
 
 /// The labels of `menu`'s entries, in order: what it offers, on or off.
 fn labels(menu: &[MenuEntry]) -> Vec<String> {
@@ -32,6 +33,27 @@ fn off(menu: &[MenuEntry]) -> Vec<(String, String)> {
 }
 
 impl Host {
+    /// A press of `id`, as the tree reports a click on it.
+    fn tap(&mut self, id: &str) {
+        let action = UiAction::Clicked { id: id.into() };
+        let intents = update(&mut self.ui, &mut self.store, &action, self.now);
+        self.run(intents);
+    }
+
+    /// The direct conversation the home opens first: its id and person.
+    fn first_direct(&mut self) -> (ChannelId, UserId) {
+        let direct = self
+            .store
+            .directs()
+            .into_iter()
+            .find(|channel| channel.kind == ChannelKind::Direct)
+            .map(|channel| (channel.id, channel.recipients[0]))
+            .expect("a direct conversation");
+        self.click("home");
+        self.click(&format!("channel:{}", direct.0));
+        direct
+    }
+
     /// A secondary click in the middle of the control `id`, as a person makes it.
     fn person_right_click(&mut self, id: &str) {
         let frame = self.frame();
@@ -266,4 +288,131 @@ fn the_account_s_own_menu_offers_no_one_else_s_actions() {
         assert!(!shown.contains(&not.to_owned()), "{shown:?}");
     }
     assert!(!shown.iter().any(|label| label.starts_with("Expulsar a ")));
+}
+
+#[test]
+fn a_direct_conversation_offers_a_call_that_rings_it_and_a_note() {
+    let mut host = Host::new();
+    let (channel, user) = host.first_direct();
+    let shown = labels(&entries(
+        &host.ui,
+        &host.store,
+        user,
+        Place::Direct { channel },
+    ));
+    assert!(shown.contains(&"Llamar".to_owned()), "{shown:?}");
+    assert!(shown.contains(&"Añadir nota".to_owned()), "{shown:?}");
+    host.tap(&format!("pm:{user}:call"));
+    let rang = host.sent.iter().any(|command| {
+        matches!(command, Command::RingCall { channel: rung, .. } | Command::CheckCall { channel: rung }
+            if *rung == channel)
+    });
+    assert!(
+        rang,
+        "the call asks to ring the conversation: {:?}",
+        host.sent
+    );
+    // The note is the profile's, where it is written.
+    host.tap(&format!("pp:full-note:{user}"));
+    assert_eq!(host.ui.profiles.full.map(|(who, _)| who), Some(user));
+}
+
+#[test]
+fn hiding_a_camera_is_a_choice_of_this_device() {
+    let mut host = Host::new();
+    let (_, user) = host.first_direct();
+    let voice = host
+        .store
+        .channel_tree(host.store.servers()[0].id)
+        .into_iter()
+        .flat_map(|(_, channels)| channels)
+        .find(|channel| channel.kind == ChannelKind::Voice)
+        .expect("a voice channel")
+        .id;
+    let video = |host: &Host| {
+        entries(
+            &host.ui,
+            &host.store,
+            user,
+            Place::VoiceRow { channel: voice },
+        )
+        .into_iter()
+        .find_map(|entry| match entry {
+            MenuEntry::Item(id, label, checked) if id == format!("pm:{user}:video") => {
+                Some((label, checked))
+            }
+            _ => None,
+        })
+    };
+    // Offered while their camera is on or hidden; hidden now, so checked.
+    host.ui.prefs.hidden_video.insert(user.0);
+    assert_eq!(
+        video(&host),
+        Some(("Desactivar video".to_owned(), Some(true)))
+    );
+    host.tap(&format!("pm:{}:video", user.0));
+    assert!(!host.ui.prefs.video_hidden(user.0));
+    // Shown again only while their camera is on, and then unchecked.
+    assert!(video(&host).is_none_or(|(_, checked)| checked == Some(false)));
+}
+
+#[test]
+fn an_invitation_to_a_server_is_sent_by_their_conversation() {
+    let mut host = Host::new();
+    let me = host.store.me().unwrap();
+    let invitable = |host: &Host, server: ServerId| {
+        host.store
+            .server_abilities(server)
+            .is_some_and(|abilities| abilities.create_invites.allowed())
+            && !invite_channels(&host.store, server).is_empty()
+    };
+    let server = host
+        .store
+        .servers()
+        .iter()
+        .find(|found| invitable(&host, found.id))
+        .expect("a server the account may invite to")
+        .id;
+    let user = host
+        .store
+        .servers()
+        .iter()
+        .filter(|found| found.id != server)
+        .flat_map(|found| {
+            host.store
+                .members(found.id)
+                .iter()
+                .map(|member| member.user)
+        })
+        .find(|user| *user != me && host.store.member_of(server, *user).is_none())
+        .expect("someone who is not in that server");
+    let shown = entries(&host.ui, &host.store, user, Place::MemberList { server });
+    let invites = shown.iter().find_map(|entry| match entry {
+        MenuEntry::Submenu(label, items) if label == "Invitar al servidor" => Some(items),
+        _ => None,
+    });
+    assert!(
+        invites.is_some_and(|items| items.iter().any(|entry| matches!(
+            entry,
+            MenuEntry::Item(id, _, _) if *id == format!("pm:{user}:invite:{server}")
+        ))),
+        "{shown:?}"
+    );
+    let from = host.sent.len();
+    host.tap(&format!("pm:{user}:invite:{server}"));
+    let created = host.sent.len();
+    host.answer_account(from);
+    host.answer_account(created);
+    assert!(
+        host.sent.iter().any(
+            |command| matches!(command, Command::SendMessage { content, .. } if !content.is_empty())
+        ),
+        "the link is sent: {:?}",
+        host.sent
+    );
+    assert!(host
+        .ui
+        .notices
+        .iter()
+        .any(|notice| notice.title == "Invitación enviada"));
 }

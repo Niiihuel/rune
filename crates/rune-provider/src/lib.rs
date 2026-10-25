@@ -328,11 +328,13 @@ pub enum Command {
         user: UserId,
         reason: Option<String>,
     },
-    /// Remove `user` from `server` and keep them out.
+    /// Remove `user` from `server` and keep them out, and delete the messages
+    /// they sent in the last `delete_message_seconds` (0: none).
     Ban {
         server: ServerId,
         user: UserId,
         reason: Option<String>,
+        delete_message_seconds: u32,
     },
     Unban {
         server: ServerId,

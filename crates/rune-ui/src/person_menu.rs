@@ -3,16 +3,25 @@
 //! Discord's menu in every place). The groups come from the modules that own
 //! their permissions; this file says which of them each place shows.
 
+use std::time::Instant;
+
 use limn::{Element, Point, UiAction};
 use rune_components::profile::ids as profile_ids;
 use rune_components::voice::{self as parts, ids, MenuEntry};
 use rune_components::Look;
 use rune_i18n::t;
 use rune_model::{ChannelId, MessageId, RelationshipKind, ServerId, UserId};
-use rune_state::Store;
+use rune_provider::Created;
+use rune_provider::{Command, RequestId};
+use rune_state::{Applied, Store};
 
+use crate::server_settings::advanced::{invite_channels, invite_link};
 use crate::voice::simulated;
-use crate::{Intent, Ui};
+use crate::{conversations, private_calls, Intent, Ui};
+
+/// How long an invitation sent from a person's menu lasts: a week, as the
+/// invitations' dialog offers by default. It never runs out of uses.
+const INVITE_AGE_SECS: u32 = 7 * 24 * 60 * 60;
 
 /// Where a person's menu was opened, and so which of its groups show.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -36,6 +45,19 @@ pub struct PersonMenu {
     pub user: UserId,
     pub place: Place,
     pub at: (f32, f32),
+}
+
+/// An invitation to a server sent from a person's menu. Its link goes to
+/// their conversation once both are there: the link, from the provider, and
+/// the conversation, which is opened for it when there is none yet.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PersonInvite {
+    pub user: UserId,
+    pub request: RequestId,
+    pub link: Option<String>,
+    pub channel: Option<ChannelId>,
+    /// The request that opens their conversation, while it is asked for.
+    pub opening: Option<RequestId>,
 }
 
 /// Whether choosing `id` keeps the menu open: a role changes right away and
@@ -66,6 +88,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
     let other = store.me() != Some(user);
     let social = store.social(user);
     let person = |action: &str| format!("friend:{}:{action}", user.0);
+    let mine = |action: &str| format!("pm:{}:{action}", user.0);
     let mut groups: Vec<Vec<MenuEntry>> = Vec::new();
 
     // Their profile: the voice's card there, else their full profile.
@@ -88,6 +111,24 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
     }
     if other && social.message.allowed() {
         first.push(item(person("message"), t("Mensaje"), None));
+    }
+    // A call is rung in their conversation, which must exist already.
+    let callable = other
+        && store.direct_with(user).is_some_and(|channel| {
+            private_calls::callable(store, channel)
+                && store
+                    .abilities(channel)
+                    .is_some_and(|abilities| abilities.ring.allowed())
+        });
+    if callable {
+        first.push(item(mine("call"), t("Llamar"), None));
+    }
+    if other && store.account_abilities().notes.allowed() {
+        first.push(item(
+            format!("{}{}", profile_ids::FULL_NOTE, user.0),
+            t("Añadir nota"),
+            None,
+        ));
     }
     groups.push(first);
 
@@ -125,7 +166,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
     if voice && other {
         let note = || simulated(store).then(|| t("Simulado: la llamada no lleva audio").to_owned());
         let (volume, silenced) = ui.prefs.voice_volume(user.0);
-        groups.push(vec![
+        let mut controls = vec![
             MenuEntry::Volume {
                 user: user.0,
                 label: t("Volumen del usuario"),
@@ -137,7 +178,13 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
                 t("Silenciar para mí"),
                 Some(silenced),
             ),
-        ]);
+        ];
+        // Their camera, hidden for the account: offered while it is on or hidden.
+        let hidden = ui.prefs.video_hidden(user.0);
+        if hidden || store.voice_state_of(user).is_some_and(|state| state.camera) {
+            controls.push(item(mine("video"), t("Desactivar video"), Some(hidden)));
+        }
+        groups.push(controls);
         // The sound of their stream watched has a volume of its own.
         if store
             .watching()
@@ -195,6 +242,31 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
         }
         if !people.is_empty() {
             groups.push(people);
+        }
+        // Invite them to a server they are not in, where the account may invite.
+        let servers: Vec<MenuEntry> = store
+            .servers()
+            .iter()
+            .filter(|found| {
+                store.member_of(found.id, user).is_none()
+                    && store
+                        .server_abilities(found.id)
+                        .is_some_and(|abilities| abilities.create_invites.allowed())
+                    && !invite_channels(store, found.id).is_empty()
+            })
+            .map(|found| {
+                item(
+                    format!("pm:{}:invite:{}", user.0, found.id.0),
+                    &found.name,
+                    None,
+                )
+            })
+            .collect();
+        if !servers.is_empty() {
+            groups.push(vec![MenuEntry::Submenu(
+                t("Invitar al servidor").into(),
+                servers,
+            )]);
         }
     }
 
@@ -332,4 +404,147 @@ pub(crate) fn update(ui: &mut Ui, action: &UiAction) {
             ui.person_menu = None;
         }
     }
+}
+
+/// The person menu's own items: a call, a camera hidden, and an invitation to
+/// a server. `None` for the other ids.
+pub(crate) fn action(
+    ui: &mut Ui,
+    store: &mut Store,
+    action: &UiAction,
+    now: Instant,
+) -> Option<Vec<Intent>> {
+    let UiAction::Clicked { id } = action else {
+        return None;
+    };
+    let (user, what) = id.strip_prefix("pm:")?.split_once(':')?;
+    let user = UserId(user.parse().ok()?);
+    Some(match what {
+        "call" => {
+            let channel = store.direct_with(user)?;
+            private_calls::start(ui, store, channel, now)
+        }
+        "video" => {
+            let hidden = !ui.prefs.video_hidden(user.0);
+            vec![ui.prefs.set_video_hidden(user.0, hidden)]
+        }
+        _ => {
+            let server = ServerId(what.strip_prefix("invite:")?.parse().ok()?);
+            invite(ui, store, user, server, now)
+        }
+    })
+}
+
+/// Make an invitation to `server` for `user`; its link goes to their
+/// conversation once both are there (see [`progress`]).
+fn invite(
+    ui: &mut Ui,
+    store: &mut Store,
+    user: UserId,
+    server: ServerId,
+    now: Instant,
+) -> Vec<Intent> {
+    let Some(abilities) = store.server_abilities(server) else {
+        return Vec::new();
+    };
+    if let Some(reason) = abilities.create_invites.reason() {
+        ui.notify(
+            t("No se creó la invitación"),
+            Some(reason.to_owned()),
+            true,
+            now,
+        );
+        return Vec::new();
+    }
+    let Some(channel) = invite_channels(store, server).first().copied() else {
+        return Vec::new();
+    };
+    let request = ui.fresh_request();
+    ui.person_invite = Some(PersonInvite {
+        user,
+        request,
+        link: None,
+        channel: None,
+        opening: None,
+    });
+    let mut intents = vec![Intent::Command(Command::CreateInvite {
+        request,
+        server,
+        channel,
+        max_age_secs: INVITE_AGE_SECS,
+        max_uses: 0,
+        temporary: false,
+    })];
+    intents.extend(progress(ui, store, now));
+    // Their conversation is opened for the link, unless it is there or refused.
+    if ui
+        .person_invite
+        .as_ref()
+        .is_some_and(|invite| invite.channel.is_none())
+    {
+        intents.extend(conversations::open_direct(ui, store, user, now));
+        let opening = ui
+            .conversations
+            .opening
+            .filter(|(_, who)| *who == user)
+            .map(|(request, _)| request);
+        match ui.person_invite.as_mut() {
+            Some(invite) if opening.is_some() => invite.opening = opening,
+            _ => ui.person_invite = None,
+        }
+    }
+    intents
+}
+
+/// Send the link of the invitation in `ui` to its person, once both the link
+/// and their conversation are there; the invitation is then done.
+fn progress(ui: &mut Ui, store: &Store, now: Instant) -> Vec<Intent> {
+    let Some(invite) = ui.person_invite.as_mut() else {
+        return Vec::new();
+    };
+    if invite.channel.is_none() {
+        invite.channel = store.direct_with(invite.user);
+    }
+    match (invite.link.clone(), invite.channel) {
+        (Some(content), Some(channel)) => {
+            ui.person_invite = None;
+            ui.notify(t("Invitación enviada"), None, false, now);
+            vec![Intent::Send {
+                channel,
+                content,
+                reply_to: None,
+                mention_reply: false,
+            }]
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// What the provider answered for an invitation from a person's menu: its
+/// link, and the conversation opened for it.
+pub(crate) fn on_applied(
+    ui: &mut Ui,
+    store: &Store,
+    applied: &Applied,
+    now: Instant,
+) -> Vec<Intent> {
+    let Some(invite) = ui.person_invite.as_mut() else {
+        return Vec::new();
+    };
+    match applied {
+        Applied::InviteCreated { request, code, .. } if *request == invite.request => {
+            invite.link = Some(invite_link(store, code));
+            // Nothing opens their conversation: the link has nowhere to go.
+            if invite.channel.is_none() && invite.opening.is_none() {
+                ui.person_invite = None;
+                return Vec::new();
+            }
+        }
+        Applied::Created {
+            request,
+            created: Created::Channel(channel),
+        } if invite.opening == Some(*request) => invite.channel = Some(*channel),
+        _ => return Vec::new(),
+    }
+    progress(ui, store, now)
 }

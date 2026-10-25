@@ -36,7 +36,7 @@ impl View<'_> {
     }
 
     /// A dropdown of a dialog, open while `select` names it.
-    fn choice(
+    pub(super) fn choice(
         &self,
         select: &'static str,
         current: String,

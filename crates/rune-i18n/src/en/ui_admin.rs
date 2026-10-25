@@ -326,6 +326,13 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Emoji del rol", "Role emoji"),
     ("Ordenar miembros", "Sort members"),
     ("Últimos 7 días", "Last 7 days"),
+    ("No eliminar nada", "Don't delete anything"),
+    ("Última hora", "Last hour"),
+    ("Últimas 6 horas", "Last 6 hours"),
+    ("Últimas 12 horas", "Last 12 hours"),
+    ("Últimas 24 horas", "Last 24 hours"),
+    ("Últimos 3 días", "Last 3 days"),
+    ("Eliminar historial de mensajes", "Delete message history"),
     (
         "Solo quienes entraron en los últimos 7 días",
         "Only those who joined in the last 7 days",

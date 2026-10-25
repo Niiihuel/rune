@@ -726,6 +726,8 @@ pub struct Ui {
     pub voice: voice::Voice,
     /// A person's menu opened outside a voice channel (see `person_menu`).
     pub person_menu: Option<person_menu::PersonMenu>,
+    /// An invitation to a server sent from a person's menu, until it is.
+    pub person_invite: Option<person_menu::PersonInvite>,
     /// The account's screen and camera, previewed by the host.
     pub video: Video,
     /// The friends page of home.
@@ -1147,6 +1149,7 @@ pub fn on_applied(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instan
     intents.extend(profile::on_applied(ui, store, applied));
     intents.extend(channel_settings::on_applied(ui, store, applied));
     intents.extend(answer(ui, store, applied, now));
+    intents.extend(person_menu::on_applied(ui, store, applied, now));
     relationships::on_applied(ui, store, applied);
     intents.extend(conversations::on_applied(ui, store, applied));
     intents.extend(threads::on_applied(ui, store, applied));
@@ -1542,6 +1545,9 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
     messages::before(ui, action);
     // Choosing anything closes a person's menu, before the handler of the choice.
     person_menu::update(ui, action);
+    if let Some(intents) = person_menu::action(ui, store, action, now) {
+        return intents;
+    }
     // Rules and onboarding (2026-10-18).
     if let Some(intents) = onboarding::update(ui, store, action) {
         return intents;

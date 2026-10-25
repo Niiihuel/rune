@@ -125,6 +125,8 @@ pub struct Removal {
     pub user: UserId,
     pub ban: bool,
     pub reason: String,
+    /// The bans' history to delete: an index of `advanced::BAN_HISTORY`.
+    pub history: usize,
 }
 
 /// Which filter of the audit log is open.
@@ -1499,6 +1501,7 @@ fn clicked(
                     user,
                     ban,
                     reason: String::new(),
+                    history: 0,
                 });
             }
         }
@@ -1550,11 +1553,14 @@ fn clicked(
             }) {
                 let reason = Some(removal.reason.trim().to_owned()).filter(|text| !text.is_empty());
                 let (user, command) = (removal.user, removal.ban);
+                let delete_message_seconds =
+                    advanced::BAN_HISTORY[removal.history.min(advanced::BAN_HISTORY.len() - 1)].0;
                 intents.push(Intent::Command(if command {
                     Command::Ban {
                         server,
                         user,
                         reason,
+                        delete_message_seconds,
                     }
                 } else {
                     Command::Kick {

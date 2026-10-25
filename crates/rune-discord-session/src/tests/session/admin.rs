@@ -258,12 +258,14 @@ async fn kicks_and_bans_carry_their_reason_and_answer_with_what_changed() {
         server: SERVER,
         user: UserId(77),
         reason: None,
+        delete_message_seconds: 86_400,
     })
     .await;
     let request = app
         .answer("PUT /api/v10/guilds/10/bans/77 ", NO_CONTENT.into())
         .await;
-    assert_eq!(body(&request), json!({"delete_message_seconds": 0}));
+    // The history asked for goes in the body, as Discord's ban takes it.
+    assert_eq!(body(&request), json!({"delete_message_seconds": 86_400}));
     assert!(!head(&request).contains("x-audit-log-reason"));
     assert!(matches!(
         app.running.next().await,

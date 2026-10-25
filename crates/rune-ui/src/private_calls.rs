@@ -145,7 +145,12 @@ pub(crate) fn header_tool(store: &Store, channel: ChannelId, look: &Look) -> Opt
 }
 
 /// Call, answer or join the call of `channel`, as it is now.
-fn start(ui: &mut Ui, store: &mut Store, channel: ChannelId, now: Instant) -> Vec<Intent> {
+pub(crate) fn start(
+    ui: &mut Ui,
+    store: &mut Store,
+    channel: ChannelId,
+    now: Instant,
+) -> Vec<Intent> {
     match store.call_status(channel) {
         status if mine(status) => Vec::new(),
         Some(_) => voice::join(ui, store, channel, now),

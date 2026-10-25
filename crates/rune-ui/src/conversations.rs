@@ -24,7 +24,7 @@ use crate::{open, Intent, Ui};
 #[derive(Debug, Default)]
 pub struct Conversations {
     /// The direct conversation asked of the provider, until it names it.
-    opening: Option<(RequestId, UserId)>,
+    pub(crate) opening: Option<(RequestId, UserId)>,
     group: Option<GroupDraft>,
     confirm: Option<GroupConfirm>,
     /// The dialog that makes a group, while open.

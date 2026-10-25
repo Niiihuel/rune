@@ -748,6 +748,32 @@ fn a_moderator_cannot_touch_roles_at_or_above_their_own() {
 }
 
 #[test]
+fn a_ban_deletes_the_history_chosen_in_its_dialog() {
+    let mut host = Host::new();
+    let lab = host.lab();
+    let second = host.someone(lab, None);
+    host.open_settings(lab);
+    host.click("ss:page:members");
+    host.click(&format!("ss:member:{second}:menu"));
+    host.click(&format!("ss:member:{second}:ban"));
+    // Nothing is deleted unless asked: the first choice of the dropdown.
+    assert_eq!(host.settings().removal.as_ref().map(|r| r.history), Some(0));
+    host.click("ss:removal:history");
+    host.click("ss:removal-history:4");
+    assert_eq!(host.settings().removal.as_ref().map(|r| r.history), Some(4));
+    host.click("ss:removal:confirm");
+    assert_eq!(
+        host.sent.last(),
+        Some(&Command::Ban {
+            server: lab,
+            user: second,
+            reason: None,
+            delete_message_seconds: 24 * 60 * 60,
+        })
+    );
+}
+
+#[test]
 fn kicking_and_banning_from_the_members_page_send_the_commands() {
     let mut host = Host::new();
     let lab = host.lab();
@@ -779,6 +805,7 @@ fn kicking_and_banning_from_the_members_page_send_the_commands() {
             server: lab,
             user: second,
             reason: None,
+            delete_message_seconds: 0,
         })
     );
     host.answer();

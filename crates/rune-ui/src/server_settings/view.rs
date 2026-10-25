@@ -21,6 +21,7 @@ use super::{
     EXPRESSION_NAME, MEMBERS_QUERY, NAME, NICK, PERMISSIONS_QUERY, REASON, ROLES_QUERY,
     ROLE_MEMBERS_QUERY, ROLE_NAME,
 };
+use crate::server_settings::advanced::BAN_HISTORY;
 use crate::{Ui, ViewContext};
 
 mod admin;
@@ -1665,6 +1666,46 @@ impl View<'_> {
         }
         if let Some(removal) = &settings.removal {
             let name = self.name_of(removal.user);
+            let reason = FormField::new(
+                t("Motivo (opcional)"),
+                TextField::new(
+                    REASON,
+                    removal.reason.clone(),
+                    t("Queda en el registro de auditoría"),
+                    palette,
+                )
+                .accessibility_label(t("Motivo"))
+                .height(FIELD_HEIGHT)
+                .render(),
+                palette,
+            )
+            .render();
+            // A ban asks what of the member's messages to delete too.
+            let body = if removal.ban {
+                let options = BAN_HISTORY
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (_, label))| {
+                        DropdownOption::new(format!("ss:removal-history:{index}"), t(label))
+                            .selected(index == removal.history)
+                    })
+                    .collect();
+                let current = BAN_HISTORY[removal.history.min(BAN_HISTORY.len() - 1)].1;
+                let history = FormField::new(
+                    t("Eliminar historial de mensajes"),
+                    self.choice(
+                        "removal-history",
+                        t(current).to_owned(),
+                        options,
+                        t("Eliminar historial de mensajes"),
+                    ),
+                    palette,
+                )
+                .render();
+                Element::column(vec![reason, history])
+            } else {
+                reason
+            };
             let (title, description, confirm) = if removal.ban {
                 (
                     tr!("Vetar a {name}", name),
@@ -1687,22 +1728,7 @@ impl View<'_> {
                 "ss:removal:cancel",
                 palette,
             )
-            .body(
-                FormField::new(
-                    t("Motivo (opcional)"),
-                    TextField::new(
-                        REASON,
-                        removal.reason.clone(),
-                        t("Queda en el registro de auditoría"),
-                        palette,
-                    )
-                    .accessibility_label(t("Motivo"))
-                    .height(FIELD_HEIGHT)
-                    .render(),
-                    palette,
-                )
-                .render(),
-            )
+            .body(body)
             .confirm_label(confirm)
             .destructive(look.danger)
             .render();

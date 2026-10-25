@@ -68,6 +68,7 @@ impl World {
                 server,
                 user,
                 reason,
+                ..
             } => self.remove_member(server, user, Some(reason)),
             Command::Unban { server, user } => self.unban(server, user),
             Command::LoadBans {
@@ -339,6 +340,7 @@ impl World {
                 server,
                 user,
                 reason,
+                ..
             } => (
                 *server,
                 AuditAction::MemberBanned { user: *user },
@@ -1580,6 +1582,7 @@ mod tests {
             server: owned,
             user: someone,
             reason: Some("spam".into()),
+            delete_message_seconds: 3600,
         });
         assert!(banned
             .iter()

@@ -13,7 +13,7 @@ mod pages;
 pub(crate) use pages::jump_margin;
 pub use pages::{modal, switcher};
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{Duration, Instant};
 
 use limn::{Key, UiAction, UiEvent, UiTree};
@@ -175,6 +175,9 @@ pub struct Prefs {
     /// [`rune_media::MAX_VOLUME`], and whether they are silenced, by user ID.
     /// Only on this device: it is never sent.
     pub voice_volumes: BTreeMap<u64, (f32, bool)>,
+    /// Whose camera is hidden for the account, by user ID: their tile shows
+    /// the avatar. Only on this device: it is never sent.
+    pub hidden_video: BTreeSet<u64>,
     /// The desktop portal's token for the screen last chosen, to share it
     /// again without its picker. It names a choice there, not a credential.
     pub screen_restore: Option<String>,
@@ -375,6 +378,7 @@ impl Default for Prefs {
             push_to_talk_release: 20,
             output_volume: 1.0,
             voice_volumes: BTreeMap::new(),
+            hidden_video: BTreeSet::new(),
             screen_restore: None,
             // Asked for: a notification of the system is never a surprise.
             desktop_notifications: false,
@@ -524,6 +528,7 @@ impl Prefs {
             ),
             ("output_volume", Some(self.output_volume.to_string())),
             ("voice_volumes", Some(self.voice_volumes_kept())),
+            ("hidden_video", Some(self.hidden_video_kept())),
             ("screen_restore", self.screen_restore.clone()),
             ("desktop_notifications", flag(self.desktop_notifications)),
             ("notification_content", flag(self.notification_content)),
@@ -615,6 +620,9 @@ impl Prefs {
         self.voice_volumes = setting("voice_volumes")
             .map(|kept| restore_voice_volumes(&kept))
             .unwrap_or_default();
+        self.hidden_video = setting("hidden_video")
+            .map(|kept| kept.split(';').filter_map(|id| id.parse().ok()).collect())
+            .unwrap_or_default();
         self.screen_restore = setting("screen_restore").filter(|token| restore_token(token));
         self.desktop_notifications = flag("desktop_notifications", usual.desktop_notifications);
         self.notification_content = flag("notification_content", usual.notification_content);
@@ -647,6 +655,30 @@ impl Prefs {
             self.voice_volumes.insert(user, (volume, muted));
         }
         save("voice_volumes", self.voice_volumes_kept())
+    }
+
+    /// Whether `user`'s camera is hidden for the account.
+    pub fn video_hidden(&self, user: u64) -> bool {
+        self.hidden_video.contains(&user)
+    }
+
+    /// Hide or show `user`'s camera for the account. Returns what to keep.
+    pub(crate) fn set_video_hidden(&mut self, user: u64, hidden: bool) -> Intent {
+        if hidden {
+            self.hidden_video.insert(user);
+        } else {
+            self.hidden_video.remove(&user);
+        }
+        save("hidden_video", self.hidden_video_kept())
+    }
+
+    /// The IDs of the cameras hidden, `;` between them.
+    fn hidden_video_kept(&self) -> String {
+        self.hidden_video
+            .iter()
+            .map(u64::to_string)
+            .collect::<Vec<_>>()
+            .join(";")
     }
 
     /// `id:volume:muted` for each choice, `;` between them.
@@ -1638,6 +1670,7 @@ mod tests {
             push_to_talk_release: 350,
             output_volume: 1.35,
             voice_volumes: BTreeMap::from([(7, (1.5, false)), (9, (1.0, true))]),
+            hidden_video: BTreeSet::from([3]),
             screen_restore: Some("4f1c-portal-choice".into()),
             desktop_notifications: true,
             notification_content: false,
