@@ -315,17 +315,31 @@ OAuth2 no la usa.
 - **H264**: OpenH264 se compila desde la fuente; la licencia de patentes de
   Cisco no cubre esta compilación ([ARCHITECTURE.md](ARCHITECTURE.md#medios-rune-media)).
 
-### `hpke-rs` parcheado
+### Criptografía de DAVE parcheada
 
-`davey` (DAVE) llega a `hpke-rs 0.6.1` por `openmls_rust_crypto`, que
-dependía de `libcrux-sha3 0.0.8` (RUSTSEC-2026-0207/0208). `hpke-rs 0.7.0`
-lo corrige, pero openmls exige `^0.6`. RUNE usa una copia en
-[`vendor/hpke-rs`](../vendor/hpke-rs/RUNE-PATCH.md) vía
-`[patch.crates-io]`: el archivo de crates.io con su checksum verificado
-(MPL-2.0, licencia incluida), con `libcrux-sha3` sustituido por `sha3` de
-RustCrypto para el SHAKE256 de tamaño fijo y sin el backend libcrux. Sin
-cambio de algoritmo ni de formato; probado con vectores independientes. El
-parche se retira cuando openmls acepte `hpke-rs >= 0.7`.
+`davey 0.1.5` (DAVE) y el backend RustCrypto de openmls 0.8 que usa
+(`openmls_rust_crypto 0.5.1`, `openmls_basic_credential 0.5.0`,
+`hpke-rs-rust-crypto 0.6`) dependen de `p256 0.13`, que llega por
+`elliptic-curve 0.13` a `crypto-bigint 0.5.5` (RUSTSEC-2026-0387,
+operaciones que debían ser de tiempo constante; corregido sólo desde 0.7.6).
+Ninguna versión publicada lo arregla todavía. RUNE usa copias vía
+`[patch.crates-io]`, cada una el archivo de crates.io con su checksum
+verificado, su licencia y un `RUNE-PATCH.md` con el diff:
+
+- [`vendor/davey`](../vendor/davey/RUNE-PATCH.md),
+  [`vendor/openmls_rust_crypto`](../vendor/openmls_rust_crypto/RUNE-PATCH.md)
+  y [`vendor/openmls_basic_credential`](../vendor/openmls_basic_credential/RUNE-PATCH.md)
+  (MIT): pasan a `p256 0.14`, `hpke-rs 0.8` y `rand_core 0.10` con las mismas
+  llamadas que ya usa openmls `main`; openmls sigue en 0.8 de crates.io.
+- [`vendor/hpke-rs`](../vendor/hpke-rs/RUNE-PATCH.md) 0.8.0 (MPL-2.0):
+  `libcrux-sha3` sustituido por `sha3` de RustCrypto para el SHAKE256 de
+  tamaño fijo y sin el backend libcrux, como la copia anterior de 0.6.1;
+  así no vuelve `proc-macro-error2` (sin mantenimiento, RUSTSEC-2026-0173).
+
+Sin cambio de algoritmo ni de formato: firmas ECDSA P-256 en DER, claves
+SEC1 sin comprimir y HPKE de RFC 9180, comprobado contra las versiones de
+crates.io en las dos direcciones y con los vectores de hpke-rs. Las copias
+se retiran cuando davey publique una versión sobre `p256 >= 0.14`.
 
 ### `cargo deny` en la CI
 
@@ -340,7 +354,7 @@ cada pull request (acciones fijadas por commit; clippy y tests con
   egui tienen su excepción OFL-1.1 y Ubuntu Font License. Los crates de
   RUNE (`publish = false`) no se revisan.
 - **Fuentes**: sólo crates.io y `github.com/Niiihuel/limn`;
-  `vendor/hpke-rs` es una ruta local.
+  las copias de `vendor/` son rutas locales.
 - **Avisos ignorados, con motivo**: RUSTSEC-2024-0384 (`instant` sin
   mantenimiento, por la feature `js` de openmls que activa `davey`;
   bloqueado aguas arriba) y RUSTSEC-2026-0370/0371/0372 (`zvariant`,

@@ -24,7 +24,14 @@ falla contra Discord, mandar las líneas `rune: …` del registro
 - `instant` (RUSTSEC-2024-0384) llega por `davey` → openmls `js`; zbus 5
   (RUSTSEC-2026-0370/0371/0372) por accesskit y `secret-service`. Ignorados
   con motivo en `deny.toml`; quitarlos cuando se destraben.
-- `vendor/hpke-rs`: quitar el parche cuando openmls acepte `hpke-rs >= 0.7`.
+- DAVE sobre `p256 0.14` (RUSTSEC-2026-0387, `crypto-bigint 0.5`): copias en
+  `vendor/davey`, `vendor/openmls_rust_crypto` y
+  `vendor/openmls_basic_credential`; quitarlas cuando davey publique una
+  versión sobre `p256 >= 0.14` con un openmls que también lo esté.
+  `vendor/hpke-rs` (0.8.0, sin libcrux): quitarlo cuando hpke-rs deje de
+  compilar `libcrux-sha3` → `hax-lib` → `proc-macro-error2`. Las cuatro sólo
+  se probaron contra el servidor de voz sintético y las versiones de
+  crates.io, no en una llamada real de Discord.
 - Arrastrar y soltar archivos y pegar una imagen sola con Ctrl+V: eframe
   sigue en winit 0.30 y con su portapapeles fijo. Se destraba si egui
   publica la inyección del portapapeles (commits locales en
@@ -36,8 +43,8 @@ falla contra Discord, mandar las líneas `rune: …` del registro
 
 ## Repositorio y publicación
 
-- `inout 0.2.3` está retirado de crates.io: `cargo update -p inout` la
-  próxima vez que se toque `Cargo.lock`.
+- `clipboard-win 5.4.1` está retirado de crates.io (aviso de `cargo deny`):
+  `cargo update -p clipboard-win` y probar el portapapeles en Windows.
 - Si se distribuyen con RUNE las bibliotecas nativas LGPL (GTK, WebKitGTK,
   GStreamer), sumar sus avisos.
 - Las pruebas de video con plazos de 5 s fallaron alguna vez con la máquina

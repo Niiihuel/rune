@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "hpke-rs"
-version = "0.6.1"
+version = "0.8.0"
 authors = ["Franziskus Kiefer <franziskuskiefer@gmail.com>"]
 build = false
 exclude = ["/tests"]
@@ -25,14 +25,23 @@ description = "HPKE Implementation"
 documentation = "https://docs.rs/hpke-rs"
 readme = "Readme.md"
 license = "MPL-2.0"
-repository = "https://github.com/cryspen/hpke-rs"
+repository = "https://github.com/celabshq/libcrux"
+
+[package.metadata.docs.rs]
+no-default-features = true
+features = [
+    "hazmat",
+    "rustcrypto",
+    "serialization",
+    "std",
+]
 
 [features]
 default = []
+draft-connolly-cfrg-hpke-mlkem = []
 experimental = ["hpke-rs-rust-crypto?/experimental"]
 hazmat = []
 hpke-test = ["std"]
-hpke-test-prng = ["hpke-rs-rust-crypto?/deterministic-prng"]
 rustcrypto = ["dep:hpke-rs-rust-crypto"]
 serialization = [
     "serde",
@@ -41,7 +50,6 @@ serialization = [
     "std",
 ]
 std = [
-    "rand_core/std",
     "hpke-rs-crypto/std",
     "hpke-rs-rust-crypto?/std",
 ]
@@ -51,21 +59,16 @@ name = "hpke_rs"
 path = "src/lib.rs"
 
 [[bench]]
-name = "bench"
-path = "benches/bench.rs"
-harness = false
-
-[[bench]]
 name = "manual_benches"
 path = "benches/manual_benches.rs"
 harness = false
 
 [dependencies.hpke-rs-crypto]
-version = "0.6.1"
+version = "=0.8.0"
 default-features = false
 
 [dependencies.hpke-rs-rust-crypto]
-version = "0.6.1"
+version = "=0.8.0"
 optional = true
 default-features = false
 
@@ -75,10 +78,6 @@ default-features = false
 
 [dependencies.log]
 version = "0.4"
-
-[dependencies.rand_core]
-version = "0.9"
-default-features = false
 
 [dependencies.serde]
 version = "1.0"
@@ -90,9 +89,10 @@ version = "2.6"
 default-features = false
 
 [dependencies.tls_codec]
-version = "0.4.2"
+version = "0.5.0"
 features = ["derive"]
 optional = true
+default-features = false
 
 [dependencies.zeroize]
 version = "1.5"
@@ -103,14 +103,17 @@ version = "0.8"
 features = ["html_reports"]
 
 [dev-dependencies.hpke-rs-crypto]
-version = "0.6.1"
+version = "=0.8.0"
 features = ["std"]
+default-features = false
 
 [dev-dependencies.hpke-rs-libcrux]
-version = "0.6.1"
+version = "=0.8.0"
+default-features = false
 
 [dev-dependencies.hpke-rs-rust-crypto]
-version = "0.6.1"
+version = "=0.8.0"
+default-features = false
 
 [dev-dependencies.lazy_static]
 version = "1.4"
@@ -119,6 +122,10 @@ version = "1.4"
 version = "0.5"
 
 [dev-dependencies.rand]
+version = "0.10"
+features = ["sys_rng"]
+
+[dev-dependencies.rand_chacha]
 version = "0.10"
 
 [dev-dependencies.rayon]

@@ -82,7 +82,7 @@ licencia. Procedencia y SHA-256: `assets/licenses/GIPHY.md`.
 ### hpke-rs, modificado (MPL-2.0)
 
 RUNE compila una copia modificada de [hpke-rs](https://github.com/cryspen/hpke-rs)
-0.6.1 (cifrado de extremo a extremo de la voz): cambia una dependencia de
+0.8.0 (cifrado de extremo a extremo de la voz): cambia una dependencia de
 SHAKE256 para quitar avisos de seguridad, sin cambiar el algoritmo. Sus
 archivos, también los modificados, siguen bajo la Mozilla Public License 2.0
 (texto en su sección de las dependencias Rust). El código fuente de esa copia,
@@ -90,7 +90,10 @@ con sus cambios, está en `vendor/hpke-rs` del repositorio de RUNE
 (<https://github.com/Niiihuel/rune>), en el tag de esta versión; los cambios
 se describen en `vendor/hpke-rs/RUNE-PATCH.md`. Las demás dependencias bajo
 MPL-2.0 (`hpke-rs-crypto`, `hpke-rs-rust-crypto`, `symphonia`) se usan sin
-modificar, con su código en crates.io.
+modificar, con su código en crates.io. `davey`, `openmls_rust_crypto` y
+`openmls_basic_credential` (MIT, con su texto en la sección de las
+dependencias Rust) también son copias modificadas, en `vendor/`, para pasar
+a `p256` 0.14; sus cambios están en el `RUNE-PATCH.md` de cada una.
 
 ### ThumbHash
 
@@ -233,10 +236,10 @@ y Windows; sin las dependencias que sólo usan los tests), agrupado por el
 texto de su licencia. Donde un crate ofrece varias licencias a elección, se
 muestra una.
 
-- MIT License: 532
+- MIT License: 546
 - Apache License 2.0: 20
+- BSD 3-Clause "New" or "Revised" License: 20
 - Unicode License v3: 19
-- BSD 3-Clause "New" or "Revised" License: 18
 - Mozilla Public License 2.0: 16
 - ISC License: 4
 - BSD 2-Clause "Simplified" License: 3
@@ -2314,7 +2317,45 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### BSD 3-Clause "New" or "Revised" License
 
+- curve25519-dalek 5.0.0, <https://github.com/dalek-cryptography/curve25519-dalek/tree/main/curve25519-dalek>
+
+````text
+Copyright (c) 2016-2021 isis agora lovecruft. All rights reserved.
+Copyright (c) 2016-2021 Henry de Valence. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+````
+
+### BSD 3-Clause "New" or "Revised" License
+
 - ed25519-dalek 2.2.0, <https://github.com/dalek-cryptography/curve25519-dalek/tree/main/ed25519-dalek>
+- ed25519-dalek 3.0.0, <https://github.com/dalek-cryptography/curve25519-dalek/tree/main/ed25519-dalek>
 
 ````text
 Copyright (c) 2017-2019 isis agora lovecruft. All rights reserved.
@@ -2350,7 +2391,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### BSD 3-Clause "New" or "Revised" License
 
-- x25519-dalek 2.0.1, <https://github.com/dalek-cryptography/curve25519-dalek/tree/main/x25519-dalek>
+- x25519-dalek 3.0.0, <https://github.com/dalek-cryptography/curve25519-dalek/tree/main/x25519-dalek>
 
 ````text
 Copyright (c) 2017-2021 isis agora lovecruft. All rights reserved.
@@ -3185,11 +3226,11 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- base16ct 0.2.0, <https://github.com/RustCrypto/formats/tree/master/base16ct>
+- base16ct 1.0.0, <https://github.com/RustCrypto/formats>
 
 ````text
 Copyright (c) 2014 Steve "Sc00bz" Thomas (steve at tobtu dot com)
-Copyright (c) 2022 The RustCrypto Project Developers
+Copyright (c) 2022-2025 The RustCrypto Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -3903,6 +3944,39 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+````
+
+### MIT License
+
+- poly1305 0.9.1, <https://github.com/RustCrypto/universal-hashes>
+
+````text
+Copyright (c) 2015-2026 The RustCrypto Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 
 ````
 
@@ -5411,9 +5485,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- ecdsa 0.16.9, <https://github.com/RustCrypto/signatures/tree/master/ecdsa>
 - keccak 0.1.6, <https://github.com/RustCrypto/sponges/tree/master/keccak>
-- rfc6979 0.4.0, <https://github.com/RustCrypto/signatures/tree/master/rfc6979>
 
 ````text
 Copyright (c) 2018-2022 RustCrypto Developers
@@ -5447,6 +5519,7 @@ DEALINGS IN THE SOFTWARE.
 ### MIT License
 
 - cbc 0.2.1, <https://github.com/RustCrypto/block-modes>
+- ctr 0.10.1, <https://github.com/RustCrypto/block-modes>
 - ctr 0.9.2, <https://github.com/RustCrypto/block-modes>
 
 ````text
@@ -5683,6 +5756,42 @@ DEALINGS IN THE SOFTWARE.
 ````text
 Copyright (c) 2018-2025 The rust-random Project Developers
 Copyright (c) 2014 The Rust Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
+- ecdsa 0.17.0, <https://github.com/RustCrypto/signatures>
+- ed25519 3.0.0, <https://github.com/RustCrypto/signatures>
+- rfc6979 0.6.0, <https://github.com/RustCrypto/signatures>
+- signature 3.0.0, <https://github.com/RustCrypto/traits>
+
+````text
+Copyright (c) 2018-2026 RustCrypto Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -6310,6 +6419,39 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+- universal-hash 0.6.1, <https://github.com/RustCrypto/traits>
+
+````text
+Copyright (c) 2019-2025 RustCrypto Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
 - http-body-util 0.1.5, <https://github.com/hyperium/http-body>
 - http-body 1.1.0, <https://github.com/hyperium/http-body>
 
@@ -6344,10 +6486,49 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+- aes-gcm 0.11.1, <https://github.com/RustCrypto/AEADs>
+- chacha20 0.10.2, <https://github.com/RustCrypto/stream-ciphers>
+- chacha20poly1305 0.11.0, <https://github.com/RustCrypto/AEADs>
+- ghash 0.6.0, <https://github.com/RustCrypto/universal-hashes>
+- polyval 0.7.3, <https://github.com/RustCrypto/universal-hashes>
 - zeroize_derive 1.5.0, <https://github.com/RustCrypto/utils>
 
 ````text
 Copyright (c) 2019-2026 The RustCrypto Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
+- aead 0.6.1, <https://github.com/RustCrypto/traits>
+
+````text
+Copyright (c) 2019-2026 The RustCrypto Project Developers
+Copyright (c) 2019 MobileCoin, LLC
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -6466,6 +6647,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+````
+
+### MIT License
+
+- openmls_basic_credential 0.5.0, <https://github.com/openmls/openmls/tree/main/basic_credential>
+- openmls_rust_crypto 0.5.1, <https://github.com/openmls/openmls/tree/main/openmls_rust_crypto>
+
+````text
+Copyright (c) 2020 OpenMLS Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ````
 
 ### MIT License
@@ -6604,7 +6812,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- p384 0.13.1, <https://github.com/RustCrypto/elliptic-curves/tree/master/p384>
+- p384 0.14.0, <https://github.com/RustCrypto/elliptic-curves>
 
 ````text
 Copyright (c) 2020-2021 RustCrypto Developers
@@ -6637,74 +6845,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- elliptic-curve 0.13.8, <https://github.com/RustCrypto/traits/tree/master/elliptic-curve>
-
-````text
-Copyright (c) 2020-2022 RustCrypto Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-````
-
-### MIT License
-
-- const-oid 0.9.6, <https://github.com/RustCrypto/formats/tree/master/const-oid>
-
-````text
-Copyright (c) 2020-2022 The RustCrypto Project Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-````
-
-### MIT License
-
-- p256 0.13.2, <https://github.com/RustCrypto/elliptic-curves/tree/master/p256>
-- primeorder 0.13.6, <https://github.com/RustCrypto/elliptic-curves/tree/master/primeorder>
+- primeorder 0.14.0, <https://github.com/RustCrypto/elliptic-curves>
 
 ````text
 Copyright (c) 2020-2023 RustCrypto Developers
@@ -6737,41 +6878,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- der 0.7.10, <https://github.com/RustCrypto/formats/tree/master/der>
-- pkcs8 0.10.2, <https://github.com/RustCrypto/formats/tree/master/pkcs8>
-
-````text
-Copyright (c) 2020-2023 The RustCrypto Project Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-````
-
-### MIT License
-
-- k256 0.13.4, <https://github.com/RustCrypto/elliptic-curves/tree/master/k256>
+- k256 0.14.0, <https://github.com/RustCrypto/elliptic-curves>
 
 ````text
 Copyright (c) 2020-2024 RustCrypto Developers
@@ -6805,6 +6912,8 @@ DEALINGS IN THE SOFTWARE.
 ### MIT License
 
 - cpufeatures 0.2.17, <https://github.com/RustCrypto/utils>
+- tls_codec 0.5.0, <https://github.com/RustCrypto/formats>
+- tls_codec_derive 0.5.0, <https://github.com/RustCrypto/formats>
 
 ````text
 Copyright (c) 2020-2025 The RustCrypto Project Developers
@@ -6837,8 +6946,44 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+- elliptic-curve 0.14.2, <https://github.com/RustCrypto/traits>
+- p256 0.14.0, <https://github.com/RustCrypto/elliptic-curves>
+
+````text
+Copyright (c) 2020-2026 RustCrypto Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
 - const-oid 0.10.2, <https://github.com/RustCrypto/formats>
 - cpufeatures 0.3.1, <https://github.com/RustCrypto/utils>
+- der 0.8.2, <https://github.com/RustCrypto/formats>
+- pkcs8 0.11.0, <https://github.com/RustCrypto/formats>
 
 ````text
 Copyright (c) 2020-2026 The RustCrypto Project Developers
@@ -6904,40 +7049,6 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- crypto-bigint 0.5.5, <https://github.com/RustCrypto/crypto-bigint>
-- pem-rfc7468 0.7.0, <https://github.com/RustCrypto/formats/tree/master/pem-rfc7468>
-
-````text
-Copyright (c) 2021 The RustCrypto Project Developers
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-````
-
-### MIT License
-
 - gpu-allocator 0.28.0, <https://github.com/Traverse-Research/gpu-allocator>
 
 ````text
@@ -6952,10 +7063,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### MIT License
 
-- sec1 0.7.3, <https://github.com/RustCrypto/formats/tree/master/sec1>
+- scrypt 0.11.0, <https://github.com/RustCrypto/password-hashes/tree/master/scrypt>
 
 ````text
-Copyright (c) 2021-2022 The RustCrypto Project Developers
+Copyright (c) 2021-2023 The RustCrypto Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -6985,11 +7096,10 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- scrypt 0.11.0, <https://github.com/RustCrypto/password-hashes/tree/master/scrypt>
-- spki 0.7.3, <https://github.com/RustCrypto/formats/tree/master/spki>
+- pem-rfc7468 1.0.0, <https://github.com/RustCrypto/formats>
 
 ````text
-Copyright (c) 2021-2023 The RustCrypto Project Developers
+Copyright (c) 2021-2025 The RustCrypto Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -7023,6 +7133,41 @@ DEALINGS IN THE SOFTWARE.
 
 ````text
 Copyright (c) 2021-2026 RustCrypto Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
+- crypto-bigint 0.7.8, <https://github.com/RustCrypto/crypto-bigint>
+- sec1 0.8.1, <https://github.com/RustCrypto/formats>
+- spki 0.8.1, <https://github.com/RustCrypto/formats>
+
+````text
+Copyright (c) 2021-2026 The RustCrypto Project Developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -7235,7 +7380,7 @@ SOFTWARE.
 
 ### MIT License
 
-- inout 0.2.3, <https://github.com/RustCrypto/utils>
+- inout 0.2.5, <https://github.com/RustCrypto/utils>
 
 ````text
 Copyright (c) 2022-2025 The RustCrypto Project Developers
@@ -7522,6 +7667,39 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
+- primefield 0.14.0, <https://github.com/RustCrypto/elliptic-curves>
+
+````text
+Copyright (c) 2024-2026 RustCrypto Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
 - secret-service 5.2.0, <https://github.com/hwchen/secret-service-rs.git>
 
 ````text
@@ -7555,10 +7733,44 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- ctutils 0.4.3, <https://github.com/RustCrypto/utils>
+- ctutils 0.4.5, <https://github.com/RustCrypto/utils>
 
 ````text
 Copyright (c) 2025-2026 The RustCrypto Project Developers
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+````
+
+### MIT License
+
+- wnaf 0.14.1, <https://github.com/RustCrypto/elliptic-curves>
+
+````text
+Copyright (c) 2026 RustCrypto Developers
+Copyright (c) 2018-2025 `group` crate developers
 
 Permission is hereby granted, free of charge, to any
 person obtaining a copy of this software and associated
@@ -7884,9 +8096,9 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- rand 0.8.8, <https://github.com/rust-random/rand>
+- rand 0.10.3, <https://github.com/rust-random/rand>
 - rand 0.9.5, <https://github.com/rust-random/rand>
-- rand_chacha 0.3.1, <https://github.com/rust-random/rand>
+- rand_chacha 0.10.0, <https://github.com/rust-random/rand>
 - rand_chacha 0.9.0, <https://github.com/rust-random/rand>
 - rand_core 0.6.4, <https://github.com/rust-random/rand>
 - rand_core 0.9.5, <https://github.com/rust-random/rand>
@@ -8745,6 +8957,34 @@ SOFTWARE.
 
 ### MIT License
 
+- davey 0.1.5, <https://github.com/Snazzah/davey>
+
+````text
+MIT License
+
+Copyright (c) 2025-present Snazzah
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+````
+
+### MIT License
+
 - limn 0.1.43, <https://github.com/Niiihuel/limn>
 - limn-editor 0.1.43, <https://github.com/Niiihuel/limn>
 - limn-egui 0.1.43, <https://github.com/Niiihuel/limn>
@@ -8815,7 +9055,6 @@ SOFTWARE.
 - chrono 0.4.45, <https://github.com/chronotope/chrono>
 - cookie-factory 0.3.3, <https://github.com/rust-bakery/cookie-factory>
 - dasp_sample 0.11.0, <https://github.com/rustaudio/sample.git>
-- davey 0.1.5, <https://github.com/Snazzah/davey>
 - dpi 0.1.2, <https://github.com/rust-windowing/winit>
 - ecolor 0.36.2, <https://github.com/emilk/egui>
 - eframe 0.36.2, <https://github.com/emilk/egui/tree/main/crates/eframe>
@@ -8828,9 +9067,7 @@ SOFTWARE.
 - javascriptcore6 0.6.0, <https://gitlab.gnome.org/World/Rust/webkit6-rs>
 - libm 0.2.16, <https://github.com/rust-lang/compiler-builtins>
 - openmls 0.8.2, <https://github.com/openmls/openmls/>
-- openmls_basic_credential 0.5.0, <https://github.com/openmls/openmls/tree/main/basic_credential>
 - openmls_memory_storage 0.5.0, <https://github.com/openmls/openmls/tree/main/memory_storage>
-- openmls_rust_crypto 0.5.1, <https://github.com/openmls/openmls/tree/main/openmls_rust_crypto>
 - openmls_traits 0.5.0, <https://github.com/openmls/openmls/tree/main/traits>
 - profiling 1.0.18, <https://github.com/aclysma/profiling>
 - realfft 3.5.0, <https://github.com/HEnquist/realfft>
@@ -9148,7 +9385,7 @@ DEALINGS IN THE SOFTWARE.
 - event-listener 5.4.2, <https://github.com/smol-rs/event-listener>
 - fastrand 2.5.0, <https://github.com/smol-rs/fastrand>
 - futures-lite 2.6.1, <https://github.com/smol-rs/futures-lite>
-- group 0.13.0, <https://github.com/zkcrypto/group>
+- group 0.14.0, <https://github.com/zkcrypto/group>
 - gstreamer-app-sys 0.25.4, <https://gitlab.freedesktop.org/gstreamer/gstreamer-rs>
 - gstreamer-app 0.25.2, <https://gitlab.freedesktop.org/gstreamer/gstreamer-rs>
 - gstreamer-base-sys 0.25.4, <https://gitlab.freedesktop.org/gstreamer/gstreamer-rs>
@@ -9748,7 +9985,7 @@ THE SOFTWARE.
 
 ### MIT License
 
-- ff 0.13.1, <https://github.com/zkcrypto/ff>
+- ff 0.14.0, <https://github.com/zkcrypto/ff>
 
 ````text
 The MIT License (MIT)
@@ -10194,7 +10431,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### Mozilla Public License 2.0
 
-- hpke-rs 0.6.1, <https://github.com/cryspen/hpke-rs>
+- hpke-rs 0.8.0, <https://github.com/celabshq/libcrux>
 
 ````text
 Mozilla Public License Version 2.0
@@ -10575,8 +10812,8 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 ### Mozilla Public License 2.0
 
-- hpke-rs-crypto 0.6.1, <https://github.com/cryspen/hpke-rs>
-- hpke-rs-rust-crypto 0.6.1, <https://github.com/cryspen/hpke-rs>
+- hpke-rs-crypto 0.8.0, <https://github.com/celabshq/libcrux>
+- hpke-rs-rust-crypto 0.8.0, <https://github.com/celabshq/libcrux>
 - symphonia-bundle-flac 0.5.5, <https://github.com/pdeljanov/Symphonia>
 - symphonia-bundle-mp3 0.5.5, <https://github.com/pdeljanov/Symphonia>
 - symphonia-codec-aac 0.5.5, <https://github.com/pdeljanov/Symphonia>

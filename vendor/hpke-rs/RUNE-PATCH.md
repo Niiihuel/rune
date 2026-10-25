@@ -1,18 +1,25 @@
-# RUNE patch of hpke-rs 0.6.1
+# RUNE patch of hpke-rs 0.8.0
 
 RUNE uses this copy through `[patch.crates-io]` in the workspace `Cargo.toml`.
-It reaches the build as `davey 0.1.5` -> `openmls_rust_crypto 0.5.1` ->
-`hpke-rs ^0.6` (DAVE end-to-end encryption for voice).
+It reaches the build as `davey 0.1.5` -> `openmls_rust_crypto 0.5.1` (patched
+in `vendor/openmls_rust_crypto` onto `hpke-rs 0.8`) -> `hpke-rs` (DAVE
+end-to-end encryption for voice).
+
+This replaces RUNE's earlier patch of hpke-rs 0.6.1, which existed because
+0.6.1 needed `libcrux-sha3 0.0.8` (RUSTSEC-2026-0207/0208). Moving to 0.8.0
+fixes those upstream (`libcrux-sha3 0.0.11`), but 0.8.0 still builds
+`libcrux-sha3` unconditionally, and its `hax-lib` brings the unmaintained
+`proc-macro-error2` (RUSTSEC-2026-0173) back into the lock. The same change
+as before, RustCrypto `sha3` for the fixed-length SHAKE256, keeps libcrux out.
 
 ## Source
 
-- Archive: `https://static.crates.io/crates/hpke-rs/hpke-rs-0.6.1.crate`
-- SHA-256: `b6ad6a58eb3e0ee30be8bfc7a9770ae98adcfa1d9bc820a5847732ce84f70837`,
-  identical to the crates.io checksum recorded in RUNE's `Cargo.lock` before
-  the patch.
+- Archive: `https://static.crates.io/crates/hpke-rs/hpke-rs-0.8.0.crate`
+- SHA-256: `deb74477a6c7f6e8e9c68de06fe928db79b3b8b9e04c900bfb729bf096df7d22`
+  (the crates.io checksum `cargo` records for `hpke-rs 0.8.0`).
 - Upstream commit (`.cargo_vcs_info.json`):
-  `f3463e7530771d7f7116635335c25e7d2d11e861` of `cryspen/hpke-rs` (now
-  `celabshq/hpke-rs`).
+  `42d68bd49b244b09bd02626c6ffa95e54dc64f91` of `celabshq/libcrux`, path
+  `crates/protocols/hpke` (hpke-rs moved there from `cryspen/hpke-rs`).
 - License: MPL-2.0 (declared in `Cargo.toml`). Neither the archive nor the
   upstream repository at that commit ships the license text, so `LICENSE` is
   the canonical MPL-2.0 text from <https://www.mozilla.org/media/MPL/2.0/index.txt>
@@ -20,73 +27,55 @@ It reaches the build as `davey 0.1.5` -> `openmls_rust_crypto 0.5.1` ->
   The modified files remain under MPL-2.0.
 
 Every other file is the archive content unchanged, except the archive's own
-`Cargo.lock`, removed: Cargo ignores it for a path dependency, and it still
-pinned the affected `libcrux-*` versions, which would mislead lockfile
-scanners. `Cargo.toml.orig` and `.cargo_vcs_info.json` stay as provenance;
+`Cargo.lock`, removed: Cargo ignores it for a path dependency, and it pins
+`libcrux-*` versions, which would mislead lockfile scanners.
+`Cargo.toml.orig` and `.cargo_vcs_info.json` stay as provenance;
 `Cargo.toml.orig` is the pristine upstream manifest, not the one Cargo reads.
 
 ## Changes
 
-1. `Cargo.toml`: the unconditional `libcrux-sha3 = "0.0.8"` dependency is
+1. `Cargo.toml`: the unconditional `libcrux-sha3 = "=0.0.11"` dependency is
    replaced by `sha3 = { version = "0.10.8", default-features = false }`
-   (RustCrypto, on the `digest 0.10` already in RUNE's graph). The optional
-   `hpke-rs-libcrux` dependency, the `libcrux` feature and its
-   `hpke-rs-libcrux?/std` and `hpke-rs-libcrux?/deterministic-prng` feature
-   entries are removed. Dev-dependencies are untouched (Cargo does not
-   resolve them for a path dependency).
-2. `src/lib.rs`: removed the `#[cfg(feature = "libcrux")]` re-export
-   `pub use hpke_rs_libcrux as libcrux;`.
-3. `src/kem.rs`: `derive_key_pair` calls a private
+   (RustCrypto). The optional `hpke-rs-libcrux` dependency and the features
+   that only enable it (`libcrux`, `libcrux-no-sys-rng`,
+   `libcrux-rustcrypto-p-curves`, `draft-ietf-hpke-pq`) are removed, with
+   `hpke-rs-libcrux?/std` from `std`, `libcrux` and `draft-ietf-hpke-pq`
+   from the docs.rs feature list and the two benches that require `libcrux`. `draft-connolly-cfrg-hpke-mlkem`
+   stays as an empty feature (it only selects the unlabeled seed derivation
+   in `kem.rs`). Dev-dependencies are untouched (Cargo does not resolve them
+   for a path dependency).
+2. `src/lib.rs`: removed the `#[cfg(feature = "libcrux-no-sys-rng")]`
+   re-export `pub use hpke_rs_libcrux as libcrux;`.
+3. `src/kem.rs`: `pq_derive_keypair_seed` calls a private
    `shake256::<N>(ikm) -> [u8; N]` helper built on `sha3::Shake256`
    (`finalize_xof_into`) instead of `libcrux_sha3::shake256::<N>`; N is 32
-   for X-Wing and 64 for ML-KEM, as before. Added the `shake256_kat` unit
-   test: SHAKE256 of the empty string and of bytes `0..32`, at 32 and 64
-   bytes, against values computed independently with Python
-   `hashlib.shake_256`.
+   or 64, as before. Added the `shake256_kat` unit test: SHAKE256 of the
+   empty string and of bytes `0..32`, at 32 and 64 bytes, against values
+   computed independently with Python `hashlib.shake_256`. Both the helper
+   and the test are the ones the 0.6.1 patch had.
 
 No algorithm, key schedule or wire-format change. The DHKEM P-256 suite DAVE
-uses never reached SHAKE256; only X-Wing and ML-KEM key derivation did.
-
-## Advisories removed from RUNE's Cargo.lock
-
-`cargo audit` (cargo-audit 0.22.1, RustSec DB of 1 329 advisories) on the
-lock before the patch: 8 vulnerabilities, all in crates this patch removes.
-
-- `libcrux-sha3 0.0.8`: RUSTSEC-2026-0207, RUSTSEC-2026-0208
-- `libcrux-secrets 0.0.5`: RUSTSEC-2026-0212
-- `libcrux-aesgcm 0.0.7`: RUSTSEC-2026-0209, RUSTSEC-2026-0211, and the
-  RUSTSEC-2026-0210 unmaintained warning
-- `libcrux-chacha20poly1305 0.0.7`: RUSTSEC-2026-0124
-- `libcrux-kem 0.0.7`: RUSTSEC-2026-0330, RUSTSEC-2026-0331
-- `proc-macro-error2 2.0.1` (unmaintained, RUSTSEC-2026-0173)
-
-Packages that left the lock (729 -> 703 entries): `hpke-rs` (registry),
-`hpke-rs-libcrux`, nineteen `libcrux-*` crates, `hax-lib`, `hax-lib-macros`,
-`hax-lib-macros-types`, `core-models`, `pastey`, `proc-macro-error2`,
-`proc-macro-error-attr2`, `rand_chacha 0.10.0`. Added: `sha3 0.10.9`,
-`keccak 0.1.6`. After the patch `cargo audit` reports 0 vulnerabilities and
-one warning, `instant 0.1.13` (unmaintained, RUSTSEC-2024-0384), which comes
-from `davey` enabling openmls' `js` feature on every target
-(`fluvio-wasm-timer` -> `parking_lot 0.11` -> `instant`), not from hpke-rs.
+uses never reaches SHAKE256; only X-Wing and ML-KEM key derivation do.
 
 ## Validation
 
-- `cargo tree --target all -i libcrux-sha3` (and `libcrux-secrets`,
-  `hpke-rs-libcrux`) matches no package in the RUNE workspace.
-- RUNE: `cargo test --workspace --all-features`, including the DAVE
-  two-party encryption, forgery/downgrade rejection and voice tests.
-- This crate on its own, in a scratch copy outside the workspace, with the
-  upstream `tests/` from the same commit (excluded from the archive):
+- `cargo tree --target all -i libcrux-sha3` (and `hax-lib`,
+  `proc-macro-error2`, `hpke-rs-libcrux`) matches no package in the RUNE
+  workspace; `cargo deny --all-features check` passes.
+- RUNE: `cargo test --workspace`, including the DAVE tests.
+- This crate on its own, in a scratch copy outside the workspace with the
+  upstream `tests/` from the same commit (excluded from the archive) and the
+  pristine manifest except for the `sha3` swap:
   `cargo test --release --features rustcrypto,hpke-test,serialization,hazmat`
-  passes the unit tests (with `shake256_kat`), `misc`, `test_hpke` (X-Wing
-  round trips with the libcrux provider go through the patched
-  `derive_key_pair`) and the RFC 9180 known-answer tests in
-  `test_hpke_kat`.
+  passes the unit tests (with `shake256_kat`), `misc`, `test_custom_rng`,
+  `test_hpke` and the RFC 9180 known-answer tests in `test_hpke_kat`; adding
+  `draft-ietf-hpke-pq` also passes `test_hpke_pq`, whose X-Wing and ML-KEM
+  known answers go through the patched `pq_derive_keypair_seed`.
 
 ## When to remove
 
-Drop this directory and the `[patch.crates-io]` entry as soon as the
-`openmls`/`openmls_rust_crypto` that `davey` resolves to accepts
-`hpke-rs >= 0.7` (0.7.0 fixes the advisories upstream), or as soon as a
-0.6.x release of hpke-rs no longer depends on an affected `libcrux-sha3`.
-Check with `cargo tree -i hpke-rs` and `cargo audit` after removing it.
+Drop this directory and its `[patch.crates-io]` entry when an hpke-rs
+release no longer builds `libcrux-sha3` (or `hax-lib` no longer pulls
+`proc-macro-error2`), or when `RUSTSEC-2026-0173` is withdrawn. Check with
+`cargo tree --target all -i proc-macro-error2` and
+`cargo deny --all-features check advisories` after removing it.

@@ -87,11 +87,19 @@ rune-ui = { path = "crates/rune-ui" }
 # RUNE's own signed updates, independent of the window and providers.
 rune-update = { path = "crates/rune-update" }
 
-# hpke-rs 0.6.1 (davey -> openmls_rust_crypto) depends on libcrux-sha3 0.0.8,
-# affected by RUSTSEC-2026-0207/0208. openmls pins hpke-rs ^0.6, so this copy
-# swaps it for RustCrypto sha3 and drops the libcrux backend; see
-# vendor/hpke-rs/RUNE-PATCH.md for the diff and when to remove it.
 [patch.crates-io]
+# DAVE (Discord's call E2EE) on p256 0.14: davey 0.1.5 and the openmls 0.8
+# RustCrypto backend it needs still pull elliptic-curve 0.13 -> crypto-bigint
+# 0.5 (RUSTSEC-2026-0387). These copies move only their elliptic-curve, RNG
+# and hpke-rs 0.8 calls; each one's RUNE-PATCH.md has the diff and when to
+# remove it.
+davey = { path = "vendor/davey" }
+openmls_rust_crypto = { path = "vendor/openmls_rust_crypto" }
+openmls_basic_credential = { path = "vendor/openmls_basic_credential" }
+# hpke-rs 0.8 builds libcrux-sha3, whose hax-lib pulls the unmaintained
+# proc-macro-error2 (RUSTSEC-2026-0173); this copy computes SHAKE256 with
+# RustCrypto sha3 and drops the libcrux backend; see
+# vendor/hpke-rs/RUNE-PATCH.md.
 hpke-rs = { path = "vendor/hpke-rs" }
 # CPAL 0.18.2 ignores WASAPI's AUDCLNT_BUFFERFLAGS_SILENT flag and can pass
 # undefined capture data; pin the upstream fix until it ships in a release.

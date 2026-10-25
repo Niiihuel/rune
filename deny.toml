@@ -69,7 +69,9 @@ ignore = true
 # Duplicates come from the window, audio and video stacks; not an error.
 multiple-versions = "allow"
 wildcards = "deny"
-# The workspace's own crates and the vendored hpke-rs are path dependencies.
+# The workspace's own crates and the vendored DAVE crates (vendor/: davey,
+# openmls_rust_crypto, openmls_basic_credential, hpke-rs) are path
+# dependencies.
 allow-wildcard-paths = true
 
 [sources]

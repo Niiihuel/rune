@@ -82,7 +82,7 @@ licencia. Procedencia y SHA-256: `assets/licenses/GIPHY.md`.
 ### hpke-rs, modificado (MPL-2.0)
 
 RUNE compila una copia modificada de [hpke-rs](https://github.com/cryspen/hpke-rs)
-0.6.1 (cifrado de extremo a extremo de la voz): cambia una dependencia de
+0.8.0 (cifrado de extremo a extremo de la voz): cambia una dependencia de
 SHAKE256 para quitar avisos de seguridad, sin cambiar el algoritmo. Sus
 archivos, también los modificados, siguen bajo la Mozilla Public License 2.0
 (texto en su sección de las dependencias Rust). El código fuente de esa copia,
@@ -90,7 +90,10 @@ con sus cambios, está en `vendor/hpke-rs` del repositorio de RUNE
 (<https://github.com/Niiihuel/rune>), en el tag de esta versión; los cambios
 se describen en `vendor/hpke-rs/RUNE-PATCH.md`. Las demás dependencias bajo
 MPL-2.0 (`hpke-rs-crypto`, `hpke-rs-rust-crypto`, `symphonia`) se usan sin
-modificar, con su código en crates.io.
+modificar, con su código en crates.io. `davey`, `openmls_rust_crypto` y
+`openmls_basic_credential` (MIT, con su texto en la sección de las
+dependencias Rust) también son copias modificadas, en `vendor/`, para pasar
+a `p256` 0.14; sus cambios están en el `RUNE-PATCH.md` de cada una.
 
 ### ThumbHash
 
