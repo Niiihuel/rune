@@ -11,16 +11,14 @@
 use std::time::{Duration, Instant};
 
 use limn::{Element, Point, Size, UiAction};
-use rune_components::profile::ids as profile_ids;
 use rune_components::voice::{self as parts, ids, Details, MenuEntry, Panel, Participant, Stage};
 use rune_components::Look;
 use rune_i18n::t;
-use rune_model::{
-    CallPhase, CallQuality, ChannelId, RelationshipKind, ServerId, Timestamp, UserId,
-};
+use rune_model::{CallPhase, CallQuality, ChannelId, ServerId, Timestamp, UserId};
 use rune_provider::{Command, VoiceSupport};
 use rune_state::{Applied, Store};
 
+use crate::person_menu::Place;
 use crate::{editor_id, profile, settings, video, Intent, SettingsPage, Ui, ViewContext};
 
 /// How many measures of the connection its details keep.
@@ -546,6 +544,7 @@ pub(crate) fn secondary_click(
     ui.voice.more = false;
     ui.channel_list.menu = None;
     ui.server_menu.open = false;
+    ui.person_menu = None;
     Some(Vec::new())
 }
 
@@ -758,169 +757,18 @@ pub(crate) fn participant_rows(
         .collect()
 }
 
-/// The entries of the menu on `menu.user`.
+/// The entries of the menu on `menu.user`, in the voice's place it opened in.
 fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
-    let item = |id: String, label: &str, checked: Option<bool>| {
-        MenuEntry::Item(id, label.to_owned(), checked)
+    let place = if menu.row {
+        Place::VoiceRow {
+            channel: menu.channel,
+        }
+    } else {
+        Place::Tile {
+            channel: menu.channel,
+        }
     };
-    let user = menu.user.0;
-    let mut groups = vec![vec![item(
-        format!("{}{user}", ids::PROFILE),
-        t("Perfil"),
-        None,
-    )]];
-    let writable = ui
-        .channel()
-        .and_then(|channel| store.abilities(channel))
-        .is_some_and(|abilities| abilities.write.allowed());
-    if menu.row && writable {
-        groups[0].push(item(format!("{}{user}", ids::MENTION), t("Mención"), None));
-    }
-    let other = store.me() != Some(menu.user);
-    let social = store.social(menu.user);
-    let person = |action: &str| format!("friend:{user}:{action}");
-    if other && social.message.allowed() {
-        groups[0].push(item(person("message"), t("Mensaje"), None));
-    }
-    // Their stream (transmisiones), as the official client's menus offer it.
-    let streaming = store.voice_state_of(menu.user).is_some_and(|state| {
-        state.streaming
-            && store
-                .call()
-                .is_some_and(|call| call.channel == state.channel)
-    });
-    if !other && ui.video.screen.on {
-        // Discord's «Dejar de transmitir»; that key is a call sound's here.
-        groups.push(vec![item(
-            ids::STOP_SCREEN.into(),
-            t("Dejar de compartir"),
-            None,
-        )]);
-    } else if store
-        .watching()
-        .iter()
-        .any(|watching| watching.owner == menu.user)
-    {
-        groups.push(vec![item(
-            ids::stop_watching(user),
-            t("Dejar de ver"),
-            None,
-        )]);
-    } else if other && streaming {
-        groups.push(vec![item(ids::watch(user), t("Ver transmisión"), None)]);
-    }
-    // Voice moderation (P4): before the volumes, so a short window shows it.
-    let moderation = crate::message_actions::voice_menu_group(store, menu.channel, menu.user);
-    if !moderation.is_empty() {
-        groups.push(moderation);
-    }
-    // The server's own: nickname, roles, timeout, kick and ban.
-    if let Some(server) = store.channel(menu.channel).and_then(|found| found.server) {
-        let members = crate::server_settings::member_menu_group(store, server, menu.user);
-        if !members.is_empty() {
-            groups.push(members);
-        }
-    }
-    if store.me() != Some(menu.user) {
-        let note = || simulated(store).then(|| t("Simulado: la llamada no lleva audio").to_owned());
-        let (volume, silenced) = ui.prefs.voice_volume(user);
-        groups.push(vec![
-            MenuEntry::Volume {
-                user,
-                label: t("Volumen del usuario"),
-                volume,
-                note: note(),
-            },
-            item(
-                ids::local_mute(user),
-                t("Silenciar para mí"),
-                Some(silenced),
-            ),
-        ]);
-        // The sound of their stream watched has a volume of its own.
-        if store
-            .watching()
-            .iter()
-            .any(|watching| watching.owner == menu.user)
-        {
-            let sound = user | rune_media::mixer::STREAM_SOUND;
-            let (volume, silenced) = ui.prefs.voice_volume(sound);
-            groups.push(vec![
-                MenuEntry::Volume {
-                    user: sound,
-                    label: t("Volumen de la transmisión"),
-                    volume,
-                    note: note(),
-                },
-                item(
-                    ids::local_mute(sound),
-                    t("Silenciar la transmisión"),
-                    Some(silenced),
-                ),
-            ]);
-        }
-    }
-    if store.me() == Some(menu.user) {
-        let mut own = vec![
-            item(ids::MENU_MUTE.into(), t("Silenciar"), Some(ui.muted)),
-            item(ids::MENU_DEAFEN.into(), t("Ensordecer"), Some(ui.deafened)),
-        ];
-        let editable = store
-            .provider
-            .as_ref()
-            .is_some_and(|info| info.capabilities.edit_profile);
-        if editable {
-            own.push(item(profile_ids::EDIT.into(), t("Editar perfil"), None));
-        }
-        groups.push(own);
-    }
-    if other {
-        let requests = store
-            .provider
-            .as_ref()
-            .is_some_and(|info| info.capabilities.friend_requests);
-        let mut people = Vec::new();
-        match store.relationship(menu.user).map(|known| known.kind) {
-            Some(RelationshipKind::Friend) if social.remove.allowed() => {
-                people.push(MenuEntry::Danger(
-                    person("remove"),
-                    t("Eliminar amigo").into(),
-                ));
-            }
-            None if requests => people.push(item(person("add"), t("Añadir amigo"), None)),
-            _ => {}
-        }
-        if store.relationship(menu.user).map(|known| known.kind) == Some(RelationshipKind::Blocked)
-        {
-            if social.unblock.allowed() {
-                people.push(item(person("unblock"), t("Desbloquear"), None));
-            }
-        } else if social.block.allowed() {
-            people.push(MenuEntry::Danger(person("block"), t("Bloquear").into()));
-        }
-        if !people.is_empty() {
-            groups.push(people);
-        }
-    }
-    let stage = crate::stage::menu_group(store, menu.channel, menu.user);
-    if !stage.is_empty() {
-        groups.push(stage);
-    }
-    if ui.prefs.developer {
-        groups.push(vec![item(
-            format!("{}{user}", ids::COPY_ID),
-            t("Copiar ID del usuario"),
-            None,
-        )]);
-    }
-    let mut entries = Vec::new();
-    for group in groups {
-        if !entries.is_empty() {
-            entries.push(MenuEntry::Separator);
-        }
-        entries.extend(group);
-    }
-    entries
+    crate::person_menu::entries(ui, store, menu.user, place)
 }
 
 /// The voice card of the account's box, while there is a call.

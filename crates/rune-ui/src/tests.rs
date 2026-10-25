@@ -1153,6 +1153,7 @@ mod channel_list;
 mod channel_settings;
 mod composer_selection;
 mod images;
+mod person_menu;
 // Commands and interactions (P3).
 mod interactions;
 // Presence, identity and expressions (P5).

@@ -141,6 +141,7 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let root = channel_list::overlays(ui, store, root, look, context);
     let root = profile::overlays(ui, store, root, look, context);
     let root = voice::overlays(ui, store, root, look);
+    let root = crate::person_menu::overlays(ui, store, root, look);
     // Streams (transmisiones).
     let root = crate::streams::overlays(ui, store, root, look);
     // Private calls: a call coming in, over everything but verifications.

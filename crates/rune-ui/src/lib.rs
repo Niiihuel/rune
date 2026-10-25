@@ -39,6 +39,7 @@ mod server_menu;
 mod server_settings;
 // Administration (19).
 mod gif_favorites;
+mod person_menu;
 mod settings;
 mod stage;
 mod threads;
@@ -723,6 +724,8 @@ pub struct Ui {
     pub notices: Vec<Notice>,
     /// The call's stage, menus and measures.
     pub voice: voice::Voice,
+    /// A person's menu opened outside a voice channel (see `person_menu`).
+    pub person_menu: Option<person_menu::PersonMenu>,
     /// The account's screen and camera, previewed by the host.
     pub video: Video,
     /// The friends page of home.
@@ -1187,6 +1190,7 @@ pub fn secondary_click(
 ) -> Option<Vec<Intent>> {
     let opened = streams::secondary_click(ui, store, target, at)
         .or_else(|| voice::secondary_click(ui, store, target, at))
+        .or_else(|| person_menu::secondary_click(ui, store, target, at))
         .or_else(|| account::secondary_click(ui, store, target, at))
         .or_else(|| threads::secondary_click(ui, store, target, at))
         .or_else(|| channel_list::secondary_click(ui, store, target, at))
@@ -1536,6 +1540,8 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
         conversations::close_menu(ui);
     }
     messages::before(ui, action);
+    // Choosing anything closes a person's menu, before the handler of the choice.
+    person_menu::update(ui, action);
     // Rules and onboarding (2026-10-18).
     if let Some(intents) = onboarding::update(ui, store, action) {
         return intents;

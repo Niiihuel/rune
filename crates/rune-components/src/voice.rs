@@ -2415,6 +2415,10 @@ pub enum MenuEntry {
     /// An action that removes or punishes, such as kicking: its action and
     /// label, drawn in the theme's danger color.
     Danger(String, String),
+    /// An action the account may take but cannot now, such as one the rank
+    /// blocks: its action, its label, and why, as a muted second line. It
+    /// does not react to a click.
+    Disabled(String, String, String),
     /// A role in the menu's roles: its action, its name, its color (`None`
     /// for one without), and whether the person has it, a check box at the
     /// end of the row.
@@ -2477,6 +2481,11 @@ pub fn menu_entries(entries: Vec<MenuEntry>, look: &Look) -> Vec<DropdownMenuEnt
             MenuEntry::Danger(id, label) => {
                 DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).destructive(look.danger))
             }
+            MenuEntry::Disabled(id, label, reason) => DropdownMenuEntry::Item(
+                DropdownMenuItem::new(id, label)
+                    .description(reason)
+                    .disabled(),
+            ),
             MenuEntry::Role {
                 id,
                 name,
@@ -3719,6 +3728,41 @@ mod tests {
         };
         assert_eq!(ink("Expulsar a Ada"), look.danger);
         assert_eq!(ink("Quitar el aislamiento"), look.text);
+    }
+
+    #[test]
+    fn an_action_that_is_off_says_why_and_does_not_react() {
+        let look = Look::ONYX;
+        let entries = menu_entries(
+            vec![MenuEntry::Disabled(
+                "ss:kick".into(),
+                "Expulsar a Ada".into(),
+                "Su rol está a la altura del tuyo o por encima.".into(),
+            )],
+            &look,
+        );
+        let (_, laid) = frame(
+            DropdownMenu::new(
+                gap(1.0, 1.0),
+                entries,
+                true,
+                ids::MENU_DISMISS,
+                look.menu_palette(),
+            )
+            .width(MENU_WIDTH)
+            .render(),
+            Size::new(400.0, 400.0),
+        );
+        let shown = texts(&laid);
+        assert!(shown.contains(&"Expulsar a Ada".to_owned()), "{shown:?}");
+        // The reason is one line: limn cuts it with an ellipsis.
+        assert!(
+            shown
+                .iter()
+                .any(|text| text.starts_with("Su rol está a la altura")),
+            "{shown:?}"
+        );
+        assert!(!controls(&laid).contains(&"ss:kick".to_owned()));
     }
 
     #[test]
