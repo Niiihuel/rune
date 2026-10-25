@@ -77,9 +77,9 @@ fn the_columns_and_bands_are_where_the_reference_has_them() {
 
     // The rail: 85.5 of marks, then the hairline at 85.5, which runs on
     // behind the account's panel; it ends where the panel begins.
-    at(region(&frame, "rail"), 0.0, 0.0, 85.5, 724.5);
-    filled(85.5, 0.0, 1.0, 724.5);
-    filled(85.5, 724.5, 1.0, 72.5);
+    at(region(&frame, "rail"), 0.0, 0.0, 85.5, 730.0);
+    filled(85.5, 0.0, 1.0, 730.0);
+    filled(85.5, 730.0, 1.0, 67.0);
     // Its marks: 42 squares at 21.5, 52.5 apart. Home sits 5 below the top
     // (centered in the 52 band of the headers): Discord's touches its own
     // title bar, which RUNE does not draw.
@@ -109,8 +109,8 @@ fn the_columns_and_bands_are_where_the_reference_has_them() {
     // 52 and its hairline; the list under it.
     filled(86.5, top(34.5), 293.5, 52.0);
     filled(86.5, top(86.5), 293.5, 1.0);
-    filled(380.0, 0.0, 1.0, 724.5);
-    filled(380.0, 724.5, 1.0, 72.5);
+    filled(380.0, 0.0, 1.0, 730.0);
+    filled(380.0, 730.0, 1.0, 67.0);
     let list = region(&frame, "channels");
     at(list, 86.5, top(87.5), 293.5, list.height);
     // The server's name, as a pill of 31.5 from 96.
@@ -130,13 +130,13 @@ fn the_columns_and_bands_are_where_the_reference_has_them() {
         .windows(2)
         .any(|pair| (pair[1].y - pair[0].y - 40.5).abs() <= 1.0));
 
-    // The account's panel floats over the foot of both: 357.5×61.5 from
-    // 11.5, 11 above the bottom edge; its buttons 34 high.
-    filled(11.5, 724.5, 357.5, 61.5);
-    at(region(&frame, "me:mute"), 197.5, 738.5, 34.5, 34.0);
-    at(region(&frame, "pp:input"), 233.0, 738.5, 17.0, 34.0);
-    at(region(&frame, "me:deafen"), 258.5, 738.5, 34.5, 34.0);
-    at(region(&frame, "me:settings"), 319.0, 738.5, 34.0, 34.0);
+    // The account's box floats over the foot of both: 357.5×56 from 11.5,
+    // 11 above the bottom edge, its buttons 32 square and 8 apart, 8 in.
+    filled(11.5, 730.0, 357.5, 56.0);
+    at(region(&frame, "me:mute"), 215.0, 742.0, 32.0, 32.0);
+    at(region(&frame, "pp:input"), 248.0, 742.0, 16.0, 32.0);
+    at(region(&frame, "me:deafen"), 272.0, 742.0, 32.0, 32.0);
+    at(region(&frame, "me:settings"), 329.0, 742.0, 32.0, 32.0);
 
     // The conversation: 381 to 1074.5, under a header of 52 that runs over
     // the member list too, and its hairline.

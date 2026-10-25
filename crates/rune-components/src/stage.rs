@@ -52,7 +52,7 @@ pub struct StageStrip {
     pub actions: Vec<StageAction>,
 }
 
-/// The strip over the voice panel.
+/// The strip over the voice panel: a section of its card, so it draws no box.
 pub fn strip(view: &StageStrip, look: &Look) -> Element {
     let mut lines = vec![strong_line(&view.seat, 13.0, look.text)];
     if let Some(detail) = &view.detail {
@@ -91,9 +91,7 @@ pub fn strip(view: &StageStrip, look: &Look) -> Element {
         ])
         .gap(8.0),
     )
-    .padding(10.0)
-    .radius(8.0)
-    .background(look.raised)
+    .padding(12.0)
     .accessible(limn::Access::new(limn::Role::Group).name(view.seat.clone()))
 }
 

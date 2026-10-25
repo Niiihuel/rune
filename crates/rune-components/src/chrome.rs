@@ -258,17 +258,15 @@ pub struct UserPanel {
     pub quick: Option<(bool, Element)>,
 }
 
-/// The box of the account's panel, its hairline included: 61.5 px high, its
-/// corners rounded. It floats over the foot of the rail and the column,
-/// 11.5 from the window's left edge, 11 from its bottom and from the
-/// column's divider.
-pub const USER_PANEL_HEIGHT: f32 = 61.5;
-/// Around the account's panel: left, right (the column's divider included)
+/// The account's row, 56 px high: the box around it, and the voice card above
+/// it, are drawn by the column (`rune-ui`), one box for both.
+pub const USER_PANEL_HEIGHT: f32 = 56.0;
+/// Around the account's box: left, right (the column's divider included)
 /// and bottom.
 pub const USER_PANEL_MARGIN: (f32, f32, f32) = (11.5, 12.0, 11.0);
-/// The buttons of the account's panel are this high; the microphone's and the
+/// The buttons of the account's panel are 32 square; the microphone's and the
 /// headphones' are this wide, before the arrow of their options.
-const PANEL_BUTTON: (f32, f32) = (34.5, 34.0);
+const PANEL_BUTTON: (f32, f32) = (32.0, 32.0);
 
 /// The geometry of a button of the account's panel.
 fn panel_button(button: IconButton) -> IconButton {
@@ -276,17 +274,17 @@ fn panel_button(button: IconButton) -> IconButton {
         .sizing(ButtonSizing {
             height: PANEL_BUTTON.1,
             font_size: 13.0,
-            icon_size: 16.0,
-            horizontal_padding: 9.0,
+            icon_size: 20.0,
+            horizontal_padding: 6.0,
             inner_spacing: 8.0,
         })
         .width(PANEL_BUTTON.0)
 }
 
 /// The arrow beside the microphone and the headphones.
-const ARROW: f32 = 17.0;
+const ARROW: f32 = 16.0;
 /// Their corners, square where the two halves meet.
-const SPLIT_RADIUS: f32 = 6.0;
+const SPLIT_RADIUS: f32 = 8.0;
 
 /// A button split in two, as Discord draws the microphone and the
 /// headphones (2026-10-25): the action and, 1 px apart, the arrow that opens
@@ -367,9 +365,9 @@ fn split_button(
     .hover_region()
 }
 
-/// The account's panel: its mark and name (which open its profile popout),
-/// the microphone and the headphones with the arrows of their options, and
-/// the settings.
+/// The account's row: its mark and name (which open its profile popout), the
+/// microphone and the headphones with the arrows of their options, and the
+/// settings. The box around it is the column's.
 pub fn user_panel(panel: UserPanel, look: &Look) -> Element {
     let palette = look.sidebar_palette();
     let face = crate::avatar_with_image(&panel.name, panel.accent, 32.0, panel.image);
@@ -378,8 +376,8 @@ pub fn user_panel(panel: UserPanel, look: &Look) -> Element {
         None => face,
     };
     let second = Element::stack(vec![
-        line(&panel.status_label, 13.0, look.muted).conceal_on_hover("me:line:status"),
-        line(&panel.handle, 13.0, look.muted).reveal_on_hover("me:line:handle"),
+        line(&panel.status_label, 12.0, look.muted).conceal_on_hover("me:line:status"),
+        line(&panel.handle, 12.0, look.muted).reveal_on_hover("me:line:handle"),
     ]);
     let account = Element::clickable(
         "me:status",
@@ -387,14 +385,14 @@ pub fn user_panel(panel: UserPanel, look: &Look) -> Element {
             gap(4.0, 0.0),
             face.centered_y(),
             gap(10.5, 0.0),
-            Element::column(vec![strong_line(&panel.name, 16.0, look.text), second])
+            Element::column(vec![strong_line(&panel.name, 14.0, look.text), second])
                 .gap(1.0)
                 .flex(1.0)
                 .centered_y(),
             gap(4.0, 0.0),
         ]),
     )
-    .size(None, Some(42.0))
+    .size(None, Some(40.0))
     .radius(6.0)
     .hover_background(look.hover)
     .hover_region()
@@ -462,25 +460,17 @@ pub fn user_panel(panel: UserPanel, look: &Look) -> Element {
         .variant(ButtonVariant::Ghost)
         .tooltip(t("Ajustes de usuario"))
         .render();
-    let mut controls = vec![
-        gap(10.5, 0.0),
-        account.flex(1.0).centered_y(),
-        gap(8.5, 0.0),
-    ];
+    let mut controls = vec![gap(8.0, 0.0), account.flex(1.0).centered_y(), gap(8.0, 0.0)];
     if panel.voice {
         controls.extend([
             microphone.centered_y(),
-            gap(8.5, 0.0),
+            gap(8.0, 0.0),
             headphones.centered_y(),
-            gap(8.5, 0.0),
+            gap(8.0, 0.0),
         ]);
     }
-    controls.extend([settings.centered_y(), gap(16.0, 0.0)]);
-    let body = Element::panel(Element::row(controls))
-        .size(None, Some(USER_PANEL_HEIGHT))
-        .radius(8.0)
-        .background(look.rail)
-        .border(look.border, 1.0);
+    controls.extend([settings.centered_y(), gap(8.0, 0.0)]);
+    let body = Element::panel(Element::row(controls)).size(None, Some(USER_PANEL_HEIGHT));
     // The popout opens above the whole box, its left edge on the box's.
     crate::profile::popout(
         body,

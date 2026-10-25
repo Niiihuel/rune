@@ -923,7 +923,7 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
     entries
 }
 
-/// The voice section of the account's box, while there is a call.
+/// The voice card of the account's box, while there is a call.
 pub(crate) fn panel(
     ui: &Ui,
     store: &Store,
@@ -959,6 +959,9 @@ pub(crate) fn panel(
                     .samples
                     .last()
                     .map(|(_, quality)| quality.loss_permille),
+                duration: store
+                    .call_duration(now)
+                    .filter(|_| call.phase.is_connected()),
                 simulated: simulated(store),
             },
             privacy,
@@ -970,7 +973,6 @@ pub(crate) fn panel(
             channel: store.channel_title(call.channel),
             server,
             phase: call.phase.clone(),
-            duration: store.call_duration(now),
             quality: call.quality,
             simulated: simulated(store),
             video: video::controls(ui, store),
@@ -978,17 +980,7 @@ pub(crate) fn panel(
         details,
         look,
     );
-    // Over the account's box, as wide.
-    // shortcut: 8 repeats the padding of `chrome::user_panel`; once the
-    // account's box takes its margins from outside, drop these.
-    Some(Element::column(vec![
-        Element::spacer().size(None, Some(8.0)),
-        Element::row(vec![
-            Element::spacer().size(Some(8.0), None),
-            box_.flex(1.0),
-            Element::spacer().size(Some(8.0), None),
-        ]),
-    ]))
+    Some(box_)
 }
 
 /// The stage of the voice channel it shows, where the conversation goes, in

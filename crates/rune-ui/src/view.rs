@@ -335,7 +335,8 @@ fn column(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Element {
         .background(look.sidebar)
 }
 
-/// The voice connection and the account, under the rail and the column.
+/// The voice connection and the account, under the rail and the column: one
+/// box, its sections divided by hairlines.
 fn account(
     ui: &Ui,
     store: &Store,
@@ -347,6 +348,22 @@ fn account(
     parts.extend(crate::stage::panel(store, look));
     parts.extend(voice::panel(ui, store, look, now, wall));
     parts.push(profile::user_panel(ui, store, look, wall));
+    let mut sections = Vec::new();
+    for (index, part) in parts.into_iter().enumerate() {
+        if index > 0 {
+            sections.push(
+                Element::panel(Element::spacer())
+                    .size(None, Some(1.0))
+                    .background(look.border),
+            );
+        }
+        sections.push(part);
+    }
+    let card = Element::panel(Element::column(sections))
+        .radius(8.0)
+        .background(look.rail)
+        .border(look.border, 1.0)
+        .clip_children();
     let (left, right, bottom) = chrome::USER_PANEL_MARGIN;
     // The dividers of the rail and the column run on behind the panel.
     let dividers = Element::row(vec![
@@ -358,11 +375,7 @@ fn account(
     Element::stack(vec![
         dividers,
         Element::column(vec![
-            Element::row(vec![
-                gap(left, 0.0),
-                Element::column(parts).gap(8.0).flex(1.0),
-                gap(right, 0.0),
-            ]),
+            Element::row(vec![gap(left, 0.0), card.flex(1.0), gap(right, 0.0)]),
             gap(0.0, bottom),
         ]),
     ])

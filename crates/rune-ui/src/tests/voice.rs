@@ -192,7 +192,8 @@ fn joining_shows_the_panel_through_every_phase_and_the_details_its_measures() {
     assert!(painted
         .iter()
         .any(|text| text.starts_with("Sala común / Ta")));
-    assert!(painted.contains(&"00:00".to_owned()), "the call's clock");
+    // The clock is not in the card: the details show it.
+    assert!(!painted.contains(&"00:00".to_owned()), "{painted:?}");
     // The latency is the signal's hint.
     assert!(host.vz_hint(ids::DETAILS).contains(&"47 ms".to_owned()));
 
@@ -216,6 +217,8 @@ fn joining_shows_the_panel_through_every_phase_and_the_details_its_measures() {
         "Pérdida de paquetes:",
         "0,3 %",
         "Valores simulados:",
+        "Duración:",
+        "00:00",
     ] {
         assert!(
             painted.iter().any(|text| text.starts_with(expected)),

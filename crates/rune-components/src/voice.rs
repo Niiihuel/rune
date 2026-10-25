@@ -233,15 +233,24 @@ pub struct ScreenChoice {
     pub chosen: bool,
 }
 
-/// The camera's and the screen's buttons, `height` high on `base`.
-fn video_buttons(controls: &VideoControls, height: f32, base: Color, look: &Look) -> [Element; 2] {
+/// The camera's and the screen's buttons, `height` high. Off, they fill
+/// `idle` (and `idle_hover` under the pointer); on, they fill `lit` and
+/// `lit_hover`, and with `edge` they are outlined in it too (the panel's).
+fn video_buttons(
+    controls: &VideoControls,
+    height: f32,
+    (idle, idle_hover): (Color, Color),
+    (lit, lit_hover): (Color, Color),
+    edge: Option<Color>,
+    look: &Look,
+) -> [Element; 2] {
     let button = |id: &str, on: bool, glyph: Icon, titles: (&str, &str)| {
-        let (fill, ink) = if on {
-            (Look::alpha(look.online, 40), look.online)
+        let (fill, hover, ink) = if on {
+            (lit, lit_hover, look.online)
         } else {
-            (base, look.text)
+            (idle, idle_hover, look.text)
         };
-        let button = IconButton::new(id, glyph, filled(fill, lighter(fill, 16), look))
+        let button = IconButton::new(id, glyph, filled(fill, hover, look))
             .variant(ButtonVariant::Raised)
             .sizing(ButtonSizing {
                 height,
@@ -252,7 +261,7 @@ fn video_buttons(controls: &VideoControls, height: f32, base: Color, look: &Look
             })
             .radius(RadiusRole::Card)
             .active(on);
-        match &controls.denied {
+        let rendered = match &controls.denied {
             Some(reason) => button
                 .ink(look.faint)
                 .tooltip_with(denied_hint(titles.1, t(reason)))
@@ -272,6 +281,10 @@ fn video_buttons(controls: &VideoControls, height: f32, base: Color, look: &Look
                     ),
                 )
                 .render(),
+        };
+        match edge.filter(|_| on) {
+            Some(edge) => rendered.border(edge, 1.0),
+            None => rendered,
         }
     };
     [
@@ -668,13 +681,14 @@ pub fn stream_window(view: &Preview, size: Size, idle: bool, look: &Look) -> Ele
     .accessibility_label(view.title.clone())
 }
 
-/// The voice section of the account's box: 112 high, its controls 14.5 in.
-pub const PANEL_HEIGHT: f32 = 112.0;
-const PANEL_INSET: f32 = 14.5;
-/// The signal, 34 by 32.5, and the panel's buttons, 34 high, 12.5 apart.
-const SIGNAL_SIZE: (f32, f32) = (34.0, 32.5);
-const PANEL_BUTTON: f32 = 34.0;
-const PANEL_GAP: f32 = 12.5;
+/// The voice section of the account's box, one card with it: 100 high, its
+/// two rows of 32 around 12 in and 12 apart (Discord's card, REA).
+pub const PANEL_HEIGHT: f32 = 100.0;
+const PANEL_INSET: f32 = 12.0;
+/// The signal and the panel's buttons are 32 square, 8 apart.
+const SIGNAL_SIZE: f32 = 32.0;
+const PANEL_BUTTON: f32 = 32.0;
+const PANEL_GAP: f32 = 8.0;
 /// The connection's details: 319 wide.
 pub const DETAILS_WIDTH: f32 = 319.0;
 /// A person's row under a voice channel: 34 high, 30 in from the channel's
@@ -796,18 +810,18 @@ pub struct Panel {
     /// The server the channel is in, after it: «General / RUNE prueba».
     pub server: Option<String>,
     pub phase: CallPhase,
-    pub duration: Option<std::time::Duration>,
     pub quality: Option<CallQuality>,
     /// Joining and quality are simulated by the provider: no audio is carried.
     pub simulated: bool,
     pub video: VideoControls,
 }
 
-/// The voice section above the account's panel: the signal (its hint the
-/// latency, a click its details), how far the call got and where, its clock
-/// and the way to hang up; then the camera and the screen, lit while on.
-/// While it failed, the reason and a way to try again.
-/// `details` floats over it while open.
+/// The voice section above the account's panel, in the same card: the signal
+/// (its hint the latency, a click its details, tinted as the title's color
+/// while connected), how far the call got and where, and the way to hang up;
+/// then the camera and the screen, lit while on. While it failed, the reason
+/// and a way to try again. The clock is in the details. `details` floats over
+/// the signal while open.
 pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
     let (title, ink) = phase_title(&view.phase, view.simulated, look);
     let connected = view.phase.is_connected();
@@ -815,20 +829,27 @@ pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
         Some(quality) => format!("{} ms", quality.rtt_ms),
         None => t("Sin medidas").into(),
     };
+    // No quality grade reaches the panel: the title's color (green, amber,
+    // red) carries it.
+    let (fill, hover) = if connected {
+        (Look::alpha(ink, 20), Look::alpha(ink, 36))
+    } else {
+        (look.raised, lighter(look.raised, 14))
+    };
     let signal = IconButton::new(
         ids::DETAILS,
         Icon::Custom(SIGNAL),
-        filled(look.raised, lighter(look.raised, 14), look),
+        filled(fill, hover, look),
     )
     .variant(ButtonVariant::Raised)
     .sizing(ButtonSizing {
-        height: SIGNAL_SIZE.1,
+        height: SIGNAL_SIZE,
         font_size: 14.0,
         icon_size: 20.0,
         horizontal_padding: 8.0,
         inner_spacing: 6.0,
     })
-    .width(SIGNAL_SIZE.0)
+    .width(SIGNAL_SIZE)
     .radius(RadiusRole::Card)
     .ink(ink)
     .hover_ink(ink)
@@ -861,22 +882,12 @@ pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
     };
     // The title reads «Detalles de voz» under the pointer: it opens them too.
     let heading = Element::stack(vec![
-        strong_line(title, 14.0, ink).conceal_on_hover("vz:details:title:phase"),
-        strong_line(t("Detalles de voz"), 14.0, ink).reveal_on_hover("vz:details:title:hover"),
+        strong_line(title, 15.0, ink).conceal_on_hover("vz:details:title:phase"),
+        strong_line(t("Detalles de voz"), 15.0, ink).reveal_on_hover("vz:details:title:hover"),
     ]);
-    // The call's clock beside where it is, the title keeping the whole width.
-    let mut under = vec![line(subtitle, 13.0, look.muted).flex(1.0)];
-    if let Some(duration) = view.duration.filter(|_| connected) {
-        under.push(
-            Element::text(clock(duration))
-                .font_family(FontFamily::Monospace)
-                .font_size(13.0)
-                .foreground(look.online),
-        );
-    }
     let summary = Element::clickable(
         ids::DETAILS_TITLE,
-        Element::column(vec![heading, Element::row(under).gap(6.0)]).gap(1.0),
+        Element::column(vec![heading, line(subtitle, 12.0, look.muted)]).gap(1.0),
     )
     .hover_region()
     .accessibility_label(t("Detalles de voz"));
@@ -905,28 +916,41 @@ pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
             look.sidebar_palette(),
         )
         .variant(ButtonVariant::Secondary)
+        .sizing(ButtonSizing {
+            height: PANEL_BUTTON,
+            font_size: 14.0,
+            icon_size: 20.0,
+            horizontal_padding: 8.0,
+            inner_spacing: 6.0,
+        })
+        .radius(RadiusRole::Card)
         .render()
         .flex(1.0)])
     } else {
         Element::row(
-            video_buttons(&view.video, PANEL_BUTTON, look.raised, look)
-                .map(|button| button.flex(1.0))
-                .into(),
+            video_buttons(
+                &view.video,
+                PANEL_BUTTON,
+                (look.hover, look.selected),
+                (Look::alpha(look.online, 31), Look::alpha(look.online, 61)),
+                Some(Look::alpha(look.online, 31)),
+                look,
+            )
+            .map(|button| button.flex(1.0))
+            .into(),
         )
         .gap(PANEL_GAP)
     };
+    // The card's two rows: the header of 32 and the buttons.
     Element::panel(
         Element::column(vec![
-            Element::row(first).gap(8.0).size(None, Some(33.0)),
+            Element::row(first).gap(8.0).size(None, Some(PANEL_BUTTON)),
             second.size(None, Some(PANEL_BUTTON)),
         ])
-        .gap(13.5)
+        .gap(PANEL_INSET)
         .padding(PANEL_INSET),
     )
     .size(None, Some(PANEL_HEIGHT))
-    .radius(8.0)
-    .background(look.rail)
-    .border(look.border, 1.0)
 }
 
 /// The connection's details, as its popover shows them.
@@ -937,6 +961,8 @@ pub struct Details {
     pub samples: Vec<(String, u32)>,
     /// Packets lost, per thousand, at the last measure.
     pub loss_permille: Option<u16>,
+    /// How long the connected call has run, shown as «Duración».
+    pub duration: Option<std::time::Duration>,
     pub simulated: bool,
 }
 
@@ -1017,6 +1043,19 @@ pub fn details_tabbed(view: &Details, privacy: Option<(Element, bool)>, look: &L
         ])
         .gap(4.0)
     };
+    if let Some(duration) = view.duration {
+        body.push(
+            Element::row(vec![
+                line(format!("{}:", t("Duración")), 13.0, look.muted).shrink_to_fit(),
+                Element::text(clock(duration))
+                    .font_family(FontFamily::Monospace)
+                    .font_size(13.0)
+                    .foreground(look.text)
+                    .shrink_to_fit(),
+            ])
+            .gap(4.0),
+        );
+    }
     match (rtts.last(), rtts.is_empty()) {
         (Some(last), false) => {
             let average = rtts.iter().map(|rtt| f64::from(*rtt)).sum::<f64>() / rtts.len() as f64;
@@ -1998,7 +2037,15 @@ fn bar(view: &Stage, look: &Look) -> Element {
         .tooltip(if off_now { hint.1 } else { hint.0 })
         .render()
     };
-    let [camera, screen] = video_buttons(&view.video, BAR_BUTTON, look.menu, look);
+    let lit = Look::alpha(look.online, 40);
+    let [camera, screen] = video_buttons(
+        &view.video,
+        BAR_BUTTON,
+        (look.menu, lighter(look.menu, 16)),
+        (lit, lighter(lit, 16)),
+        None,
+        look,
+    );
     let screen = match view.video.picker {
         Some(chosen) => quality_picker(screen, chosen, &view.video, look),
         None => screen,
@@ -2592,7 +2639,6 @@ mod tests {
             channel: "General".into(),
             server: Some("RUNE prueba".into()),
             phase: CallPhase::Connected,
-            duration: Some(Duration::from_secs(190)),
             quality: Some(CallQuality {
                 rtt_ms: 47,
                 loss_permille: 4,
@@ -2616,7 +2662,7 @@ mod tests {
     }
 
     #[test]
-    fn the_panel_is_112_high_and_says_where_and_how_the_call_is() {
+    fn the_card_is_100_high_and_says_where_and_how_the_call_is() {
         let look = Look::ONYX;
         let alone = Element::column(vec![
             panel(&connected(), None, &look),
@@ -2626,7 +2672,6 @@ mod tests {
         let shown = texts(&laid);
         assert!(shown.contains(&"Voz conectada (simulada)".to_owned()));
         assert!(shown.contains(&"General / RUNE prueba".to_owned()));
-        assert!(shown.contains(&"03:10".to_owned()), "{shown:?}");
         let ids = controls(&laid);
         assert!(ids.contains(&ids::DETAILS.to_owned()));
         assert!(ids.contains(&ids::LEAVE.to_owned()));
@@ -2642,21 +2687,24 @@ mod tests {
         assert!(
             usable.contains(&ids::CAMERA.to_owned()) && usable.contains(&ids::SCREEN.to_owned())
         );
-        let box_height = laid
-            .commands
-            .iter()
-            .find_map(|command| match command {
-                limn::DrawCommand::FillRect { rect, color, .. } if *color == look.rail => {
-                    Some(rect.height)
-                }
-                _ => None,
-            })
-            .unwrap();
-        assert_eq!(box_height, PANEL_HEIGHT);
+        // Its signal starts 12 down, its buttons end 12 up: 100 high.
+        let (_, placed) = frame(panel(&local, None, &look), Size::new(357.5, 300.0));
+        let rect = |id: &str| {
+            placed
+                .regions
+                .iter()
+                .find(|region| region.id == id)
+                .map(|region| region.rect)
+                .unwrap()
+        };
+        let (signal, camera) = (rect(ids::DETAILS), rect(ids::CAMERA));
+        assert_eq!((signal.y, signal.height), (PANEL_INSET, 32.0));
+        assert_eq!(camera.y + camera.height, PANEL_HEIGHT - PANEL_INSET);
+        assert_eq!(camera.height, 32.0);
     }
 
     #[test]
-    fn a_call_alone_in_its_channel_says_it_waits_and_keeps_its_clock_and_latency() {
+    fn a_call_alone_in_its_channel_says_it_waits() {
         let waiting = Panel {
             phase: CallPhase::Waiting,
             simulated: false,
@@ -2668,7 +2716,6 @@ mod tests {
             shown.contains(&"Esperando a los demás".to_owned()),
             "{shown:?}"
         );
-        assert!(shown.contains(&"03:10".to_owned()), "{shown:?}");
         // The simulation waits too, and says it is one.
         let simulated = Panel {
             simulated: true,
@@ -2740,6 +2787,7 @@ mod tests {
                 ("10:02".into(), 46),
             ],
             loss_permille: Some(0),
+            duration: Some(Duration::from_secs(207)),
             simulated: true,
         };
         let (_, laid) = frame(
@@ -2747,7 +2795,7 @@ mod tests {
             Size::new(DETAILS_WIDTH, 600.0),
         );
         let shown = texts(&laid);
-        for expected in ["Conexión", "44 ms", "46 ms", "0,0 %"] {
+        for expected in ["Conexión", "44 ms", "46 ms", "0,0 %", "Duración:", "03:27"] {
             assert!(
                 shown.iter().any(|text| text == expected),
                 "{expected} in {shown:?}"
