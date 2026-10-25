@@ -77,4 +77,5 @@ unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # limn, RUNE's interface toolkit, is used from its own repository's branch.
-allow-git = ["https://github.com/Niiihuel/limn"]
+# cpal is pinned to its upstream WASAPI silent-capture fix until it ships.
+allow-git = ["https://github.com/Niiihuel/limn", "https://github.com/RustAudio/cpal"]
