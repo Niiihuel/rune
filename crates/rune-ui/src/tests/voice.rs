@@ -1613,7 +1613,7 @@ fn the_cameras_on_the_stage_are_asked_for_at_most_four_and_show_on_their_tiles()
 }
 
 #[test]
-fn the_bars_arrows_open_the_quick_panel_with_the_calls_level_live() {
+fn the_bars_arrows_open_the_device_menus_with_the_calls_level_live() {
     let mut host = Host::new();
     let room = host.vz_join("Sala común");
     // The stage, where the bar is.
@@ -1634,7 +1634,9 @@ fn the_bars_arrows_open_the_quick_panel_with_the_calls_level_live() {
         .profiles
         .devices
         .is_some_and(|it| it.bar && !it.output));
-    assert!(host.vz_texts().iter().any(|it| it == "Ajustes de entrada"));
+    let shown = host.vz_texts();
+    assert!(shown.iter().any(|it| it == "Dispositivo de entrada"));
+    assert!(shown.iter().any(|it| it == "Nivel de entrada"), "in a call");
     // A click outside closes it, and the meter it started.
     host.click(ids::OUTPUT_OPTIONS);
     assert!(host.ui.profiles.devices.is_none() && !host.ui.audio.testing);
@@ -1644,7 +1646,10 @@ fn the_bars_arrows_open_the_quick_panel_with_the_calls_level_live() {
         .profiles
         .devices
         .is_some_and(|it| it.bar && it.output));
-    assert!(host.vz_texts().iter().any(|it| it == "Ajustes de salida"));
+    assert!(host
+        .vz_texts()
+        .iter()
+        .any(|it| it == "Dispositivo de salida"));
     host.click(ids::OUTPUT_OPTIONS);
     assert!(host.ui.profiles.devices.is_none());
     // Muted, the microphone stays closed until asked.

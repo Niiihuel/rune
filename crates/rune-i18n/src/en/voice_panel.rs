@@ -3,9 +3,12 @@
 //! the voice page's devices, levels and microphone test.
 
 pub(super) const ENTRIES: super::Entries = &[
-    // The quick panel.
-    ("Ajustes de entrada", "Input settings"),
-    ("Ajustes de salida", "Output settings"),
+    // The menus of the arrows, as Discord's (2026-10-25).
+    ("Ajustes de voz", "Voice Settings"),
+    ("Nivel de entrada", "Input Level"),
+    ("Servidor silenciado", "Server Muted"),
+    ("Servidor ensordecido", "Server Deafened"),
+    // The camera's panel.
     ("Todos los ajustes de voz", "All voice settings"),
     ("Dispositivo no disponible", "Device unavailable"),
     (
@@ -20,24 +23,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "100 % es el nivel original; más alto puede distorsionar.",
         "100 % is the original level; higher may distort.",
     ),
-    ("El nivel se ve mientras probás.", "The level shows while you test."),
-    ("Probar micrófono", "Test microphone"),
     ("Actualizar dispositivos", "Refresh devices"),
     ("Restablecer niveles", "Reset levels"),
-    (
-        "Ensordecer apaga lo que oís y también tu micrófono.",
-        "Deafening turns off what you hear and your microphone too.",
-    ),
     ("{level} dBFS · umbral {threshold} dBFS", "{level} dBFS · threshold {threshold} dBFS"),
     ("{level} dBFS", "{level} dBFS"),
-    (
-        "La voz es simulada: no se reproduce audio de la llamada. «Probar sonido» suena igual.",
-        "Voice is simulated: no call audio plays. “Test sound” still plays.",
-    ),
-    (
-        "«Probar sonido» toca el sonido de entrar a la llamada, también durante una.",
-        "“Test sound” plays the join sound, during a call too.",
-    ),
     // The voice page.
     ("Dispositivos y niveles", "Devices and levels"),
     ("Cámara y video", "Camera and video"),

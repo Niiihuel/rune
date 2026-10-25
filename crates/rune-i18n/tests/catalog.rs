@@ -264,12 +264,12 @@ fn a_word_with_two_senses_says_which_one_where_it_is_used() {
             "Bloqueado",
             "Blocked",
         ),
-        // The player's sound; «Activar sonido» undeafens a call.
+        // The player's sound; «Desactivar ensordecimiento» undeafens a call.
         (
             "crates/rune-components/src/message/media.rs",
             "Activar el sonido",
             "Unmute",
-            "Activar sonido",
+            "Desactivar ensordecimiento",
             "Undeafen",
         ),
         // Who may send friend requests; «Todos» is a filter's "All".

@@ -1,19 +1,20 @@
-//! The quick voice panel (2026-10-18), from the arrow beside the microphone
-//! or the headphones: the input's or the output's half of the voice
-//! settings in a window of its own, and the pieces it shares with the voice
-//! page: the device lists, the percent sliders and the level meter.
+//! The menus of the arrows beside the microphone and the headphones, as
+//! Discord has them (2026-10-25), the camera's panel (2026-10-18), and the
+//! pieces they share with the voice page: the device lists, the percent
+//! sliders and the level meter.
 //!
-//! Its controls report the voice page's own actions (`us:…`), so choosing
+//! Their controls report the voice page's own actions (`us:…`), so choosing
 //! here and there is the same choice.
 
 use limn::{
-    Button, ButtonVariant, Component, DropdownOption, Element, FontFamily, Icon, ScrollArea,
-    SegmentedControl, Select, Size, Slider, SurfaceFit, Switch, Tab, Tooltip, TooltipSpec,
+    Button, ButtonVariant, Component, DropdownMenu, DropdownMenuEntry, DropdownMenuItem,
+    DropdownOption, Element, FontFamily, Icon, ScrollArea, Select, Size, Slider, SurfaceFit,
+    Tooltip, TooltipSpec,
 };
-use rune_i18n::{t, tr};
+use rune_i18n::{es, t, tr};
 
 use crate::profile::Device;
-use crate::{gap, line, strong_line, text, Look};
+use crate::{line, strong_line, text, Look};
 
 /// The panel: as wide as the reference's, its inset and its corners.
 pub const WIDTH: f32 = 340.0;
@@ -38,23 +39,17 @@ const VALUE_WIDTH: f32 = 52.0;
 /// The actions of the panel; the rest are the voice page's.
 pub mod ids {
     pub const DISMISS: &str = "qv:dismiss";
-    /// «Todos los ajustes de voz»: the voice page.
+    /// «Ajustes de voz», «Todos los ajustes de voz»: the voice page.
     pub const SETTINGS: &str = "qv:settings";
-    /// The privacy code of the call, folded and unfolded.
-    pub const PRIVACY: &str = "qv:privacy";
     pub const BODY: &str = "qv:body";
-    /// The voice page's actions the panel reports.
+    /// The voice page's actions the menus report.
     pub const MICROPHONES: &str = "mic";
     pub const SPEAKERS: &str = "speaker";
     pub const INPUT_VOLUME: &str = "us:input-volume";
     pub const OUTPUT_VOLUME: &str = "us:output-volume";
-    pub const REFRESH: &str = "us:devices";
-    pub const RESET: &str = "us:reset-levels";
     pub const METER: &str = "us:meter";
-    pub const NOISE: &str = "us:noise";
     pub const VOICE_MODE: &str = "us:input=voice";
     pub const PUSH_TO_TALK: &str = "us:input=ptt";
-    pub const SOUND_TEST: &str = "us:speaker-test";
     /// The camera's panel (llamadas-y-panel-de-voz): its list and its test.
     pub const CAMERAS: &str = "camera";
     pub const VIDEO_TEST: &str = "us:video-test";
@@ -274,56 +269,8 @@ pub fn level_meter(
         )
 }
 
-/// What the input's half shows.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Input {
-    pub devices: DeviceList,
-    /// From 0 to [`Input::most`].
-    pub volume: f32,
-    pub most: f32,
-    /// The meter runs: the level heard, where voice starts, and both as
-    /// one reads them («−32 dBFS · umbral −45 dBFS»).
-    pub testing: bool,
-    pub level: Option<f32>,
-    pub threshold: Option<f32>,
-    pub reading: Option<String>,
-    pub push_to_talk: bool,
-    pub suppression: bool,
-    /// The volumes are not as they start: «Restablecer niveles» does something.
-    pub changed: bool,
-}
-
-/// What the output's half shows.
-#[derive(Clone, Debug)]
-pub struct Output {
-    pub devices: DeviceList,
-    pub volume: f32,
-    pub most: f32,
-    /// What the sound test or the provider adds, when it adds something.
-    pub note: Option<String>,
-    /// The call's privacy code, while in one with it: unfolded, its view.
-    pub privacy: Option<Option<Element>>,
-}
-
 fn label(value: &str, look: &Look) -> Element {
     strong_line(value, 12.0, look.muted)
-}
-
-fn switch_row(id: &str, value: &str, on: bool, look: &Look) -> Element {
-    Element::row(vec![
-        line(value, 14.0, look.text).flex(1.0).centered_y(),
-        Switch::new(id, on, look.palette())
-            .accessibility_label(value)
-            .render()
-            .centered_y(),
-    ])
-}
-
-fn secondary(id: &str, value: &str, enabled: bool, look: &Look) -> Element {
-    Button::new(id, value, look.palette())
-        .variant(ButtonVariant::Secondary)
-        .enabled(enabled)
-        .render()
 }
 
 /// The note under the volumes: what 100 % is.
@@ -335,182 +282,203 @@ pub fn volume_note(look: &Look) -> Element {
     )
 }
 
-/// The input's half: the microphone, its volume, its level with the
-/// threshold, how it goes through (voice or push-to-talk), noise
-/// suppression, and finding the devices again or putting the levels back.
-pub fn input(view: &Input, look: &Look) -> Vec<Element> {
-    let width = WIDTH - 2.0 * INSET;
-    let mut body = vec![Element::column(vec![
-        label(t("Dispositivo de entrada"), look),
-        device_select(&view.devices, width, look),
-    ])
-    .gap(6.0)];
-    if view.devices.missing() {
-        body.push(text(
-            t("El micrófono elegido no está conectado. Conectalo o elegí otro."),
-            12.0,
-            look.danger,
-        ));
-    }
-    if let Some(Err(error)) = &view.devices.devices {
-        body.push(text(
-            tr!("No se pudieron leer los dispositivos: {error}", error),
-            12.0,
-            look.danger,
-        ));
-    }
-    body.push(
-        Element::column(vec![
-            label(t("Volumen de entrada"), look),
-            percent_slider(
-                ids::INPUT_VOLUME,
-                t("Volumen de entrada"),
-                view.volume,
-                view.most,
-                width,
-                look,
-            ),
-            volume_note(look),
-        ])
-        .gap(6.0),
-    );
-    let meter = if view.testing {
-        Element::column(vec![
-            level_meter("qv:level", view.level, view.threshold, width, look),
-            Element::row(vec![
-                line(view.reading.clone().unwrap_or_default(), 12.0, look.muted)
-                    .flex(1.0)
-                    .centered_y(),
-                Button::new(ids::METER, t("Detener"), look.palette())
-                    .variant(ButtonVariant::Link)
-                    .render(),
-            ]),
-        ])
-        .gap(4.0)
-    } else {
-        Element::row(vec![
-            line(t("El nivel se ve mientras probás."), 12.0, look.muted)
-                .flex(1.0)
-                .centered_y(),
-            secondary(ids::METER, t("Probar micrófono"), true, look),
-        ])
-        .gap(8.0)
-    };
-    body.push(Element::column(vec![label(t("Nivel del micrófono"), look), meter]).gap(6.0));
-    let half = (width - 8.0) / 2.0;
-    body.push(
-        Element::column(vec![
-            label(t("Modo de entrada"), look),
-            SegmentedControl::new(
-                vec![
-                    Tab::new(ids::VOICE_MODE, t("Detección de voz"), half)
-                        .active(!view.push_to_talk),
-                    Tab::new(ids::PUSH_TO_TALK, t("Pulsar para hablar"), half)
-                        .active(view.push_to_talk),
-                ],
-                look.palette(),
-            )
-            .height(32.0)
-            .render(),
-        ])
-        .gap(6.0),
-    );
-    body.push(switch_row(
-        ids::NOISE,
-        t("Supresión de ruido"),
-        view.suppression,
-        look,
-    ));
-    body.push(
-        Element::row(vec![
-            secondary(ids::REFRESH, t("Actualizar dispositivos"), true, look),
-            secondary(ids::RESET, t("Restablecer niveles"), view.changed, look),
-        ])
-        .gap(8.0),
-    );
-    body
+/// The input profiles, as the voice page keeps them (`us:profile={key}`).
+pub const PROFILES: [(&str, &str); 3] = [
+    ("voice-isolation", es("Aislamiento de voz")),
+    ("studio", es("Estudio")),
+    ("custom", es("Personalizado")),
+];
+
+/// The menu of the arrow beside the microphone or the headphones, as
+/// Discord draws it (2026-10-25): the device and, for the microphone, the
+/// profile, each a list beside it; the volume; the microphone's level in a
+/// call; push-to-talk when it has a key; and the voice settings.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AudioMenu {
+    /// The headphones'; else the microphone's.
+    pub output: bool,
+    pub devices: DeviceList,
+    /// From 0 to `most`.
+    pub volume: f32,
+    pub most: f32,
+    /// The microphone's: the key of its profile, one of [`PROFILES`].
+    pub profile: Option<&'static str>,
+    /// In a call: the microphone's level, `None` while it is not heard.
+    pub level: Option<Option<f32>>,
+    /// Push-to-talk is on, offered only while it has a key.
+    pub push_to_talk: Option<bool>,
 }
 
-/// The output's half: the speaker, its volume, a call sound to check it,
-/// what deafening does and, in a call that has one, its privacy code.
-pub fn output(view: &Output, look: &Look) -> Vec<Element> {
-    let width = WIDTH - 2.0 * INSET;
-    let mut body = vec![Element::column(vec![
-        label(t("Dispositivo de salida"), look),
-        device_select(&view.devices, width, look),
-    ])
-    .gap(6.0)];
-    if view.devices.missing() {
-        body.push(text(
-            t("La salida elegida no está conectada. Conectala o elegí otra."),
-            12.0,
-            look.danger,
+/// The menu's width.
+pub const MENU_WIDTH: f32 = 240.0;
+// What limn's menu keeps around a custom row: its inset and a row's sides.
+const MENU_SIDES: f32 = 2.0 * (4.0 + 8.0);
+
+/// A choice of a list beside the menu: a radio item, its long name cut and
+/// whole in its hint.
+fn radio(id: String, name: &str, chosen: bool) -> DropdownMenuEntry {
+    let shown = short_name(name);
+    let item = DropdownMenuItem::new(id, &shown).radio(chosen).truncate();
+    DropdownMenuEntry::Item(if shown == name {
+        item
+    } else {
+        item.tooltip_with(TooltipSpec::new(name))
+    })
+}
+
+/// A labelled control of the menu, such as a volume.
+fn menu_row(label: &str, control: Element, look: &Look) -> DropdownMenuEntry {
+    DropdownMenuEntry::custom(
+        Element::column(vec![line(label, 13.0, look.text), control])
+            .gap(4.0)
+            .padding(8.0),
+    )
+}
+
+/// The menu, laid out where it is put: the popover of the arrow holds it.
+pub fn audio_menu(view: &AudioMenu, look: &Look) -> Element {
+    let list = &view.devices;
+    let (title, volume_id, volume) = if view.output {
+        (
+            t("Dispositivo de salida"),
+            ids::OUTPUT_VOLUME,
+            t("Volumen de salida"),
+        )
+    } else {
+        (
+            t("Dispositivo de entrada"),
+            ids::INPUT_VOLUME,
+            t("Volumen de entrada"),
+        )
+    };
+    let (chosen, choices) = match &list.devices {
+        None => (
+            t("Buscando dispositivos…").to_owned(),
+            vec![DropdownMenuEntry::Message(
+                t("Buscando dispositivos…").into(),
+            )],
+        ),
+        Some(Err(error)) => (
+            t("Sin dispositivos").to_owned(),
+            vec![DropdownMenuEntry::Message(error.clone())],
+        ),
+        Some(Ok(devices)) => {
+            let chosen = match &list.chosen {
+                None => t("Predeterminado del sistema").to_owned(),
+                Some(id) => devices
+                    .iter()
+                    .find(|device| device.id == *id)
+                    .map_or(t("Dispositivo no disponible").to_owned(), |device| {
+                        device.name.clone()
+                    }),
+            };
+            let mut choices = vec![radio(
+                format!("us:{}-default", list.name),
+                t("Predeterminado del sistema"),
+                list.chosen.is_none(),
+            )];
+            choices.extend(devices.iter().take(MAX_DEVICES).map(|device| {
+                radio(
+                    format!("us:{}={}", list.name, device.id),
+                    &device.name,
+                    list.chosen.as_deref() == Some(device.id.as_str()),
+                )
+            }));
+            (chosen, choices)
+        }
+    };
+    let mut entries = vec![DropdownMenuEntry::Item(
+        DropdownMenuItem::new(format!("qv:{}", list.name), title)
+            .description(short_name(&chosen))
+            .submenu(choices),
+    )];
+    if let Some(profile) = view.profile {
+        let label = PROFILES
+            .iter()
+            .find(|(key, _)| *key == profile)
+            .map_or(t("Personalizado"), |(_, label)| t(label));
+        entries.push(DropdownMenuEntry::Item(
+            DropdownMenuItem::new("qv:profile", t("Perfil de entrada"))
+                .description(label)
+                .submenu(
+                    PROFILES
+                        .iter()
+                        .map(|(key, label)| {
+                            DropdownMenuEntry::Item(
+                                DropdownMenuItem::new(format!("us:profile={key}"), t(label))
+                                    .radio(*key == profile),
+                            )
+                        })
+                        .collect(),
+                ),
         ));
     }
-    body.push(
-        Element::column(vec![
-            label(t("Volumen de salida"), look),
-            percent_slider(
-                ids::OUTPUT_VOLUME,
-                t("Volumen de salida"),
-                view.volume,
-                view.most,
-                width,
-                look,
-            ),
-            volume_note(look),
-        ])
-        .gap(6.0),
-    );
-    body.push(
-        Element::row(vec![
-            secondary(ids::SOUND_TEST, t("Probar sonido"), true, look),
-            secondary(ids::REFRESH, t("Actualizar dispositivos"), true, look),
-        ])
-        .gap(8.0),
-    );
-    if let Some(note) = &view.note {
-        body.push(text(note.as_str(), 12.0, look.muted));
-    }
-    body.push(text(
-        t("Ensordecer apaga lo que oís y también tu micrófono."),
-        12.0,
-        look.muted,
+    let width = MENU_WIDTH - MENU_SIDES;
+    entries.push(DropdownMenuEntry::Separator);
+    entries.push(menu_row(
+        volume,
+        percent_slider(volume_id, volume, view.volume, view.most, width, look),
+        look,
     ));
-    if let Some(privacy) = &view.privacy {
-        let open = privacy.is_some();
-        body.push(
-            Element::clickable(
-                ids::PRIVACY,
-                Element::row(vec![
-                    Element::icon(Icon::Lock)
-                        .foreground(look.online)
-                        .size(Some(14.0), Some(14.0))
-                        .centered_y(),
-                    gap(8.0, 0.0),
-                    line(t("Código de privacidad"), 14.0, look.text)
-                        .flex(1.0)
-                        .centered_y(),
-                    Element::icon(if open {
-                        Icon::ChevronUp
-                    } else {
-                        Icon::ChevronDown
-                    })
-                    .foreground(look.muted)
-                    .size(Some(12.0), Some(12.0))
-                    .centered_y(),
-                ])
-                .padding(6.0),
-            )
-            .radius(6.0)
-            .hover_background(look.hover)
-            .accessibility_label(t("Código de privacidad")),
-        );
-        if let Some(code) = privacy {
-            body.push(code.clone());
-        }
+    if let Some(level) = view.level {
+        entries.push(menu_row(
+            t("Nivel de entrada"),
+            level_meter("qv:level", level, None, width, look),
+            look,
+        ));
     }
-    body
+    entries.push(DropdownMenuEntry::Separator);
+    if let Some(on) = view.push_to_talk {
+        let id = if on {
+            ids::VOICE_MODE
+        } else {
+            ids::PUSH_TO_TALK
+        };
+        entries.push(DropdownMenuEntry::Item(
+            DropdownMenuItem::new(id, t("Pulsar para hablar")).checkbox(on),
+        ));
+    }
+    entries.push(DropdownMenuEntry::Item(
+        // shortcut: Discord puts a gear at the row's end; limn's items take an
+        // icon only at their start, which would push every label right. Add
+        // it once limn's menu items take a trailing icon.
+        DropdownMenuItem::new(ids::SETTINGS, t("Ajustes de voz")),
+    ));
+    // Inline: the arrow's popover places it and closes it.
+    DropdownMenu::new(
+        Element::spacer().size(Some(0.0), Some(0.0)),
+        entries,
+        true,
+        ids::DISMISS,
+        look.menu_palette(),
+    )
+    .context_menu_style()
+    .width(MENU_WIDTH)
+    .inline(true)
+    .render()
+}
+
+/// The microphone's hint, as Discord words it: what a click does, or why
+/// it cannot.
+pub fn microphone_hint(muted: bool, server_muted: bool) -> &'static str {
+    if server_muted {
+        t("Servidor silenciado")
+    } else if muted {
+        t("Desactivar silencio")
+    } else {
+        t("Silenciar")
+    }
+}
+
+/// The headphones' hint, as Discord words it.
+pub fn headphones_hint(deafened: bool, server_deafened: bool) -> &'static str {
+    if server_deafened {
+        t("Servidor ensordecido")
+    } else if deafened {
+        t("Desactivar ensordecimiento")
+    } else {
+        t("Ensordecer")
+    }
 }
 
 /// What the camera's panel shows (llamadas-y-panel-de-voz), from the arrow
@@ -673,21 +641,6 @@ mod tests {
         }
     }
 
-    fn input_view(push_to_talk: bool, testing: bool) -> Input {
-        Input {
-            devices: devices(false, None),
-            volume: 1.0,
-            most: 2.0,
-            testing,
-            level: testing.then_some(0.5),
-            threshold: Some(0.4),
-            reading: testing.then(|| "−30 dBFS".into()),
-            push_to_talk,
-            suppression: true,
-            changed: false,
-        }
-    }
-
     #[test]
     fn the_meter_is_green_then_yellow_then_red() {
         assert_eq!(meter_zones(0.5), [0.5, 0.0, 0.0, 0.5]);
@@ -752,95 +705,123 @@ mod tests {
         assert!(texts(&laid).contains(&"Buscando dispositivos…".to_owned()));
     }
 
-    #[test]
-    fn the_input_half_has_its_controls_and_the_meter_only_while_testing() {
-        let look = Look::DARK;
-        let (_, laid) = frame(
-            panel(
-                "Ajustes de entrada",
-                input(&input_view(true, false), &look),
-                900.0,
-                &look,
-            ),
-            Size::new(WIDTH, 900.0),
-        );
-        let ids = controls(&laid);
-        for id in [
-            "us:select:mic",
-            ids::INPUT_VOLUME,
-            ids::METER,
-            ids::VOICE_MODE,
-            ids::PUSH_TO_TALK,
-            ids::NOISE,
-            ids::REFRESH,
-            ids::SETTINGS,
-        ] {
-            assert!(ids.contains(&id.to_owned()), "{id}: {ids:?}");
+    fn menu(output: bool, devices: DeviceList) -> AudioMenu {
+        AudioMenu {
+            output,
+            devices,
+            volume: 0.5,
+            most: 2.0,
+            profile: (!output).then_some("studio"),
+            level: None,
+            push_to_talk: None,
         }
-        let painted = texts(&laid);
-        assert!(painted.contains(&"Ajustes de entrada".to_owned()));
-        assert!(painted.contains(&"Probar micrófono".to_owned()));
-        assert!(painted.contains(&"100 %".to_owned()), "{painted:?}");
-        let (_, laid) = frame(
-            panel(
-                "Ajustes de entrada",
-                input(&input_view(false, true), &look),
-                900.0,
-                &look,
-            ),
-            Size::new(WIDTH, 900.0),
-        );
-        let painted = texts(&laid);
-        assert!(painted.contains(&"−30 dBFS".to_owned()), "{painted:?}");
-        assert!(painted.contains(&"Detener".to_owned()));
+    }
+
+    /// The menu laid out in a window, with its lists opened by `hover`.
+    fn laid_menu(view: &AudioMenu, hover: Option<&str>) -> limn::Frame {
+        let look = Look::DARK;
+        let mut tree = limn::UiTree::new(audio_menu(view, &look));
+        let size = Size::new(600.0, 700.0);
+        if let Some(id) = hover {
+            let frame = tree.layout(size);
+            let row = frame
+                .regions
+                .iter()
+                .find(|region| region.id == id)
+                .unwrap_or_else(|| panic!("{id} is laid out"))
+                .rect;
+            tree.handle_event(limn::UiEvent::PointerMove(limn::Point::new(
+                row.x + 10.0,
+                row.y + row.height / 2.0,
+            )));
+        }
+        tree.layout(size)
     }
 
     #[test]
-    fn the_output_half_tests_with_a_sound_and_folds_the_privacy_code() {
-        let look = Look::DARK;
-        let view = |privacy| Output {
-            devices: DeviceList {
-                name: ids::SPEAKERS,
-                ..devices(false, None)
-            },
-            volume: 0.5,
-            most: 2.0,
-            note: None,
-            privacy,
-        };
-        let (_, laid) = frame(
-            panel(
-                "Ajustes de salida",
-                output(&view(None), &look),
-                900.0,
-                &look,
-            ),
-            Size::new(WIDTH, 900.0),
-        );
+    fn the_microphones_menu_is_discords_and_reports_the_voice_pages_actions() {
+        let mut view = menu(false, devices(false, Some("b")));
+        let laid = laid_menu(&view, None);
         let ids = controls(&laid);
-        assert!(ids.contains(&ids::SOUND_TEST.to_owned()));
-        assert!(ids.contains(&"us:select:speaker".to_owned()));
-        assert!(!ids.contains(&ids::PRIVACY.to_owned()), "not in a call");
-        assert!(texts(&laid).contains(&"50 %".to_owned()));
-        let code = Element::text("12345 67890");
-        let (_, laid) = frame(
-            panel(
-                "Ajustes de salida",
-                output(&view(Some(Some(code))), &look),
-                900.0,
-                &look,
-            ),
-            Size::new(WIDTH, 900.0),
-        );
-        assert!(controls(&laid).contains(&ids::PRIVACY.to_owned()));
-        assert!(texts(&laid).contains(&"12345 67890".to_owned()));
+        for id in ["qv:mic", "qv:profile", ids::INPUT_VOLUME, ids::SETTINGS] {
+            assert!(ids.contains(&id.to_owned()), "{id}: {ids:?}");
+        }
+        let painted = texts(&laid);
+        for text in [
+            "Dispositivo de entrada",
+            "Perfil de entrada",
+            "Estudio",
+            "Volumen de entrada",
+            "50 %",
+            "Ajustes de voz",
+        ] {
+            assert!(painted.iter().any(|it| it == text), "{text}: {painted:?}");
+        }
+        // The device chosen under its row, cut to fit.
+        assert!(painted
+            .iter()
+            .any(|it| it.starts_with("Un dispositivo con")));
+        // Out of a call no level; push-to-talk only with its key.
+        assert!(!painted.iter().any(|it| it == "Nivel de entrada"));
+        assert!(!painted.iter().any(|it| it == "Pulsar para hablar"));
+        view.level = Some(Some(0.4));
+        view.push_to_talk = Some(false);
+        let laid = laid_menu(&view, None);
+        let painted = texts(&laid);
+        assert!(painted.iter().any(|it| it == "Nivel de entrada"));
+        assert!(painted.iter().any(|it| it == "Pulsar para hablar"));
+        assert!(controls(&laid).contains(&ids::PUSH_TO_TALK.to_owned()));
+        // Ticked, it turns voice activity back on.
+        view.push_to_talk = Some(true);
+        assert!(controls(&laid_menu(&view, None)).contains(&ids::VOICE_MODE.to_owned()));
+        // Its lists: the devices, the default first, and the profiles.
+        let ids = controls(&laid_menu(&view, Some("qv:mic")));
+        for id in ["us:mic-default", "us:mic=a", "us:mic=b"] {
+            assert!(ids.contains(&id.to_owned()), "{id}: {ids:?}");
+        }
+        let ids = controls(&laid_menu(&view, Some("qv:profile")));
+        for (key, _) in PROFILES {
+            assert!(ids.contains(&format!("us:profile={key}")), "{key}: {ids:?}");
+        }
+    }
+
+    #[test]
+    fn the_headphones_menu_has_the_output_its_volume_and_the_settings() {
+        let list = DeviceList {
+            name: ids::SPEAKERS,
+            ..devices(false, Some("gone"))
+        };
+        let laid = laid_menu(&menu(true, list), None);
+        let ids = controls(&laid);
+        for id in ["qv:speaker", ids::OUTPUT_VOLUME, ids::SETTINGS] {
+            assert!(ids.contains(&id.to_owned()), "{id}: {ids:?}");
+        }
+        assert!(!ids.contains(&"qv:profile".to_owned()));
+        let painted = texts(&laid);
+        for text in [
+            "Dispositivo de salida",
+            "Dispositivo no disponible",
+            "Volumen de salida",
+        ] {
+            assert!(painted.iter().any(|it| it == text), "{text}: {painted:?}");
+        }
+    }
+
+    #[test]
+    fn the_hints_say_what_a_click_does_or_that_the_server_holds_it() {
+        assert_eq!(microphone_hint(false, false), "Silenciar");
+        assert_eq!(microphone_hint(true, false), "Desactivar silencio");
+        assert_eq!(microphone_hint(true, true), "Servidor silenciado");
+        assert_eq!(headphones_hint(false, false), "Ensordecer");
+        assert_eq!(headphones_hint(true, false), "Desactivar ensordecimiento");
+        assert_eq!(headphones_hint(false, true), "Servidor ensordecido");
     }
 
     /// The panel over an arrow at the foot of a window `height` high: where
     /// its title is painted, and its foot's button and its body laid out.
     fn over_the_foot(height: f32) -> (f32, limn::Rect, limn::Rect) {
         let look = Look::DARK;
-        let body = input(&input_view(false, true), &look);
+        let body = vec![Element::spacer().size(Some(10.0), Some(600.0))];
         let arrow = Element::clickable("arrow", Element::spacer()).size(Some(20.0), Some(20.0));
         let root = Element::column(vec![
             Element::spacer().flex(1.0),

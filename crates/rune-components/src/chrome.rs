@@ -246,12 +246,15 @@ pub struct UserPanel {
     pub status_label: String,
     pub muted: bool,
     pub deafened: bool,
+    /// The server holds the microphone closed, or the sound off, in the call.
+    pub server_muted: bool,
+    pub server_deafened: bool,
     /// Whether this provider has voice controls.
     pub voice: bool,
     /// The account's profile popout, floating over the panel while open.
     pub popout: Option<Element>,
-    /// The quick voice panel of the headphones' arrow (`true`) or of the
-    /// microphone's, while one is open: [`crate::quick_voice::panel`].
+    /// The menu of the headphones' arrow (`true`) or of the microphone's,
+    /// while one is open: [`crate::quick_voice::audio_menu`].
     pub quick: Option<(bool, Element)>,
 }
 
@@ -280,37 +283,88 @@ fn panel_button(button: IconButton) -> IconButton {
         .width(PANEL_BUTTON.0)
 }
 
-/// A button split in two: the action, and an arrow that opens its options;
-/// all of it red while the action is `on` (muted, deafened).
-fn split_button(action: Element, arrow_id: &str, hint: &str, on: bool, look: &Look) -> Element {
-    let arrow = Element::clickable(
-        arrow_id,
-        crate::centered(
-            Element::icon(Icon::ChevronDown)
-                .foreground(if on { look.danger } else { look.muted })
-                .size(Some(12.0), Some(12.0)),
-        ),
-    )
-    .size(Some(17.0), Some(PANEL_BUTTON.1))
-    .radius(4.0)
-    .hover_background(look.hover)
-    .hover_foreground(look.text)
-    .accessible(limn::Access::new(limn::Role::Button).name(hint));
-    let split = Element::row(vec![
-        action.centered_y(),
-        gap(1.0, 0.0),
-        Tooltip::new(arrow, arrow_id, hint, look.menu_palette())
-            .render()
-            .centered_y(),
-    ]);
-    if on {
-        // On Ónix a faint red, #1a0607.
-        Element::panel(split)
-            .radius(4.0)
-            .background(Look::alpha(look.danger, 32))
+/// The arrow beside the microphone and the headphones.
+const ARROW: f32 = 17.0;
+/// Their corners, square where the two halves meet.
+const SPLIT_RADIUS: f32 = 6.0;
+
+/// A button split in two, as Discord draws the microphone and the
+/// headphones (2026-10-25): the action and, 1 px apart, the arrow that opens
+/// its menu (pointing up while `open`), their inner corners square. While
+/// the action is `on` (muted, deafened) both are tinted red under a red
+/// icon. The pointer over either lights both, the one under it more.
+fn split_button(
+    (id, glyph, hint): (&str, Icon, &str),
+    (arrow_id, arrow_hint): (&str, &str),
+    on: bool,
+    open: bool,
+    look: &Look,
+) -> Element {
+    let (lit, under, ink) = if on {
+        (
+            Look::alpha(look.danger, 46),
+            Look::alpha(look.danger, 61),
+            look.danger,
+        )
     } else {
-        split
-    }
+        (look.hover, look.selected, look.muted)
+    };
+    let corners = |left: f32, right: f32| limn::CornerRadii {
+        top_left: left,
+        bottom_left: left,
+        top_right: right,
+        bottom_right: right,
+    };
+    let (main, side) = (corners(SPLIT_RADIUS, 0.0), corners(0.0, SPLIT_RADIUS));
+    let piece = |id: &str, glyph: Icon, size: f32, width: f32, radii, name: &str| {
+        let piece = Element::clickable(
+            id,
+            crate::centered(
+                Element::icon(glyph)
+                    .foreground(ink)
+                    .size(Some(size), Some(size)),
+            ),
+        )
+        .size(Some(width), Some(PANEL_BUTTON.1))
+        .corner_radii(radii)
+        .hover_background(under)
+        .hover_foreground(if on { look.danger } else { look.text })
+        .accessible(limn::Access::new(limn::Role::Button).name(name));
+        let piece = if on {
+            // On Ónix a faint red, #1a0607.
+            piece.background(Look::alpha(look.danger, 31))
+        } else {
+            piece
+        };
+        Tooltip::new(piece, id, name, look.menu_palette()).render()
+    };
+    let shade = |width: f32, radii| {
+        Element::panel(Element::spacer())
+            .size(Some(width), Some(PANEL_BUTTON.1))
+            .corner_radii(radii)
+            .background(lit)
+    };
+    let lit = Element::row(vec![
+        shade(PANEL_BUTTON.0, main),
+        gap(1.0, 0.0),
+        shade(ARROW, side),
+    ])
+    .reveal_on_hover(format!("{id}:lit"));
+    let chevron = if open {
+        Icon::ChevronUp
+    } else {
+        Icon::ChevronDown
+    };
+    Element::stack(vec![
+        lit,
+        Element::row(vec![
+            piece(id, glyph, 20.0, PANEL_BUTTON.0, main, hint),
+            gap(1.0, 0.0),
+            piece(arrow_id, chevron, 14.0, ARROW, side, arrow_hint),
+        ]),
+    ])
+    .size(Some(PANEL_BUTTON.0 + 1.0 + ARROW), Some(PANEL_BUTTON.1))
+    .hover_region()
 }
 
 /// The account's panel: its mark and name (which open its profile popout),
@@ -356,56 +410,37 @@ pub fn user_panel(panel: UserPanel, look: &Look) -> Element {
             handle = panel.handle
         ),
     });
-    let microphone = panel_button(IconButton::new(
-        "me:mute",
-        if panel.muted {
-            Icon::MicrophoneMuted
-        } else {
-            Icon::Microphone
-        },
-        palette,
-    ))
-    .variant(ButtonVariant::Ghost)
-    .tooltip(if panel.muted {
-        t("Activar micrófono")
-    } else {
-        t("Silenciar")
-    })
-    .ink(if panel.muted { look.danger } else { look.muted })
-    .render();
-    let headphones = panel_button(IconButton::new(
-        "me:deafen",
-        if panel.deafened {
-            Icon::Custom(crate::HEADPHONES_OFF)
-        } else {
-            Icon::Headphones
-        },
-        palette,
-    ))
-    .variant(ButtonVariant::Ghost)
-    .tooltip(if panel.deafened {
-        t("Activar sonido")
-    } else {
-        t("Ensordecer")
-    })
-    .ink(if panel.deafened {
-        look.danger
-    } else {
-        look.muted
-    })
-    .render();
+    let open = |output: bool| panel.quick.as_ref().is_some_and(|(it, _)| *it == output);
+    let muted = panel.muted || panel.server_muted;
+    let deafened = panel.deafened || panel.server_deafened;
     let mut microphone = split_button(
-        microphone,
-        crate::profile::ids::INPUT,
-        t("Opciones de entrada"),
-        panel.muted,
+        (
+            "me:mute",
+            if muted {
+                Icon::MicrophoneMuted
+            } else {
+                Icon::Microphone
+            },
+            crate::quick_voice::microphone_hint(panel.muted, panel.server_muted),
+        ),
+        (crate::profile::ids::INPUT, t("Opciones de entrada")),
+        muted,
+        open(false),
         look,
     );
     let mut headphones = split_button(
-        headphones,
-        crate::profile::ids::OUTPUT,
-        t("Opciones de salida"),
-        panel.deafened,
+        (
+            "me:deafen",
+            if deafened {
+                Icon::Custom(crate::HEADPHONES_OFF)
+            } else {
+                Icon::Headphones
+            },
+            crate::quick_voice::headphones_hint(panel.deafened, panel.server_deafened),
+        ),
+        (crate::profile::ids::OUTPUT, t("Opciones de salida")),
+        deafened,
+        open(true),
         look,
     );
     if let Some((output, quick)) = panel.quick {
