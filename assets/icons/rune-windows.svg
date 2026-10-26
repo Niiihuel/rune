@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- RUNE's icon from 48 px up on Windows (rune.ico, the window's icon):
+       Windows draws an app's icon edge to edge, so the tile fills the box
+       a 24th in from each side, as rune-small.svg; the mark 60 % of it. -->
+  <defs>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B080A"/>
+      <stop offset="1" stop-color="#E0292B"/>
+    </linearGradient>
+  </defs>
+  <rect x="42.667" y="42.667" width="938.667" height="938.667" rx="234.667" fill="url(#red)"/>
+  <g transform="translate(230.4 286.72) scale(56.32)" fill="#fff">
+    <path d="M3 0L6 0L9 3L6 3Z"/>
+    <path d="M0 1L3 1L10 8L7 8Z"/>
+    <path d="M0 4L3 4L3 8L0 8Z"/>
+  </g>
+</svg>

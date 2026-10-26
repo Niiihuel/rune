@@ -111,15 +111,16 @@ pub fn command(action: WindowAction) -> ViewportCommand {
     }
 }
 
-/// RUNE's icon for its windows and the taskbar: the white rune on its amber
-/// tile, as the person's theme of icons has it once installed. Decoded once:
-/// a stream's own window asks for it every frame.
+/// RUNE's icon for its windows and the taskbar: the white rune on its red
+/// tile, edge to edge as Windows draws an app's icon (the taskbar takes the
+/// window's own over the program's). Decoded once: a stream's own window
+/// asks for it every frame.
 pub fn icon() -> std::sync::Arc<egui::IconData> {
     static ICON: std::sync::OnceLock<std::sync::Arc<egui::IconData>> = std::sync::OnceLock::new();
     ICON.get_or_init(|| {
         std::sync::Arc::new(
             eframe::icon_data::from_png_bytes(include_bytes!(
-                "../../../assets/icons/hicolor/256x256/apps/rune.png"
+                "../../../assets/icons/rune-windows-256.png"
             ))
             .unwrap_or_default(),
         )
