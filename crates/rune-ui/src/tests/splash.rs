@@ -61,13 +61,14 @@ fn it_says_each_stage_until_the_session_is_ready_then_gives_way() {
     assert!(!crate::splash::visible(&host.store));
     assert_eq!(host.ui.splash_since, None);
     assert!(!host.painted().join(" ").contains("Cargando servidores…"));
-    // A connection lost now is the banner's, not the opening screen's.
+    // A connection lost now is the pill's, not the opening screen's.
     host.event(Event::Connection(ConnectionState::Reconnecting {
         attempt: 1,
         retry_in_ms: 2000,
     }));
+    host.now += crate::connection::DELAY;
     let text = host.painted().join(" ");
-    assert!(text.contains("Se perdió la conexión"), "{text}");
+    assert!(text.contains("Reconectando…"), "{text}");
     assert!(!text.contains("Cargando servidores…"));
 }
 
@@ -197,11 +198,13 @@ fn inside_the_gateways_wait_it_can_try_again_at_once() {
         attempt: 3,
         retry_in_ms: 8000,
     }));
-    // The opening screen is gone: the line over the conversation offers it.
+    // The opening screen is gone: the pill over the conversation offers it,
+    // once the connection has been missing for a moment.
     assert!(!crate::splash::visible(&host.store));
+    host.now += crate::connection::DELAY;
     let text = host.painted().join(" ");
     assert!(
-        text.contains("Se perdió la conexión") && text.contains("Reintentar ya"),
+        text.contains("Reconectando en 8 s") && text.contains("Reintentar ya"),
         "{text}"
     );
     assert_eq!(

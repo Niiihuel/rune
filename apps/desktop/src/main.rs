@@ -111,6 +111,8 @@ struct Arguments {
     capture_context: bool,
     /// `--capture-splash <ms>`: the opening screen as it is then, ready or not.
     capture_splash: Option<Duration>,
+    /// `--capture-connection <state>`: the connection the window is in.
+    capture_connection: Option<rune_provider::ConnectionState>,
     /// Keep the local store while capturing, to see a start from the cache.
     data: bool,
     /// How long the simulated service takes to answer, as on a slow network.
@@ -310,6 +312,23 @@ fn parse_arguments(
                 )
             }
             "--capture-context" => parsed.capture_context = true,
+            "--capture-connection" => {
+                parsed.capture_connection = Some(match arguments.next().as_deref() {
+                    Some("connecting") => rune_provider::ConnectionState::Connecting,
+                    Some("reconnecting") => rune_provider::ConnectionState::Reconnecting {
+                        attempt: 2,
+                        retry_in_ms: 5_000,
+                    },
+                    Some("offline") => rune_provider::ConnectionState::Disconnected {
+                        reason: "sin red".into(),
+                    },
+                    Some("back") => rune_provider::ConnectionState::Connected,
+                    _ => return Err(t(
+                        "--capture-connection requiere connecting, reconnecting, offline o back",
+                    )
+                    .into()),
+                });
+            }
             "--capture-splash" => {
                 parsed.capture_splash = Some(Duration::from_millis(
                     arguments
@@ -372,6 +391,7 @@ fn parse_arguments(
         || parsed.capture_voice
         || parsed.capture_search.is_some()
         || parsed.capture_context
+        || parsed.capture_connection.is_some()
         || parsed.capture_splash.is_some())
         && (parsed.provider != ProviderChoice::Mock || parsed.screenshot.is_none())
     {
@@ -900,6 +920,8 @@ struct Capture {
     deferred: Vec<String>,
     /// When to take an opening screen's picture (`--capture-splash`).
     splash_at: Option<Instant>,
+    /// The connection to show once the provider is ready (`--capture-connection`).
+    connection: Option<rune_provider::ConnectionState>,
     // Rules and onboarding (2026-10-18).
     /// `--capture-onboarding`: whether the club was joined yet.
     onboarding: Option<bool>,
@@ -1323,6 +1345,7 @@ impl App {
                 later: Vec::new(),
                 deferred: Vec::new(),
                 splash_at: arguments.capture_splash.map(|after| started + after),
+                connection: arguments.capture_connection,
                 onboarding: arguments.capture_onboarding.then_some(false),
             }),
             parent: window::Parent::default(),
@@ -3427,6 +3450,9 @@ impl App {
             capture.ready = Some(now);
             ctx.request_repaint();
             return;
+        }
+        if let Some(state) = capture.connection.take() {
+            rune_ui::connection::capture(&mut self.ui, &mut self.store, state, now);
         }
         if capture.ready.is_none() {
             capture.ready = Some(now);

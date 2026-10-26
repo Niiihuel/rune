@@ -4,7 +4,7 @@
 
 use limn::{
     Button, ButtonSizing, ButtonVariant, Color, Component, ControlSize, Element, FontFamily, Icon,
-    IconButton, PopoverPlacement, Tooltip, TooltipPlacement,
+    IconButton, PopoverPlacement, Spinner, Tooltip, TooltipPlacement,
 };
 
 use rune_i18n::{t, tr};
@@ -494,29 +494,40 @@ pub fn provider_note(provider: &str, look: &Look) -> Element {
     .size(None, Some(24.0))
 }
 
-/// A line across the conversation while the connection is not there, with
-/// what can be done about it at its end.
-pub fn connection_banner(
+/// What the connection pill shows first: a spinner while it works, a warning
+/// while it is not there, a check once it is back.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PillSign {
+    Working,
+    Offline,
+    Back,
+}
+
+/// The small pill over the conversation about the connection: one line,
+/// never cut, with what can be done at its end. The caller lays it over the
+/// conversation, so it takes no room of the layout.
+pub fn connection_pill(
     sentence: &str,
-    warning: bool,
+    sign: PillSign,
     action: Option<Element>,
     look: &Look,
 ) -> Element {
-    let ink = if warning { look.idle } else { look.muted };
+    let sign = match sign {
+        PillSign::Working => Spinner::new("connection:progress", look.accent)
+            .size(12.0)
+            .render(),
+        PillSign::Offline => icon(Icon::WarningTriangle, look.idle),
+        PillSign::Back => icon(Icon::Check, look.online),
+    };
     let mut row = vec![
-        icon(
-            if warning {
-                Icon::WarningTriangle
-            } else {
-                Icon::Refresh
-            },
-            ink,
-        )
-        .centered_y(),
-        line(sentence, 13.0, look.text).flex(1.0).centered_y(),
+        sign.centered_y(),
+        line(sentence, 13.0, look.text).centered_y(),
     ];
     row.extend(action.map(Element::centered_y));
-    Element::panel(Element::row(row).gap(8.0).padding(8.0)).background(Look::alpha(ink, 36))
+    Element::panel(Element::row(row).gap(8.0).padding(8.0))
+        .background(look.raised)
+        .border(look.border, 1.0)
+        .radius(16.0)
 }
 
 /// The button that takes the conversation back to its newest message.

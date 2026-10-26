@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 
 use limn::{Element, Key, UiAction, UiEvent};
 use rune_components::chrome::{self, UserPanel};
-use rune_components::look::{activity_line, status_label};
+use rune_components::look::activity_line;
 use rune_components::profile::{
     self as parts, ids, ClearAfter, CustomStatusDialog, EditorErrors, EditorPictures, EditorScope,
     Face, FullProfile, FullTab, Mutual, OwnPopout, Profile, Since,
@@ -30,6 +30,7 @@ use rune_provider::{
 };
 use rune_state::{Applied, Store};
 
+use crate::connection;
 use crate::server_menu::wall_now;
 use crate::{settings, Intent, SettingsPage, Ui, ViewContext};
 
@@ -1364,7 +1365,7 @@ pub fn user_panel(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Eleme
                 presence
                     .custom
                     .clone()
-                    .unwrap_or_else(|| status_label(presence.status).into())
+                    .unwrap_or_else(|| connection::own_status(store, presence.status))
             } else {
                 user.map(|user| user.name.clone()).unwrap_or_default()
             },

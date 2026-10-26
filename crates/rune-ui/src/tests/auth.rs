@@ -1,5 +1,7 @@
 use super::*;
-use rune_provider::{AuthenticationState, Capabilities, ProviderInfo, ProviderKind, Snapshot};
+use rune_provider::{
+    AuthenticationState, Capabilities, ConnectionState, ProviderInfo, ProviderKind, Snapshot,
+};
 
 fn signed_out() -> Host {
     let mut host = Host::new();

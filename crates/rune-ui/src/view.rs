@@ -11,7 +11,6 @@ use rune_components::sidebar::{self, DirectRow};
 use rune_components::{centered, line, Look};
 use rune_i18n::{t, tr};
 use rune_model::{ChannelKind, ListGroup, ListRow, ServerId, Timestamp, UserId};
-use rune_provider::ConnectionState;
 use rune_state::Store;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -510,10 +509,13 @@ fn conversation(
     members: bool,
 ) -> Element {
     if crate::relationships::visible(ui) {
-        let mut column = Vec::new();
-        column.extend(connection_banner(ui, store, look));
-        column.push(crate::relationships::view(ui, store, look).flex(1.0));
-        return Element::column(column);
+        return over_conversation(
+            crate::relationships::view(ui, store, look).flex(1.0),
+            ui,
+            store,
+            look,
+            context,
+        );
     }
     let Some(channel) = ui
         .channel()
@@ -539,17 +541,18 @@ fn conversation(
                 t("No hay conversaciones cargadas en esta sesión."),
             )
         };
-        let mut content = Vec::new();
-        content.extend(connection_banner(ui, store, look));
-        content.push(
+        return over_conversation(
             centered(
                 Empty::new(title, detail, look.palette())
                     .icon(Icon::Chat)
                     .render(),
             )
             .flex(1.0),
+            ui,
+            store,
+            look,
+            context,
         );
-        return Element::column(content);
     };
     let conversation = store.channel(channel).expect("checked above");
     let server = conversation.server;
@@ -626,7 +629,6 @@ fn conversation(
     );
     if conversation.kind == ChannelKind::Forum {
         let mut column = vec![header, separator(look)];
-        column.extend(connection_banner(ui, store, look));
         let mut row = vec![crate::threads::forum_page(
             ui,
             store,
@@ -639,7 +641,13 @@ fn conversation(
         if let (true, Some(server)) = (show_members, server) {
             row.push(member_list(ui, store, server, look));
         }
-        column.push(Element::row(row).flex(1.0));
+        column.push(over_conversation(
+            Element::row(row).flex(1.0),
+            ui,
+            store,
+            look,
+            context,
+        ));
         return Element::column(column);
     }
     let mut stack = vec![region(
@@ -755,39 +763,38 @@ fn conversation(
         column.push(call);
         column.push(separator(look));
     }
-    column.extend(connection_banner(ui, store, look));
-    column.push(Element::row(row).flex(1.0));
+    column.push(over_conversation(
+        Element::row(row).flex(1.0),
+        ui,
+        store,
+        look,
+        context,
+    ));
     Element::column(column)
 }
 
-/// The line over the conversation while the connection is not there, with
-/// «Reintentar ya» inside the Gateway's wait when the provider allows it, or
-/// «Reintentar» once it gave up.
-fn connection_banner(ui: &Ui, store: &Store, look: &Look) -> Option<Element> {
-    let sentence = connection_line(store)?;
-    Some(chrome::connection_banner(
-        &sentence,
-        true,
-        crate::splash::retry_now(store, look).or_else(|| crate::splash::reconnect(ui, store, look)),
-        look,
-    ))
-}
-
-/// What the line over the conversation says while the connection is not there.
-fn connection_line(store: &Store) -> Option<String> {
-    match &store.connection {
-        ConnectionState::Connected => None,
-        ConnectionState::Connecting if store.from_cache => {
-            Some(t("Conectando… Se muestra lo guardado en este equipo.").into())
-        }
-        ConnectionState::Connecting => Some(t("Conectando…").into()),
-        ConnectionState::Reconnecting { attempt, retry_in_ms } => Some(tr!(
-            "Se perdió la conexión. Reintentando (intento {attempt}) en {seconds} s; los mensajes se envían al volver.",
-            attempt,
-            seconds = format!("{:.1}", *retry_in_ms as f32 / 1000.0)
-        )),
-        ConnectionState::Disconnected { reason } => Some(tr!("Sin conexión: {reason}", reason = t(reason))),
-    }
+/// `content` with the connection's pill laid over its top, below the header,
+/// while the pill says something. The pill takes no room, so nothing moves.
+fn over_conversation(
+    content: Element,
+    ui: &Ui,
+    store: &Store,
+    look: &Look,
+    context: &ViewContext,
+) -> Element {
+    let Some(pill) = crate::connection::view(ui, store, look, context.now) else {
+        return content;
+    };
+    let overlay = Element::column(vec![
+        gap(0.0, 8.0),
+        Element::row(vec![
+            Element::spacer().flex(1.0),
+            pill,
+            Element::spacer().flex(1.0),
+        ]),
+        Element::spacer().flex(1.0),
+    ]);
+    Element::stack(vec![content, overlay]).flex(1.0)
 }
 
 /// One row of the member list: a heading, a person and their card if open,

@@ -44,6 +44,10 @@ pub(super) const ENTRIES: super::Entries = &[
     ("--capture-hover-id requiere un id", "--capture-hover-id requires an id"),
     ("--capture-search requiere texto", "--capture-search requires text"),
     ("--capture-splash requiere milisegundos", "--capture-splash requires milliseconds"),
+    (
+        "--capture-connection requiere connecting, reconnecting, offline o back",
+        "--capture-connection requires connecting, reconnecting, offline or back",
+    ),
     ("--language requiere es o en", "--language requires es or en"),
     (
         "--title-bar requiere auto, rune o system",

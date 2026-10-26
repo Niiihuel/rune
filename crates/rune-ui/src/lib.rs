@@ -70,6 +70,8 @@ pub use private_calls::{
 mod language;
 // The screen until the session is loaded (pulido-ui-real).
 pub mod splash;
+
+pub mod connection;
 // The quick voice panel (2026-10-18).
 mod quick_voice;
 // limn adoption (2026-10-18).
@@ -108,7 +110,7 @@ use std::time::{Duration, Instant};
 use limn::{Key, UiAction, UiEvent, UiTree};
 use rune_i18n::{t, tr};
 use rune_model::{ChannelId, ChannelKind, MessageId, ServerId, Timestamp, UserId};
-use rune_provider::{Command, ConnectionState};
+use rune_provider::Command;
 use rune_state::{Applied, Store};
 
 pub use alerts::{message_alert, open_alert, Alert};
@@ -794,6 +796,9 @@ pub struct Ui {
     // The opening screen's questions (2026-10-18).
     /// What [`splash`] asks before a way out, while it does.
     pub splash_asking: Option<splash::Asking>,
+    // The connection's pill over the conversation.
+    /// What [`connection`] shows while the connection is not there.
+    pub connection: connection::Pill,
     // Emoji and states (2026-10-18).
     /// The card of the emoji clicked in a message or a reaction.
     pub(crate) emoji_card: Option<emoji_card::Open>,
@@ -948,7 +953,8 @@ impl Ui {
         self.notices.retain(|notice| notice.until > now);
         let invitations_changed = invitations::expire(self, now);
         let recording_ended = settings::expire_recording(self, now);
-        self.notices.len() != before || invitations_changed || recording_ended
+        let pill_changed = connection::expire(self, now);
+        self.notices.len() != before || invitations_changed || recording_ended || pill_changed
     }
 
     /// When a notice or invitation wait changes, so an idle host wakes then.
@@ -959,6 +965,7 @@ impl Ui {
             .chain(invitations::next_expiry(self, now))
             .chain(settings::recording_expiry(self, now))
             .chain(splash::expiry(self, now))
+            .chain(self.connection.next_expiry(now))
             .min()
     }
 
@@ -1150,6 +1157,9 @@ pub fn on_applied(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instan
     let auth = auth::on_applied(ui, store, applied);
     // After auth, which may give the window a fresh state.
     splash::on_applied(ui, store, now);
+    if matches!(applied, Applied::Connection) {
+        connection::on_applied(ui, store, now);
+    }
     if let Some(intents) = auth {
         upload_intents.extend(intents);
         return upload_intents;
@@ -1313,12 +1323,8 @@ fn answer(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instant) -> Ve
             ui.notify(t("Se cortó la llamada"), Some(reason.clone()), true, now);
             Vec::new()
         }
-        Applied::Connection => {
-            if let ConnectionState::Disconnected { reason } = &store.connection {
-                ui.notify(t("Sin conexión"), Some(t(reason).to_owned()), true, now);
-            }
-            Vec::new()
-        }
+        // The connection's pill says it; no toast repeats it.
+        Applied::Connection => Vec::new(),
         // What was open is gone: open something else of the same place.
         Applied::ServerRemoved { server, reason } => {
             ui.channels.remove(&Some(*server));

@@ -1192,6 +1192,8 @@ mod english;
 mod private_calls;
 // The screen until the session is loaded (pulido-ui-real).
 mod splash;
+// The connection's pill over the conversation.
+mod connection;
 // Message content (contenido-de-mensajes).
 mod message_content;
 // Rail and notifications.

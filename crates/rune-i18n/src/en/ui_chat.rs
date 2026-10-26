@@ -43,14 +43,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "Provisional view of recent messages · not updated yet",
     ),
     ("Escribir un mensaje", "Write a message"),
-    (
-        "Conectando… Se muestra lo guardado en este equipo.",
-        "Connecting… Showing what's saved on this device.",
-    ),
-    (
-        "Se perdió la conexión. Reintentando (intento {attempt}) en {seconds} s; los mensajes se envían al volver.",
-        "Connection lost. Retrying (attempt {attempt}) in {seconds} s; messages are sent when it's back.",
-    ),
+    ("Reconectando en {seconds} s", "Reconnecting in {seconds} s"),
+    ("Conectado", "Connected"),
     ("En línea", "Online"),
     ("Desconectados", "Offline"),
     ("Rol", "Role"),
