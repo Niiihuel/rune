@@ -300,23 +300,42 @@ pub fn channel(row: ChannelRow, look: &Look) -> Element {
         parts.push(gap(4.0, 0.0));
         parts.push(icon(Icon::Pin, look.faint).centered_y());
     }
+    let mut gear = row.settings.as_ref().map(|settings| {
+        IconButton::new(settings.clone(), Icon::Settings, look.sidebar_palette())
+            .variant(ButtonVariant::Ghost)
+            .size(ControlSize::Dense)
+            .tooltip(t("Editar canal"))
+            .ink(look.dim)
+            .hover_ink(look.text)
+            .render()
+    });
     if let Some(since) = &row.voice_since {
         parts.push(gap(4.0, 0.0));
-        parts.push(line(since, 12.0, look.faint).centered_y());
+        let since = line(since, 12.0, look.faint).centered_y();
+        // Under the pointer the call's time gives its place to the gear, as
+        // Discord's does; a selected row keeps both.
+        parts.push(match gear.take_if(|_| !row.selected) {
+            Some(gear) => Element::stack(vec![
+                Element::row(vec![
+                    Element::spacer().flex(1.0),
+                    since.conceal_on_hover(format!("{}:since", row.id)),
+                ]),
+                Element::row(vec![
+                    Element::spacer().flex(1.0),
+                    gear.reveal_on_hover(format!("{}:tools", row.id))
+                        .centered_y(),
+                ]),
+            ])
+            .centered_y(),
+            None => since,
+        });
     }
     if row.mentions > 0 {
         parts.push(gap(4.0, 0.0));
         parts.push(count(row.mentions, look).centered_y());
         parts.push(gap(3.0, 0.0));
     }
-    if let Some(settings) = &row.settings {
-        let gear = IconButton::new(settings.clone(), Icon::Settings, look.sidebar_palette())
-            .variant(ButtonVariant::Ghost)
-            .size(ControlSize::Dense)
-            .tooltip(t("Editar canal"))
-            .ink(look.dim)
-            .hover_ink(look.text)
-            .render();
+    if let Some(gear) = gear {
         // Shown on hover; always while it is open.
         parts.push(gap(4.0, 0.0));
         parts.push(if row.selected {
@@ -758,6 +777,59 @@ mod tests {
             said.as_deref(),
             Some("Canal privado · En voz desde hace 1 h 05 min")
         );
+    }
+
+    #[test]
+    fn under_the_pointer_a_calls_time_gives_its_place_to_the_gear() {
+        use limn::{Point, UiEvent};
+        let room = |selected: bool| ChannelRow {
+            voice: true,
+            selected,
+            settings: Some("cs:open:6".into()),
+            voice_since: Some("5 min".into()),
+            ..row("sala", false, 0)
+        };
+        let size = Size::new(WIDTH, 60.0);
+        // A reveal or a conceal fades its paint to nothing rather than dropping
+        // it, so what counts is the paint with some alpha left.
+        let gear_painted = |laid: &limn::Frame| {
+            laid.commands.iter().any(|command| {
+                matches!(command, limn::DrawCommand::Icon { icon, tint, .. } if *icon == Icon::Settings && tint.a > 0)
+            })
+        };
+        let shown = |laid: &limn::Frame, wanted: &str| {
+            laid.commands.iter().any(|command| {
+                matches!(command, limn::DrawCommand::Text { text, color, .. } if text == wanted && color.a > 0)
+            })
+        };
+        let (mut tree, laid) = frame(
+            channel(room(false), &Look::DARK).size(Some(WIDTH), None),
+            size,
+        );
+        assert!(shown(&laid, "5 min"));
+        assert!(!gear_painted(&laid), "the gear waits for the pointer");
+        let row = laid
+            .regions
+            .iter()
+            .find(|region| region.id == "channel:sala")
+            .unwrap()
+            .rect;
+        tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
+        let hovered = tree.layout(size);
+        assert!(
+            !shown(&hovered, "5 min"),
+            "the call's time leaves under the pointer"
+        );
+        assert!(gear_painted(&hovered));
+        // A selected channel keeps both, under the pointer as at rest.
+        let (mut tree, laid) = frame(
+            channel(room(true), &Look::DARK).size(Some(WIDTH), None),
+            size,
+        );
+        assert!(shown(&laid, "5 min") && gear_painted(&laid));
+        tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
+        let hovered = tree.layout(size);
+        assert!(shown(&hovered, "5 min") && gear_painted(&hovered));
     }
 
     #[test]

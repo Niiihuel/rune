@@ -108,6 +108,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Intento {attempt} · {place}", "Attempt {attempt} · {place}"),
     ("Detalles de voz", "Voice details"),
     ("Desconectar", "Disconnect"),
+    ("Desconectar de voz", "Disconnect from voice"),
     ("Reintentar", "Try again"),
     ("Conexión", "Connection"),
     ("Privacidad", "Privacy"),

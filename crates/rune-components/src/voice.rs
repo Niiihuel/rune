@@ -691,13 +691,16 @@ const PANEL_BUTTON: f32 = 32.0;
 const PANEL_GAP: f32 = 8.0;
 /// The connection's details: 319 wide.
 pub const DETAILS_WIDTH: f32 = 319.0;
-/// A person's row under a voice channel: 34 high, 30 in from the channel's
-/// row, their mark 25 across. Its highlight is 1 short above and below, so
-/// two rows' never touch, and ends where a channel's does
+/// A person's row under a voice channel: 32 high (4, 24 of picture, 4, as
+/// Discord's), its picture 24 across, centered in a ring box 30 across that
+/// keeps the same size while they speak. The picture starts under the
+/// channel's name (`sidebar::INSET` + 43). Its highlight is 1 short above and
+/// below, so two rows' never touch, and ends where a channel's does
 /// (`sidebar::INSET` from the column's edge), rounded the same 6.
-pub const ROW_HEIGHT: f32 = 34.0;
+pub const ROW_HEIGHT: f32 = 32.0;
 const ROW_INDENT: f32 = 38.0;
-const ROW_AVATAR: f32 = 25.0;
+const ROW_AVATAR: f32 = 24.0;
+const ROW_RING: f32 = 30.0;
 const ROW_RADIUS: f32 = 6.0;
 /// The card of someone live, beside their row: 12 around a 288 by 162
 /// picture of their stream.
@@ -905,7 +908,7 @@ pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
             .radius(RadiusRole::Card)
             .ink(look.muted)
             .hover_ink(look.text)
-            .tooltip(t("Desconectar"))
+            .tooltip(t("Desconectar de voz"))
             .render()
             .centered_y(),
     );
@@ -1263,7 +1266,7 @@ fn live(size: f32, look: &Look) -> Element {
         gap(6.0, 0.0),
         Element::text(t("EN VIVO"))
             .font_family(FontFamily::SansBold)
-            .font_size(size * 0.6)
+            .font_size(10.0)
             .foreground(Color::rgb(255, 255, 255))
             .centered_y(),
         gap(6.0, 0.0),
@@ -1287,6 +1290,24 @@ fn speaking_ring(face: Element, size: f32, speaking: bool, look: &Look) -> Eleme
             .border(look.online, 2.0),
     ])
     .size(Some(size), Some(size))
+}
+
+/// A row's picture centered in a ring box, ringed in green by 1 px while its
+/// person speaks: the box is the same size either way, so speaking moves nothing.
+fn row_ring(face: Element, speaking: bool, look: &Look) -> Element {
+    let ring = if speaking {
+        look.online
+    } else {
+        Color::rgba(0, 0, 0, 0)
+    };
+    Element::stack(vec![
+        centered(face),
+        Element::panel(Element::spacer())
+            .size(Some(ROW_RING), Some(ROW_RING))
+            .radius(ROW_RING / 2.0)
+            .border(ring, 1.0),
+    ])
+    .size(Some(ROW_RING), Some(ROW_RING))
 }
 
 /// The marks of a microphone off and of sound off, each with its hint.
@@ -1348,14 +1369,13 @@ pub fn participant(
     look: &Look,
 ) -> Element {
     let id = ids::row(person.user);
-    let face = speaking_ring(
+    let face = row_ring(
         crate::avatar_with_image(
             &person.name,
             person.accent,
             ROW_AVATAR,
             person.image.clone(),
         ),
-        ROW_AVATAR,
         person.speaking,
         look,
     );
@@ -1364,18 +1384,24 @@ pub fn participant(
     } else {
         look.muted
     };
+    // The row's 1 px and the ring's 3 px put the picture under the channel's
+    // name: `sidebar::INSET` + 43 from the column's edge.
     let mut parts = vec![
+        gap(10.5, 0.0),
         face.centered_y(),
+        gap(8.0, 0.0),
         line(&person.name, 14.0, name_ink).flex(1.0).centered_y(),
     ];
     if person.streaming {
+        parts.push(gap(4.0, 0.0));
         parts.push(live(16.0, look).centered_y());
     }
-    parts.extend(
-        marks(person, &id, look.muted, look)
-            .into_iter()
-            .map(Element::centered_y),
-    );
+    for mark in marks(person, &id, look.muted, look) {
+        parts.push(gap(4.0, 0.0));
+        parts.push(mark.centered_y());
+    }
+    // Ends 4 in from the highlight's edge, as the marks did.
+    parts.push(gap(3.0, 0.0));
     let mut state = Vec::new();
     if person.streaming {
         state.push(t("en vivo"));
@@ -1412,7 +1438,7 @@ pub fn participant(
             .reveal_on_hover(format!("{id}:hover"))
     };
     let highlight = Element::column(vec![gap(0.0, 1.0), fill.flex(1.0), gap(0.0, 1.0)]);
-    let body = Element::stack(vec![highlight, Element::row(parts).gap(9.5).padding(4.5)])
+    let body = Element::stack(vec![highlight, Element::row(parts).padding(1.0)])
         .size(None, Some(ROW_HEIGHT));
     let row = Element::clickable(
         id,
@@ -3886,6 +3912,86 @@ mod tests {
         let lit = hover_fills(&tree.layout(size), &look);
         assert_eq!(lit.len(), 1, "{lit:?}");
         assert_eq!(lit[0].x + lit[0].width, width - crate::sidebar::INSET);
+    }
+
+    #[test]
+    fn a_voice_row_is_32_high_with_its_picture_24_under_the_channels_name() {
+        let look = Look::DARK;
+        let width = crate::sidebar::WIDTH - 1.0;
+        let column = Element::column(vec![
+            crate::sidebar::channel(
+                crate::sidebar::ChannelRow {
+                    id: "voice:3".into(),
+                    name: "Sala".into(),
+                    voice: true,
+                    ..Default::default()
+                },
+                &look,
+            ),
+            participant(&person(9, false, false, false), None, None, &look),
+        ]);
+        let (_, laid) = frame(column, Size::new(width, 200.0));
+        let row = laid
+            .regions
+            .iter()
+            .find(|region| region.id == ids::row(9))
+            .unwrap()
+            .rect;
+        assert_eq!(row.height, ROW_HEIGHT);
+        let picture = laid
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                limn::DrawCommand::FillRect { rect, color, .. }
+                    if *color == Color::rgb(90, 120, 200) =>
+                {
+                    Some(*rect)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!((picture.width, picture.height), (24.0, 24.0));
+        let name = laid
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                limn::DrawCommand::Text { text, position, .. } if text == "Sala" => Some(*position),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(picture.x, name.x, "the picture sits under the name");
+    }
+
+    #[test]
+    fn speaking_rings_the_picture_and_moves_nothing() {
+        let look = Look::DARK;
+        let width = crate::sidebar::WIDTH - 1.0;
+        let draw = |speaking: bool| {
+            let (_, laid) = frame(
+                participant(&person(9, false, false, speaking), None, None, &look),
+                Size::new(width, 200.0),
+            );
+            let rings: Vec<limn::Rect> = laid
+                .commands
+                .iter()
+                .filter_map(|command| match command {
+                    limn::DrawCommand::StrokeRect { rect, color, .. } if *color == look.online => {
+                        Some(*rect)
+                    }
+                    _ => None,
+                })
+                .collect();
+            (laid, rings)
+        };
+        let (quiet, none) = draw(false);
+        let (loud, rings) = draw(true);
+        assert!(none.is_empty(), "no green ring at rest: {none:?}");
+        assert_eq!(rings.len(), 1, "{rings:?}");
+        assert_eq!((rings[0].width, rings[0].height), (ROW_RING, ROW_RING));
+        let regions = |laid: &limn::Frame| -> Vec<limn::Rect> {
+            laid.regions.iter().map(|region| region.rect).collect()
+        };
+        assert_eq!(regions(&quiet), regions(&loud), "the same rects either way");
     }
 
     #[test]
