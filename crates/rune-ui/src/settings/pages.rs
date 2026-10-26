@@ -15,7 +15,7 @@ use rune_components::server_settings::{swatches, swatches_width, Swatches};
 use rune_components::user_settings::{
     self as parts, Account, Geometry, Nav, NavAnchor, NavPage, Preview,
 };
-use rune_components::{line, text, Look};
+use rune_components::{line, strong_line, text, Look};
 // `Language` is a page here; the interface's languages are `I18n`.
 use rune_i18n::{es, t, tr, Language as I18n};
 use rune_model::ChannelKind;
@@ -380,6 +380,15 @@ const SECTIONS: &[Section] = &[
     },
     Section {
         page: Developer,
+        key: "provider-notes",
+        title: es("Proveedor"),
+        rows: &[(
+            "unavailable-providers",
+            es("discord oauth2 id público cliente variable de entorno compilación no disponible"),
+        )],
+    },
+    Section {
+        page: Developer,
         key: "simulation",
         title: es("Pruebas de la simulación"),
         rows: &[
@@ -516,9 +525,10 @@ fn sections() -> impl Iterator<Item = &'static Section> {
 }
 
 /// Whether a section can show at all: the simulation's tests only with it.
-fn available(section: &Section, store: &Store) -> bool {
+fn available(section: &Section, ui: &Ui, store: &Store) -> bool {
     match section.key {
         "simulation" => simulated(store),
+        "provider-notes" => ui.providers.options.iter().any(|o| o.unavailable.is_some()),
         "account-session" => super::can_sign_out(store),
         key => desktop::available(key, store),
     }
@@ -529,11 +539,12 @@ fn available(section: &Section, store: &Store) -> bool {
 fn shown(
     page: SettingsPage,
     query: &str,
+    ui: &Ui,
     store: &Store,
 ) -> Vec<(&'static Section, Vec<&'static str>)> {
     let query = query.trim();
     sections()
-        .filter(|section| section.page == page && available(section, store))
+        .filter(|section| section.page == page && available(section, ui, store))
         .filter_map(|section| {
             // The texts as shown, so a search in either language finds them.
             let title = t(section.title);
@@ -556,7 +567,7 @@ fn searching(ui: &Ui) -> Option<&str> {
 /// While searching, the first section of `page` that matches.
 pub(crate) fn first_match(ui: &Ui, store: &Store, page: SettingsPage) -> Option<&'static str> {
     let query = searching(ui)?;
-    shown(page, query, store)
+    shown(page, query, ui, store)
         .first()
         .map(|(section, _)| section.key)
 }
@@ -566,7 +577,7 @@ pub(crate) fn first_page(ui: &Ui, store: &Store) -> Option<SettingsPage> {
     let query = searching(ui)?;
     SettingsPage::ALL
         .into_iter()
-        .find(|page| !shown(*page, query, store).is_empty())
+        .find(|page| !shown(*page, query, ui, store).is_empty())
 }
 
 /// What every part of the view reads.
@@ -637,7 +648,7 @@ fn navigation(ctx: &Ctx, open: SettingsPage) -> Vec<Nav> {
         let entries: Vec<Nav> = pages
             .iter()
             .filter_map(|page| {
-                let sections = shown(*page, query, ctx.store);
+                let sections = shown(*page, query, ctx.ui, ctx.store);
                 if !query.is_empty() && sections.is_empty() {
                     return None;
                 }
@@ -688,9 +699,9 @@ fn navigation(ctx: &Ctx, open: SettingsPage) -> Vec<Nav> {
 /// unless nothing does: then the page shows whole.
 fn content(ctx: &Ctx, page: SettingsPage) -> Element {
     let query = searching(ctx.ui).unwrap_or("");
-    let mut sections = shown(page, query, ctx.store);
+    let mut sections = shown(page, query, ctx.ui, ctx.store);
     if sections.is_empty() {
-        sections = shown(page, "", ctx.store);
+        sections = shown(page, "", ctx.ui, ctx.store);
     }
     let sections = sections
         .into_iter()
@@ -1291,13 +1302,15 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                     look,
                 ));
             };
-            let mut details = vec![parts::setting(
-                t(&info.name),
-                Some(t(&info.notice)),
-                None,
-                true,
-                look,
-            )];
+            let mut header = vec![Element::row(vec![
+                strong_line(t(&info.name), 16.0, look.text).flex(1.0).centered_y(),
+                crate::providers::badge(info.kind, look).centered_y(),
+            ])
+            .gap(8.0)];
+            if let Some(notice) = crate::providers::current_notice(ui) {
+                header.push(text(t(notice), 14.0, look.muted));
+            }
+            let mut details = vec![Element::column(header).gap(6.0).padding(12.0)];
             if let rune_provider::AuthenticationState::SignedIn { scopes } = &store.authentication {
                 if !scopes.is_empty() {
                     details.push(parts::setting(
@@ -1317,9 +1330,10 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             stacked(
                 t("Cambiar de proveedor"),
                 Some(t("Cada uno dice de dónde vienen sus datos. Cambiar cierra la sesión de este.")),
-                Element::column(crate::providers::choices(ui, width, look)).gap(8.0),
+                Element::column(crate::providers::cards(ui, store, width, look)).gap(8.0),
             )
         }
+        "unavailable-providers" => crate::providers::unavailable_notes(ui, look)?,
         "remembered" => match store.remembered? {
             true => parts::setting(
                 t("Sesión recordada"),

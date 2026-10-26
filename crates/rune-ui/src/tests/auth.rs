@@ -340,7 +340,8 @@ fn account_details_stay_in_settings_without_repeated_notices_in_the_workspace() 
     host.click("me:settings");
     host.click("us:page=connection");
     let text = host.painted().join(" ");
-    assert!(text.contains(&notice));
+    // The long paragraph stays off the connection page; its name and origin show.
+    assert!(!text.contains(&notice));
     assert!(text.contains("Servicio autorizado de prueba"));
 }
 

@@ -32,6 +32,17 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Idioma", "Language"),
     ("Formato de hora", "Time format"),
     ("Proveedor", "Provider"),
+    ("Simulación", "Simulation"),
+    ("Oficial", "Official"),
+    ("No oficial", "Unofficial"),
+    (
+        "No disponible ahora. El motivo está en Avanzado.",
+        "Not available now. The reason is in Advanced.",
+    ),
+    (
+        "discord oauth2 id público cliente variable de entorno compilación no disponible",
+        "discord oauth2 public id client environment variable build unavailable",
+    ),
     ("Desarrollador", "Developer"),
     ("Pruebas de la simulación", "Simulation tests"),
     ("nombre para mostrar apodo cómo te ven", "display name nickname how others see you"),

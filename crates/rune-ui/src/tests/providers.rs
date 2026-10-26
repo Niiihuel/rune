@@ -140,3 +140,39 @@ fn only_simulated_data_names_its_origin_under_the_channels() {
     assert_eq!(crate::providers::origin_of(&host.store), None);
     assert!(!host.painted().join(" ").contains("no oficial"));
 }
+
+#[test]
+fn the_connection_page_offers_cards_and_keeps_developer_notes_for_avanzado() {
+    let mut host = Host::new();
+    host.ui.providers = Providers {
+        options: options(),
+        current: Some("personal"),
+        ..Default::default()
+    };
+    host.store.provider = Some(ProviderInfo {
+        name: "Sesión personal".into(),
+        kind: ProviderKind::Unofficial,
+        capabilities: Capabilities::default(),
+        notice: "Experimento.".into(),
+    });
+    host.click("me:settings");
+    host.click("us:page=connection");
+    let text = host.painted().join(" ");
+    // One card per provider; one that cannot start says so, and its flag stays off this page.
+    assert!(
+        text.contains("Simulación de prueba · sin conexión real"),
+        "{text}"
+    );
+    assert!(text.contains("Servicio oficial · oficial"), "{text}");
+    assert!(
+        text.contains("No disponible ahora. El motivo está en Avanzado."),
+        "{text}"
+    );
+    assert!(!text.contains("Falta configurarlo."), "{text}");
+    // The unofficial one is in use, so its warning stays visible.
+    assert!(text.contains("Experimento personal no oficial"), "{text}");
+    assert!(clicked(&mut host, "provider:use=official").is_empty());
+    host.click("us:page=developer");
+    let text = host.painted().join(" ");
+    assert!(text.contains("Falta configurarlo."), "{text}");
+}

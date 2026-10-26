@@ -4,7 +4,11 @@
 //! the host with [`Intent::UseProvider`]. It names no service: names and
 //! notices come from the host. Its actions start with `provider:`.
 
-use limn::{Access, Button, ButtonVariant, Component, Element, Role, UiAction};
+use limn::{
+    Access, Button, ButtonVariant, Component, ControlSize, Element, RadioGroup, RadioOption,
+    RadioVariant, Role, UiAction,
+};
+use rune_components::user_settings::setting;
 use rune_components::{line, text, Look};
 use rune_i18n::{es, t, tr};
 use rune_provider::{ProviderInfo, ProviderKind};
@@ -167,31 +171,133 @@ pub(crate) fn choices(ui: &Ui, width: f32, look: &Look) -> Vec<Element> {
             .radius(8.0),
         );
         if providers.confirming == Some(option.key) {
-            let question = tr!(
-                "¿Cambiar a {name}? Se cierra la sesión actual y se borran de la ventana sus conversaciones, borradores, búsquedas, visores y trabajos en curso. Las cuentas recordadas y tus preferencias se conservan.",
-                name = t(&option.name)
-            );
-            rows.push(
-                Element::column(vec![
-                    text(question.clone(), 14.0, look.text).size(Some(width - 24.0), None),
-                    Element::row(vec![
-                        Button::new(CANCEL, t("Cancelar"), look.sidebar_palette())
-                            .variant(ButtonVariant::Secondary)
-                            .render(),
-                        Button::new(CONFIRM, t("Cambiar"), look.accent_palette()).render(),
-                    ])
-                    .gap(8.0),
-                ])
-                .gap(10.0)
-                .padding(12.0)
-                .background(look.raised)
-                .radius(8.0)
-                .accessible(Access::new(Role::Alert).id(QUESTION).name(question))
-                .anchor(QUESTION),
-            );
+            rows.push(question(option, width, look));
         }
     }
     rows
+}
+
+/// The question before leaving the provider in use for `option`.
+fn question(option: &ProviderOption, width: f32, look: &Look) -> Element {
+    let question = tr!(
+        "¿Cambiar a {name}? Se cierra la sesión actual y se borran de la ventana sus conversaciones, borradores, búsquedas, visores y trabajos en curso. Las cuentas recordadas y tus preferencias se conservan.",
+        name = t(&option.name)
+    );
+    Element::column(vec![
+        text(question.clone(), 14.0, look.text).size(Some(width - 24.0), None),
+        Element::row(vec![
+            Button::new(CANCEL, t("Cancelar"), look.sidebar_palette())
+                .variant(ButtonVariant::Secondary)
+                .render(),
+            Button::new(CONFIRM, t("Cambiar"), look.accent_palette()).render(),
+        ])
+        .gap(8.0),
+    ])
+    .gap(10.0)
+    .padding(12.0)
+    .background(look.raised)
+    .radius(8.0)
+    .accessible(Access::new(Role::Alert).id(QUESTION).name(question))
+    .anchor(QUESTION)
+}
+
+/// The providers as cards of one choice, for Settings › Conexiones: the one
+/// in use is selected, one that cannot start is disabled, and a change asks
+/// first as in [`choices`]. The unofficial one's warning sits under them.
+pub(crate) fn cards(ui: &Ui, store: &Store, width: f32, look: &Look) -> Vec<Element> {
+    let providers = &ui.providers;
+    let options = providers
+        .options
+        .iter()
+        .map(|option| {
+            let note = if option.unavailable.is_some() {
+                t("No disponible ahora. El motivo está en Avanzado.")
+            } else {
+                t(&option.notice)
+            };
+            RadioOption::new(
+                format!("{USE}{}", option.key),
+                format!("{} · {}", t(&option.name), kind_label(option.kind)),
+            )
+            .description(note)
+            .enabled(option.unavailable.is_none())
+        })
+        .collect();
+    let current = providers.current.map(|key| format!("{USE}{key}"));
+    let mut rows = vec![RadioGroup::new(
+        "provider:choose",
+        options,
+        current.as_deref(),
+        look.palette(),
+    )
+    .variant(RadioVariant::Card)
+    .size(ControlSize::Spacious)
+    .accessibility_label(t("Cambiar de proveedor"))
+    .render()];
+    let confirming = providers
+        .confirming
+        .and_then(|key| providers.options.iter().find(|option| option.key == key));
+    if let Some(option) = confirming {
+        rows.push(question(option, width, look));
+    }
+    let in_use = store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.kind == ProviderKind::Unofficial);
+    let chosen = confirming.is_some_and(|option| option.kind == ProviderKind::Unofficial);
+    if in_use || chosen {
+        rows.push(warning(t(UNOFFICIAL), look));
+    }
+    rows
+}
+
+/// A note that warns, in the warning tone of the provider's notices.
+fn warning(message: &str, look: &Look) -> Element {
+    Element::panel(
+        Element::row(vec![text(message, 14.0, look.idle).flex(1.0).centered_y()]).padding(12.0),
+    )
+    .background(Look::alpha(look.idle, 14))
+    .border(Look::alpha(look.idle, 150), 1.0)
+    .radius(8.0)
+    .accessible(Access::new(Role::Status).name(message.to_owned()))
+}
+
+/// The origin of a provider, as a badge beside its name.
+pub(crate) fn badge(kind: ProviderKind, look: &Look) -> Element {
+    let (label, ink) = match kind {
+        ProviderKind::Simulated => (t("Simulación"), look.muted),
+        ProviderKind::Official => (t("Oficial"), look.accent),
+        ProviderKind::Unofficial => (t("No oficial"), look.idle),
+    };
+    Element::row(vec![line(label, 12.0, ink)])
+        .padding(6.0)
+        .background(Look::alpha(ink, 30))
+        .radius(4.0)
+}
+
+/// What the host says the provider in use is, in one sentence.
+pub(crate) fn current_notice(ui: &Ui) -> Option<&str> {
+    let current = ui.providers.current?;
+    ui.providers
+        .options
+        .iter()
+        .find(|option| option.key == current)
+        .map(|option| option.notice.as_str())
+}
+
+/// Why the providers that cannot start here cannot, for Avanzado: the
+/// developer's way to fix it, kept off the connection page.
+pub(crate) fn unavailable_notes(ui: &Ui, look: &Look) -> Option<Element> {
+    let rows: Vec<Element> = ui
+        .providers
+        .options
+        .iter()
+        .filter_map(|option| {
+            let reason = option.unavailable.as_deref()?;
+            Some(setting(t(&option.name), Some(t(reason)), None, true, look))
+        })
+        .collect();
+    (!rows.is_empty()).then(|| Element::column(rows))
 }
 
 /// Whether the host offers more than the provider in use.
