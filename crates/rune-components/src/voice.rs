@@ -121,12 +121,6 @@ pub mod ids {
         format!("vz:watch:{user}")
     }
 
-    /// The picture of someone's stream under their row in the column:
-    /// clicked, it is watched.
-    pub fn preview(user: u64) -> String {
-        format!("vz:preview:{user}")
-    }
-
     // Rows in the column (voz-filas-y-arrastre).
     /// The card of someone live beside their row, shown on hover.
     pub const LIVE_DISMISS: &str = "vz:live:dismiss";
@@ -1200,7 +1194,7 @@ pub struct Participant {
     /// The size of their camera's frame on their surface, while it shows:
     /// their tile shows it instead of their mark.
     pub camera: Option<(u32, u32)>,
-    /// The latest picture of their stream, under their row in the column.
+    /// The latest picture of their stream, on their tile.
     pub thumbnail: Option<Thumbnail>,
     /// Their picture where they are seen, once loaded; their initial until
     /// then (2026-10-17: rows and tiles drew only the initial).
@@ -1223,35 +1217,6 @@ pub enum Thumbnail {
     Image(limn::RasterImage),
     /// The simulation's: no picture leaves a simulated stream.
     Simulated,
-}
-
-/// A stream's picture: 160 by 90 under its owner's row, rounded 6.
-const THUMBNAIL: (f32, f32) = (160.0, 90.0);
-
-/// `thumbnail` of `person`'s stream, in line with their name; a click
-/// watches it.
-fn thumbnail(person: &Participant, thumbnail: &Thumbnail, look: &Look) -> Element {
-    let (width, height) = THUMBNAIL;
-    let picture = match thumbnail {
-        Thumbnail::Image(image) => {
-            Element::raster_image(image.clone().cover()).size(Some(width), Some(height))
-        }
-        Thumbnail::Simulated => centered(text(t("Vista previa simulada"), 12.0, look.muted)),
-    };
-    let picture = Element::panel(picture)
-        .size(Some(width), Some(height))
-        .radius(6.0)
-        .background(look.raised)
-        .clip_children();
-    let picture = Element::clickable(ids::preview(person.user), picture)
-        .radius(6.0)
-        .accessibility_label(tr!("Ver la transmisión de {name}", name = person.name));
-    Element::row(vec![
-        gap(ROW_INDENT + 4.5 + ROW_AVATAR + 9.5, 0.0),
-        picture,
-        Element::spacer().flex(1.0),
-    ])
-    .padding(2.0)
 }
 
 /// The card of someone live beside their row in the column, while the
@@ -1536,11 +1501,7 @@ pub fn participant(
         .popover_on_hover(),
         (None, None) => row,
     };
-    let row = Element::row(vec![gap(ROW_INDENT, 0.0), row.flex(1.0)]);
-    match &person.thumbnail {
-        Some(shown) => Element::column(vec![row, thumbnail(person, shown, look)]),
-        None => row,
-    }
+    Element::row(vec![gap(ROW_INDENT, 0.0), row.flex(1.0)])
 }
 
 /// How tiles share an area: how many across, and each one's size.
@@ -3419,6 +3380,7 @@ mod tests {
                 if *id == ids::window_surface(2) && rect.width == 960.0
         )));
         // With a picture of their stream under it, to watch it from there.
+        // The row is its own height: no picture of the stream under it.
         let previewed = Participant {
             thumbnail: Some(Thumbnail::Simulated),
             ..streamer.clone()
@@ -3427,8 +3389,7 @@ mod tests {
             participant(&previewed, None, None, &look),
             Size::new(280.0, ROW_HEIGHT + 100.0),
         );
-        assert!(controls(&laid).contains(&ids::preview(2)));
-        assert!(texts(&laid)
+        assert!(!texts(&laid)
             .iter()
             .any(|text| text == "Vista previa simulada"));
     }

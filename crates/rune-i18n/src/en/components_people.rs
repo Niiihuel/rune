@@ -130,7 +130,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Medido por el proveedor.", "Measured by the provider."),
     ("Vista previa simulada", "Simulated preview"),
-    ("Ver la transmisión de {name}", "Watch {name}'s stream"),
     ("EN VIVO", "LIVE"),
     ("Silenciado por el servidor", "Server muted"),
     ("Ensordecido por el servidor", "Server deafened"),

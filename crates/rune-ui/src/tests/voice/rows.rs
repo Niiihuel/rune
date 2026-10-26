@@ -129,3 +129,82 @@ fn a_live_card_s_picture_is_loaded_watched_or_not_and_one_that_failed_says_so() 
     );
     assert!(!shown.contains(&"Cargando la vista previa…".to_owned()));
 }
+
+#[test]
+fn one_live_card_at_a_time_and_it_stays_while_the_pointer_is_on_it() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let me = host.vz_me();
+    let others: Vec<UserId> = host
+        .store
+        .voice_in(room)
+        .iter()
+        .map(|state| state.user)
+        .filter(|user| *user != me)
+        .collect();
+    assert!(others.len() >= 2, "{others:?}");
+    for user in &others[..2] {
+        let mut state = host
+            .store
+            .voice_in(room)
+            .into_iter()
+            .find(|state| state.user == *user)
+            .cloned()
+            .unwrap();
+        state.streaming = true;
+        host.event(Event::VoiceChanged(state));
+    }
+    let (a, b) = (others[0], others[1]);
+    host.rows_point(&ids::row(a.0));
+    assert!(host.vz_shows(&ids::live_watch(a.0)));
+    host.rows_point(&ids::row(b.0));
+    assert!(host.vz_shows(&ids::live_watch(b.0)));
+    assert!(
+        !host.vz_shows(&ids::live_watch(a.0)),
+        "A's card stayed open"
+    );
+    // From A's row into A's card: it stays.
+    host.rows_point(&ids::row(a.0));
+    let rect = host.vz_rect(&ids::live_watch(a.0));
+    host.send(UiEvent::PointerMove(Point::new(
+        rect.x + 4.0,
+        rect.y + rect.height / 2.0,
+    )));
+    host.frame();
+    assert!(host.vz_shows(&ids::live_watch(a.0)));
+    // Watched from A's card, then the pointer goes to B's row: A's closes.
+    host.click(&ids::live_watch(a.0));
+    host.rows_point(&ids::row(b.0));
+    assert!(host.vz_shows(&ids::live_watch(b.0)));
+    assert!(
+        !host.vz_shows(&ids::live_watch(a.0)),
+        "A's card stayed after watching"
+    );
+}
+
+#[test]
+fn a_live_row_draws_no_picture_of_its_stream_under_it() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let other = host.vz_other(room);
+    let mut state = host
+        .store
+        .voice_in(room)
+        .into_iter()
+        .find(|state| state.user == other)
+        .cloned()
+        .unwrap();
+    state.streaming = true;
+    host.event(Event::VoiceChanged(state));
+    host.event(Event::StreamPreview {
+        channel: room,
+        owner: other,
+        image: None,
+        retry_after: None,
+    });
+    // Off the pointer, the list is the rows alone: no preview in it.
+    assert!(!host
+        .vz_texts()
+        .contains(&"Vista previa simulada".to_owned()));
+    assert!(!host.vz_shows(&format!("vz:preview:{}", other.0)));
+}

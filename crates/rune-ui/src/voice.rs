@@ -428,9 +428,6 @@ pub(crate) fn update(
     if let Some(user) = number(id, "vz:watch:") {
         return Some(video::watch(ui, store, UserId(user), now));
     }
-    if let Some(user) = number(id, "vz:preview:") {
-        return Some(video::watch(ui, store, UserId(user), now));
-    }
     if let Some(user) = number(id, "vz:live:watch:") {
         return Some(crate::voice_live::watch(ui, store, UserId(user), now));
     }

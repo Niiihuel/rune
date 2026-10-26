@@ -1453,27 +1453,6 @@ fn a_stream_s_picture_shows_under_its_owner_in_the_column_asked_for_now_and_then
         crate::video_previews(&mut host.ui, &host.store, later(10)).len(),
         asked.len()
     );
-    // The simulation has none to show: a made-up one, said so; a click
-    // watches the stream, which then leaves the column.
-    let preview = ids::preview(other.0);
-    assert!(!host.vz_shows(&preview));
-    host.event(Event::StreamPreview {
-        channel: room,
-        owner: other,
-        image: None,
-        retry_after: None,
-    });
-    assert!(host.vz_usable(&preview));
-    assert!(host
-        .vz_texts()
-        .contains(&"Vista previa simulada".to_owned()));
-    let from = host.sent.len();
-    host.click(&preview);
-    assert!(matches!(
-        host.sent[from..],
-        [Command::WatchStream { owner, .. }] if owner == other
-    ));
-    assert!(!host.vz_shows(&preview));
 }
 
 #[test]
