@@ -173,8 +173,10 @@ impl WindowFrame {
 
     /// Where the app goes in `ui`'s room, and what its view must know: the
     /// buttons show while RUNE draws the frame, not in full screen nor as
-    /// the splash. The edge of a window that is not maximized is painted in
-    /// `rim` and resizes it.
+    /// the splash. While RUNE draws the frame and the window is not
+    /// maximized, the app has the whole room and `desktop.edge` says so: the
+    /// edge around it is painted in `rim` and resizes the window, except
+    /// over the buttons.
     pub fn content(&self, ui: &egui::Ui, desktop: &mut Desktop, rim: limn::Color) -> Rect {
         let bounds = ui.max_rect();
         let (fullscreen, maximized) = ui.input(|input| {
@@ -187,16 +189,26 @@ impl WindowFrame {
         let drawn = self.chrome == Chrome::Drawn && !fullscreen && !self.compact;
         desktop.window_buttons = drawn;
         desktop.maximized = maximized;
+        desktop.edge = if drawn && !maximized { EDGE } else { 0.0 };
         if !drawn || maximized {
             return bounds;
         }
         let rim = egui::Color32::from_rgba_unmultiplied(rim.r, rim.g, rim.b, rim.a);
         ui.painter().rect_filled(bounds, 0.0, rim);
+        // The buttons take the corner, edge and all: no resize over them.
+        let buttons = Rect::from_min_size(
+            Pos2::new(bounds.right() - limn::WindowControls::WIDTH, bounds.top()),
+            vec2(
+                limn::WindowControls::WIDTH,
+                EDGE + rune_components::sidebar::HEADER,
+            ),
+        );
         // An undecorated window has no border of the system's to resize by.
         let edge = ui.input(|input| {
             input
                 .pointer
                 .hover_pos()
+                .filter(|point| !buttons.contains(*point))
                 .and_then(|point| resize_direction(bounds, point))
                 .map(|direction| (direction, input.pointer.primary_pressed()))
         });
@@ -212,14 +224,15 @@ impl WindowFrame {
                     .send_viewport_cmd(ViewportCommand::BeginResize(direction));
             }
         }
-        bounds.shrink(EDGE)
+        bounds
     }
 
     /// After the input: a press on a free stretch of the top bar moves the
     /// window once dragged, and a double click there maximizes or restores
-    /// it. `content` is where the app is; `on_control` says whether a
-    /// point, from the app's corner, presses one of its controls (the
-    /// window's buttons are some).
+    /// it. `content` is where the app is, its edge around it included
+    /// while the window is not maximized, so the bar starts inside that
+    /// edge; `on_control` says whether a point, from the app's corner,
+    /// presses one of its controls (the window's buttons are some).
     pub fn caption(
         &mut self,
         ctx: &egui::Context,
@@ -248,9 +261,14 @@ impl WindowFrame {
         let bar = if self.compact {
             content
         } else {
+            let inside = if maximized {
+                content
+            } else {
+                content.shrink(EDGE)
+            };
             Rect::from_min_size(
-                content.min,
-                vec2(content.width(), rune_components::sidebar::HEADER),
+                inside.min,
+                vec2(inside.width(), rune_components::sidebar::HEADER),
             )
         };
         let free = |point: Pos2| {
@@ -447,12 +465,14 @@ mod tests {
         assert!(window.desktop.window_buttons);
         assert_eq!(
             content,
-            Rect::from_min_max(pos2(EDGE, EDGE), pos2(WIDTH - EDGE, HEIGHT - EDGE)),
-            "room for the edges"
+            Rect::from_min_size(Pos2::ZERO, vec2(WIDTH, HEIGHT)),
+            "the whole window, its edge kept for the app to leave free"
         );
+        assert_eq!(window.desktop.edge, EDGE);
         window.maximized = true;
         let (content, _) = window.frame(vec![]);
         assert!(window.desktop.window_buttons && window.desktop.maximized);
+        assert_eq!(window.desktop.edge, 0.0);
         assert_eq!(
             content,
             Rect::from_min_size(Pos2::ZERO, vec2(WIDTH, HEIGHT))
@@ -587,7 +607,10 @@ mod tests {
         for (point, direction) in [
             (pos2(1.0, 1.0), ResizeDirection::NorthWest),
             (pos2(WIDTH / 2.0, 1.0), ResizeDirection::North),
-            (pos2(WIDTH - 1.0, 1.0), ResizeDirection::NorthEast),
+            (
+                pos2(WIDTH - limn::WindowControls::WIDTH - 1.0, 1.0),
+                ResizeDirection::North,
+            ),
             (pos2(1.0, HEIGHT / 2.0), ResizeDirection::West),
             (pos2(WIDTH - 1.0, HEIGHT / 2.0), ResizeDirection::East),
             (pos2(1.0, HEIGHT - 1.0), ResizeDirection::SouthWest),
@@ -598,6 +621,13 @@ mod tests {
             let (_, commands) =
                 window.frame(vec![egui::Event::PointerMoved(point), button(point, true)]);
             assert_eq!(commands, [ViewportCommand::BeginResize(direction)]);
+        }
+        // Over the buttons, which reach the corner, nothing resizes.
+        for point in [pos2(WIDTH - 1.0, 0.0), pos2(WIDTH - 1.0, 1.0)] {
+            let mut window = Window::new(Chrome::Drawn);
+            let (_, commands) =
+                window.frame(vec![egui::Event::PointerMoved(point), button(point, true)]);
+            assert!(commands.is_empty(), "{point:?}");
         }
         let corner = pos2(WIDTH - 1.0, HEIGHT - 1.0);
         for (chrome, maximized, fullscreen) in [

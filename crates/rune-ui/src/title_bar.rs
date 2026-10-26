@@ -63,15 +63,23 @@ pub(crate) fn update(ui: &Ui, action: &UiAction) -> Option<Vec<Intent>> {
     Some(vec![Intent::Window(action)])
 }
 
-/// `root` with the buttons at its top right, as tall as the headers, over
-/// everything, as a system's title bar stays over the app's dialogs.
+/// `root` with the buttons at its top right, as tall as the headers and the
+/// window's edge, over everything, as a system's title bar stays over the
+/// app's dialogs. With an edge, `root` is inset by it and the buttons reach
+/// the window's corner, as Windows draws them.
 pub(crate) fn overlay(ui: &Ui, root: Element, look: &Look) -> Element {
     if !ui.desktop.window_buttons {
         return root;
     }
+    let edge = ui.desktop.edge;
+    let root = if edge > 0.0 {
+        Element::stack(vec![root]).padding(edge)
+    } else {
+        root
+    };
     let controls = WindowControls::new(CONTROLS, look.palette())
         .maximized(ui.desktop.maximized)
-        .height(rune_components::sidebar::HEADER)
+        .height(rune_components::sidebar::HEADER + edge)
         .render();
     Element::stack(vec![
         root,

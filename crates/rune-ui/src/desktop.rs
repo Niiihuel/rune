@@ -139,6 +139,9 @@ pub struct Desktop {
     pub window_buttons: bool,
     /// The window is maximized: its middle button restores it.
     pub maximized: bool,
+    /// The window's own resize edge around the app, which the app leaves
+    /// free: 0 unless RUNE draws the frame and the window is not maximized.
+    pub edge: f32,
 }
 
 // Desktop session and games (escritorio-sesion-y-juegos).

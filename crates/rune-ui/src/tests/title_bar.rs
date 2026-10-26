@@ -172,3 +172,56 @@ fn every_top_bar_keeps_the_buttons_room() {
     host.ui.desktop.window_buttons = true;
     assert_alone(&host.frame());
 }
+
+#[test]
+fn the_buttons_reach_the_corner_over_the_window_s_edge() {
+    let mut host = Host::new();
+    host.open_channel("general");
+    host.ui.desktop.window_buttons = true;
+    let close = |frame: &Frame| region(frame, "window:close").unwrap();
+    let width = limn::WindowControls::BUTTON_WIDTH;
+    let frame = host.frame();
+    assert_eq!(
+        close(&frame),
+        limn::Rect::new(
+            WINDOW.width - width,
+            0.0,
+            width,
+            rune_components::sidebar::HEADER
+        ),
+    );
+    // While RUNE draws the window's edge, the app is inset by it and the
+    // buttons take its rim too.
+    host.ui.desktop.edge = 5.0;
+    let frame = host.frame();
+    assert_eq!(
+        close(&frame),
+        limn::Rect::new(
+            WINDOW.width - width,
+            0.0,
+            width,
+            rune_components::sidebar::HEADER + 5.0
+        ),
+    );
+    for region in frame
+        .regions
+        .iter()
+        .filter(|region| region.kind == limn::HitKind::Button && !region.id.starts_with("window:"))
+    {
+        assert!(
+            region.rect.x >= 5.0 && region.rect.y >= 5.0,
+            "{}: {:?}",
+            region.id,
+            region.rect
+        );
+    }
+    let clicked = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Clicked {
+            id: "window:close".into(),
+        },
+        host.now,
+    );
+    assert_eq!(clicked, [Intent::Window(WindowAction::Close)]);
+}
