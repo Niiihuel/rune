@@ -101,23 +101,16 @@ fn the_menu_of_an_owned_server_offers_what_the_owner_may_do() {
         format!("ss:open:{lab}"),
         format!("newchan:{lab}"),
         format!("newcat:{lab}"),
-        format!("sm:notify:{lab}"),
+        format!("sm:notifications:{lab}"),
+        format!("sm:invite:{lab}"),
+        format!("ss:open:{lab}:delete"),
         format!("sm:profile:{lab}"),
         format!("sm:copy-id:{lab}"),
     ] {
         assert!(buttons.contains(&id), "{id} can be chosen: {buttons:?}");
     }
-    // Who owns it cannot leave it, and there are no invitations: both say why.
-    let leave = host.access(&format!("sm:leave:{lab}")).unwrap();
-    assert!(leave.disabled && !buttons.contains(&leave.id));
-    assert!(leave.description.unwrap().contains("dueño"));
-    // The line under it may be cut; the platform hears the reason whole.
-    let invite = host.access("sm:invite").unwrap();
-    assert!(invite.disabled);
-    assert_eq!(
-        invite.description.as_deref(),
-        Some("Este proveedor no tiene invitaciones")
-    );
+    // Who owns it deletes it instead of leaving: leaving is not offered at all.
+    assert!(host.access(&format!("sm:leave:{lab}")).is_none());
     host.clicked_id(&format!("sm:leave:{lab}"));
     assert!(host.ui.server_menu.dialog.is_none(), "not even asked for");
     // The settings belong to another window: the menu asks for them and closes.
@@ -133,23 +126,17 @@ fn the_menu_of_a_server_of_others_says_why_its_items_are_off_and_leaving_asks_fi
     assert_eq!(host.ui.server, Some(taller));
     host.click(ids::TOGGLE);
     let buttons = host.buttons();
+    // What the account cannot do is not offered at all.
     for id in [
         format!("ss:open:{taller}"),
         format!("newchan:{taller}"),
         format!("newcat:{taller}"),
+        format!("ss:open:{taller}:delete"),
     ] {
-        assert!(!buttons.contains(&id), "{id} is off");
-        assert!(host.access(&id).unwrap().disabled);
+        assert!(!buttons.contains(&id), "{id} is not offered");
+        assert!(host.access(&id).is_none());
     }
-    let said = |host: &mut Host, id: String| host.access(&id).unwrap().description.unwrap();
-    assert_eq!(
-        said(&mut host, format!("newchan:{taller}")),
-        "No tenés permiso para gestionar canales en Taller de Rust"
-    );
-    assert_eq!(
-        said(&mut host, format!("ss:open:{taller}")),
-        "No tenés permiso para cambiar el servidor en Taller de Rust"
-    );
+    assert!(buttons.contains(&format!("sm:leave:{taller}")));
     // Asking for a channel anyway, from elsewhere, says why not.
     host.clicked_id(&format!("newchan:{taller}"));
     assert!(host.ui.server_menu.dialog.is_none() && !host.ui.notices.is_empty());
@@ -428,37 +415,26 @@ fn notification_settings_change_what_the_rail_marks_and_are_kept() {
         (true, 2, false)
     );
     host.click(ids::TOGGLE);
-    host.click(&format!("sm:notify:{taller}"));
-    host.click(&format!("{}mentions", ids::NOTIFY_LEVEL));
+    // The menu's own entries: a level, then a mute, as the submenus choose them.
+    host.clicked_id(&format!("sm:level:{taller}:mentions"));
     assert_eq!(
         crate::server_menu::rail_marks(&host.ui, &host.store, taller, waiting, wall),
         (false, 2, false),
         "only the mentions"
     );
-    host.click(ids::NOTIFY_MUTE);
+    host.clicked_id(&format!("sm:mute:{taller}:always"));
     assert_eq!(
         crate::server_menu::rail_marks(&host.ui, &host.store, taller, waiting, wall),
         (false, 2, true)
     );
-    assert!(host
-        .painted()
-        .contains(&"Silenciado hasta que lo vuelvas a activar.".to_owned()));
-    host.click(&format!("{}nothing", ids::NOTIFY_LEVEL));
+    host.clicked_id(&format!("sm:level:{taller}:nothing"));
     assert_eq!(
         crate::server_menu::rail_marks(&host.ui, &host.store, taller, waiting, wall),
         (false, 0, true)
     );
-    host.click(&format!("{}1h", ids::NOTIFY_FOR));
+    host.clicked_id(&format!("sm:mute:{taller}:1h"));
     let until = host.ui.server_menu.notify[&taller].muted_until.unwrap();
-    assert!(
-        until != crate::server_menu::FOREVER
-            && host
-                .painted()
-                .iter()
-                .any(|text| text.starts_with("Silenciado hasta: "))
-    );
-    host.click(ids::NOTIFY_CLOSE);
-    assert!(host.ui.server_menu.dialog.is_none());
+    assert!(until != crate::server_menu::FOREVER);
     // Kept, and taken back by the next run.
     let kept: Vec<_> = host
         .ui

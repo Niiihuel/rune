@@ -425,25 +425,30 @@ pub(crate) fn secondary_click(
     target: &str,
     at: Point,
 ) -> Option<Vec<Intent>> {
-    if !store
-        .provider
-        .as_ref()
-        .is_some_and(|info| info.capabilities.server_folders)
-    {
-        return None;
-    }
     let number = |prefix: &str| target.strip_prefix(prefix)?.parse::<u64>().ok();
     let found = match (number("server:"), number("folder:")) {
         (Some(server), _) => RailTarget::Server(ServerId(server)),
-        (_, Some(folder)) => RailTarget::Folder(folder),
+        (_, Some(folder)) if has_folders(store) => RailTarget::Folder(folder),
         _ => return None,
     };
     ui.account.menu = Some((found, (at.x, at.y)));
     Some(Vec::new())
 }
 
-/// The items of the rail's menu on `target`.
-fn menu_entries(store: &Store, target: RailTarget) -> Vec<Entry> {
+/// Whether the provider keeps folders of servers (its rail's folder group).
+fn has_folders(store: &Store) -> bool {
+    store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.capabilities.server_folders)
+}
+
+/// The rail's groups for `server`'s folder: moves, into a folder, out of it.
+/// None when the provider has no folders.
+fn folder_groups(store: &Store, server: ServerId) -> Vec<Vec<Entry>> {
+    if !has_folders(store) {
+        return Vec::new();
+    }
     let denied = store
         .account_abilities()
         .folders
@@ -451,64 +456,83 @@ fn menu_entries(store: &Store, target: RailTarget) -> Vec<Entry> {
         .map(str::to_owned);
     let item = |id: String, label: &str| Item::new(id, label).denied(denied.clone());
     let kept = layout(store);
-    let key = match target {
-        RailTarget::Server(server) => format!("server:{server}"),
-        RailTarget::Folder(folder) => format!("folder:{folder}"),
-    };
+    let key = format!("server:{server}");
     let moves = vec![
         item(format!("rail:up:{key}"), t("Mover arriba")).into(),
         item(format!("rail:down:{key}"), t("Mover abajo")).into(),
     ];
-    match target {
-        RailTarget::Server(server) => {
-            let inside = kept
+    let inside = kept
+        .iter()
+        .find(|folder| folder.servers.contains(&server))
+        .and_then(|folder| folder.id);
+    let mut folders: Vec<Entry> = kept
+        .iter()
+        .filter(|folder| folder.id.is_some() && folder.id != inside)
+        .map(|folder| {
+            let servers: Vec<&Server> = folder
+                .servers
                 .iter()
-                .find(|folder| folder.servers.contains(&server))
-                .and_then(|folder| folder.id);
-            let mut folders: Vec<Entry> = kept
-                .iter()
-                .filter(|folder| folder.id.is_some() && folder.id != inside)
-                .map(|folder| {
-                    let servers: Vec<&Server> = folder
-                        .servers
-                        .iter()
-                        .filter_map(|id| store.server(*id))
-                        .collect();
-                    item(
-                        format!("rail:into:{server}:{}", folder.id.unwrap_or_default()),
-                        &folder_name(folder, &servers),
-                    )
-                    .into()
-                })
+                .filter_map(|id| store.server(*id))
                 .collect();
-            folders.push(item(format!("rail:into:{server}:new"), t("Nueva carpeta")).into());
-            let mut groups = vec![
+            item(
+                format!("rail:into:{server}:{}", folder.id.unwrap_or_default()),
+                &folder_name(folder, &servers),
+            )
+            .into()
+        })
+        .collect();
+    folders.push(item(format!("rail:into:{server}:new"), t("Nueva carpeta")).into());
+    let mut groups = vec![
+        moves,
+        vec![
+            Item::new(format!("rail:submenu:{server}"), t("Mover a una carpeta"))
+                .submenu(folders)
+                .into(),
+        ],
+    ];
+    if inside.is_some() {
+        groups.push(vec![item(
+            format!("rail:out:{server}"),
+            t("Sacar de la carpeta"),
+        )
+        .into()]);
+    }
+    groups
+}
+
+/// The items of the rail's menu on `target`.
+fn menu_entries(ui: &Ui, store: &Store, target: RailTarget) -> Vec<Entry> {
+    match target {
+        // The server's own menu, as the channel column's header has it.
+        RailTarget::Server(server) => grouped(crate::server_menu::server_groups(
+            ui,
+            store,
+            server,
+            folder_groups(store, server),
+        )),
+        RailTarget::Folder(folder) => {
+            let denied = store
+                .account_abilities()
+                .folders
+                .reason()
+                .map(str::to_owned);
+            let item = |id: String, label: &str| Item::new(id, label).denied(denied.clone());
+            let key = format!("folder:{folder}");
+            let moves = vec![
+                item(format!("rail:up:{key}"), t("Mover arriba")).into(),
+                item(format!("rail:down:{key}"), t("Mover abajo")).into(),
+            ];
+            grouped(vec![
+                vec![item(format!("rail:edit:{folder}"), t("Ajustes de carpeta")).into()],
                 moves,
                 vec![
-                    Item::new(format!("rail:submenu:{server}"), t("Mover a una carpeta"))
-                        .submenu(folders)
+                    Item::new(format!("rail:dissolve:{folder}"), t("Desarmar carpeta"))
+                        .denied(denied.clone())
+                        .danger()
                         .into(),
                 ],
-            ];
-            if inside.is_some() {
-                groups.push(vec![item(
-                    format!("rail:out:{server}"),
-                    t("Sacar de la carpeta"),
-                )
-                .into()]);
-            }
-            grouped(groups)
+            ])
         }
-        RailTarget::Folder(folder) => grouped(vec![
-            vec![item(format!("rail:edit:{folder}"), t("Ajustes de carpeta")).into()],
-            moves,
-            vec![
-                Item::new(format!("rail:dissolve:{folder}"), t("Desarmar carpeta"))
-                    .denied(denied.clone())
-                    .danger()
-                    .into(),
-            ],
-        ]),
     }
 }
 
@@ -756,7 +780,7 @@ pub(crate) fn overlay(
         root = folder_parts::folder_dialog(root, &form, DIALOG_WIDTH, look);
     }
     if let Some((target, at)) = ui.account.menu {
-        let entries = menu_entries(store, target);
+        let entries = menu_entries(ui, store, target);
         root = Element::stack(vec![root, menu_parts::context_menu(at, entries, look)]);
     }
     root

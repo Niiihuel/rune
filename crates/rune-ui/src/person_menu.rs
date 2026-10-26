@@ -21,7 +21,7 @@ use crate::{conversations, private_calls, Intent, Ui};
 
 /// How long an invitation sent from a person's menu lasts: a week, as the
 /// invitations' dialog offers by default. It never runs out of uses.
-const INVITE_AGE_SECS: u32 = 7 * 24 * 60 * 60;
+pub(crate) const INVITE_AGE_SECS: u32 = 7 * 24 * 60 * 60;
 
 /// Where a person's menu was opened, and so which of its groups show.
 #[derive(Clone, Copy, Debug, PartialEq)]

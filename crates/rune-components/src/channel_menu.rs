@@ -162,7 +162,7 @@ pub fn grouped(groups: Vec<Vec<Entry>>) -> Vec<Entry> {
     entries
 }
 
-fn dropdown_entries(entries: Vec<Entry>, look: &Look) -> Vec<DropdownMenuEntry> {
+pub(crate) fn dropdown_entries(entries: Vec<Entry>, look: &Look) -> Vec<DropdownMenuEntry> {
     entries
         .into_iter()
         .map(|entry| match entry {

@@ -225,6 +225,19 @@ pub(crate) fn entry(store: &Store, server: ServerId, look: &Look) -> Option<Elem
         .then(|| parts::entry(store.upcoming_events(server), look))
 }
 
+/// Open the form of a new event on `server`, from the server's menu.
+pub(crate) fn open_new(ui: &mut Ui, store: &Store, server: ServerId) -> Vec<Intent> {
+    if !store.event_abilities(server).create.allowed() {
+        return Vec::new();
+    }
+    let intents = open(ui, store, server, Page::List);
+    if let Some(dialog) = ui.events.dialog.as_mut() {
+        dialog.invalid = None;
+        dialog.page = Page::Form(Box::new(Form::new(store, server)));
+    }
+    intents
+}
+
 /// Open the dialog for `server` on `page`, reading its list when the
 /// store does not have it.
 fn open(ui: &mut Ui, store: &Store, server: ServerId, page: Page) -> Vec<Intent> {
@@ -315,6 +328,12 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
         _ => return None,
     };
     let rest = id.strip_prefix("ev:")?;
+    if let Some(server) = rest
+        .strip_prefix("new:")
+        .and_then(|server| server.parse().ok())
+    {
+        return Some(open_new(ui, store, ServerId(server)));
+    }
     if rest == "open" {
         return Some(match ui.server {
             Some(server) => open(ui, store, server, Page::List),

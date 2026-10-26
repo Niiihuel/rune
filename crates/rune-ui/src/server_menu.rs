@@ -12,9 +12,9 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use limn::{Element, Icon, Modal};
+use rune_components::channel_menu::{grouped, Entry, Item};
 use rune_components::server_menu::{
-    self as parts, ids, Audience, ChannelForm, Choice, MenuItem, NickForm, NotifyForm, ServerForm,
-    NICK_MAX,
+    self as parts, ids, Audience, ChannelForm, Choice, NickForm, NotifyForm, ServerForm, NICK_MAX,
 };
 use rune_components::{sidebar, Look};
 use rune_i18n::{t, tr};
@@ -23,10 +23,12 @@ use rune_model::{
     RoleId, ServerId, Timestamp, UserId,
 };
 use rune_provider::{Command, Created, RequestId, ServerEdit};
-use rune_state::{Permit, Store};
+use rune_state::{Applied, Permit, Store};
 
 pub use rune_components::server_menu::NotifyLevel;
 
+use crate::person_menu::INVITE_AGE_SECS;
+use crate::server_settings::advanced::{invite_channels, invite_link};
 use crate::{open, open_server, Intent, Ui, ViewContext};
 
 pub(crate) const TOGGLE: &str = ids::TOGGLE;
@@ -115,6 +117,8 @@ enum Pending {
     },
     /// Give the server this color, and open it.
     Server { accent: Rgb },
+    /// Copy its invitation's link.
+    Invite,
 }
 
 /// The time on this machine's clock, for when a mute ends.
@@ -160,6 +164,44 @@ pub(crate) fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) ->
     if let Some(server) = number("sm:notify:") {
         ui.server_menu.dialog = Some(Dialog::Notifications(ServerId(server)));
         return Vec::new();
+    }
+    // The menu's entries of the rail and the header: a mute, a level, a check.
+    if let Some((server, key)) = id.strip_prefix("sm:mute:").and_then(split_server) {
+        let until = if key == "off" {
+            None
+        } else {
+            let Some((_, _, length)) = parts::MUTE_DURATIONS
+                .iter()
+                .find(|(candidate, _, _)| *candidate == key)
+            else {
+                return Vec::new();
+            };
+            Some(length.map_or(FOREVER, |length| Timestamp(wall_now().0 + length)))
+        };
+        return change_notify_for(ui, store, server, NotificationChange::Mute(until), now);
+    }
+    if let Some((server, key)) = id.strip_prefix("sm:level:").and_then(split_server) {
+        let Some(level) = NotifyLevel::from_key(key) else {
+            return Vec::new();
+        };
+        return change_notify_for(ui, store, server, NotificationChange::Level(level), now);
+    }
+    if let Some((server, flag)) = id.strip_prefix("sm:flag:").and_then(split_server) {
+        let kept = store
+            .notifications(Some(server))
+            .cloned()
+            .unwrap_or_default();
+        let change = match flag {
+            "everyone" => NotificationChange::SuppressEveryone(!kept.suppress_everyone),
+            "roles" => NotificationChange::SuppressRoles(!kept.suppress_roles),
+            "mobile" => NotificationChange::MobilePush(!kept.mobile_push),
+            "hide" => NotificationChange::HideMuted(!kept.hide_muted),
+            _ => return Vec::new(),
+        };
+        return change_notify_for(ui, store, server, change, now);
+    }
+    if let Some(server) = number("sm:invite:") {
+        return invite(ui, store, ServerId(server), now);
     }
     if let Some(server) = number("sm:profile:") {
         let server = ServerId(server);
@@ -341,6 +383,12 @@ pub(crate) fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) ->
     }
 }
 
+/// A server's id and the rest of an action's id after it, as `{server}:{rest}`.
+fn split_server(rest: &str) -> Option<(ServerId, &str)> {
+    let (server, rest) = rest.split_once(':')?;
+    Some((ServerId(server.parse().ok()?), rest))
+}
+
 fn toggle<T: PartialEq>(list: &mut Vec<T>, item: T) {
     match list.iter().position(|candidate| *candidate == item) {
         Some(index) => {
@@ -513,6 +561,35 @@ fn save_nick(ui: &mut Ui, store: &Store) -> Vec<Intent> {
     })]
 }
 
+/// An invitation to `server` from its menu: its link is copied once made.
+fn invite(ui: &mut Ui, store: &Store, server: ServerId, now: Instant) -> Vec<Intent> {
+    let Some(abilities) = store.server_abilities(server) else {
+        return Vec::new();
+    };
+    if let Some(reason) = abilities.create_invites.reason() {
+        ui.notify(
+            t("No se creó la invitación"),
+            Some(reason.into()),
+            true,
+            now,
+        );
+        return Vec::new();
+    }
+    let Some(channel) = invite_channels(store, server).first().copied() else {
+        return Vec::new();
+    };
+    let request = ui.fresh_request();
+    ui.server_menu.pending.insert(request, Pending::Invite);
+    vec![Intent::Command(Command::CreateInvite {
+        request,
+        server,
+        channel,
+        max_age_secs: INVITE_AGE_SECS,
+        max_uses: 0,
+        temporary: false,
+    })]
+}
+
 fn create_server(ui: &mut Ui, store: &Store) -> Vec<Intent> {
     if !store.create_server().allowed() {
         return Vec::new();
@@ -543,6 +620,17 @@ fn change_notify(
     let Some(Dialog::Notifications(server)) = ui.server_menu.dialog else {
         return Vec::new();
     };
+    change_notify_for(ui, store, server, change, now)
+}
+
+/// Change the notification settings of `server`, from its dialog or its menu.
+fn change_notify_for(
+    ui: &mut Ui,
+    store: &Store,
+    server: ServerId,
+    change: NotificationChange,
+    now: Instant,
+) -> Vec<Intent> {
     if store.synced_notifications() {
         return crate::account::notify_command(ui, store, Some(server), change, now);
     }
@@ -560,6 +648,24 @@ fn change_notify(
         key: NOTIFY_SETTING.into(),
         value: kept(ui),
     }]
+}
+
+/// The link of an invitation made from a server's menu is copied once made.
+pub(crate) fn on_invite(
+    ui: &mut Ui,
+    store: &Store,
+    applied: &Applied,
+    now: Instant,
+) -> Vec<Intent> {
+    let Applied::InviteCreated { request, code, .. } = applied else {
+        return Vec::new();
+    };
+    if !matches!(ui.server_menu.pending.get(request), Some(Pending::Invite)) {
+        return Vec::new();
+    }
+    ui.server_menu.pending.remove(request);
+    ui.notify(t("Enlace de invitación copiado"), None, false, now);
+    vec![Intent::Copy(invite_link(store, code))]
 }
 
 /// Something asked for here was made: let who was chosen see it, and open it.
@@ -678,29 +784,162 @@ pub(crate) fn header(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> E
         .server(server)
         .map_or_else(String::new, |found| found.shown_name().into());
     let open = ui.server_menu.open;
-    let mut groups = items(store, server);
-    // «Copiar ID» is for developer mode.
-    for group in &mut groups {
-        group.retain(|item| ui.prefs.developer || !item.id.starts_with("sm:copy-id:"));
-    }
-    let name = parts::menu(sidebar::server_name(&name, open, look), groups, open, look);
+    let entries = grouped(server_groups(ui, store, server, Vec::new()));
+    let name = parts::menu(sidebar::server_name(&name, open, look), entries, open, look);
     sidebar::header_bar(name, look)
 }
 
-/// The items of `server`'s menu, in groups, each disabled with its reason
-/// when the account or the provider cannot do it.
-pub(crate) fn items(store: &Store, server: ServerId) -> Vec<Vec<MenuItem>> {
+/// The mute durations of the menu's submenu: each one's action, then the
+/// label it shows.
+fn mute_entries(server: ServerId) -> Vec<Entry> {
+    parts::MUTE_DURATIONS
+        .iter()
+        .map(|(key, label, _)| {
+            let label = if *key == "always" {
+                t("Hasta que lo vuelvas a activar")
+            } else {
+                t(label)
+            };
+            Item::new(format!("sm:mute:{server}:{key}"), label).into()
+        })
+        .collect()
+}
+
+/// The entries of `server`'s menu in groups, each disabled with its reason
+/// when the account or the provider cannot do it. The header and the rail
+/// share them; `folders` are the rail's groups for the server's folder, kept
+/// before leaving the server.
+pub(crate) fn server_groups(
+    ui: &Ui,
+    store: &Store,
+    server: ServerId,
+    folders: Vec<Vec<Entry>>,
+) -> Vec<Vec<Entry>> {
     let Some(abilities) = store.server_abilities(server) else {
         return Vec::new();
     };
-    let item = |id: String, label: &str, icon: Icon, permit: Option<&Permit>| MenuItem {
-        id,
-        label: label.into(),
+    let act = |id: String, label: &str, icon: Option<Icon>| Item {
         icon,
-        denied: permit.and_then(Permit::reason).map(str::to_owned),
-        danger: false,
+        ..Item::new(id, label)
     };
-    // The settings are for whoever can manage any part of the server.
+    let notify = crate::account::server_notify(ui, store, server);
+    let synced = store.synced_notifications();
+    let kept = store
+        .notifications(Some(server))
+        .cloned()
+        .unwrap_or_default();
+    let mut groups = Vec::new();
+
+    let mut reads = Vec::new();
+    if store.server_unread(server).0 {
+        reads.push(read_item(store, server).into());
+    }
+    if abilities.create_invites.allowed() && !invite_channels(store, server).is_empty() {
+        reads.push(
+            act(
+                format!("sm:invite:{server}"),
+                t("Invitar a personas"),
+                Some(Icon::Invite),
+            )
+            .into(),
+        );
+    }
+    groups.push(reads);
+
+    let mut notifications = Vec::new();
+    if notify.muted(wall_now()) {
+        notifications.push(
+            act(
+                format!("sm:mute:{server}:off"),
+                t("Dejar de silenciar servidor"),
+                Some(Icon::Bell),
+            )
+            .into(),
+        );
+    } else {
+        notifications.push(
+            Item {
+                submenu: mute_entries(server),
+                ..act(
+                    format!("sm:mute:{server}"),
+                    t("Silenciar servidor"),
+                    Some(Icon::BellSlash),
+                )
+            }
+            .into(),
+        );
+    }
+    let mut levels: Vec<Entry> = [
+        (NotifyLevel::All, t("Todos los mensajes")),
+        (NotifyLevel::Mentions, t("Solo @menciones")),
+        (NotifyLevel::Nothing, t("Nada")),
+    ]
+    .into_iter()
+    .map(|(level, label)| {
+        Item::new(format!("sm:level:{server}:{}", level.key()), label)
+            .radio(notify.level == level)
+            .into()
+    })
+    .collect();
+    if synced {
+        levels.push(Entry::Separator);
+        levels.push(
+            Item::new(
+                format!("sm:flag:{server}:everyone"),
+                t("Silenciar @everyone y @here"),
+            )
+            .checked(kept.suppress_everyone)
+            .into(),
+        );
+        levels.push(
+            Item::new(
+                format!("sm:flag:{server}:roles"),
+                t("Silenciar las @menciones de roles"),
+            )
+            .checked(kept.suppress_roles)
+            .into(),
+        );
+        levels.push(
+            Item::new(
+                format!("sm:flag:{server}:mobile"),
+                t("Notificaciones push para móvil"),
+            )
+            .checked(kept.mobile_push)
+            .into(),
+        );
+    }
+    levels.push(Entry::Separator);
+    levels.push(
+        act(
+            format!("sm:notify:{server}"),
+            t("Ajustes de notificaciones del servidor"),
+            None,
+        )
+        .into(),
+    );
+    notifications.push(
+        Item {
+            submenu: levels,
+            ..act(
+                format!("sm:notifications:{server}"),
+                t("Ajustes de notificaciones"),
+                Some(Icon::Bell),
+            )
+        }
+        .into(),
+    );
+    if synced {
+        notifications.push(
+            Item::new(
+                format!("sm:flag:{server}:hide"),
+                t("Ocultar los canales silenciados"),
+            )
+            .checked(kept.hide_muted)
+            .into(),
+        );
+    }
+    groups.push(notifications);
+
     let manages = [
         &abilities.manage_server,
         &abilities.manage_roles,
@@ -710,83 +949,105 @@ pub(crate) fn items(store: &Store, server: ServerId) -> Vec<Vec<MenuItem>> {
     ]
     .iter()
     .any(|permit| permit.allowed());
-    let settings = (!manages).then_some(&abilities.manage_server);
-    let no_invites = Permit::Denied(t("Este proveedor no tiene invitaciones").into());
-    let mut leave = item(
-        format!("sm:leave:{server}"),
-        t("Abandonar servidor"),
-        Icon::Leave,
-        Some(&abilities.leave),
-    );
-    leave.danger = true;
-    vec![
-        vec![
-            item(
-                "sm:invite".into(),
-                t("Invitar al servidor"),
-                Icon::Invite,
-                Some(&no_invites),
-            ),
-            item(
+    let mut manage = Vec::new();
+    if manages {
+        manage.push(
+            act(
                 format!("ss:open:{server}"),
                 t("Ajustes del servidor"),
-                Icon::Settings,
-                settings,
-            ),
-            item(
+                Some(Icon::Settings),
+            )
+            .into(),
+        );
+    }
+    if abilities.manage_channels.allowed() {
+        manage.push(
+            act(
                 format!("newchan:{server}"),
                 t("Crear un canal"),
-                Icon::Add,
-                Some(&abilities.manage_channels),
-            ),
-            item(
+                Some(Icon::Add),
+            )
+            .into(),
+        );
+        manage.push(
+            act(
                 format!("newcat:{server}"),
                 t("Crear categoría"),
-                Icon::Folder,
-                Some(&abilities.manage_channels),
-            ),
-        ],
-        vec![
-            read_item(store, server),
-            item(
-                format!("sm:notify:{server}"),
-                t("Ajustes de notificaciones"),
-                Icon::Bell,
-                None,
-            ),
-        ],
-        vec![item(
+                Some(Icon::Folder),
+            )
+            .into(),
+        );
+    }
+    if store.event_abilities(server).create.allowed() {
+        manage.push(act(format!("ev:new:{server}"), t("Crear evento"), None).into());
+    }
+    groups.push(manage);
+
+    if abilities.change_nick.allowed() {
+        groups.push(vec![act(
             format!("sm:profile:{server}"),
             t("Editar perfil de servidor"),
-            Icon::Edit,
-            Some(&abilities.change_nick),
-        )],
-        vec![
-            item(
-                format!("sm:copy-id:{server}"),
-                t("Copiar ID del servidor"),
-                Icon::Copy,
-                None,
-            ),
-            leave,
-        ],
-    ]
+            Some(Icon::Edit),
+        )
+        .into()]);
+    }
+    groups.extend(folders);
+
+    // Deleting is the owner's; the others leave.
+    let mut ending = Vec::new();
+    if abilities.delete.allowed() {
+        ending.push(
+            Item {
+                danger: true,
+                ..act(
+                    format!("ss:open:{server}:delete"),
+                    t("Eliminar servidor"),
+                    Some(Icon::Trash),
+                )
+            }
+            .into(),
+        );
+    } else if abilities.leave.allowed() {
+        ending.push(
+            Item {
+                danger: true,
+                ..act(
+                    format!("sm:leave:{server}"),
+                    t("Abandonar servidor"),
+                    Some(Icon::Leave),
+                )
+            }
+            .into(),
+        );
+    }
+    groups.push(ending);
+
+    // «Copiar ID» is for developer mode.
+    if ui.prefs.developer {
+        groups.push(vec![act(
+            format!("sm:copy-id:{server}"),
+            t("Copiar ID del servidor"),
+            Some(Icon::Copy),
+        )
+        .into()]);
+    }
+    groups
 }
 
 /// «Marcar como leído» for `server`: what it reaches, and why not when
 /// nothing waits there.
-pub(crate) fn read_item(store: &Store, server: ServerId) -> MenuItem {
-    MenuItem {
-        id: format!("sm:read:{server}"),
-        label: if store.read_sync() {
-            t("Marcar como leído")
-        } else {
-            t("Marcar como leído (solo en RUNE)")
-        }
-        .into(),
-        icon: Icon::Check,
+pub(crate) fn read_item(store: &Store, server: ServerId) -> Item {
+    Item {
+        icon: Some(Icon::Check),
         denied: (!store.server_unread(server).0).then(|| t("No hay nada sin leer").into()),
-        danger: false,
+        ..Item::new(
+            format!("sm:read:{server}"),
+            if store.read_sync() {
+                t("Marcar como leído")
+            } else {
+                t("Marcar como leído (solo en RUNE)")
+            },
+        )
     }
 }
 

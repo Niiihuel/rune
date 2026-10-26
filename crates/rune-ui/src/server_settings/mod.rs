@@ -635,13 +635,25 @@ pub fn update(
     if let Some(member) = rest.strip_prefix("member-of:") {
         return Some(member_from_outside(ui, store, member, now));
     }
-    if let Some(server) = rest.strip_prefix("open:") {
-        return Some(
-            server
-                .parse()
-                .map(|server| open(ui, store, ServerId(server)))
-                .unwrap_or_default(),
-        );
+    if let Some(open_rest) = rest.strip_prefix("open:") {
+        // `ss:open:{server}:delete` opens them with the deletion asked for.
+        let (server, delete) = match open_rest.split_once(':') {
+            Some((server, "delete")) => (server, true),
+            _ => (open_rest, false),
+        };
+        let Ok(server) = server.parse::<u64>() else {
+            return Some(Vec::new());
+        };
+        let server = ServerId(server);
+        let mut intents = open(ui, store, server);
+        if delete && store.owns(server) {
+            if let Some(settings) = ui.server_settings.as_mut() {
+                settings.delete_server = Some(String::new());
+            }
+            intents.push(set_input(DELETE_NAME, ""));
+            intents.push(Intent::Focus(DELETE_NAME.into()));
+        }
+        return Some(intents);
     }
     let Some(mut settings) = ui.server_settings.take() else {
         return Some(Vec::new());

@@ -1343,6 +1343,7 @@ fn answer(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instant) -> Ve
         Applied::Created { request, created } => {
             server_menu::on_created(ui, store, *request, *created)
         }
+        Applied::InviteCreated { .. } => server_menu::on_invite(ui, store, applied, now),
         _ => Vec::new(),
     }
 }

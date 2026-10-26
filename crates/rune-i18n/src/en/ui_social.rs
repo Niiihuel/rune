@@ -280,7 +280,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("ID copiado", "ID copied"),
     ("Servidor de {name}", "{name}'s server"),
     ("No se puede crear el canal", "Can't create the channel"),
-    ("Este proveedor no tiene invitaciones", "This provider has no invites"),
     ("Invitar al servidor", "Invite to server"),
     ("Añadir nota", "Add note"),
     ("Desactivar video", "Turn off video"),

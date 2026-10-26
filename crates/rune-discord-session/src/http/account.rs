@@ -103,6 +103,7 @@ pub(crate) fn notification_body(change: NotificationChange, now: i64) -> Value {
         NotificationChange::SuppressEveryone(on) => json!({"suppress_everyone": on}),
         NotificationChange::SuppressRoles(on) => json!({"suppress_roles": on}),
         NotificationChange::HideMuted(on) => json!({"hide_muted_channels": on}),
+        NotificationChange::MobilePush(on) => json!({"mobile_push": on}),
         NotificationChange::ChannelLevel(channel, level) => json!({"channel_overrides": {
             channel.to_string(): {"message_notifications": level_number(level)}
         }}),
@@ -328,4 +329,20 @@ pub(crate) fn settings_events(settings: &Settings, me: Option<UserId>) -> Vec<Ev
         events.push(Event::ActivitySharing(shown));
     }
     events
+}
+
+#[cfg(test)]
+mod tests {
+    use rune_model::NotificationChange;
+    use serde_json::json;
+
+    use super::notification_body;
+
+    #[test]
+    fn mobile_push_is_patched_as_its_own_field() {
+        assert_eq!(
+            notification_body(NotificationChange::MobilePush(false), 0),
+            json!({"mobile_push": false})
+        );
+    }
 }

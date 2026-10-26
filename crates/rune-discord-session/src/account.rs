@@ -230,6 +230,7 @@ pub(crate) fn notifications(value: &Value) -> Result<Notifications, LoginError> 
         suppress_everyone: flag("suppress_everyone"),
         suppress_roles: flag("suppress_roles"),
         hide_muted: flag("hide_muted_channels"),
+        mobile_push: value["mobile_push"].as_bool().unwrap_or(true),
         channels,
     })
 }
@@ -368,6 +369,10 @@ mod tests {
         assert_eq!(settings.muted_until, Some(MUTED_FOREVER));
         assert_eq!(settings.level, Some(NotifyLevel::Mentions));
         assert!(settings.suppress_everyone && !settings.hide_muted);
+        assert!(
+            settings.mobile_push,
+            "pushes are on unless Discord says off"
+        );
         assert_eq!(settings.channels.len(), 2, "nothing of its own is dropped");
         assert!(settings.channels[0]
             .muted_until

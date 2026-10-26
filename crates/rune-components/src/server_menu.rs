@@ -5,12 +5,13 @@
 
 use limn::{
     ActionRow, AlertDialog, Button, ButtonVariant, Checkbox, Color, Component, ControlSize,
-    DropdownMenu, DropdownMenuEntry, DropdownMenuItem, Element, Icon, ListRow, Modal, RadioGroup,
-    RadioOption, SearchField, SelectorSizing, Swatch, SwatchPicker, TextField, TooltipSpec,
+    DropdownMenu, Element, Icon, ListRow, Modal, RadioGroup, RadioOption, SearchField,
+    SelectorSizing, Swatch, SwatchPicker, TextField,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::Rgb;
 
+use crate::channel_menu::{dropdown_entries, Entry};
 use crate::{avatar, centered, gap, line, strong_line, text, Look};
 
 /// The actions these pieces report.
@@ -99,28 +100,10 @@ pub fn channel_name(name: &str) -> String {
         .join("-")
 }
 
-/// One item of the server's menu.
-#[derive(Clone, Debug, PartialEq)]
-pub struct MenuItem {
-    /// The action it reports.
-    pub id: String,
-    pub label: String,
-    pub icon: Icon,
-    /// Why it cannot be used, when it cannot: shown under its label.
-    pub denied: Option<String>,
-    /// It ends something, such as membership: drawn in the danger color.
-    pub danger: bool,
-}
-
-/// The server's menu on `anchor`, its groups apart by a line, while `open`.
-pub fn menu(anchor: Element, groups: Vec<Vec<MenuItem>>, open: bool, look: &Look) -> Element {
-    let mut entries = Vec::new();
-    for group in groups {
-        if !entries.is_empty() {
-            entries.push(DropdownMenuEntry::Separator);
-        }
-        entries.extend(group.into_iter().map(|item| entry(item, look)));
-    }
+/// The server's menu on `anchor`, its entries as the channel menus draw them
+/// (groups apart by a line, submenus, checks), while `open`.
+pub fn menu(anchor: Element, entries: Vec<Entry>, open: bool, look: &Look) -> Element {
+    let entries = dropdown_entries(entries, look);
     let count = entries.len();
     DropdownMenu::new(anchor, entries, open, ids::DISMISS, look.menu_palette())
         .sizing(SelectorSizing {
@@ -140,19 +123,6 @@ pub fn menu(anchor: Element, groups: Vec<Vec<MenuItem>>, open: bool, look: &Look
         })
         .width(MENU_WIDTH)
         .render()
-}
-
-fn entry(item: MenuItem, look: &Look) -> DropdownMenuEntry {
-    let row = DropdownMenuItem::new(item.id, item.label).icon(item.icon);
-    DropdownMenuEntry::Item(match item.denied {
-        // The line under the label may be cut; the hint says it whole.
-        Some(reason) => row
-            .enabled(false)
-            .description(reason.clone())
-            .tooltip_with(TooltipSpec::new(reason)),
-        None if item.danger => row.destructive(look.danger),
-        None => row,
-    })
 }
 
 /// A new channel or category, as its dialog shows it.
@@ -856,6 +826,7 @@ fn separator(look: &Look) -> Element {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::channel_menu::{grouped, Item};
     use crate::testing::{controls, frame, texts};
     use limn::Size;
 
@@ -869,14 +840,10 @@ mod tests {
         assert_eq!(channel_name("   "), "");
     }
 
-    fn item(id: &str, denied: Option<&str>) -> MenuItem {
-        MenuItem {
-            id: id.into(),
-            label: format!("Ítem {id}"),
-            icon: Icon::Settings,
-            denied: denied.map(str::to_owned),
-            danger: false,
-        }
+    fn item(id: &str, denied: Option<&str>) -> Vec<Entry> {
+        vec![Item::new(id, format!("Ítem {id}"))
+            .denied(denied.map(str::to_owned))
+            .into()]
     }
 
     #[test]
@@ -884,10 +851,10 @@ mod tests {
         let anchor = Element::clickable(ids::TOGGLE, Element::spacer()).size(None, Some(40.0));
         let menu = menu(
             anchor,
-            vec![
-                vec![item("a", None), item("b", Some("No tenés permiso"))],
-                vec![item("c", None)],
-            ],
+            grouped(vec![
+                [item("a", None), item("b", Some("No tenés permiso"))].concat(),
+                item("c", None),
+            ]),
             true,
             &Look::DARK,
         );

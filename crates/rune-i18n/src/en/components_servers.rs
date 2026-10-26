@@ -253,6 +253,13 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Personalizá tu servidor", "Customize your server"),
     ("Dale un nombre y un color. Podés cambiarlos después.", "Give it a name and a color. You can change them later."),
     ("Crear", "Create"),
+    // The server's menu on the rail and the header (2026-10-25).
+    ("Invitar a personas", "Invite people"),
+    ("Silenciar servidor", "Mute server"),
+    ("Dejar de silenciar servidor", "Unmute server"),
+    ("Notificaciones push para móvil", "Mobile push notifications"),
+    ("Ajustes de notificaciones del servidor", "Server notification settings"),
+    ("Enlace de invitación copiado", "Invite link copied"),
     // limn adoption (2026-10-18).
     ("Color del servidor", "Server color"),
     ("Saturación y brillo", "Saturation and brightness"),

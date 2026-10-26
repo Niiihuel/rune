@@ -72,13 +72,8 @@ fn notifications_are_asked_of_the_account_and_shown_once_it_answers() {
     let mut host = Host::new();
     let taller = host.ac_server("Taller de Rust");
     host.click(menu_ids::TOGGLE);
-    host.click(&format!("sm:notify:{taller}"));
-    assert!(host
-        .painted()
-        .iter()
-        .any(|text| text.starts_with("Se guardan en tu cuenta")));
     let from = host.sent.len();
-    host.click(menu_ids::NOTIFY_MUTE);
+    host.ac_choose(&format!("sm:mute:{taller}:always"));
     assert_eq!(
         host.sent.last(),
         Some(&Command::SetNotifications {
@@ -99,10 +94,9 @@ fn notifications_are_asked_of_the_account_and_shown_once_it_answers() {
     );
     // @everyone, now settable, stops alerting.
     let from = host.sent.len();
-    host.click(menu_ids::NOTIFY_EVERYONE);
+    host.ac_choose(&format!("sm:flag:{taller}:everyone"));
     host.answer_account(from);
     assert!(host.store.suppresses_everyone(Some(taller)));
-    host.click(menu_ids::NOTIFY_CLOSE);
     // A channel's mute goes the same way.
     let general = host.open_channel("general");
     let from = host.sent.len();
@@ -266,4 +260,40 @@ fn a_note_is_read_with_the_profile_and_kept_with_enter() {
     // Never on the account's own profile.
     let me = host.store.me().unwrap();
     assert!(crate::account::note_field(&host.ui, &host.store, me).is_none());
+}
+
+#[test]
+fn the_rail_offers_a_servers_menu_without_folders_and_invites_from_it() {
+    let mut host = Host::new();
+    host.ac_load();
+    if let Some(info) = host.store.provider.as_mut() {
+        info.capabilities.server_folders = false;
+    }
+    let lab = host.ac_server("Laboratorio limn");
+    host.ac_right_click(&format!("server:{lab}"));
+    assert!(host.ui.account.menu.is_some(), "a server's menu opens");
+    let buttons = host.ac_controls();
+    assert!(
+        buttons.iter().all(|id| !id.starts_with("rail:")),
+        "no folder entries without folders: {buttons:?}"
+    );
+    assert!(buttons.contains(&format!("sm:invite:{lab}")));
+    assert_eq!(
+        buttons.contains(&format!("sm:read:{lab}")),
+        host.store.server_unread(lab).0,
+        "reads are offered while something waits"
+    );
+    // The invitation is made, and its link copied with a notice.
+    let from = host.sent.len();
+    host.ac_choose(&format!("sm:invite:{lab}"));
+    assert!(matches!(
+        host.sent.last(),
+        Some(Command::CreateInvite { server, .. }) if *server == lab
+    ));
+    host.answer_account(from);
+    assert!(host
+        .ui
+        .notices
+        .iter()
+        .any(|notice| notice.title == "Enlace de invitación copiado"));
 }

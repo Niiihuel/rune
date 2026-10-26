@@ -42,7 +42,7 @@ pub const MUTED_FOREVER: Timestamp = Timestamp(i64::MAX);
 
 /// How a server notifies, or the direct conversations (`server: None`), as
 /// the account keeps it with the provider.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Notifications {
     pub server: Option<ServerId>,
     /// `None` takes the server's own default.
@@ -55,8 +55,26 @@ pub struct Notifications {
     pub suppress_roles: bool,
     /// Muted channels are left out of the list.
     pub hide_muted: bool,
+    /// Notifications are pushed to the account's phone too (on by default).
+    pub mobile_push: bool,
     /// The channels and categories set apart from the server.
     pub channels: Vec<ChannelNotifications>,
+}
+
+// Not derived: a server's phone pushes are on until the account turns them off.
+impl Default for Notifications {
+    fn default() -> Self {
+        Self {
+            server: None,
+            level: None,
+            muted_until: None,
+            suppress_everyone: false,
+            suppress_roles: false,
+            hide_muted: false,
+            mobile_push: true,
+            channels: Vec::new(),
+        }
+    }
 }
 
 /// How one channel or category notifies, set apart from its server.
@@ -78,6 +96,7 @@ pub enum NotificationChange {
     SuppressEveryone(bool),
     SuppressRoles(bool),
     HideMuted(bool),
+    MobilePush(bool),
     /// `None` takes the one above it again.
     ChannelLevel(ChannelId, Option<NotifyLevel>),
     ChannelMute(ChannelId, Option<Timestamp>),
@@ -113,6 +132,7 @@ impl Notifications {
             NotificationChange::SuppressEveryone(on) => self.suppress_everyone = on,
             NotificationChange::SuppressRoles(on) => self.suppress_roles = on,
             NotificationChange::HideMuted(on) => self.hide_muted = on,
+            NotificationChange::MobilePush(on) => self.mobile_push = on,
             NotificationChange::ChannelLevel(id, level) => {
                 channel(id, &|entry| entry.level = level)
             }
