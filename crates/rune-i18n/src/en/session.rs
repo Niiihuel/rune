@@ -346,6 +346,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "Couldn't connect to Discord. Check your internet connection.",
     ),
     ("Discord no respondió a tiempo.", "Discord didn't respond in time."),
+    (
+        "La transmisión se cortó demasiadas veces.",
+        "The stream dropped too many times.",
+    ),
     ("No se pudo iniciar el cliente HTTPS.", "Couldn't start the HTTPS client."),
     (
         "No tienes permiso para completar esta acción.",
@@ -737,10 +741,6 @@ pub(super) const ENTRIES: super::Entries = &[
     (
         "Discord no asignó un servidor de voz a tiempo.",
         "Discord didn't assign a voice server in time.",
-    ),
-    (
-        "Discord no conectó la transmisión a tiempo.",
-        "Discord didn't connect the stream in time.",
     ),
     (
         "Discord no te dejó transmitir en este canal.",

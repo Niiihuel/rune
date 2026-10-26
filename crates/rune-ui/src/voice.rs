@@ -441,6 +441,14 @@ pub(crate) fn update(
     if let Some(user) = number(id, ids::STOP_WATCHING) {
         return Some(video::stop_watching(ui, store, UserId(user)));
     }
+    // «Reintentar» on a stream that failed: watched again, from the start.
+    if let Some(user) = id
+        .strip_prefix("stream:")
+        .and_then(|rest| rest.strip_suffix(":retry"))
+        .and_then(|user| user.parse().ok())
+    {
+        return Some(video::watch(ui, store, UserId(user), now));
+    }
     // RUNE's own picker (windows-medios).
     if let Some(source) = id.strip_prefix(ids::SOURCE) {
         return Some(video::choose_source(ui, source));

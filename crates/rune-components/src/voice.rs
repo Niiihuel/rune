@@ -139,6 +139,11 @@ pub mod ids {
         format!("{STOP_WATCHING}{user}")
     }
 
+    /// «Reintentar» on `user`'s stream that failed: watched again.
+    pub fn retry_watching(user: u64) -> String {
+        format!("stream:{user}:retry")
+    }
+
     /// «Pantalla completa» on `user`'s stream: alone, the window full screen.
     pub fn fullscreen(user: u64) -> String {
         format!("vz:fullscreen:{user}")
@@ -462,7 +467,21 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                     .size(Some(width as f32 * scale), Some(height as f32 * scale)),
             )
         }
-        None => centered(line(&view.waiting, 14.0, look.muted)),
+        // A stream that failed says why, and offers to be watched again or closed.
+        None => match (&view.stream, view.actions.first()) {
+            (Some(_), Some((retry, label))) => centered(
+                Element::column(vec![
+                    line(&view.waiting, 14.0, look.muted),
+                    Element::row(vec![
+                        stream_text_button(retry, t(label), look),
+                        stream_text_button(&view.stop.0, t(view.stop.1), look),
+                    ])
+                    .gap(8.0),
+                ])
+                .gap(12.0),
+            ),
+            _ => centered(line(&view.waiting, 14.0, look.muted)),
+        },
     };
     let title = name_pill(view);
     let over = match &view.stream {
@@ -541,6 +560,21 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
     }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
+}
+
+/// A text button on a stream that failed, as the call panel's «Reintentar».
+fn stream_text_button(id: &str, label: &str, look: &Look) -> Element {
+    Button::new(id, label, look.sidebar_palette())
+        .variant(ButtonVariant::Secondary)
+        .sizing(ButtonSizing {
+            height: PANEL_BUTTON,
+            font_size: 14.0,
+            icon_size: 20.0,
+            horizontal_padding: 8.0,
+            inner_spacing: 6.0,
+        })
+        .radius(RadiusRole::Card)
+        .render()
 }
 
 /// What goes over a stream watched: its note as a badge at the top left,

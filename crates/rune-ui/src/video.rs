@@ -551,6 +551,8 @@ fn screen_note(ui: &Ui, store: &Store) -> String {
         (StreamPhase::Live, None) => t("En vivo").to_owned(),
         (StreamPhase::Paused, _) => t("En pausa").to_owned(),
         (StreamPhase::Reconnecting, _) => t("Reconectando…").to_owned(),
+        (StreamPhase::Waiting, _) => t("Detenida").to_owned(),
+        (StreamPhase::Failed(_), _) => t("Sin conexión").to_owned(),
         (StreamPhase::Ended(_), _) => t("Terminó").to_owned(),
     };
     let phase = match sharing.phase {
@@ -681,6 +683,11 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
     let server = store
         .channel(watching.channel)
         .and_then(|found| found.server);
+    // The owner still streams: the stream is never «Terminó» then.
+    let streaming = store
+        .voice_in(watching.channel)
+        .iter()
+        .any(|state| state.user == watching.owner && state.streaming);
     let (note, waiting) = match &watching.phase {
         StreamPhase::Connecting => (t("Conectando…"), t("Conectando con la transmisión…").into()),
         StreamPhase::Live => (t("En vivo"), t("Esperando video…").into()),
@@ -688,6 +695,25 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         StreamPhase::Reconnecting => (
             t("Reconectando…"),
             t("Reconectando con la transmisión…").into(),
+        ),
+        StreamPhase::Waiting => (
+            t("Detenida"),
+            t("La transmisión se detuvo. Se reanudará cuando vuelva a transmitir.").into(),
+        ),
+        StreamPhase::Failed(reason) => (
+            t("Sin conexión"),
+            format!(
+                "{} {}",
+                t("No se pudo conectar a la transmisión."),
+                t(reason)
+            ),
+        ),
+        // Over while its owner still streams: never «Terminó».
+        StreamPhase::Ended(reason) if streaming => (
+            t("Sin conexión"),
+            reason
+                .clone()
+                .unwrap_or_else(|| t("No se pudo conectar a la transmisión.").into()),
         ),
         StreamPhase::Ended(reason) => (
             t("Terminó"),
@@ -701,7 +727,12 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
     } else {
         note.to_owned()
     };
-    let ended = matches!(watching.phase, StreamPhase::Ended(_));
+    // Failed, or stopped by its owner: no picture to show.
+    let ended = matches!(
+        watching.phase,
+        StreamPhase::Ended(_) | StreamPhase::Waiting | StreamPhase::Failed(_)
+    );
+    let failed = matches!(watching.phase, StreamPhase::Failed(_));
     let owner = watching.owner;
     // Streams (transmisiones): what its tile offers, as the official client's.
     let sound = owner.0 | rune_media::mixer::STREAM_SOUND;
@@ -729,9 +760,20 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         ),
         frame: shown.filter(|_| !ended),
         waiting,
-        stop: (ids::stop_watching(watching.owner.0), t("Dejar de ver")),
+        stop: (
+            ids::stop_watching(watching.owner.0),
+            if failed {
+                t("Cerrar")
+            } else {
+                t("Dejar de ver")
+            },
+        ),
         note,
-        actions: Vec::new(),
+        actions: if failed {
+            vec![(ids::retry_watching(watching.owner.0), t("Reintentar"))]
+        } else {
+            Vec::new()
+        },
         stream: Some(tile),
         focused: ui.video.spotlight == Some(owner),
     }

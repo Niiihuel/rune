@@ -83,6 +83,17 @@ const REJOIN_DELAYS: [Duration; 3] = [
 pub(crate) const NO_SERVER: &str = es("Discord no asignó un servidor de voz a tiempo.");
 /// Connected this long, a later loss starts from the first attempt again.
 const REJOIN_STABLE: Duration = Duration::from_secs(30);
+/// A watched stream whose owner stopped is asked again at most
+/// [`REWATCH_MAX`] times in [`REWATCH_WINDOW`]; past that it fails, with a
+/// retry left to the person.
+const REWATCH_WINDOW: Duration = Duration::from_secs(300);
+const REWATCH_MAX: usize = 5;
+/// Why a watched stream that came and went too often is reported.
+const STREAM_FLAPPING: &str = es("La transmisión se cortó demasiadas veces.");
+/// Why a watched stream that never got its server is reported, if it fails.
+const STREAM_LATE: &str = es("Discord no respondió a tiempo.");
+/// Why a watched stream whose owner refused it failed.
+const NOT_ALLOWED: &str = es("No tienes permiso para ver esta transmisión.");
 /// The account's voice went on with another session: another device.
 pub(crate) const TAKEN_OVER: &str = es("Tu llamada siguió en otro dispositivo.");
 /// Voice states kept for the whole account.
@@ -308,6 +319,19 @@ struct Watch {
     paused: bool,
     /// The account paused its own.
     pause: bool,
+    /// The owner stopped streaming, still in the call: kept, and asked for
+    /// again when they stream again.
+    waiting: bool,
+    /// Retries spent in a row (see [`Call::retry`]).
+    attempts: usize,
+    /// Whether the connection is waiting [`REJOIN_DELAYS`] before it is asked again.
+    retrying: bool,
+    /// Since when it is connected, for [`REJOIN_STABLE`].
+    live_since: Option<Instant>,
+    /// When it was asked for again after its owner stopped.
+    rewatches: Vec<Instant>,
+    /// The service described its stream (STREAM_CREATE) since it was asked.
+    created: bool,
 }
 
 impl Watch {
@@ -324,6 +348,12 @@ impl Watch {
             deadline: Some(Instant::now() + JOIN_TIMEOUT),
             paused: false,
             pause: false,
+            waiting: false,
+            attempts: 0,
+            retrying: false,
+            live_since: None,
+            rewatches: Vec::new(),
+            created: false,
         }
     }
 
@@ -334,6 +364,24 @@ impl Watch {
         self.connection = None;
         self.phase = None;
         self.deadline = Some(Instant::now() + JOIN_TIMEOUT);
+        self.created = false;
+    }
+
+    /// A sign that Discord is still setting the stream up: the wait for its
+    /// server starts again, so a slow setup is not taken for a lost one.
+    fn progressed(&mut self) {
+        if self.deadline.is_some() && !self.retrying {
+            self.deadline = Some(Instant::now() + JOIN_TIMEOUT);
+        }
+    }
+
+    /// Nothing is awaited any more: its connection goes, and the service's
+    /// stream with it. The watch itself stays.
+    fn idle(&mut self) {
+        self.forget();
+        self.deadline = None;
+        self.retrying = false;
+        self.live_since = None;
     }
 }
 
@@ -1142,8 +1190,23 @@ impl Calls {
     }
 
     /// A dispatch about a stream: only those watched count, and the
-    /// account's own.
+    /// account's own. A stream described again while its owner's was
+    /// waiting is asked for again first.
     fn stream(&mut self, kind: &str, data: &Value) -> Vec<Event> {
+        let rewatched = match (kind, data["stream_key"].as_str()) {
+            ("STREAM_CREATE", Some(key)) => key
+                .rsplit(':')
+                .next()
+                .and_then(|id| id.parse().ok())
+                .map_or_else(Vec::new, |owner| self.rewatch(owner)),
+            _ => Vec::new(),
+        };
+        let mut events = rewatched;
+        events.extend(self.stream_of(kind, data));
+        events
+    }
+
+    fn stream_of(&mut self, kind: &str, data: &Value) -> Vec<Event> {
         let (Some(call), Some(key)) = (self.call.as_mut(), data["stream_key"].as_str()) else {
             return Vec::new();
         };
@@ -1163,6 +1226,10 @@ impl Calls {
         let Some(watch) = owner.and_then(|owner| call.slot(own, owner)) else {
             return Vec::new();
         };
+        // Waiting for its owner: nothing of theirs is connected to.
+        if watch.waiting && kind != "STREAM_CREATE" {
+            return Vec::new();
+        }
         let owner = UserId(watch.owner);
         let scope = if own { SHARE } else { STREAM };
         let phase = |phase| {
@@ -1176,8 +1243,10 @@ impl Calls {
             "STREAM_CREATE" => {
                 // Without its server yet: the official client waits for the
                 // next one (its deadline still runs).
+                watch.created = true;
                 if data["rtc_server_id"].is_null() {
                     note!(scope, "STREAM_CREATE without an rtc_server_id yet: waiting");
+                    watch.progressed();
                     return Vec::new();
                 }
                 let Ok(server) = wire::id(&data["rtc_server_id"]) else {
@@ -1218,6 +1287,7 @@ impl Calls {
                         "STREAM_SERVER_UPDATE with a null endpoint: waiting for the next one"
                     );
                     watch.connection = None;
+                    watch.progressed();
                     return Vec::new();
                 };
                 let url = connection::endpoint(endpoint);
@@ -1279,7 +1349,18 @@ impl Calls {
                     "STREAM_DELETE: reason {}",
                     reason.map_or_else(|| "none".into(), diag::reason)
                 );
-                self.watch_ended(own, owner.0, stream_ended(reason, own))
+                // Limits and the account's own end as they always did; a
+                // refusal fails the watch; anything else is the owner's doing
+                // while they are still in the call.
+                match reason {
+                    _ if own
+                        || matches!(reason, Some("stream_full" | "safety_guild_rate_limited")) =>
+                    {
+                        self.watch_ended(own, owner.0, stream_ended(reason, own))
+                    }
+                    Some("unauthorized") => self.fail(owner.0, NOT_ALLOWED),
+                    _ => self.stopped(owner.0),
+                }
             }
         }
     }
@@ -1376,6 +1457,7 @@ impl Calls {
             (None, None) => {}
         }
         if Some(user) != me {
+            events.extend(self.owner_voice(user, state.as_ref()));
             return events;
         }
         let Some(call) = self.call.as_mut() else {
@@ -1726,7 +1808,28 @@ impl Calls {
     /// account's own, `own`) had to say, as events.
     fn watched(&mut self, own: bool, owner: u64, watched: Watched) -> Vec<Event> {
         let reason = match watched {
-            Watched::Late => es("Discord no conectó la transmisión a tiempo."),
+            Watched::Late => {
+                // The wait before asking again is over.
+                if self
+                    .call
+                    .as_ref()
+                    .and_then(|call| call.watches.iter().find(|watch| watch.owner == owner))
+                    .is_some_and(|watch| watch.retrying)
+                {
+                    return self.ask_again(owner);
+                }
+                self.note_late(own, owner);
+                if !own {
+                    return self.retry(owner, STREAM_LATE);
+                }
+                STREAM_LATE
+            }
+            // A watched stream whose connection failed is asked again, unless
+            // the failure is a fatal one (a close, a kick).
+            Watched::Ended(Err(reason)) if !own && connection::recoverable(reason) => {
+                return self.retry(owner, reason);
+            }
+            Watched::Ended(Err(reason)) if !own => return self.fail(owner, reason),
             Watched::Ended(result) => result.err().unwrap_or(es("La transmisión terminó.")),
             Watched::Phase(phase) => {
                 let Some(call) = self.call.as_mut() else {
@@ -1736,6 +1839,9 @@ impl Calls {
                 let Some(watch) = call.slot(own, owner) else {
                     return Vec::new();
                 };
+                if phase.as_ref().is_some_and(CallPhase::is_connected) {
+                    watch.live_since.get_or_insert_with(Instant::now);
+                }
                 let phase = match phase {
                     // The connection went with its phases; its result follows.
                     None => {
@@ -1757,6 +1863,165 @@ impl Calls {
             }
         };
         self.watch_ended(own, owner, Some(t(reason).into()))
+    }
+
+    /// Why a stream never got its server in time, as booleans: which of its
+    /// setup was seen (no ids).
+    fn note_late(&self, own: bool, owner: u64) {
+        let Some(call) = self.call.as_ref() else {
+            return;
+        };
+        let watch = if own {
+            call.share.as_ref()
+        } else {
+            call.watches.iter().find(|watch| watch.owner == owner)
+        };
+        let Some(watch) = watch else {
+            return;
+        };
+        note!(
+            if own { SHARE } else { STREAM },
+            "no stream server in time: STREAM_CREATE seen {}, rtc server {}, endpoint {}, voice session {}",
+            watch.created,
+            watch.rtc.is_some(),
+            watch.server.is_some(),
+            call.session.is_some()
+        );
+    }
+
+    /// A watched stream's connection failed: it is asked again after a wait of
+    /// 1, 3 and then 10 s; past those, it fails.
+    fn retry(&mut self, owner: u64, reason: &str) -> Vec<Event> {
+        let Some(call) = self.call.as_mut() else {
+            return Vec::new();
+        };
+        let channel = call.channel;
+        let Some(watch) = call.watches.iter_mut().find(|watch| watch.owner == owner) else {
+            return Vec::new();
+        };
+        if watch
+            .live_since
+            .take()
+            .is_some_and(|at| at.elapsed() >= REJOIN_STABLE)
+        {
+            watch.attempts = 0;
+        }
+        if let Some(delay) = REJOIN_DELAYS.get(watch.attempts).copied() {
+            watch.attempts += 1;
+            watch.idle();
+            watch.deadline = Some(Instant::now() + delay);
+            watch.retrying = true;
+            return vec![Event::StreamPhase {
+                channel,
+                owner: UserId(owner),
+                phase: StreamPhase::Reconnecting,
+            }];
+        }
+        self.fail(owner, reason)
+    }
+
+    /// The wait before a retry is over: the stream is asked for again (op 21)
+    /// and its server awaited anew.
+    fn ask_again(&mut self, owner: u64) -> Vec<Event> {
+        let Some(call) = self.call.as_mut() else {
+            return Vec::new();
+        };
+        let Some(watch) = call.watches.iter_mut().find(|watch| watch.owner == owner) else {
+            return Vec::new();
+        };
+        watch.retrying = false;
+        watch.forget();
+        watch.request = watch.request.wrapping_add(1);
+        self.tell();
+        Vec::new()
+    }
+
+    /// The watch gave up with `reason`: it is kept, Failed, until it is
+    /// watched again or let go.
+    fn fail(&mut self, owner: u64, reason: &str) -> Vec<Event> {
+        let Some(call) = self.call.as_mut() else {
+            return Vec::new();
+        };
+        let channel = call.channel;
+        let Some(watch) = call.watches.iter_mut().find(|watch| watch.owner == owner) else {
+            return Vec::new();
+        };
+        watch.idle();
+        vec![Event::StreamPhase {
+            channel,
+            owner: UserId(owner),
+            phase: StreamPhase::Failed(t(reason).into()),
+        }]
+    }
+
+    /// The owner stopped streaming but is still in the call: the watch waits
+    /// for them, and is kept (no op 19).
+    fn stopped(&mut self, owner: u64) -> Vec<Event> {
+        let Some(call) = self.call.as_mut() else {
+            return Vec::new();
+        };
+        let channel = call.channel;
+        let Some(watch) = call.watches.iter_mut().find(|watch| watch.owner == owner) else {
+            return Vec::new();
+        };
+        if watch.waiting {
+            return Vec::new();
+        }
+        watch.waiting = true;
+        watch.idle();
+        vec![Event::StreamPhase {
+            channel,
+            owner: UserId(owner),
+            phase: StreamPhase::Waiting,
+        }]
+    }
+
+    /// A waiting watch's owner streams again: it is asked for again (op 21),
+    /// within the cap; past it the watch fails, kept for a retry.
+    fn rewatch(&mut self, owner: u64) -> Vec<Event> {
+        let Some(call) = self.call.as_mut() else {
+            return Vec::new();
+        };
+        let channel = call.channel;
+        let Some(watch) = call
+            .watches
+            .iter_mut()
+            .find(|watch| watch.owner == owner && watch.waiting)
+        else {
+            return Vec::new();
+        };
+        let now = Instant::now();
+        watch
+            .rewatches
+            .retain(|at| now.duration_since(*at) < REWATCH_WINDOW);
+        if watch.rewatches.len() >= REWATCH_MAX {
+            watch.waiting = false;
+            return self.fail(owner, STREAM_FLAPPING);
+        }
+        watch.rewatches.push(now);
+        watch.waiting = false;
+        watch.forget();
+        watch.request = watch.request.wrapping_add(1);
+        self.tell();
+        vec![Event::StreamPhase {
+            channel,
+            owner: UserId(owner),
+            phase: StreamPhase::Connecting,
+        }]
+    }
+
+    /// Someone else's voice state, as it bears on their watched stream: it
+    /// waits while they do not stream, comes back when they do, and ends when
+    /// they leave the call.
+    fn owner_voice(&mut self, user: UserId, state: Option<&VoiceState>) -> Vec<Event> {
+        let Some(call) = self.call.as_ref() else {
+            return Vec::new();
+        };
+        match state.filter(|state| state.channel == call.channel) {
+            Some(state) if state.streaming => self.rewatch(user.0),
+            Some(_) => self.stopped(user.0),
+            None => self.watch_ended(false, user.0, None),
+        }
     }
 
     /// Ask the call in `channel` for the code the account compares with

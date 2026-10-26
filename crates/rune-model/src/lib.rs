@@ -1247,6 +1247,11 @@ pub enum StreamPhase {
     Paused,
     /// Its connection dropped; trying again.
     Reconnecting,
+    /// Its owner stopped streaming but is still in the call: it comes back
+    /// by itself when they stream again.
+    Waiting,
+    /// Could not be reached after its retries; why. Asked again by hand.
+    Failed(String),
     /// Over, with the reason when it was not the account's doing.
     Ended(Option<String>),
 }

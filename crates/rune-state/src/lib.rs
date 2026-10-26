@@ -804,6 +804,28 @@ impl Store {
             Event::VoiceChanged(state) => {
                 let channel = state.channel;
                 self.private_call_joined(state.user, channel);
+                // A watched stream waits while its owner is not streaming, and
+                // connects again when they do (the provider asks for it again).
+                for watching in self
+                    .watching
+                    .iter_mut()
+                    .filter(|watching| watching.owner == state.user && watching.channel == channel)
+                {
+                    let next = match (&watching.phase, state.streaming) {
+                        (StreamPhase::Waiting, true) => Some(StreamPhase::Connecting),
+                        (
+                            StreamPhase::Connecting
+                            | StreamPhase::Live
+                            | StreamPhase::Paused
+                            | StreamPhase::Reconnecting,
+                            false,
+                        ) => Some(StreamPhase::Waiting),
+                        _ => None,
+                    };
+                    if let Some(next) = next {
+                        watching.phase = next;
+                    }
+                }
                 let before = match self.voice.iter_mut().find(|known| known.user == state.user) {
                     Some(known) => Some(std::mem::replace(known, state).channel),
                     None => {

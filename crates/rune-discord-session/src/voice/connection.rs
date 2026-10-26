@@ -100,6 +100,28 @@ pub(crate) const CUT: &str = es("Se cortó la conexión de voz.");
 const UDP_SILENCE: Duration = Duration::from_secs(15);
 /// Closed with 4014: kicked, moved or the channel deleted. Never rejoined.
 pub(crate) const KICKED: &str = es("Discord te desconectó de la llamada.");
+/// The voice server did not answer the setup in time, or did not resume it.
+pub(crate) const SETUP_NO_ANSWER: &str = es("El servidor de voz no respondió.");
+pub(crate) const SETUP_NO_RESUME: &str = es("El servidor de voz no retomó la llamada.");
+/// The voice server restarted (close 4015): the session may be resumed.
+pub(crate) const RESTARTED: &str = es("El servidor de voz se reinició.");
+/// The voice socket could not be opened.
+pub(crate) const FAILED: &str = es("No se pudo conectar con el servidor de voz.");
+
+/// Whether a connection that ended with `reason` may be asked again: a lost,
+/// silent or cut path, or a setup that timed out. Fatal closes and kicks are not.
+pub(crate) fn recoverable(reason: &str) -> bool {
+    [
+        LOST,
+        NO_ANSWER,
+        CUT,
+        FAILED,
+        SETUP_NO_ANSWER,
+        SETUP_NO_RESUME,
+        RESTARTED,
+    ]
+    .contains(&reason)
+}
 /// IP discovery is asked again this often until [`DISCOVERY_TIMEOUT`]: one
 /// lost datagram must not end the call.
 const DISCOVERY_RETRY: Duration = Duration::from_secs(1);
@@ -395,7 +417,7 @@ enum Ended {
 fn close_reason(code: u16) -> Ended {
     match code {
         // Voice server crashed: the session survives.
-        4015 => Ended::Dropped(es("El servidor de voz se reinició.")),
+        4015 => Ended::Dropped(RESTARTED),
         4014 => Ended::Fatal(KICKED),
         4006 | 4009 => Ended::Fatal(es("La sesión de voz terminó. Vuelve a entrar.")),
         4011 | 4012 | 4016 => Ended::Fatal(es("El servidor de voz no aceptó el cifrado de RUNE.")),
@@ -828,7 +850,6 @@ fn transient(error: &std::io::Error) -> bool {
 }
 
 async fn open(scope: &str, url: &str) -> Result<Socket, &'static str> {
-    const FAILED: &str = es("No se pudo conectar con el servidor de voz.");
     let mut request = url.into_client_request().map_err(|_| FAILED)?;
     crate::browser::socket_headers(&mut request);
     let config = WebSocketConfig::default()
@@ -1006,9 +1027,9 @@ impl Connection<'_> {
                 SETUP_TIMEOUT.as_secs()
             );
             return Err(if self.resuming {
-                Ended::Dropped(es("El servidor de voz no retomó la llamada."))
+                Ended::Dropped(SETUP_NO_RESUME)
             } else if self.transport.is_none() {
-                Ended::Fatal(es("El servidor de voz no respondió."))
+                Ended::Fatal(SETUP_NO_ANSWER)
             } else {
                 Ended::Fatal(es("No se pudo acordar el cifrado de la llamada."))
             });

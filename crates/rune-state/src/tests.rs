@@ -1822,6 +1822,53 @@ fn a_stream_is_watched_only_in_the_call_and_goes_with_it() {
 }
 
 #[test]
+fn a_watched_stream_waits_while_its_owner_is_not_streaming_and_connects_again_when_they_do() {
+    use rune_model::StreamPhase;
+    let mut store = ready();
+    let now = Instant::now();
+    store.begin_call(VOICE, false, false);
+    store.begin_watch(VOICE, ADA);
+    store.apply(
+        Event::StreamPhase {
+            channel: VOICE,
+            owner: ADA,
+            phase: StreamPhase::Live,
+        },
+        now,
+    );
+    let voice = |streaming| VoiceState {
+        user: ADA,
+        channel: VOICE,
+        muted: false,
+        deafened: false,
+        speaking: false,
+        streaming,
+        server_muted: false,
+        server_deafened: false,
+        camera: false,
+        suppressed: false,
+        speak_request: None,
+    };
+    // Stopped, still in the call: waiting, the entry kept.
+    store.apply(Event::VoiceChanged(voice(false)), now);
+    assert_eq!(store.watching()[0].phase, StreamPhase::Waiting);
+    // Streaming again: connecting, and the provider's connection follows.
+    store.apply(Event::VoiceChanged(voice(true)), now);
+    assert_eq!(store.watching()[0].phase, StreamPhase::Connecting);
+    // A failed stream is not changed by its owner's voice state.
+    store.apply(
+        Event::StreamPhase {
+            channel: VOICE,
+            owner: ADA,
+            phase: StreamPhase::Failed("No respondió.".into()),
+        },
+        now,
+    );
+    store.apply(Event::VoiceChanged(voice(false)), now);
+    assert!(matches!(store.watching()[0].phase, StreamPhase::Failed(_)));
+}
+
+#[test]
 fn the_own_screen_is_tracked_apart_from_the_stream_watched_and_goes_with_the_call() {
     use rune_model::StreamPhase;
     let mut store = ready();

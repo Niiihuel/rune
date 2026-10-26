@@ -1733,7 +1733,7 @@ async fn watching_asks_the_gateway_connects_to_the_stream_s_server_and_ends_with
         [Event::StreamPhase { phase: StreamPhase::Ended(Some(reason)), .. }] if reason.contains("llena")
     ));
     assert!(wanted.borrow_and_update().unwrap().stream_keys().is_empty());
-    // Its owner stopping it ends it without a reason; leaving lets go of it.
+    // Its owner stopping it leaves it waiting for them, still wanted; leaving lets go of it.
     calls
         .watch(&snapshot, ChannelId(CHANNEL), UserId(BOB))
         .unwrap();
@@ -1747,10 +1747,11 @@ async fn watching_asks_the_gateway_connects_to_the_stream_s_server_and_ends_with
     assert!(matches!(
         &events[..],
         [Event::StreamPhase {
-            phase: StreamPhase::Ended(None),
+            phase: StreamPhase::Waiting,
             ..
         }]
     ));
+    assert_eq!(wanted.borrow_and_update().unwrap().stream_keys().len(), 1);
     calls
         .watch(&snapshot, ChannelId(CHANNEL), UserId(BOB))
         .unwrap();
@@ -3496,3 +3497,237 @@ async fn a_gateway_outage_is_waited_out_and_the_call_rejoins_when_it_is_back() {
 mod private;
 // Voice protocol (voz-protocolo).
 mod protocol;
+
+/// Alice in a call, Bob streaming in it and watched by her. The call's own
+/// clock is taken away, so the stream's deadline is the only one there is.
+fn bob_watched(calls: &mut Calls, snapshot: &mut Snapshot) -> watch::Receiver<Option<VoiceWant>> {
+    let wanted = calls.gateway();
+    calls.dispatch(
+        snapshot,
+        "VOICE_STATE_UPDATE",
+        &json!({
+            "guild_id": GUILD.to_string(), "channel_id": CHANNEL.to_string(),
+            "user_id": BOB.to_string(), "self_stream": true,
+        }),
+    );
+    calls
+        .join(snapshot, ChannelId(CHANNEL), false, false)
+        .unwrap();
+    calls
+        .watch(snapshot, ChannelId(CHANNEL), UserId(BOB))
+        .unwrap();
+    calls.dispatch(
+        snapshot,
+        "VOICE_STATE_UPDATE",
+        &own("SYNTHETIC_VOICE_SESSION", CHANNEL),
+    );
+    calls.call.as_mut().unwrap().deadline = None;
+    wanted
+}
+
+/// The stream phases among `events`.
+fn phases(events: &[Event]) -> Vec<rune_model::StreamPhase> {
+    events
+        .iter()
+        .filter_map(|event| match event {
+            Event::StreamPhase { phase, .. } => Some(phase.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_watched_stream_never_described_is_asked_again_then_fails_and_stays_watched() {
+    use rune_model::StreamPhase;
+    let (port, _link) = voice_link();
+    let (video, _frames) = rune_provider::video::video_link();
+    let mut calls = Calls::new(Some(port));
+    calls.video = Some(video);
+    let mut snapshot = snapshot();
+    let wanted = bob_watched(&mut calls, &mut snapshot);
+    // Each wait for its server is 15 s, each retry waits 1, 3 and 10 s: four
+    // waits in all, the last one failing. It is never let go of meanwhile.
+    let mut seen = Vec::new();
+    while !seen
+        .iter()
+        .any(|phase| matches!(phase, StreamPhase::Failed(_)))
+    {
+        let events = timeout(Duration::from_secs(120), calls.next())
+            .await
+            .expect("the stream keeps progressing");
+        seen.extend(phases(&events));
+    }
+    assert_eq!(seen.len(), 4, "{seen:?}");
+    assert!(seen[..3]
+        .iter()
+        .all(|phase| *phase == StreamPhase::Reconnecting));
+    assert!(
+        matches!(&seen[3], StreamPhase::Failed(reason) if reason.contains("respondió")),
+        "{seen:?}"
+    );
+    // Asked for again three times, and still wanted: no op 19.
+    assert_eq!(
+        wanted.borrow().unwrap().stream_keys(),
+        [("guild:40:30:2".to_owned(), 3)]
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_stream_still_being_set_up_keeps_its_wait_for_its_server() {
+    use rune_model::StreamPhase;
+    let (port, _link) = voice_link();
+    let (video, _frames) = rune_provider::video::video_link();
+    let mut calls = Calls::new(Some(port));
+    calls.video = Some(video);
+    let mut snapshot = snapshot();
+    bob_watched(&mut calls, &mut snapshot);
+    // Discord answers without its server, 10 s in: the wait starts again.
+    tokio::time::advance(Duration::from_secs(10)).await;
+    calls.dispatch(
+        &mut snapshot,
+        "STREAM_CREATE",
+        &json!({"stream_key": "guild:40:30:2", "rtc_server_id": null, "paused": false}),
+    );
+    // Not yet 15 s after that sign.
+    assert!(timeout(Duration::from_secs(10), calls.next())
+        .await
+        .is_err());
+    let events = timeout(Duration::from_secs(10), calls.next())
+        .await
+        .expect("expired");
+    assert_eq!(phases(&events), [StreamPhase::Reconnecting]);
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_stream_whose_owner_stopped_waits_and_comes_back_when_they_stream_again() {
+    use rune_model::StreamPhase;
+    let (port, _link) = voice_link();
+    let (video, _frames) = rune_provider::video::video_link();
+    let mut calls = Calls::new(Some(port));
+    calls.video = Some(video);
+    let mut snapshot = snapshot();
+    let wanted = bob_watched(&mut calls, &mut snapshot);
+    let key = "guild:40:30:2";
+    let stream_ended = json!({"stream_key": key, "reason": "stream_ended"});
+    // Discord ends it because the owner stopped: waiting, kept, still wanted.
+    let events = calls
+        .dispatch(&mut snapshot, "STREAM_DELETE", &stream_ended)
+        .unwrap();
+    assert_eq!(phases(&events), [StreamPhase::Waiting]);
+    assert_eq!(
+        wanted.borrow().unwrap().stream_keys(),
+        [(key.to_owned(), 0)]
+    );
+    // Their voice state says they stream again: asked for again at once.
+    let streaming = json!({
+        "guild_id": GUILD.to_string(), "channel_id": CHANNEL.to_string(),
+        "user_id": BOB.to_string(), "self_stream": true,
+    });
+    let events = calls
+        .dispatch(&mut snapshot, "VOICE_STATE_UPDATE", &streaming)
+        .unwrap();
+    assert!(phases(&events).contains(&StreamPhase::Connecting));
+    assert_eq!(
+        wanted.borrow().unwrap().stream_keys(),
+        [(key.to_owned(), 1)]
+    );
+    // Later, the owner stops again; a new STREAM_CREATE of the key brings it
+    // back at once, however soon.
+    calls.dispatch(&mut snapshot, "STREAM_DELETE", &stream_ended);
+    let events = calls
+        .dispatch(
+            &mut snapshot,
+            "STREAM_CREATE",
+            &json!({"stream_key": key, "rtc_server_id": "901", "paused": false}),
+        )
+        .unwrap();
+    assert!(phases(&events).contains(&StreamPhase::Connecting));
+    assert_eq!(
+        wanted.borrow().unwrap().stream_keys(),
+        [(key.to_owned(), 2)]
+    );
+    // Leaving the call by its owner ends it.
+    let left =
+        json!({"guild_id": GUILD.to_string(), "channel_id": null, "user_id": BOB.to_string()});
+    let events = calls
+        .dispatch(&mut snapshot, "VOICE_STATE_UPDATE", &left)
+        .unwrap();
+    assert!(phases(&events).contains(&StreamPhase::Ended(None)));
+    assert!(wanted.borrow().unwrap().stream_keys().is_empty());
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_stream_that_comes_and_goes_too_often_fails_and_waits_for_a_retry() {
+    use rune_model::StreamPhase;
+    let (port, _link) = voice_link();
+    let (video, _frames) = rune_provider::video::video_link();
+    let mut calls = Calls::new(Some(port));
+    calls.video = Some(video);
+    let mut snapshot = snapshot();
+    let wanted = bob_watched(&mut calls, &mut snapshot);
+    let key = "guild:40:30:2";
+    let stream_ended = json!({"stream_key": key, "reason": "stream_ended"});
+    let streaming = json!({
+        "guild_id": GUILD.to_string(), "channel_id": CHANNEL.to_string(),
+        "user_id": BOB.to_string(), "self_stream": true,
+    });
+    // Five comebacks in a row are followed at once.
+    for _ in 0..5 {
+        calls.dispatch(&mut snapshot, "STREAM_DELETE", &stream_ended);
+        let events = calls
+            .dispatch(&mut snapshot, "VOICE_STATE_UPDATE", &streaming)
+            .unwrap();
+        assert!(phases(&events).contains(&StreamPhase::Connecting));
+    }
+    // The sixth within five minutes fails, kept for the person's retry.
+    calls.dispatch(&mut snapshot, "STREAM_DELETE", &stream_ended);
+    let events = calls
+        .dispatch(&mut snapshot, "VOICE_STATE_UPDATE", &streaming)
+        .unwrap();
+    assert!(phases(&events)
+        .iter()
+        .any(|phase| matches!(phase, StreamPhase::Failed(_))));
+    assert_eq!(wanted.borrow().unwrap().stream_keys().len(), 1);
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_unauthorized_stream_fails_and_watching_it_again_starts_over() {
+    use rune_model::StreamPhase;
+    let (port, _link) = voice_link();
+    let (video, _frames) = rune_provider::video::video_link();
+    let mut calls = Calls::new(Some(port));
+    calls.video = Some(video);
+    let mut snapshot = snapshot();
+    let wanted = bob_watched(&mut calls, &mut snapshot);
+    let key = "guild:40:30:2";
+    let events = calls
+        .dispatch(
+            &mut snapshot,
+            "STREAM_DELETE",
+            &json!({"stream_key": key, "reason": "unauthorized"}),
+        )
+        .unwrap();
+    assert!(matches!(
+        phases(&events).as_slice(),
+        [StreamPhase::Failed(reason)] if reason.contains("permiso")
+    ));
+    // Kept, not let go: the key stays wanted (no op 19).
+    assert_eq!(
+        wanted.borrow().unwrap().stream_keys(),
+        [(key.to_owned(), 0)]
+    );
+    // «Reintentar» is watching it again, from the start.
+    let events = calls
+        .watch(&snapshot, ChannelId(CHANNEL), UserId(BOB))
+        .unwrap();
+    assert!(phases(&events).contains(&StreamPhase::Connecting));
+}
+
+#[test]
+fn only_closes_and_kicks_are_fatal_to_a_watched_stream() {
+    use super::connection::{recoverable, CUT, FAILED, KICKED, LOST, NO_ANSWER};
+    assert!(recoverable(LOST) && recoverable(NO_ANSWER) && recoverable(CUT));
+    assert!(recoverable(FAILED));
+    assert!(!recoverable(KICKED));
+    assert!(!recoverable("Discord rechazó la sesión de voz."));
+}

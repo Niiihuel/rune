@@ -1145,6 +1145,8 @@ impl Gateway {
                                 state.members = None;
                                 state.list_sync = None;
                                 state.list_retries = 0;
+                                // The streams asked for went with the old session: they are asked again (op 20, 18, 22).
+                                state.voice = state.voice.map(|told| VoiceWant { streams: told.streams.map(|_| None), share: None, ..told });
                                 note!(GATEWAY, "READY: new session");
                                 emit(output, GatewayEvent::Ready(data))?;
                                 state.ready_at = Some(Instant::now());

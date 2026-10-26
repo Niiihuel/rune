@@ -1818,3 +1818,79 @@ fn a_tile_under_the_pointer_plays_the_frame_over_their_face() {
         "nothing moves with reduced motion"
     );
 }
+
+#[test]
+fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its_owner_streams() {
+    use rune_model::StreamPhase;
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let other = host.vz_other(room);
+    let mut state = host
+        .store
+        .voice_in(room)
+        .into_iter()
+        .find(|state| state.user == other)
+        .cloned()
+        .unwrap();
+    state.streaming = true;
+    host.event(Event::VoiceChanged(state.clone()));
+    let watch = ids::watch(other.0);
+    host.click(&watch);
+    let texts = |host: &mut Host| -> Vec<String> {
+        host.frame()
+            .commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::Text { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    // Failed: the picture says why, with «Reintentar» (watched again) and «Cerrar».
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: other,
+        phase: StreamPhase::Failed("Discord no respondió a tiempo.".into()),
+    });
+    let retry = ids::retry_watching(other.0);
+    assert!(host.vz_usable(&retry) && host.vz_usable(&ids::stop_watching(other.0)));
+    let shown = texts(&mut host);
+    assert!(
+        shown.iter().any(|text| text == "Reintentar") && shown.iter().any(|text| text == "Cerrar"),
+        "{shown:?}"
+    );
+    assert!(shown
+        .iter()
+        .any(|text| text.starts_with("No se pudo conectar a la transmisión.")));
+    // Watched again: let go of the failed one first, then watched.
+    let from = host.sent.len();
+    host.click(&retry);
+    assert!(matches!(
+        host.sent[from..].last(),
+        Some(Command::WatchStream { channel, owner }) if *channel == room && *owner == other
+    ));
+    // Stopped by its owner while they are in the call: waiting, not ended.
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: other,
+        phase: StreamPhase::Waiting,
+    });
+    let shown = texts(&mut host);
+    assert!(
+        shown.iter().any(|text| text.starts_with("Detenida")),
+        "{shown:?}"
+    );
+    // Ended while the owner still streams: never «Terminó».
+    host.event(Event::StreamPhase {
+        channel: room,
+        owner: other,
+        phase: StreamPhase::Ended(None),
+    });
+    let shown = texts(&mut host);
+    assert!(
+        shown.iter().any(|text| text.starts_with("Sin conexión"))
+            && !shown.iter().any(|text| text.starts_with("Terminó")),
+        "{shown:?}"
+    );
+}

@@ -1332,3 +1332,74 @@ async fn the_account_starts_with_its_status_and_presence_changes_are_paced() {
     task.abort();
     let _ = task.await;
 }
+
+#[tokio::test]
+async fn a_new_session_asks_the_watched_stream_again() {
+    let (listener, gateway) = fixture().await;
+    let (tx, mut rx) = mpsc::channel(32);
+    let (want, wanted) = watch::channel(None);
+    let task = tokio::spawn(async move {
+        gateway
+            .run_watching(
+                secret(),
+                tx,
+                watch::channel(None).1,
+                wanted,
+                watch::channel(None).1,
+                watch::channel(None).1,
+                watch::channel(None).1,
+                watch::channel(None).1,
+                watch::channel(None).1,
+                Arc::default(),
+            )
+            .await
+    });
+    let mut socket = peer(&listener, 60_000).await;
+    assert_eq!(read(&mut socket).await["op"], 2);
+    write(&mut socket, ready()).await;
+    let _ = event(&mut rx).await;
+    // Watching 77 in the call: op 4, then op 20.
+    want.send_replace(Some(VoiceWant {
+        guild: Some(40),
+        channel: Some(30),
+        muted: false,
+        deafened: false,
+        request: 1,
+        streams: std::array::from_fn(|at| (at == 0).then_some((77, 0))),
+        share: None,
+        share_request: 0,
+        camera: false,
+        share_paused: false,
+    }));
+    assert_eq!(beyond_heartbeats(&mut socket).await["op"], 4);
+    let mut message = beyond_heartbeats(&mut socket).await;
+    while message["op"] == 43 {
+        message = beyond_heartbeats(&mut socket).await;
+    }
+    assert_eq!(
+        message,
+        json!({"op": 20, "d": {"stream_key": "guild:40:30:77"}})
+    );
+    // A new session (not resumed): what was sent went with the old one, so the
+    // stream is asked for again, op 20 once more, and nothing else changed.
+    write(&mut socket, json!({"op":9,"d":false})).await;
+    assert!(matches!(
+        event(&mut rx).await,
+        GatewayEvent::Reconnecting { .. }
+    ));
+    let mut socket = peer(&listener, 60_000).await;
+    assert_eq!(read(&mut socket).await["op"], 2);
+    write(&mut socket, ready()).await;
+    let _ = event(&mut rx).await;
+    // The call's start times are asked for first (op 43), as on any READY.
+    let mut message = beyond_heartbeats(&mut socket).await;
+    while message["op"] == 43 {
+        message = beyond_heartbeats(&mut socket).await;
+    }
+    assert_eq!(
+        message,
+        json!({"op": 20, "d": {"stream_key": "guild:40:30:77"}})
+    );
+    task.abort();
+    let _ = task.await;
+}
