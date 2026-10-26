@@ -437,7 +437,7 @@ pub(crate) fn update(
     if let Some(user) = number(id, "vz:window:") {
         return Some(video::pop_out(ui, UserId(user)));
     }
-    if let Some(user) = number(id, ids::STOP_WATCHING) {
+    if let Some(user) = number(id, ids::STOP_WATCHING).or_else(|| number(id, ids::CLOSE_STREAM)) {
         return Some(video::stop_watching(ui, store, UserId(user)));
     }
     // «Reintentar» on a stream that failed: watched again, from the start.
@@ -667,6 +667,7 @@ pub(crate) fn participant(
             .find(|(shown, _)| *shown == user)
             .and_then(|(_, live)| live.frame())
             .filter(|_| !ui.prefs.video_hidden(user.0)),
+        camera_on: false,
         thumbnail: None,
         image: ui.picture(store.avatar_in(server, user)),
         decoration: ui.picture(
@@ -698,6 +699,7 @@ fn people(ui: &Ui, store: &Store, channel: ChannelId, look: &Look) -> Vec<Partic
             server_deafened: state.server_deafened,
             // The account's own shows on its preview: nothing to watch here.
             streaming: state.streaming && Some(state.user) != me,
+            camera_on: state.camera,
             thumbnail: video::thumbnail(ui, store, state),
             ..person(state.user, state.muted, state.deafened, state.speaking)
         })

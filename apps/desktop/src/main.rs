@@ -54,7 +54,7 @@ use rune_core::{
     Backoff, Client, ClientConfig, Deadlines, StorageTicket, StorageWriteError, Update,
 };
 use rune_i18n::{es, t, tr};
-use rune_model::ChannelId;
+use rune_model::{ChannelId, StreamPhase};
 use rune_provider::mock::{wall_clock, MockConfig, MockControl, MockProvider};
 use rune_provider::{AuthenticationState, Provider};
 use rune_state::Store;
@@ -100,6 +100,8 @@ struct Arguments {
     capture_invitation: bool,
     /// Join the simulated club and capture what it asks (rules and onboarding).
     capture_onboarding: bool,
+    /// Join the open voice channel and watch someone who is not streaming: the stage shows the stream over.
+    capture_stream_ended: bool,
     capture_rich: bool,
     /// Cards with pictures after the latest message.
     capture_media: bool,
@@ -312,6 +314,7 @@ fn parse_arguments(
                 )
             }
             "--capture-context" => parsed.capture_context = true,
+            "--capture-stream-ended" => parsed.capture_stream_ended = true,
             "--capture-connection" => {
                 parsed.capture_connection = Some(match arguments.next().as_deref() {
                     Some("connecting") => rune_provider::ConnectionState::Connecting,
@@ -391,6 +394,7 @@ fn parse_arguments(
         || parsed.capture_voice
         || parsed.capture_search.is_some()
         || parsed.capture_context
+        || parsed.capture_stream_ended
         || parsed.capture_connection.is_some()
         || parsed.capture_splash.is_some())
         && (parsed.provider != ProviderChoice::Mock || parsed.screenshot.is_none())
@@ -880,6 +884,15 @@ enum DropCapture {
     Rejected,
 }
 
+/// The steps of `--capture-stream-ended`: join the open voice channel, watch
+/// someone who is not streaming, then wait for the answer.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum StreamEnded {
+    Join,
+    Watch,
+    Settle,
+}
+
 /// A capture of the window asked for with `--screenshot`.
 struct Capture {
     path: PathBuf,
@@ -925,6 +938,8 @@ struct Capture {
     // Rules and onboarding (2026-10-18).
     /// `--capture-onboarding`: whether the club was joined yet.
     onboarding: Option<bool>,
+    /// `--capture-stream-ended`: where the steps that show a stream over stand.
+    stream_ended: Option<StreamEnded>,
 }
 
 /// Whether the provider's own login window just closed: completed (on to
@@ -1347,6 +1362,7 @@ impl App {
                 splash_at: arguments.capture_splash.map(|after| started + after),
                 connection: arguments.capture_connection,
                 onboarding: arguments.capture_onboarding.then_some(false),
+                stream_ended: arguments.capture_stream_ended.then_some(StreamEnded::Join),
             }),
             parent: window::Parent::default(),
             updates,
@@ -3436,6 +3452,88 @@ impl App {
 
     /// Set the state asked for once the provider is ready, then save the
     /// window a moment later and close.
+    /// `--capture-stream-ended`: joins the channel the capture opened, watches
+    /// someone not streaming there, and holds the screenshot until the answer.
+    fn capture_stream_ended(&mut self, ctx: &egui::Context, now: Instant) {
+        let Some(step) = self
+            .capture
+            .as_ref()
+            .and_then(|capture| capture.stream_ended)
+        else {
+            return;
+        };
+        let Some(channel) = self.ui.channel() else {
+            return;
+        };
+        let me = self.store.me();
+        let quiet = self
+            .store
+            .voice_in(channel)
+            .iter()
+            .find(|state| Some(state.user) != me && !state.streaming)
+            .map(|state| state.user);
+        let next;
+        let intents = match step {
+            StreamEnded::Join => {
+                next = Some(StreamEnded::Watch);
+                rune_ui::update(
+                    &mut self.ui,
+                    &mut self.store,
+                    &limn::UiAction::Clicked {
+                        id: format!("voice:{channel}"),
+                    },
+                    now,
+                )
+            }
+            // In the call, the row's click opens its stage (the join did not).
+            StreamEnded::Watch if self.ui.voice.stage != Some(channel) => {
+                next = Some(StreamEnded::Watch);
+                rune_ui::update(
+                    &mut self.ui,
+                    &mut self.store,
+                    &limn::UiAction::Clicked {
+                        id: format!("voice:{channel}"),
+                    },
+                    now,
+                )
+            }
+            StreamEnded::Watch => match quiet {
+                Some(owner) => {
+                    next = Some(StreamEnded::Settle);
+                    // The stage takes the stream, as with one watched alone.
+                    self.ui.video.spotlight = Some(owner);
+                    rune_ui::update(
+                        &mut self.ui,
+                        &mut self.store,
+                        &limn::UiAction::Clicked {
+                            id: format!("vz:watch:{}", owner.0),
+                        },
+                        now,
+                    )
+                }
+                None => return,
+            },
+            StreamEnded::Settle => {
+                let answered = self
+                    .store
+                    .watching()
+                    .first()
+                    .is_some_and(|watching| watching.phase != StreamPhase::Connecting);
+                if !answered {
+                    return;
+                }
+                let capture = self.capture.as_mut().expect("checked above");
+                capture.stream_ended = None;
+                capture.ready = Some(now);
+                ctx.request_repaint();
+                return;
+            }
+        };
+        self.capture.as_mut().expect("checked above").stream_ended = next;
+        self.run(ctx, intents);
+        ctx.request_repaint();
+    }
+
     fn capture_step(&mut self, ctx: &egui::Context, now: Instant) {
         let Some(capture) = self.capture.as_mut() else {
             return;
@@ -3647,6 +3745,7 @@ impl App {
                 }
             }
         }
+        self.capture_stream_ended(ctx, now);
         let viewer = self
             .capture
             .as_ref()
@@ -3976,6 +4075,7 @@ impl App {
             && !capture.voice
             && capture.search.is_none()
             && !capture.context
+            && capture.stream_ended.is_none()
             && match capture.splash_at {
                 Some(at) => now >= at,
                 None => capture
@@ -5453,6 +5553,7 @@ mod tests {
             vec!["--capture-rich"],
             vec!["--capture-voice"],
             vec!["--capture-context"],
+            vec!["--capture-stream-ended"],
             vec!["--capture-draft", "Una línea"],
         ] {
             assert!(args(&option, None).is_err());

@@ -136,6 +136,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Ensordecido", "Deafened"),
     ("Silenciado para ti", "Muted for you"),
     ("en vivo", "live"),
+    ("cámara encendida", "camera on"),
+    ("Cámara encendida", "Camera on"),
     ("hablando", "speaking"),
     ("silenciado por el servidor", "server muted"),
     ("silenciado", "muted"),

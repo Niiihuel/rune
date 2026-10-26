@@ -269,6 +269,7 @@ mod tests {
             silenced: false,
             streaming: false,
             camera: None,
+            camera_on: false,
             thumbnail: None,
             image: None,
             decoration: None,

@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" fill="currentColor">
-  <!-- RUNE's own illustration (not Discord's): a screen at rest on its stand,
-       one single-colour piece; the mark goes over it in stream-ended-mark.svg. -->
-  <path fill-rule="evenodd" d="M30 8H170A10 10 0 0 1 180 18V86A10 10 0 0 1 170 96H30A10 10 0 0 1 20 86V18A10 10 0 0 1 30 8ZM31 16H169A3 3 0 0 1 172 19V85A3 3 0 0 1 169 88H31A3 3 0 0 1 28 85V19A3 3 0 0 1 31 16Z"/>
-  <path d="M92 96H108V104H92Z"/>
-  <path d="M70 104H130A3 3 0 0 1 133 107V108A3 3 0 0 1 130 111H70A3 3 0 0 1 67 108V107A3 3 0 0 1 70 104Z"/>
-</svg>

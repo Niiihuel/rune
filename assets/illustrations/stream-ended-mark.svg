@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" fill="currentColor">
-  <!-- RUNE's own mark (the R of rune-mark.svg) at 2.2x, centred on the screen. -->
-  <g transform="translate(73.6 25.6) scale(2.2)">
-    <path d="M7.6 3.2L14.2 3.2L20.8 9.8L14.2 9.8Z"/>
-    <path d="M1 5.4L7.6 5.4L23 20.8L16.4 20.8Z"/>
-    <path d="M1 12L7.6 12L7.6 20.8L1 20.8Z"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+  <!-- RUNE's own mark (the R of rune-mark.svg), drawn square so it scales to any side. -->
+  <path d="M7.6 3.2L14.2 3.2L20.8 9.8L14.2 9.8Z"/>
+  <path d="M1 5.4L7.6 5.4L23 20.8L16.4 20.8Z"/>
+  <path d="M1 12L7.6 12L7.6 20.8L1 20.8Z"/>
 </svg>

@@ -139,6 +139,15 @@ pub mod ids {
         format!("{STOP_WATCHING}{user}")
     }
 
+    /// «Cerrar transmisión» on a stream that is over: it lets the stream go
+    /// as [`stop_watching`] does, under its own ID, since the call bar's red
+    /// button keeps that one and limn styles a control by its ID.
+    pub const CLOSE_STREAM: &str = "vz:close-stream:";
+
+    pub fn close_stream(user: u64) -> String {
+        format!("{CLOSE_STREAM}{user}")
+    }
+
     /// «Reintentar» on `user`'s stream that failed: watched again.
     pub fn retry_watching(user: u64) -> String {
         format!("stream:{user}:retry")
@@ -473,7 +482,9 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         // A stream over says so, and offers to be watched again or closed.
         None => match &view.stream {
             Some(stream) if stream.over => {
-                over_picture(view, size.height >= OVER_PICTURE_HEIGHT && !compact, look)
+                let wide = (size.width * 0.22).clamp(180.0, 320.0);
+                let picture = (size.height >= OVER_PICTURE_HEIGHT && !compact).then_some(wide);
+                over_picture(view, picture, look)
             }
             _ => centered(line(&view.waiting, 14.0, look.muted)),
         },
@@ -532,14 +543,17 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
             .padding(12.5)
         }
     };
-    let shown = Element::stack(vec![
-        Element::panel(picture)
-            .size(Some(size.width), Some(size.height))
-            .radius(TILE_RADIUS)
-            .background(Color::rgb(0, 0, 0))
-            .clip_children(),
-        over,
-    ]);
+    // A stream over, with no picture left, stands on a dark gradient.
+    let backdrop = Element::panel(picture)
+        .size(Some(size.width), Some(size.height))
+        .radius(TILE_RADIUS);
+    let ended = view.frame.is_none() && view.stream.as_ref().is_some_and(|stream| stream.over);
+    let backdrop = if ended {
+        backdrop.vertical_gradient(vec![ENDED_TOP, ENDED_BOTTOM])
+    } else {
+        backdrop.background(Color::rgb(0, 0, 0))
+    };
+    let shown = Element::stack(vec![backdrop.clip_children(), over]);
     match &view.stream {
         Some(stream) => {
             let tile = Element::clickable(ids::stream_tile(stream.owner), shown)
@@ -557,40 +571,63 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
     .accessibility_label(view.title.clone())
 }
 
-/// RUNE's own picture of a stream at rest: a screen on its stand with the
-/// mark dimmed on it (`assets/illustrations`), in two single-colour parts.
-const ENDED_SCREEN: &str = include_str!("../../../assets/illustrations/stream-ended-screen.svg");
+/// RUNE's own picture of a stream at rest: a screen in a muted gray with the
+/// mark over it in red (`assets/illustrations/stream-ended-mark.svg`).
+const ENDED_SCREEN_INK: Color = Color::rgb(58, 58, 66);
 const ENDED_MARK: &str = include_str!("../../../assets/illustrations/stream-ended-mark.svg");
+/// The stage's backdrop when a stream is over: dark purple top, near black below.
+const ENDED_TOP: Color = Color::rgb(44, 26, 74);
+const ENDED_BOTTOM: Color = Color::rgb(12, 12, 14);
 /// The picture needs this much height of a tile, else it stays out.
 // shortcut: the grid's tiles are too short for the picture; only the stage shows it, upgrade if tiles grow
 const OVER_PICTURE_HEIGHT: f32 = 220.0;
 
-/// What a stream over shows in its place: its picture at rest when `picture`,
-/// what happened and the ways out, all centred.
-fn over_picture(view: &Preview, picture: bool, look: &Look) -> Element {
-    let mut column = Vec::new();
-    if picture {
-        let size = Some(200.0);
-        column.push(Element::stack(vec![
-            icon(Icon::Custom(ENDED_SCREEN), look.muted).size(size, Some(120.0)),
-            icon(Icon::Custom(ENDED_MARK), Color::rgba(214, 45, 45, 115)).size(size, Some(120.0)),
-        ]));
+/// What a stream over shows in its place: its picture at rest when `width`
+/// is set (the picture is 0.6 as high), what happened and the ways out, all
+/// centred. The picture and the text are 16 apart, the buttons 12 under.
+fn over_picture(view: &Preview, width: Option<f32>, look: &Look) -> Element {
+    let mut head = Vec::new();
+    if let Some(width) = width {
+        let height = width * 0.6;
+        // limn draws an icon square, up to 128: the mark is a quarter of the picture.
+        head.push(
+            Element::stack(vec![
+                Element::panel(Element::spacer())
+                    .size(Some(width), Some(height))
+                    .radius(10.0)
+                    .background(ENDED_SCREEN_INK),
+                Element::icon(Icon::Custom(ENDED_MARK))
+                    .large_icon((width * 0.25).min(128.0))
+                    .foreground(Color::rgba(214, 45, 45, 115))
+                    .size(Some(width), Some(height)),
+            ])
+            .size(Some(width), Some(height)),
+        );
     }
-    column.push(line(&view.waiting, 15.0, look.text));
+    head.push(line(&view.waiting, 16.0, look.text));
     let mut buttons: Vec<Element> = view
         .actions
         .iter()
-        .map(|(id, label)| stream_text_button(id, t(label), look))
+        .map(|(id, label)| stream_text_button(id, t(label), ButtonVariant::Default, look))
         .collect();
-    buttons.push(stream_text_button(&view.stop.0, t(view.stop.1), look));
-    column.push(Element::row(buttons).gap(8.0));
+    buttons.push(stream_text_button(
+        &view.stop.0,
+        t(view.stop.1),
+        ButtonVariant::Secondary,
+        look,
+    ));
+    let column = vec![
+        Element::column(head).gap(16.0),
+        Element::row(buttons).gap(8.0),
+    ];
     centered(Element::column(column).gap(12.0))
 }
 
-/// A text button on a stream that failed, as the call panel's «Reintentar».
-fn stream_text_button(id: &str, label: &str, look: &Look) -> Element {
+/// A text button on a stream that is over: «Cerrar transmisión» secondary,
+/// «Reintentar» the light primary.
+fn stream_text_button(id: &str, label: &str, variant: ButtonVariant, look: &Look) -> Element {
     Button::new(id, label, look.sidebar_palette())
-        .variant(ButtonVariant::Secondary)
+        .variant(variant)
         .sizing(ButtonSizing {
             height: PANEL_BUTTON,
             font_size: 14.0,
@@ -1198,6 +1235,8 @@ pub struct Participant {
     /// The size of their camera's frame on their surface, while it shows:
     /// their tile shows it instead of their mark.
     pub camera: Option<(u32, u32)>,
+    /// Their camera is on in the channel: a mark in their row, shown or not.
+    pub camera_on: bool,
     /// The latest picture of their stream, on their tile.
     pub thumbnail: Option<Thumbnail>,
     /// Their picture where they are seen, once loaded; their initial until
@@ -1363,6 +1402,10 @@ fn marks(person: &Participant, prefix: &str, ink: Color, look: &Look) -> Vec<Ele
             .render(),
         );
     };
+    // The camera first, as the official client's row: then the mute and the sound.
+    if person.camera_on {
+        mark(Icon::Video, "camera", t("Cámara encendida"), ink);
+    }
     // The server's marks are red: their own unmute does not lift them.
     if person.server_muted {
         mark(
@@ -1443,6 +1486,9 @@ pub fn participant(
     let mut state = Vec::new();
     if person.streaming {
         state.push(t("en vivo"));
+    }
+    if person.camera_on {
+        state.push(t("cámara encendida"));
     }
     if person.speaking {
         state.push(t("hablando"));
@@ -2649,6 +2695,7 @@ mod tests {
             silenced: false,
             streaming: false,
             camera: None,
+            camera_on: false,
             thumbnail: None,
             image: None,
             decoration: None,
@@ -4220,7 +4267,7 @@ mod tests {
             title: format!("Pantalla de Persona {user}"),
             frame: None,
             waiting: "Esta transmisión ha finalizado.".into(),
-            stop: (ids::stop_watching(user), "Cerrar transmisión"),
+            stop: (ids::close_stream(user), "Cerrar transmisión"),
             note: "Terminó".into(),
             actions: Vec::new(),
             stream: Some(StreamTile {
@@ -4277,8 +4324,22 @@ mod tests {
         let said = texts(&ended);
         assert!(said.contains(&"Esta transmisión ha finalizado.".to_owned()));
         assert!(!said.contains(&"Terminó".to_owned()));
-        assert!(controls(&ended).contains(&ids::stop_watching(2)));
+        // Its own ID: the call bar's red button keeps `stop_watching`.
+        assert!(controls(&ended).contains(&ids::close_stream(2)));
         assert!(said.contains(&"Cerrar transmisión".to_owned()));
+        // Its picture is wide (180 at least), and «Cerrar transmisión» is not danger.
+        let screen = ended.commands.iter().find_map(|command| match command {
+            limn::DrawCommand::FillRect { rect, color, .. } if *color == ENDED_SCREEN_INK => {
+                Some(rect.width)
+            }
+            _ => None,
+        });
+        assert!(screen.is_some_and(|width| width >= 180.0));
+        assert!(!ended.commands.iter().any(|command| matches!(
+            command,
+            limn::DrawCommand::FillRect { color, .. } | limn::DrawCommand::FillCornerRect { color, .. }
+                if *color == look.danger_fill
+        )));
         // Focused, the tiles of the others sit under it, and the pill hides
         // them: the stage takes their room.
         let stage_height = |laid: &limn::Frame| {
@@ -4313,6 +4374,29 @@ mod tests {
             size,
         );
         assert!(!controls(&alone).contains(&ids::TILES.to_owned()));
+    }
+
+    #[test]
+    fn a_person_with_camera_on_shows_the_camera_mark_and_one_off_does_not() {
+        let look = Look::ONYX;
+        let shown = |camera_on| {
+            let row = Participant {
+                camera_on,
+                ..person(1, false, false, false)
+            };
+            let (_, laid) = frame(participant(&row, None, None, &look), Size::new(300.0, 40.0));
+            laid.commands.iter().any(|command| {
+                matches!(
+                    command,
+                    limn::DrawCommand::Icon {
+                        icon: Icon::Video,
+                        ..
+                    }
+                )
+            })
+        };
+        assert!(shown(true));
+        assert!(!shown(false));
     }
 
     #[test]

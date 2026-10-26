@@ -755,7 +755,11 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         frame: shown.filter(|_| !ended),
         waiting,
         stop: (
-            ids::stop_watching(watching.owner.0),
+            if ended {
+                ids::close_stream(watching.owner.0)
+            } else {
+                ids::stop_watching(watching.owner.0)
+            },
             if ended {
                 t("Cerrar transmisión")
             } else {
