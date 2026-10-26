@@ -30,6 +30,8 @@ pub mod ids {
     pub const ON_GITHUB: &str = "update:on-github";
     /// Start the installed version now, after a close was cancelled (settings).
     pub const RESTART: &str = "update:restart";
+    /// The icon tile at the top of the settings card; pressing it does nothing.
+    pub const CARD: &str = "update:card";
 }
 
 /// Where a release's page is, as GitHub shows it: its notes with their
@@ -277,6 +279,168 @@ fn stage(view: &UpdateView, look: &Look, mandatory: bool) -> Element {
     Element::column(parts).gap(8.0)
 }
 
+/// The color of a status pill: what the state means.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Tone {
+    /// Something to do or under way.
+    Accent,
+    /// Up to date.
+    Online,
+    /// Failed.
+    Danger,
+}
+
+/// The settings card of the update check: what it says now, the download,
+/// install or failure under way, and the buttons that act on it.
+pub struct CheckCard {
+    pub title: String,
+    pub subtitle: String,
+    /// The status pill's words and tone, when the state has one.
+    pub pill: Option<(String, Tone)>,
+    /// Where the download, the install or the restart stands.
+    pub stage: Option<Stage>,
+    /// A check that failed, when no update is under way.
+    pub error: Option<String>,
+    /// Working on something: a spinner waits beside the buttons.
+    pub busy: bool,
+    /// The buttons, right-aligned at the bottom.
+    pub actions: Vec<Element>,
+}
+
+/// The card's body under its title: the bar and bytes of a download, the
+/// install or restart as it runs, or the reason it failed in danger color.
+fn card_body(stage: Option<&Stage>, error: Option<&str>, look: &Look) -> Option<Element> {
+    let failed = |reason: &str| {
+        text(reason.to_owned(), 13.0, look.danger).accessible(
+            Access::new(Role::Alert)
+                .id("update:error")
+                .name(reason.to_owned()),
+        )
+    };
+    match stage {
+        Some(Stage::Downloading { have, whole }) => {
+            let fraction = if *whole == 0 {
+                0.0
+            } else {
+                *have as f32 / *whole as f32
+            };
+            let percent = (fraction * 100.0).round() as u32;
+            let said = tr!(
+                "Descargando… {have} de {whole}",
+                have = file_size(*have),
+                whole = file_size(*whole)
+            );
+            Some(
+                Element::column(vec![
+                    Bar::new(fraction, look.accent_palette())
+                        .id("update:progress")
+                        .height(8.0)
+                        .render()
+                        .accessibility_label(said),
+                    Element::row(vec![
+                        line(
+                            tr!(
+                                "{have} de {whole}",
+                                have = file_size(*have),
+                                whole = file_size(*whole)
+                            ),
+                            12.0,
+                            look.muted,
+                        )
+                        .flex(1.0),
+                        line(tr!("{pct} %", pct = percent), 12.0, look.muted),
+                    ]),
+                ])
+                .gap(8.0),
+            )
+        }
+        Some(Stage::Installing) => Some(
+            Element::row(vec![
+                Spinner::new("update:installing", look.accent).render(),
+                line(t("Instalando…"), 12.0, look.muted),
+            ])
+            .gap(8.0),
+        ),
+        Some(Stage::Restarting) => Some(
+            Element::row(vec![
+                Spinner::new("update:restarting", look.accent).render(),
+                line(t("Reiniciando RUNE…"), 12.0, look.muted),
+            ])
+            .gap(8.0),
+        ),
+        Some(Stage::Installed) => Some(line(
+            t("Instalada; reiniciá RUNE para usarla."),
+            12.0,
+            look.muted,
+        )),
+        Some(Stage::Failed(reason)) => Some(failed(reason)),
+        Some(Stage::Offered) | None => error.map(failed),
+    }
+}
+
+/// The settings card of the update check (`update-check`): a tile with
+/// RUNE's mark, the title and subtitle, a status pill, the body and the
+/// buttons at the bottom right.
+pub fn check_card(card: CheckCard, look: &Look) -> Element {
+    let tone = |tone: Tone| match tone {
+        Tone::Accent => look.accent,
+        Tone::Online => look.online,
+        Tone::Danger => look.danger,
+    };
+    let tile = centered(
+        Element::icon(Icon::Custom(crate::MARK))
+            .large_icon(22.0)
+            .foreground(crate::BRAND),
+    )
+    .size(Some(40.0), Some(40.0))
+    .background(look.canvas)
+    .radius(10.0);
+    // The tile is named, so the page can bring the card's top into view;
+    // a whole card as a button would hide its text from accessibility.
+    let tile = Element::clickable(ids::CARD, tile);
+    let name = card.title.clone();
+    let mut head = vec![
+        tile,
+        // Both wrap: a card's copy is short, and a cut title hides its status.
+        Element::column(vec![
+            text(card.title, 16.0, look.text).font_family(FontFamily::SansMedium),
+            text(card.subtitle, 12.0, look.muted),
+        ])
+        .gap(2.0)
+        .flex(1.0)
+        .centered_y(),
+    ];
+    if let Some((label, pill)) = card.pill {
+        let color = tone(pill);
+        head.push(
+            Element::row(vec![
+                Element::spacer().size(Some(8.0), None),
+                line(label, 12.0, color),
+                Element::spacer().size(Some(8.0), None),
+            ])
+            .padding(4.0)
+            .radius(10.0)
+            .background(Look::alpha(color, 31))
+            .centered_y(),
+        );
+    }
+    let mut parts = vec![Element::row(head).gap(12.0)];
+    parts.extend(card_body(card.stage.as_ref(), card.error.as_deref(), look));
+    let mut actions = vec![Element::spacer().flex(1.0)];
+    if card.busy {
+        actions.push(Spinner::new("update:busy", look.accent).render());
+    }
+    actions.extend(card.actions);
+    parts.push(Element::row(actions).gap(8.0));
+    Element::column(parts)
+        .gap(12.0)
+        .padding(16.0)
+        .background(look.raised)
+        .border(look.border, 1.0)
+        .radius(8.0)
+        .accessible(Access::new(Role::Status).name(name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -344,5 +508,49 @@ mod tests {
         ));
         assert!(failed.iter().any(|text| text == "Reintentar"));
         assert!(!failed.iter().any(|text| text == "Salir"));
+    }
+
+    fn check(stage: Option<Stage>, error: Option<&str>) -> CheckCard {
+        CheckCard {
+            title: "RUNE 1.2.0 está disponible".into(),
+            subtitle: "Instalada: RUNE 1.1.0.".into(),
+            pill: Some(("Disponible".into(), Tone::Accent)),
+            stage,
+            error: error.map(str::to_owned),
+            busy: false,
+            actions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn the_settings_card_shows_the_download_as_bytes_and_percent() {
+        let shown = texts(check_card(
+            check(
+                Some(Stage::Downloading {
+                    have: 512 * 1024,
+                    whole: 2 * 1024 * 1024,
+                }),
+                None,
+            ),
+            &Look::DARK,
+        ));
+        for wanted in ["512.0 KB de 2.0 MB", "25 %", "RUNE 1.2.0 está disponible"] {
+            assert!(
+                shown.iter().any(|text| text == wanted),
+                "{wanted}: {shown:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_settings_card_puts_a_failure_in_its_body_once() {
+        let shown = texts(check_card(
+            check(Some(Stage::Failed("Sin conexión.".into())), None),
+            &Look::DARK,
+        ));
+        assert_eq!(
+            shown.iter().filter(|text| *text == "Sin conexión.").count(),
+            1
+        );
     }
 }

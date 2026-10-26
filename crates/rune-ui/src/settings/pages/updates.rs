@@ -4,7 +4,7 @@
 
 use limn::Element;
 
-use rune_components::updates::{ids, progress, release_notes, Stage};
+use rune_components::updates::{check_card, ids, release_notes, CheckCard, Stage, Tone};
 use rune_components::{line, time, user_settings as parts};
 use rune_i18n::{es, t, tr};
 
@@ -61,58 +61,79 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         }
         "update-check" => {
             let offered = updates.offered.as_ref();
-            let status = if updates.checking {
-                t("Buscando…").to_owned()
-            } else if let Some(error) = &updates.error {
-                error.clone()
+            let installed = env!("CARGO_PKG_VERSION");
+            // Title, pill: what the update stands at (the body says the rest).
+            let (title, pill) = if updates.checking {
+                (t("Buscando actualizaciones…").to_owned(), None)
             } else if let Some(offered) = offered {
+                let version = offered.version.as_str();
                 match &offered.stage {
-                    Stage::Installing => tr!(
-                        "Instalando RUNE {version}…",
-                        version = offered.version
+                    Stage::Offered => (
+                        tr!("RUNE {version} está disponible", version = version),
+                        Some((t("Disponible").to_owned(), Tone::Accent)),
                     ),
-                    Stage::Restarting | Stage::Installed => tr!(
-                        "RUNE {version} está instalada.",
-                        version = offered.version
+                    Stage::Downloading { .. } => (
+                        tr!("Descargando RUNE {version}", version = version),
+                        Some((t("Descargando").to_owned(), Tone::Accent)),
                     ),
-                    Stage::Offered | Stage::Downloading { .. } | Stage::Failed(_) => tr!(
-                        "RUNE {version} está disponible.",
-                        version = offered.version
+                    Stage::Installing => (
+                        tr!("Instalando RUNE {version}…", version = version),
+                        Some((t("Instalando").to_owned(), Tone::Accent)),
+                    ),
+                    Stage::Restarting => (
+                        tr!("RUNE {version} está instalada", version = version),
+                        None,
+                    ),
+                    Stage::Installed => (
+                        tr!("RUNE {version} está instalada", version = version),
+                        Some((t("Instalada").to_owned(), Tone::Accent)),
+                    ),
+                    Stage::Failed(_) => (
+                        t("No se pudo actualizar").to_owned(),
+                        Some((t("Error").to_owned(), Tone::Danger)),
                     ),
                 }
+            } else if updates.error.is_some() {
+                (
+                    t("No se pudo buscar actualizaciones").to_owned(),
+                    Some((t("Error").to_owned(), Tone::Danger)),
+                )
             } else if updates.checked.is_some() {
-                t("Tenés la última versión.").to_owned()
+                (
+                    t("Tenés la última versión").to_owned(),
+                    Some((t("Al día").to_owned(), Tone::Online)),
+                )
             } else {
-                t("Todavía no se buscó.").to_owned()
+                (t("Todavía no se buscó").to_owned(), None)
             };
-            let note = match updates.checked {
+            let subtitle = match updates.checked {
                 Some(at) => tr!(
-                    "{status} Última verificación: {when}.",
-                    status = status,
+                    "Instalada: RUNE {installed}. Última verificación: {when}.",
+                    installed = installed,
                     when = time::stamp(at, ctx.context.wall)
                 ),
-                None => status,
+                None => tr!("Instalada: RUNE {installed}.", installed = installed),
             };
-            let mut controls = vec![parts::secondary_button(
+            let mut actions = vec![parts::secondary_button(
                 ids::CHECK,
                 t("Buscar ahora"),
                 !updates.checking && !updates.busy,
                 look,
             )];
             match offered.map(|offered| &offered.stage) {
-                Some(Stage::Failed(_)) => controls.push(parts::primary_button(
+                Some(Stage::Failed(_)) => actions.push(parts::primary_button(
                     ids::RETRY,
                     t("Reintentar"),
                     true,
                     look,
                 )),
-                Some(Stage::Installed) => controls.push(parts::primary_button(
+                Some(Stage::Installed) => actions.push(parts::primary_button(
                     ids::RESTART,
                     t("Reiniciar ahora"),
                     true,
                     look,
                 )),
-                _ if updates.installable() => controls.push(parts::primary_button(
+                _ if updates.installable() => actions.push(parts::primary_button(
                     ids::INSTALL,
                     t("Actualizar y reiniciar"),
                     true,
@@ -120,20 +141,21 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 )),
                 _ => {}
             }
-            let mut rows = vec![parts::setting(
-                t("Buscar actualizaciones"),
-                Some(&note),
-                None,
-                true,
-                look,
-            )];
-            // The bar under the note, across the page, as the screens show it.
-            rows.extend(offered.and_then(|offered| progress(&offered.stage, look)));
-            // The buttons under it: beside, two of them leave a narrow
-            // window's label no room.
-            rows.push(Element::row(controls).gap(12.0));
-            rows.push(Element::spacer().size(None, Some(12.0)));
-            Element::column(rows)
+            Element::column(vec![
+                check_card(
+                    CheckCard {
+                        title,
+                        subtitle,
+                        pill,
+                        stage: offered.map(|offered| offered.stage.clone()),
+                        error: updates.error.clone(),
+                        busy: updates.busy,
+                        actions,
+                    },
+                    look,
+                ),
+                Element::spacer().size(None, Some(12.0)),
+            ])
         }
         "update-at-start" => parts::toggle(
             ids::AT_START,
