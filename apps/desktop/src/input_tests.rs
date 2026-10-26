@@ -817,3 +817,40 @@ fn the_wheel_and_the_trackpad_move_at_the_person_s_speed() {
     assert!(usual.abs() > 0.0);
     assert_eq!(swipe(200), 2.0 * usual);
 }
+
+#[test]
+fn a_side_button_recorded_as_the_push_to_talk_key_then_holds_it() {
+    let mut host = InputHost::new("alpha", "beta");
+    host.app.ui.settings = Some(rune_ui::SettingsPage::default());
+    host.app.ui.settings_state.recording = Some(Instant::now());
+    host.frame(
+        vec![side_button(egui::PointerButton::Extra1)],
+        egui::Modifiers::default(),
+    );
+    assert_eq!(
+        host.app.ui.prefs.push_to_talk_key.as_deref(),
+        Some("MOUSE4")
+    );
+    assert!(!rune_ui::recording_key(&host.app.ui));
+    host.app.ui.prefs.push_to_talk = true;
+    host.frame(Vec::new(), egui::Modifiers::default());
+    assert!(!host.app.audio.held, "not held before the press");
+    host.frame(
+        vec![side_button(egui::PointerButton::Extra1)],
+        egui::Modifiers::default(),
+    );
+    // The held state is read by `drain`, which runs before the input each frame.
+    host.app.drain(&host.ctx, Instant::now());
+    assert!(host.app.audio.held, "opens on the press");
+    host.frame(
+        vec![egui::Event::PointerButton {
+            pos: egui::pos2(600.0, 400.0),
+            button: egui::PointerButton::Extra1,
+            pressed: false,
+            modifiers: egui::Modifiers::default(),
+        }],
+        egui::Modifiers::default(),
+    );
+    host.app.drain(&host.ctx, Instant::now());
+    assert!(!host.app.audio.held, "closes on the release");
+}

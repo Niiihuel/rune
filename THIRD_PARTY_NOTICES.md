@@ -236,7 +236,7 @@ y Windows; sin las dependencias que sólo usan los tests), agrupado por el
 texto de su licencia. Donde un crate ofrece varias licencias a elección, se
 muestra una.
 
-- MIT License: 546
+- MIT License: 540
 - Apache License 2.0: 20
 - BSD 3-Clause "New" or "Revised" License: 20
 - Unicode License v3: 19
@@ -1946,7 +1946,7 @@ Apache License
 
 ### Apache License 2.0
 
-- accesskit_winit 0.32.2, <https://github.com/AccessKit/accesskit>
+- accesskit_winit 0.34.2, <https://github.com/AccessKit/accesskit>
 - gl_generator 0.14.0, <https://github.com/brendanzab/gl-rs/>
 - khronos_api 3.1.0, <https://github.com/brendanzab/gl-rs/>
 - ryu 1.0.23, <https://github.com/dtolnay/ryu>
@@ -3523,8 +3523,6 @@ DEALINGS IN THE SOFTWARE.
 - wayland-backend 0.3.17, <https://github.com/smithay/wayland-rs>
 - wayland-client 0.31.15, <https://github.com/smithay/wayland-rs>
 - wayland-cursor 0.31.14, <https://github.com/smithay/wayland-rs>
-- wayland-protocols-experimental 20250721.0.1, <https://github.com/smithay/wayland-rs>
-- wayland-protocols-misc 0.3.12, <https://github.com/smithay/wayland-rs>
 - wayland-protocols-plasma 0.3.12, <https://github.com/smithay/wayland-rs>
 - wayland-protocols-wlr 0.3.12, <https://github.com/smithay/wayland-rs>
 - wayland-protocols 0.32.13, <https://github.com/smithay/wayland-rs>
@@ -3623,6 +3621,7 @@ DEALINGS IN THE SOFTWARE.
 ### MIT License
 
 - heck 0.5.0, <https://github.com/withoutboats/heck>
+- unicode-properties 0.1.4, <https://github.com/unicode-rs/unicode-properties>
 - unicode-segmentation 1.13.3, <https://github.com/unicode-rs/unicode-segmentation>
 - unicode-width 0.2.2, <https://github.com/unicode-rs/unicode-width>
 - unicode-xid 0.2.6, <https://github.com/unicode-rs/unicode-xid>
@@ -5181,33 +5180,6 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- smithay-clipboard 0.7.3, <https://github.com/smithay/smithay-clipboard>
-
-````text
-Copyright (c) 2018 Lucas Timmins & Victor Berger
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-````
-
-### MIT License
-
 - fearless_simd 0.4.1, <https://github.com/linebender/fearless_simd>
 - kurbo 0.13.1, <https://github.com/linebender/kurbo>
 - peniko 0.6.1, <https://github.com/linebender/peniko>
@@ -5344,7 +5316,6 @@ DEALINGS IN THE SOFTWARE.
 ### MIT License
 
 - smithay-client-toolkit 0.19.2, <https://github.com/smithay/client-toolkit>
-- smithay-client-toolkit 0.20.0, <https://github.com/smithay/client-toolkit>
 
 ````text
 Copyright (c) 2018 Victor Berger
@@ -5371,7 +5342,6 @@ THE SOFTWARE.
 ### MIT License
 
 - calloop 0.13.0, <https://github.com/Smithay/calloop>
-- calloop 0.14.5, <https://github.com/Smithay/calloop>
 
 ````text
 Copyright (c) 2018 Victor Berger
@@ -7482,7 +7452,6 @@ DEALINGS IN THE SOFTWARE.
 ### MIT License
 
 - calloop-wayland-source 0.3.0, <https://github.com/smithay/calloop-wayland-source>
-- calloop-wayland-source 0.4.1, <https://github.com/smithay/calloop-wayland-source>
 
 ````text
 Copyright (c) 2023 Kirill Chibisov
@@ -8255,8 +8224,8 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- vello_common 0.1.0, <https://github.com/linebender/vello>
-- vello_cpu 0.1.0, <https://github.com/linebender/vello>
+- vello_common 0.2.0, <https://github.com/linebender/vello>
+- vello_cpu 0.2.0, <https://github.com/linebender/vello>
 
 ````text
 Copyright 2020 the Vello Authors
@@ -8416,7 +8385,7 @@ DEALINGS IN THE SOFTWARE.
 
 ### MIT License
 
-- epaint_default_fonts 0.36.2, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
+- epaint_default_fonts 0.37.0, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
 
 ````text
 MIT License
@@ -9045,24 +9014,23 @@ SOFTWARE.
 
 ### MIT License
 
-- accesskit 0.24.1, <https://github.com/AccessKit/accesskit>
-- accesskit_atspi_common 0.18.1, <https://github.com/AccessKit/accesskit>
-- accesskit_consumer 0.35.0, <https://github.com/AccessKit/accesskit>
-- accesskit_consumer 0.36.0, <https://github.com/AccessKit/accesskit>
-- accesskit_unix 0.21.1, <https://github.com/AccessKit/accesskit>
-- accesskit_windows 0.32.1, <https://github.com/AccessKit/accesskit>
+- accesskit 0.25.2, <https://github.com/AccessKit/accesskit>
+- accesskit_atspi_common 0.21.1, <https://github.com/AccessKit/accesskit>
+- accesskit_consumer 0.39.2, <https://github.com/AccessKit/accesskit>
+- accesskit_unix 0.24.1, <https://github.com/AccessKit/accesskit>
+- accesskit_windows 0.35.2, <https://github.com/AccessKit/accesskit>
 - anymap3 1.1.0, <https://github.com/reivilibre/anymap3>
 - chrono 0.4.45, <https://github.com/chronotope/chrono>
 - cookie-factory 0.3.3, <https://github.com/rust-bakery/cookie-factory>
 - dasp_sample 0.11.0, <https://github.com/rustaudio/sample.git>
 - dpi 0.1.2, <https://github.com/rust-windowing/winit>
-- ecolor 0.36.2, <https://github.com/emilk/egui>
-- eframe 0.36.2, <https://github.com/emilk/egui/tree/main/crates/eframe>
-- egui-wgpu 0.36.2, <https://github.com/emilk/egui/tree/main/crates/egui-wgpu>
-- egui-winit 0.36.2, <https://github.com/emilk/egui/tree/main/crates/egui-winit>
-- egui 0.36.2, <https://github.com/emilk/egui>
-- emath 0.36.2, <https://github.com/emilk/egui/tree/main/crates/emath>
-- epaint 0.36.2, <https://github.com/emilk/egui/tree/main/crates/epaint>
+- ecolor 0.37.0, <https://github.com/emilk/egui>
+- eframe 0.37.0, <https://github.com/emilk/egui/tree/main/crates/eframe>
+- egui-wgpu 0.37.0, <https://github.com/emilk/egui/tree/main/crates/egui-wgpu>
+- egui-winit 0.37.0, <https://github.com/emilk/egui/tree/main/crates/egui-winit>
+- egui 0.37.0, <https://github.com/emilk/egui>
+- emath 0.37.0, <https://github.com/emilk/egui/tree/main/crates/emath>
+- epaint 0.37.0, <https://github.com/emilk/egui/tree/main/crates/epaint>
 - javascriptcore6-sys 0.6.0, <https://gitlab.gnome.org/World/Rust/webkit6-rs>
 - javascriptcore6 0.6.0, <https://gitlab.gnome.org/World/Rust/webkit6-rs>
 - libm 0.2.16, <https://github.com/rust-lang/compiler-builtins>
@@ -9715,10 +9683,10 @@ SOFTWARE.
 
 ### MIT License
 
-- phf 0.13.1, <https://github.com/rust-phf/rust-phf>
-- phf_generator 0.13.1, <https://github.com/rust-phf/rust-phf>
-- phf_macros 0.13.1, <https://github.com/rust-phf/rust-phf>
-- phf_shared 0.13.1, <https://github.com/rust-phf/rust-phf>
+- phf 0.14.0, <https://github.com/rust-phf/rust-phf>
+- phf_generator 0.14.0, <https://github.com/rust-phf/rust-phf>
+- phf_macros 0.14.0, <https://github.com/rust-phf/rust-phf>
+- phf_shared 0.14.0, <https://github.com/rust-phf/rust-phf>
 
 ````text
 The MIT License (MIT)
@@ -11207,7 +11175,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 ### SIL Open Font License 1.1
 
-- epaint_default_fonts 0.36.2, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
+- epaint_default_fonts 0.37.0, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
 
 ````text
 This Font Software is licensed under the SIL Open Font License,
@@ -11307,7 +11275,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ### Ubuntu Font Licence v1.0
 
-- epaint_default_fonts 0.36.2, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
+- epaint_default_fonts 0.37.0, <https://github.com/emilk/egui/tree/main/crates/epaint_default_fonts>
 
 ````text
 -------------------------------

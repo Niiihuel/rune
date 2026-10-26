@@ -7,8 +7,9 @@
 //! they are attached and the text is dropped; without, or after a short
 //! wait, the text goes into the same editing state it was pasted into
 //! (limn's captured paste target), or nowhere if that state changed.
-//! A picture alone puts no text on the clipboard, so its Ctrl+V never
-//! reaches RUNE: «Pegar del portapapeles» in the composer's menu reads it.
+//! A picture alone puts no text on the clipboard: its Ctrl+V arrives as
+//! `UiAction::PasteImage` and takes the same path as «Pegar del portapapeles»
+//! in the composer's menu, which reads the clipboard's picture (rune-ui).
 
 use super::*;
 use rune_provider::{RequestId, UploadError, UploadUpdate};

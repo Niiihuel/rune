@@ -39,7 +39,7 @@ pub struct Fallbacks {
 /// Whether a face of `fonts` has a glyph for `character`.
 fn drawn<'a>(fonts: impl IntoIterator<Item = &'a egui::FontData>, character: char) -> bool {
     fonts.into_iter().any(|data| {
-        skrifa::FontRef::from_index(&data.font, data.index)
+        skrifa::FontRef::from_index((*data.font).as_ref(), data.index)
             .is_ok_and(|font| font.charmap().map(character).is_some())
     })
 }

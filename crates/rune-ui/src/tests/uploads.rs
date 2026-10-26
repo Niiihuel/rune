@@ -813,6 +813,21 @@ fn pasting_from_the_menu_asks_for_the_clipboard_and_an_empty_one_says_so() {
     assert!(!attachment_pick_pending(&host.ui));
 }
 
+#[test]
+fn ctrl_v_of_a_picture_in_the_composer_asks_for_the_clipboard_as_the_menu_does() {
+    let (mut host, channel) = host();
+    host.type_text("borrador");
+    host.send(UiEvent::PasteImage {
+        width: 1,
+        height: 1,
+        rgba: std::sync::Arc::from([1, 2, 3, 4]),
+    });
+    match host.upload_intents.last() {
+        Some(Intent::PasteAttachments { channel: asked, .. }) if *asked == channel => {}
+        other => panic!("expected a clipboard read, got {other:?}"),
+    }
+}
+
 mod drop;
 
 #[test]

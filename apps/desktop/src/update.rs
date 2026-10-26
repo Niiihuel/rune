@@ -547,27 +547,22 @@ impl MandatoryWindow {
         };
         if !*requested && since.elapsed() >= Duration::from_millis(1_500) {
             *requested = true;
-            ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
-        }
-        let image = ctx.input(|input| {
-            input.events.iter().find_map(|event| match event {
-                egui::Event::Screenshot { image, .. } => Some(image.clone()),
-                _ => None,
-            })
-        });
-        if let Some(image) = image {
-            let [width, height] = image.size;
-            match image::save_buffer(
-                &*path,
-                image.as_raw(),
-                width as u32,
-                height as u32,
-                image::ColorType::Rgba8,
-            ) {
-                Ok(()) => println!("rune: saved {}", path.display()),
-                Err(error) => eprintln!("rune: could not save {}: {error}", path.display()),
-            }
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            // egui hands the picture to a callback once the frame is read.
+            let (path, done) = (path.clone(), ctx.clone());
+            ctx.request_screenshot(move |image| {
+                let [width, height] = image.size;
+                match image::save_buffer(
+                    &path,
+                    image.as_raw(),
+                    width as u32,
+                    height as u32,
+                    image::ColorType::Rgba8,
+                ) {
+                    Ok(()) => println!("rune: saved {}", path.display()),
+                    Err(error) => eprintln!("rune: could not save {}: {error}", path.display()),
+                }
+                done.send_viewport_cmd(egui::ViewportCommand::Close);
+            });
         }
         ctx.request_repaint();
     }

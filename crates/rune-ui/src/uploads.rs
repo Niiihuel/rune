@@ -614,24 +614,39 @@ pub fn attachment_send_admitted(
     intents
 }
 
+/// «Pegar del portapapeles»: the clipboard's files or picture into `channel`'s composer.
+fn paste_clipboard(ui: &mut Ui, store: &Store, channel: ChannelId) -> Vec<Intent> {
+    match begin_attachment_import(ui, store, channel, AttachmentImportSource::Clipboard) {
+        Ok(request) => vec![
+            Intent::Focus(crate::editor_id(channel)),
+            Intent::PasteAttachments { request, channel },
+        ],
+        Err(failure) => {
+            error(ui, failure);
+            Vec::new()
+        }
+    }
+}
+
 pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Vec<Intent>> {
+    // Ctrl+V of a picture in the open composer reads the clipboard as its menu does.
+    if let UiAction::PasteImage {
+        target: Some(target),
+        ..
+    } = action
+    {
+        let channel = ui.channel()?;
+        if *target != crate::editor_id(channel) {
+            return None;
+        }
+        return Some(paste_clipboard(ui, store, channel));
+    }
     let UiAction::Clicked { id } = action else {
         return None;
     };
     if id == rune_components::composer::ids::PASTE {
         let channel = ui.channel()?;
-        return Some(
-            match begin_attachment_import(ui, store, channel, AttachmentImportSource::Clipboard) {
-                Ok(request) => vec![
-                    Intent::Focus(crate::editor_id(channel)),
-                    Intent::PasteAttachments { request, channel },
-                ],
-                Err(failure) => {
-                    error(ui, failure);
-                    Vec::new()
-                }
-            },
-        );
+        return Some(paste_clipboard(ui, store, channel));
     }
     if id == rune_components::composer::ids::ATTACH {
         let channel = ui.channel()?;

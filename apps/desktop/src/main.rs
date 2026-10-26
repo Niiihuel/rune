@@ -925,6 +925,8 @@ struct Capture {
     /// moment after it for history and fonts to arrive.
     ready: Option<Instant>,
     requested: bool,
+    /// The picture egui delivers for the request above.
+    shot: Option<mpsc::Receiver<Arc<egui::ColorImage>>>,
     /// Actions given as `after:{id}`, run in order once the conversation
     /// settled, each waiting a moment after the last (P3).
     later: Vec<String>,
@@ -1130,6 +1132,8 @@ struct App {
     /// Keys first pressed in the window since the voice toggles last read
     /// them, with the modifiers held (limn-teclado-y-superficies).
     pressed: Vec<(Key, limn::Modifiers)>,
+    /// The middle and side buttons held now: limn keeps no state for them.
+    held_buttons: Vec<limn::OtherButton>,
     /// Notifications of the system for new messages.
     alerts: alerts::Alerts,
     /// The tray, later starts, the theme, the font and this device's
@@ -1299,6 +1303,7 @@ impl App {
             }),
             global_ptt: ptt::GlobalPushToTalk::default(),
             pressed: Vec::new(),
+            held_buttons: Vec::new(),
             alerts: alerts::Alerts::new({
                 let wake = ctx.clone();
                 Arc::new(move || wake.request_repaint())
@@ -1357,6 +1362,7 @@ impl App {
                 fixture: None,
                 ready: None,
                 requested: false,
+                shot: None,
                 later: Vec::new(),
                 deferred: Vec::new(),
                 splash_at: arguments.capture_splash.map(|after| started + after),
@@ -2752,7 +2758,7 @@ impl App {
                 .prefs
                 .push_to_talk_key
                 .as_deref()
-                .is_some_and(|key| ptt::window_held(&self.tree, key));
+                .is_some_and(|key| ptt::window_held(&self.tree, &self.held_buttons, key));
         self.audio.held = window_held || self.global_ptt.held();
         // Desktop (P6): mute and deafen by their shortcuts, and push to mute;
         // in the window only what the desktop did not bind.
@@ -2787,7 +2793,7 @@ impl App {
         let window_muting = !recording
             && VoiceKey::PushToMute
                 .binding(&self.ui.prefs)
-                .is_some_and(|key| ptt::window_held(&self.tree, key));
+                .is_some_and(|key| ptt::window_held(&self.tree, &self.held_buttons, key));
         self.audio.muted_held = window_muting || self.global_ptt.muting();
         self.audio.step(&mut self.ui, &mut self.store, now);
         self.present_clip(ctx);
@@ -2914,6 +2920,9 @@ impl App {
             .any(|event| matches!(event, Some(NativeHostEvent::WindowFocused(_))))
         {
             self.tree.set_window_focused(window_focused);
+            if !window_focused {
+                self.held_buttons.clear();
+            }
         }
         if cancelled_close {
             events.retain(|event| {
@@ -3010,6 +3019,9 @@ impl App {
         // What hides over a stream at rest shows again (transmisiones).
         rune_ui::stir(&mut self.ui, &event, now);
         if self.host_keys(ctx, &event) {
+            return true;
+        }
+        if self.host_button(ctx, &event) {
             return true;
         }
         if self.host_shortcut(ctx, &event) {
@@ -3270,6 +3282,31 @@ impl App {
         }
         let recorded = (key != Key::Escape).then(|| ptt::binding(key, held));
         let intents = rune_ui::record_key(&mut self.ui, recorded);
+        self.run(ctx, intents);
+        true
+    }
+
+    /// The middle and side buttons: held for push to talk, and the press the
+    /// recorder waits for becomes its bind (`MOUSE3`, `MOUSE4`, `MOUSE5`).
+    fn host_button(&mut self, ctx: &egui::Context, event: &UiEvent) -> bool {
+        let UiEvent::OtherButton {
+            button, pressed, ..
+        } = *event
+        else {
+            return false;
+        };
+        if !pressed {
+            self.held_buttons.retain(|held| *held != button);
+            return false;
+        }
+        if !self.held_buttons.contains(&button) {
+            self.held_buttons.push(button);
+        }
+        if !rune_ui::recording_key(&self.ui) {
+            return false;
+        }
+        let intents =
+            rune_ui::record_key(&mut self.ui, Some(ptt::mouse_binding(button).to_owned()));
         self.run(ctx, intents);
         true
     }
@@ -4084,14 +4121,14 @@ impl App {
             }
         {
             capture.requested = true;
-            ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::default()));
+            // egui hands the picture to a callback once the frame is read.
+            let (sender, shot) = mpsc::channel();
+            capture.shot = Some(shot);
+            ctx.request_screenshot(move |image| {
+                let _ = sender.send(image);
+            });
         }
-        let image = ctx.input(|input| {
-            input.events.iter().find_map(|event| match event {
-                egui::Event::Screenshot { image, .. } => Some(image.clone()),
-                _ => None,
-            })
-        });
+        let image = capture.shot.as_ref().and_then(|shot| shot.try_recv().ok());
         if let Some(image) = image {
             let [width, height] = image.size;
             match image::save_buffer(

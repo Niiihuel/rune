@@ -26,6 +26,8 @@ limn.workspace = true
 limn-egui.workspace = true
 # Opens the window and drives the frame loop; limn-egui paints into it.
 eframe.workspace = true
+# egui 0.37 moved its emoji fonts behind this feature; keeps the text as it was.
+egui = { version = "0.37.0", default-features = false, features = ["monochrome_emoji_fonts"] }
 rune-components.workspace = true
 rune-core.workspace = true
 # The authorized OAuth2 adapter is selected only by the desktop host.

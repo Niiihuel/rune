@@ -57,9 +57,11 @@ publish = false
 # branch rune/hidden-cursor, on top of rune/integration-2026-10-19, 2026-10-25).
 # And RadioGroup's card variant, settings' choices drawn as Discord's (PR #131;
 # branch rune/radio-cards, on top of rune/hidden-cursor, 2026-10-26).
-limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/radio-cards", default-features = false }
-limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/radio-cards", default-features = false }
-eframe = { version = "0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }
+# And egui/eframe 0.37 with pasted pictures and the other mouse buttons (PR #136;
+# branch rune/egui-0.37, on top of rune/radio-cards, 2026-10-26).
+limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/egui-0.37", default-features = false }
+limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/egui-0.37", default-features = false }
+eframe = { version = "0.37.0", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }
 # The core owns async provider sessions, HTTP I/O and the loopback OAuth callback.
 # Async filesystem writes keep explicit attachment downloads off the UI thread.
 tokio = { version = "1.53", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util", "fs"] }

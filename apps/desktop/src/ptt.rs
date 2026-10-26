@@ -14,7 +14,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use eframe::egui;
-use limn::{Key, Modifiers};
+use limn::{Key, Modifiers, OtherButton};
 use rune_i18n::{es, t, tr};
 use rune_model::UserId;
 use rune_platform::shortcuts::{GlobalShortcuts, Shortcut, ShortcutEvent};
@@ -40,6 +40,23 @@ pub fn binding(key: Key, modifiers: Modifiers) -> String {
     name
 }
 
+/// The name a mouse button keeps: the middle and the side buttons, as the
+/// Windows hook names them.
+pub fn mouse_binding(button: OtherButton) -> &'static str {
+    match button {
+        OtherButton::Middle => "MOUSE3",
+        OtherButton::Back => "MOUSE4",
+        OtherButton::Forward => "MOUSE5",
+    }
+}
+
+/// The mouse button `binding` names, if it names one.
+fn mouse(binding: &str) -> Option<OtherButton> {
+    [OtherButton::Middle, OtherButton::Back, OtherButton::Forward]
+        .into_iter()
+        .find(|button| mouse_binding(*button) == binding)
+}
+
 /// The key and the modifiers `binding` names; `None` for nonsense.
 fn parse(binding: &str) -> Option<(Key, Modifiers)> {
     let (modifiers, key) = binding.rsplit_once('+').unwrap_or(("", binding));
@@ -62,8 +79,12 @@ fn covers(held: Modifiers, wanted: Modifiers) -> bool {
 }
 
 /// Whether the window holds `binding` now: its key and its modifiers, as
-/// the tree keeps them (none once the window loses the focus).
-pub fn window_held(tree: &limn::UiTree, binding: &str) -> bool {
+/// the tree keeps them (none once the window loses the focus), or its mouse
+/// button, as `buttons` keeps them.
+pub fn window_held(tree: &limn::UiTree, buttons: &[OtherButton], binding: &str) -> bool {
+    if let Some(button) = mouse(binding) {
+        return buttons.contains(&button);
+    }
     parse(binding)
         .is_some_and(|(key, wanted)| tree.key_held(key) && covers(tree.modifiers(), wanted))
 }
@@ -82,6 +103,9 @@ pub fn window_pressed(pressed: &[(Key, Modifiers)], binding: &str) -> bool {
 /// The freedesktop shortcuts format of `binding`, with the keysym names of
 /// the keys that have one; the desktop lets the person choose when there is none.
 fn trigger(binding: &str) -> Option<String> {
+    if mouse(binding).is_some() {
+        return Some(binding.to_owned());
+    }
     let (key, modifiers) = parse(binding)?;
     let name = key.name();
     let keysym = match key {
@@ -136,6 +160,10 @@ fn function_key(key: Key) -> bool {
 /// combination or a function key is asked, as Serein does. The Linux desktop
 /// takes any key, as the owner asked on 2026-10-26.
 pub fn global_allowed(binding: &str) -> bool {
+    // The Linux portal takes no mouse button; Windows' hook takes these three.
+    if mouse(binding).is_some() {
+        return cfg!(windows);
+    }
     cfg!(target_os = "linux")
         || parse(binding)
             .is_some_and(|(key, modifiers)| modifiers != Modifiers::default() || function_key(key))
@@ -144,7 +172,18 @@ pub fn global_allowed(binding: &str) -> bool {
 /// Hyprland assigns no key by itself: this is the line to add to its config
 /// for `binding`, in Lua (`lua`) or in the classic form. `None` without a trigger.
 pub fn hyprland_line(binding: &str, lua: bool) -> Option<String> {
-    let trigger = trigger(binding)?;
+    let trigger = match mouse(binding) {
+        // The Linux input codes: BTN_MIDDLE, BTN_SIDE and BTN_EXTRA.
+        Some(button) => format!(
+            "mouse:{}",
+            match button {
+                OtherButton::Middle => 274,
+                OtherButton::Back => 275,
+                OtherButton::Forward => 276,
+            }
+        ),
+        None => trigger(binding)?,
+    };
     let (mods, key) = trigger.rsplit_once('+').unwrap_or(("", trigger.as_str()));
     Some(if lua {
         let combo = if mods.is_empty() {
@@ -431,6 +470,27 @@ mod tests {
     }
 
     #[test]
+    fn a_mouse_button_binds_as_the_windows_hook_names_it_and_as_hyprland_codes_it() {
+        assert_eq!(mouse_binding(OtherButton::Back), "MOUSE4");
+        assert_eq!(
+            hyprland_line("MOUSE4", false).as_deref(),
+            Some("bind = , mouse:275, global, rune:push-to-talk")
+        );
+        assert_eq!(
+            hyprland_line("MOUSE3", true).as_deref(),
+            Some(r#"hl.bind("mouse:274", hl.dsp.global("rune:push-to-talk"))"#)
+        );
+        assert_eq!(
+            global_allowed("MOUSE5"),
+            cfg!(windows),
+            "the portal takes no mouse"
+        );
+        let tree = limn::UiTree::new(limn::Element::spacer());
+        assert!(window_held(&tree, &[OtherButton::Back], "MOUSE4"));
+        assert!(!window_held(&tree, &[OtherButton::Middle], "MOUSE4"));
+    }
+
+    #[test]
     fn the_window_holds_its_key_only_while_focused_and_with_its_modifiers() {
         let mut tree = limn::UiTree::new(limn::Element::spacer());
         let key = |key, ctrl| limn::UiEvent::Key {
@@ -440,19 +500,25 @@ mod tests {
             alt: false,
         };
         tree.handle_event(key(Key::T, false));
-        assert!(!window_held(&tree, "Ctrl+T"), "Ctrl is not held");
+        assert!(!window_held(&tree, &[], "Ctrl+T"), "Ctrl is not held");
         tree.handle_event(limn::UiEvent::ModifiersChanged(Modifiers {
             ctrl: true,
             ..Default::default()
         }));
-        assert!(window_held(&tree, "Ctrl+T"));
-        assert!(window_held(&tree, "T"), "extra modifiers do not stop it");
+        assert!(window_held(&tree, &[], "Ctrl+T"));
+        assert!(
+            window_held(&tree, &[], "T"),
+            "extra modifiers do not stop it"
+        );
         tree.handle_event(limn::UiEvent::KeyReleased { key: Key::T });
-        assert!(!window_held(&tree, "Ctrl+T"), "released");
+        assert!(!window_held(&tree, &[], "Ctrl+T"), "released");
         tree.handle_event(key(Key::Num1, true));
-        assert!(window_held(&tree, "Ctrl+1"), "a digit holds too");
+        assert!(window_held(&tree, &[], "Ctrl+1"), "a digit holds too");
         tree.set_window_focused(false);
-        assert!(!window_held(&tree, "Ctrl+1"), "a lost focus releases it");
+        assert!(
+            !window_held(&tree, &[], "Ctrl+1"),
+            "a lost focus releases it"
+        );
     }
 
     #[test]
