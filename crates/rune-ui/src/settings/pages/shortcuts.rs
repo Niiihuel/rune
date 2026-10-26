@@ -11,11 +11,11 @@ use rune_i18n::{es, t, tr};
 use super::{Ctx, Section};
 use crate::desktop::Shortcut as Voice;
 use crate::keybinds::{self, Action, Group, ACTIONS, FIXED};
-use crate::settings::SettingsPage::System;
+use crate::settings::SettingsPage::Keybinds;
 use crate::GlobalKeys;
 
 pub(super) const SECTIONS: &[Section] = &[Section {
-    page: System,
+    page: Keybinds,
     key: "shortcuts",
     title: es("Atajos de teclado"),
     rows: &[

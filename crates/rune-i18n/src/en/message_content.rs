@@ -18,11 +18,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Mostrar contenido explícito", "Show explicit content"),
     ("Copiar imagen", "Copy image"),
     ("Copiar video", "Copy video"),
-    // rune-ui account.rs
-    (
-        "RUNE difumina las imágenes que el servicio marca como explícitas, y un clic las muestra; bloquear lo hace el servicio, y lo que llega igual se difumina. Sin elegir: se ven en servidores y de amigos, y se difuminan las de los demás.",
-        "RUNE blurs the images the service marks as explicit, and a click shows them; blocking is up to the service, and whatever arrives is blurred too. If you don't choose: they're shown in servers and from friends, and blurred from everyone else.",
-    ),
     // rune-platform clipboard.rs
     (
         "No hay un portapapeles disponible en esta sesión.",

@@ -7,7 +7,7 @@ use super::*;
 use rune_components::folders::ids as folder_ids;
 use rune_components::server_menu::ids as menu_ids;
 use rune_model::{
-    NotificationChange, PrivacyChange, ServerFolder, ServerId, UserId, MUTED_FOREVER,
+    ContentFilter, NotificationChange, PrivacyChange, ServerFolder, ServerId, UserId, MUTED_FOREVER,
 };
 
 impl Host {
@@ -222,6 +222,34 @@ fn messaging_privacy_is_shown_and_changed_from_the_settings() {
     host.ac_choose(&format!("us:privacy:dms-in:{club}"));
     host.answer_account(from);
     assert!(host.store.messaging_privacy().unwrap().dms_in(club));
+}
+
+#[test]
+fn the_explicit_image_filter_is_a_list_per_context_that_sends_the_choice() {
+    let mut host = Host::new();
+    host.ac_load();
+    host.click("me:settings");
+    host.ac_choose("us:page=privacy");
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text == "Filtro de imágenes explícitas"));
+    host.ac_choose("us:select:explicit-friends");
+    assert_eq!(host.ui.settings_state.select, Some("explicit-friends"));
+    let from = host.sent.len();
+    host.ac_choose("us:privacy:explicit-friends=block");
+    assert_eq!(host.ui.settings_state.select, None, "the list closes");
+    assert_eq!(
+        host.sent.last(),
+        Some(&Command::SetMessagingPrivacy(
+            PrivacyChange::ExplicitFriends(ContentFilter::Block)
+        ))
+    );
+    host.answer_account(from);
+    assert_eq!(
+        host.store.messaging_privacy().unwrap().explicit_friends,
+        ContentFilter::Block
+    );
 }
 
 #[test]

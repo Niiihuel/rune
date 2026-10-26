@@ -28,7 +28,7 @@ impl Host {
 
     /// Record `key`, as the host names it, for `action`.
     fn record(&mut self, action: Action, key: &str) -> Vec<Intent> {
-        self.ui.settings = Some(crate::SettingsPage::System);
+        self.ui.settings = Some(crate::SettingsPage::Keybinds);
         self.settings_click(&format!("us:key-record={}", action.key()));
         assert!(crate::recording_key(&self.ui));
         let intents = crate::record_key(&mut self.ui, Some(key.into()));

@@ -179,13 +179,13 @@ fn the_panel_floats_over_the_window_with_the_reference_s_measures() {
     );
     let account = rect("us:page=account");
     assert!(
-        (account.x - 60.5).abs() < 1.0 && account.width == 235.0 && account.height == 42.0,
+        (account.x - 60.5).abs() < 1.0 && account.width == 235.0 && account.height == 36.0,
         "{account:?}"
     );
     let next = rect("us:page=privacy");
     assert!(
-        (next.y - account.y - 47.0).abs() < 0.5,
-        "items are 47 px apart"
+        (next.y - account.y - 41.0).abs() < 0.5,
+        "items are 41 px apart"
     );
     assert!(painted_has(&mut host, "Información de cuenta"));
 }
@@ -270,7 +270,9 @@ fn a_section_s_link_jumps_to_it_and_the_sidebar_follows_the_scroll() {
     host.frame();
     let top = host.tree.anchor_offset("us:section:color").unwrap();
     let margin = jump_margin(SettingsPage::Accessibility);
-    assert!((top - margin).abs() < 4.0, "{top} under the preview");
+    // A few pixels more when the page ends first: the shorter sections leave
+    // less room to scroll, and the jump stops at the end.
+    assert!((top - margin).abs() < 8.0, "{top} under the preview");
     assert_eq!(host.ui.settings_state.section, Some("color"));
     // Scrolled back up by hand, the first section is the one being read.
     host.tree
@@ -1213,4 +1215,39 @@ fn hearing_oneself_starts_the_test_and_a_blank_click_leaves_the_search_alone() {
     assert!(!host.ui.audio.testing);
     host.us_press("us:loopback");
     assert!(host.ui.audio.testing && host.ui.audio.loopback);
+}
+
+#[test]
+fn the_menu_has_the_new_pages_and_old_keys_still_open_theirs() {
+    let mut host = Host::new();
+    host.us_open();
+    let buttons = host.us_buttons();
+    for key in ["keybinds", "desktop", "connection", "developer"] {
+        assert!(buttons.contains(&format!("us:page={key}")), "{key}");
+    }
+    assert!(!buttons.contains(&"us:page=system".to_owned()));
+    host.click("us:page=keybinds");
+    assert_eq!(host.ui.settings, Some(SettingsPage::Keybinds));
+    host.click("us:page=activity");
+    assert_eq!(host.ui.settings, Some(SettingsPage::Activity));
+    host.click("us:page=desktop");
+    assert_eq!(host.ui.settings, Some(SettingsPage::Desktop));
+    // The page that was «Sistema» and the one of the first shortcuts.
+    host.us_press("us:page=system");
+    assert_eq!(host.ui.settings, Some(SettingsPage::Desktop));
+    host.us_press("us:page=shortcuts");
+    assert_eq!(host.ui.settings, Some(SettingsPage::Keybinds));
+}
+
+#[test]
+fn searching_finds_the_shortcuts_page_by_its_title() {
+    let mut host = Host::new();
+    host.us_open();
+    host.us_write(SEARCH, "atajos");
+    assert!(host.us_buttons().contains(&"us:page=keybinds".to_owned()));
+    host.click("us:page=keybinds");
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text == "Atajos de teclado"));
 }

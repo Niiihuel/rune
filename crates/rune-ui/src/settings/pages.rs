@@ -408,12 +408,25 @@ const SECTIONS: &[Section] = &[
 
 /// The pages in the sidebar's order, in groups: a heading, then its pages.
 const GROUPS: &[(Option<&str>, &[SettingsPage])] = &[
-    (None, &[Account, Privacy, Notifications]),
     (
-        Some(es("Experiencia")),
-        &[Voice, Appearance, Accessibility, System, Language],
+        Some(es("Ajustes de usuario")),
+        &[Account, Privacy, Connection],
     ),
-    (None, &[Connection, Updates, Developer]),
+    (
+        Some(es("Ajustes de aplicación")),
+        &[
+            Appearance,
+            Voice,
+            Notifications,
+            Accessibility,
+            Keybinds,
+            Language,
+            Desktop,
+            Updates,
+            Developer,
+        ],
+    ),
+    (Some(es("Ajustes de actividad")), &[Activity]),
 ];
 
 fn icon_of(page: SettingsPage) -> Icon {
@@ -424,11 +437,13 @@ fn icon_of(page: SettingsPage) -> Icon {
         Voice => Icon::Microphone,
         Appearance => Icon::Palette,
         Accessibility => Icon::Sliders,
-        System => Icon::Keyboard,
+        Keybinds => Icon::Keyboard,
+        Desktop => Icon::Laptop,
         Language => Icon::Globe,
-        Connection => Icon::Laptop,
+        Connection => Icon::Puzzle,
         Developer => Icon::Code,
         Updates => Icon::Refresh,
+        Activity => Icon::Gamepad,
     }
 }
 
@@ -740,7 +755,8 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             Element::spacer().size(None, Some(12.0)),
         ])
     };
-    if let Some(shown) = crate::account::privacy_setting(store, key, look, width) {
+    let open = ui.settings_state.select;
+    if let Some(shown) = crate::account::privacy_setting(store, key, look, width, open) {
         return Some(shown);
     }
     if let Some(shown) = desktop::setting(ctx, key) {

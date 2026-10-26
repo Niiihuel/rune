@@ -418,15 +418,12 @@ fn choosing_english_shows_at_once_and_spanish_comes_back() {
     let mut host = Host::new();
     host.act_on("me:settings");
     host.act_on("us:page=language");
-    assert!(host.painted().iter().any(|text| text == "Idioma y hora"));
+    assert!(host.painted().iter().any(|text| text == "Idioma"));
     host.act_on("us:lang=en");
     let painted = host.painted();
-    assert!(
-        painted.iter().any(|text| text == "Language and time"),
-        "{painted:?}"
-    );
-    assert!(!painted.iter().any(|text| text == "Idioma y hora"));
+    assert!(painted.iter().any(|text| text == "Language"), "{painted:?}");
+    assert!(!painted.iter().any(|text| text == "Idioma"));
     host.act_on("us:lang=es");
-    assert!(host.painted().iter().any(|text| text == "Idioma y hora"));
+    assert!(host.painted().iter().any(|text| text == "Idioma"));
     rune_i18n::set_thread(None);
 }

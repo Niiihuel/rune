@@ -462,7 +462,7 @@ fn the_window_s_decorations_and_gpu_are_chosen_for_the_host() {
             fallback_chosen: false,
         },
     );
-    host.ui.settings = Some(crate::SettingsPage::System);
+    host.ui.settings = Some(crate::SettingsPage::Desktop);
     host.desktop_click("us:jump=graphics");
     host.frame();
     let painted = host.painted();
@@ -577,7 +577,7 @@ fn painted_text(host: &mut Host) -> String {
 #[test]
 fn starting_in_the_tray_follows_the_session_s_start_and_is_asked_of_the_host() {
     let mut host = Host::new();
-    host.ui.settings = Some(crate::SettingsPage::System);
+    host.ui.settings = Some(crate::SettingsPage::Desktop);
     assert!(
         host.desktop_click("us:autostart-minimized").is_empty(),
         "not read yet"
@@ -624,7 +624,7 @@ fn the_account_s_hidden_activity_is_said_and_turned_on_only_by_a_click() {
     let mut host = Host::new();
     host.ui.prefs.game_activity = true;
     host.event(Event::ActivitySharing(false));
-    host.ui.settings = Some(crate::SettingsPage::System);
+    host.ui.settings = Some(crate::SettingsPage::Activity);
     host.desktop_click("us:jump=activity");
     let painted = painted_text(&mut host);
     assert!(
@@ -718,7 +718,7 @@ fn the_registered_games_page_lists_renames_and_hides_them() {
     };
     let intents = games::running(&mut host.ui, Some(running), 1_790_000_000_000);
     assert!(matches!(&intents[..], [Intent::SaveSetting { key, .. }] if key == games::SETTING));
-    host.ui.settings = Some(crate::SettingsPage::System);
+    host.ui.settings = Some(crate::SettingsPage::Activity);
     host.desktop_click("us:jump=games");
     let painted = painted_text(&mut host);
     for text in [

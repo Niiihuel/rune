@@ -49,27 +49,32 @@ pub enum SettingsPage {
     Voice,
     Appearance,
     Accessibility,
-    System,
+    Keybinds,
+    Desktop,
     Language,
     Connection,
-    Developer,
     // RUNE's own updates (actualizaciones).
     Updates,
+    Developer,
+    Activity,
 }
 
 impl SettingsPage {
-    pub const ALL: [Self; 11] = [
+    /// In the order of the sidebar's groups.
+    pub const ALL: [Self; 13] = [
         Self::Account,
         Self::Privacy,
-        Self::Notifications,
-        Self::Voice,
-        Self::Appearance,
-        Self::Accessibility,
-        Self::System,
-        Self::Language,
         Self::Connection,
-        Self::Developer,
+        Self::Appearance,
+        Self::Voice,
+        Self::Notifications,
+        Self::Accessibility,
+        Self::Keybinds,
+        Self::Language,
+        Self::Desktop,
         Self::Updates,
+        Self::Developer,
+        Self::Activity,
     ];
 
     /// The page's name in its action, `us:page={key}`.
@@ -81,19 +86,23 @@ impl SettingsPage {
             Self::Voice => "voice",
             Self::Appearance => "appearance",
             Self::Accessibility => "accessibility",
-            Self::System => "system",
+            Self::Keybinds => "keybinds",
+            Self::Desktop => "desktop",
             Self::Language => "language",
             Self::Connection => "connection",
             Self::Developer => "developer",
             Self::Updates => "updates",
+            Self::Activity => "activity",
         }
     }
 
-    /// The page a key names; the names of the first settings still work.
+    /// The page a key names; the names of the first settings still work, and
+    /// the page that was «Sistema» is the desktop's.
     pub fn from_key(key: &str) -> Option<Self> {
         Some(match key {
             "audio" => Self::Voice,
-            "shortcuts" => Self::System,
+            "shortcuts" => Self::Keybinds,
+            "system" => Self::Desktop,
             _ => *Self::ALL.iter().find(|page| page.key() == key)?,
         })
     }
@@ -107,11 +116,13 @@ impl SettingsPage {
             Self::Voice => t("Voz y video"),
             Self::Appearance => t("Apariencia"),
             Self::Accessibility => t("Accesibilidad"),
-            Self::System => t("Sistema"),
-            Self::Language => t("Idioma y hora"),
-            Self::Connection => t("Conexión"),
-            Self::Developer => t("Desarrollador"),
+            Self::Keybinds => t("Atajos de teclado"),
+            Self::Desktop => t("Escritorio"),
+            Self::Language => t("Idioma"),
+            Self::Connection => t("Conexiones"),
+            Self::Developer => t("Avanzado"),
             Self::Updates => t("Actualizaciones"),
+            Self::Activity => t("Privacidad de la actividad"),
         }
     }
 
@@ -1225,6 +1236,8 @@ pub fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<In
         return accent(ui, store, hex);
     }
     if let Some(privacy) = rest.strip_prefix("privacy:") {
+        // A choice closes the list it was made in.
+        ui.settings_state.select = None;
         return crate::account::privacy_clicked(ui, store, privacy, now);
     }
     if let Some(name) = rest.strip_prefix("select:") {
@@ -1236,6 +1249,9 @@ pub fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<In
             ("speaker", _) => Some("speaker"),
             ("camera", _) => Some("camera"),
             ("role-colors", _) => Some("role-colors"),
+            ("explicit-servers", _) => Some("explicit-servers"),
+            ("explicit-friends", _) => Some("explicit-friends"),
+            ("explicit-others", _) => Some("explicit-others"),
             _ => None,
         };
         return Vec::new();

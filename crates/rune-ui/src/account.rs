@@ -10,7 +10,9 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
-use limn::{Component, Element, Point, Tab, Tabs, UiAction};
+use limn::{
+    Component, ControlSize, DropdownOption, Element, Point, Select, SelectVariant, UiAction,
+};
 use rune_components::channel_menu::{self as menu_parts, grouped, Entry, Item};
 use rune_components::folders::{self as folder_parts, FolderForm};
 use rune_components::profile::NoteField;
@@ -790,11 +792,14 @@ pub(crate) fn overlay(
 
 /// The setting `key` of «Mensajes directos y solicitudes», as its page
 /// shows it; `None` for other keys.
+/// `open` is the list open in the settings, if any: the explicit filters'
+/// lists are named `explicit-{who}`.
 pub(crate) fn privacy_setting(
     store: &Store,
     key: &str,
     look: &Look,
     width: f32,
+    open: Option<&str>,
 ) -> Option<Element> {
     let permit = store.account_abilities().privacy;
     let kept = store.messaging_privacy();
@@ -841,19 +846,19 @@ pub(crate) fn privacy_setting(
             };
             let choices = setting_parts::choices(
                 "us:privacy:spam",
-                t("Filtrar spam en los mensajes directos"),
+                t("Filtro de spam"),
                 &[
                     (
                         "us:privacy:spam=everyone".to_owned(),
-                        t("Filtrar los de todos"),
+                        t("Filtrar todo el spam"),
                         Some(t("También los de tus amigos.")),
                     ),
                     (
                         "us:privacy:spam=non-friends".to_owned(),
-                        t("Filtrar los de quienes no son tus amigos"),
+                        t("Filtrar los mensajes de personas que no sean tus amigos (recomendado)"),
                         Some(t("Lo que la cuenta hace si nunca se cambió.")),
                     ),
-                    ("us:privacy:spam=off".to_owned(), t("No filtrar"), None),
+                    ("us:privacy:spam=off".to_owned(), t("No filtrar el spam"), None),
                 ],
                 selected,
                 look,
@@ -871,54 +876,92 @@ pub(crate) fn privacy_setting(
         "explicit-content" => {
             let rows = [
                 ("servers", t("En servidores"), privacy.explicit_servers),
-                ("friends", t("De tus amigos"), privacy.explicit_friends),
-                ("others", t("De quienes no son tus amigos"), privacy.explicit_others),
+                ("friends", t("Mensajes directos de amigos"), privacy.explicit_friends),
+                ("others", t("Mensajes directos de otras personas"), privacy.explicit_others),
             ]
             .into_iter()
             .map(|(who, label, filter)| {
-                let tabs = [
+                let name = format!("explicit-{who}");
+                // Never set, the service's default: shown in servers and from
+                // friends, blocked from anyone else (as the store applies it).
+                let effective = match (filter, who) {
+                    (ContentFilter::Default, "others") => ContentFilter::Block,
+                    (ContentFilter::Default, _) => ContentFilter::Show,
+                    (chosen, _) => chosen,
+                };
+                let filters = [
                     ("show", t("Mostrar"), ContentFilter::Show),
                     ("blur", t("Difuminar"), ContentFilter::Blur),
                     ("block", t("Bloquear"), ContentFilter::Block),
-                ]
-                .into_iter()
-                .map(|(key, name, value)| {
-                    Tab::new(format!("us:privacy:explicit-{who}={key}"), name, 84.0)
-                        .active(filter == value)
-                })
-                .collect();
-                let control = (denied.is_none())
-                    .then(|| Tabs::new(tabs, look.palette()).id(format!("us:privacy:explicit-{who}")).render());
-                setting_parts::setting(label, None, control, denied.is_none(), look)
+                ];
+                let current = filters
+                    .iter()
+                    .find(|(_, _, value)| *value == effective)
+                    .map_or("", |(_, label, _)| *label);
+                let choices = filters
+                    .into_iter()
+                    .map(|(key, label, value)| {
+                        DropdownOption::new(format!("us:privacy:explicit-{who}={key}"), label)
+                            .selected(effective == value)
+                            .enabled(denied.is_none())
+                    })
+                    .collect();
+                let control = Select::new(
+                    format!("us:select:{name}"),
+                    current,
+                    choices,
+                    open == Some(name.as_str()),
+                    "us:select:dismiss",
+                    look.palette(),
+                )
+                .menu_palette(look.menu_palette())
+                .variant(SelectVariant::Field)
+                .size(ControlSize::Spacious)
+                .accessibility_label(label)
+                .enabled(denied.is_none())
+                .width(180.0)
+                .menu_width(180.0)
+                .render();
+                setting_parts::setting(label, None, Some(control), denied.is_none(), look)
             })
             .collect();
-            stacked(
-                t("Contenido explícito en imágenes"),
-                t("RUNE difumina las imágenes que el servicio marca como explícitas, y un clic las muestra; bloquear lo hace el servicio, y lo que llega igual se difumina. Sin elegir: se ven en servidores y de amigos, y se difuminan las de los demás."),
-                Element::column(rows),
-            )
+            Element::column(vec![
+                setting_parts::subtitle(t("Filtro de imágenes explícitas"), look),
+                line(
+                    t("Difumina las imágenes explícitas hasta que decidas verlas."),
+                    14.0,
+                    look.muted,
+                ),
+                Element::spacer().size(None, Some(8.0)),
+                setting_parts::rows(rows, look),
+            ])
         }
         "friend-requests" => {
             let sources = privacy.friend_sources;
             Element::column(vec![
                 setting_parts::subtitle(t("Quién puede mandarte solicitudes de amistad"), look),
-                toggle(
-                    "us:privacy:friends-everyone",
-                    t("Todo el mundo"),
-                    t("Cualquiera que sepa tu nombre de usuario."),
-                    sources.everyone,
-                ),
-                toggle(
-                    "us:privacy:friends-fof",
-                    t("Amigos de tus amigos"),
-                    t("Quienes tienen un amigo en común contigo."),
-                    sources.friends_of_friends,
-                ),
-                toggle(
-                    "us:privacy:friends-members",
-                    t("Miembros de tus servidores"),
-                    t("Quienes están en un servidor contigo."),
-                    sources.server_members,
+                setting_parts::rows(
+                    vec![
+                        toggle(
+                            "us:privacy:friends-everyone",
+                            t("Todo el mundo"),
+                            t("Cualquiera que sepa tu nombre de usuario."),
+                            sources.everyone,
+                        ),
+                        toggle(
+                            "us:privacy:friends-fof",
+                            t("Amigos de amigos"),
+                            t("Quienes tienen un amigo en común contigo."),
+                            sources.friends_of_friends,
+                        ),
+                        toggle(
+                            "us:privacy:friends-members",
+                            t("Miembros del servidor"),
+                            t("Quienes están en un servidor contigo."),
+                            sources.server_members,
+                        ),
+                    ],
+                    look,
                 ),
             ])
         }

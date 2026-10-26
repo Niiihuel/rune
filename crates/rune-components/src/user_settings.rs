@@ -11,8 +11,8 @@
 
 use limn::{
     Button, ButtonVariant, Color, Component, ControlSize, Element, FontFamily, Icon, LevelBars,
-    RadioGroup, RadioOption, ScrollArea, ScrollbarAppearance, SearchField, Size, Slider, Switch,
-    SwitchVariant, Tooltip,
+    RadioGroup, RadioOption, RadioVariant, ScrollArea, ScrollbarAppearance, SearchField, Separator,
+    Size, Slider, Switch, SwitchVariant, Tooltip,
 };
 use rune_model::{
     ChannelId, Delivery, Message, MessageId, MessageKind, Reaction, Timestamp, UserId,
@@ -34,9 +34,9 @@ pub const MARGIN: f32 = 43.5;
 pub const SIDEBAR_WIDTH: f32 = 269.0;
 const ITEM_INSET: f32 = 17.0;
 pub const ITEM_WIDTH: f32 = 235.0;
-pub const ITEM_HEIGHT: f32 = 42.0;
+pub const ITEM_HEIGHT: f32 = 36.0;
 const ITEM_GAP: f32 = 5.0;
-const ANCHOR_HEIGHT: f32 = 38.0;
+const ANCHOR_HEIGHT: f32 = 32.0;
 /// The bar over a page, with its title and the close button.
 pub const HEADER_HEIGHT: f32 = 51.5;
 /// The column of settings, centered in the page.
@@ -44,7 +44,7 @@ pub const COLUMN_WIDTH: f32 = 743.0;
 const COLUMN_TOP: f32 = 72.0;
 const COLUMN_BOTTOM: f32 = 96.0;
 /// Room over and under the line between two sections.
-const SECTION_SPACE: f32 = 48.0;
+const SECTION_SPACE: f32 = 24.0;
 /// Least room kept at each side of a narrow window, and of a narrow column.
 const EDGE: f32 = 16.0;
 const SIDE_ROOM: f32 = 32.0;
@@ -139,13 +139,19 @@ pub fn sidebar(
     let mut rows = vec![gap(0.0, 13.0)];
     for entry in nav {
         match entry {
-            Nav::Heading(title) => rows.push(
+            // Capitals in small bold: a group's name, the first one at the top.
+            Nav::Heading(title) => rows.push(Element::column(vec![
+                gap(0.0, if rows.len() > 1 { 12.0 } else { 0.0 }),
                 Element::row(vec![
-                    gap(ITEM_INSET + 8.5, 0.0),
-                    line(title.clone(), 14.0, look.muted).flex(1.0).centered_y(),
+                    gap(16.0, 0.0),
+                    line(title.to_uppercase(), 12.0, look.muted)
+                        .font_family(FontFamily::SansBold)
+                        .flex(1.0)
+                        .centered_y(),
                 ])
-                .size(None, Some(32.0)),
-            ),
+                .size(None, Some(18.0)),
+                gap(0.0, 6.0),
+            ])),
             Nav::Separator => rows.push(Element::column(vec![
                 gap(0.0, 6.0),
                 Element::row(vec![
@@ -232,12 +238,15 @@ fn nav_item(page: &NavPage, look: &Look) -> Element {
                 .size(Some(20.0), Some(20.0))
                 .centered_y(),
             gap(11.0, 0.0),
-            line(page.label.clone(), 16.0, ink).flex(1.0).centered_y(),
+            line(page.label.clone(), 16.0, ink)
+                .font_family(FontFamily::SansMedium)
+                .flex(1.0)
+                .centered_y(),
             gap(8.0, 0.0),
         ]),
     )
     .size(Some(ITEM_WIDTH), Some(ITEM_HEIGHT))
-    .radius(8.0)
+    .radius(6.0)
     .hover_background(look.hover)
     .hover_foreground(look.text)
     .accessible(
@@ -255,22 +264,23 @@ fn nav_item(page: &NavPage, look: &Look) -> Element {
 
 /// A link to a section, on the guide that runs down the open page's links.
 fn nav_anchor(anchor: &NavAnchor, look: &Look) -> Element {
-    let (ink, mark, width) = if anchor.active {
-        (look.text, look.text, 1.5)
+    let (ink, mark) = if anchor.active {
+        (look.text, look.accent)
     } else {
-        (look.muted, look.border, 1.0)
+        (look.muted, look.border)
     };
+    // Two lines at most, never cut: a long title wraps under the guide.
     Element::row(vec![
         gap(ITEM_INSET + 21.5, 0.0),
         Element::panel(Element::spacer())
-            .size(Some(width), Some(ANCHOR_HEIGHT + ITEM_GAP))
+            .size(Some(1.0), Some(ANCHOR_HEIGHT + ITEM_GAP))
             .background(mark),
-        gap(20.0 - width, 0.0),
+        gap(19.0, 0.0),
         Element::clickable(
             &anchor.id,
-            line(anchor.label.clone(), 15.0, ink).centered_y(),
+            text(anchor.label.clone(), 14.0, ink).centered_y(),
         )
-        .size(Some(ITEM_WIDTH - 42.0), Some(ANCHOR_HEIGHT))
+        .size(Some(ITEM_WIDTH - 42.0), None)
         .hover_foreground(look.text)
         .accessible(
             limn::Access::new(limn::Role::Link)
@@ -278,7 +288,7 @@ fn nav_anchor(anchor: &NavAnchor, look: &Look) -> Element {
                 .selected(anchor.active),
         ),
     ])
-    .size(None, Some(ANCHOR_HEIGHT))
+    .min_size(0.0, ANCHOR_HEIGHT)
 }
 
 /// The panel: the sidebar, a hairline, and the page under its header with
@@ -302,7 +312,10 @@ pub fn panel(
     .accessible(limn::Access::new(limn::Role::Button).name(t("Cerrar (Esc)")));
     let header = Element::row(vec![
         gap(18.0, 0.0),
-        line(title, 16.0, look.text).flex(1.0).centered_y(),
+        line(title, 16.0, look.text)
+            .font_family(FontFamily::SansBold)
+            .flex(1.0)
+            .centered_y(),
         close.centered_y(),
         gap(10.0, 0.0),
     ])
@@ -370,8 +383,9 @@ fn divider(look: &Look) -> Element {
     ])
 }
 
-/// A section: its title, 24 px, with an action beside it when there is
-/// one, and its settings. `anchor` is where its link in the sidebar jumps.
+/// A section: its title, 20 px bold on one line, with an action beside it
+/// when there is one, and its settings with a hairline between each two.
+/// `anchor` is where its link in the sidebar jumps.
 pub fn section(
     anchor: &str,
     title: &str,
@@ -379,10 +393,8 @@ pub fn section(
     rows: Vec<Element>,
     look: &Look,
 ) -> Element {
-    let mut head = vec![Element::text(title.to_owned())
-        .font_family(FontFamily::Sans)
-        .font_size(24.0)
-        .foreground(look.text)
+    let mut head = vec![strong_line(title, 20.0, look.text)
+        .font_family(FontFamily::SansBold)
         .flex(1.0)
         .centered_y()];
     if let Some(trailing) = trailing {
@@ -390,23 +402,43 @@ pub fn section(
     }
     let mut column = vec![
         Element::row(head).gap(16.0).min_size(0.0, 32.0),
-        gap(0.0, 8.0),
+        gap(0.0, 12.0),
     ];
-    column.extend(rows);
+    column.extend(with_rules(rows, look));
     Element::column(column).anchor(anchor)
+}
+
+/// The rows of a section, with a hairline between each two and none before
+/// the first or after the last.
+fn with_rules(rows: Vec<Element>, look: &Look) -> Vec<Element> {
+    let mut out = Vec::with_capacity(rows.len() * 2);
+    for (index, row) in rows.into_iter().enumerate() {
+        if index > 0 {
+            out.push(Separator::horizontal(look.palette()).render());
+        }
+        out.push(row);
+    }
+    out
+}
+
+/// Rows that stand one under the other, as a group of their own, with the
+/// same hairlines as a section's rows.
+pub fn rows(rows: Vec<Element>, look: &Look) -> Element {
+    Element::column(with_rules(rows, look))
 }
 
 /// A title inside a section, over the settings it groups.
 pub fn subtitle(title: &str, look: &Look) -> Element {
     Element::column(vec![
-        gap(0.0, 16.0),
+        gap(0.0, 24.0),
         strong_line(title, 16.0, look.text).font_family(FontFamily::SansBold),
-        gap(0.0, 4.0),
+        gap(0.0, 8.0),
     ])
 }
 
 /// A setting: its name, a note under it, and its control at the right,
-/// centered with the name. A setting that cannot be changed is dimmed.
+/// centered with the name. The text takes every width the control leaves.
+/// A setting that cannot be changed is dimmed.
 pub fn setting(
     label: &str,
     note: Option<&str>,
@@ -423,15 +455,14 @@ pub fn setting(
     if let Some(note) = note {
         copy.push(text(note, 14.0, quiet));
     }
-    let mut row = vec![Element::column(copy).gap(3.0).flex(1.0).centered_y()];
+    let mut row = vec![Element::column(copy).gap(4.0).flex(1.0).centered_y()];
     if let Some(control) = control {
         row.push(control.centered_y());
     }
-    let room = if note.is_some() { 17.5 } else { 20.5 };
     Element::column(vec![
-        gap(0.0, room),
+        gap(0.0, 16.0),
         Element::row(row).gap(32.0),
-        gap(0.0, room),
+        gap(0.0, 16.0),
     ])
 }
 
@@ -469,12 +500,14 @@ pub fn choices(
         .map(|(value, name, note)| {
             let option = RadioOption::new(value.clone(), *name);
             match note {
-                Some(note) => option.description(*note),
-                None => option,
+                // A note that only repeats the name is left out.
+                Some(note) if note != name => option.description(*note),
+                _ => option,
             }
         })
         .collect();
     RadioGroup::new(id, options, Some(selected), look.palette())
+        .variant(RadioVariant::Card)
         .size(ControlSize::Spacious)
         .accessibility_label(label)
         .render()
@@ -962,6 +995,57 @@ mod tests {
     }
 
     #[test]
+    fn a_section_draws_a_hairline_between_its_rows_and_not_around_them() {
+        let look = Look::DARK;
+        let row = || Element::spacer().size(Some(200.0), Some(40.0));
+        let (_, laid) = frame(
+            section("s", "Título", None, vec![row(), row(), row()], &look),
+            Size::new(400.0, 300.0),
+        );
+        let rules = laid
+            .commands
+            .iter()
+            .filter(|command| {
+                matches!(command, limn::DrawCommand::FillRect { rect, color, .. }
+                    if *color == look.border && rect.height == 1.0)
+            })
+            .count();
+        assert_eq!(rules, 2, "one between each two of the three rows");
+    }
+
+    #[test]
+    fn choices_are_cards_and_a_note_repeating_its_name_is_left_out() {
+        let look = Look::DARK;
+        let options = [
+            ("a".to_owned(), "Uno", None),
+            ("b".to_owned(), "Dos", Some("Dos")),
+            ("c".to_owned(), "Tres", Some("Una nota")),
+        ];
+        let (_, laid) = frame(
+            choices("c", "Elegir", &options, "a", &look),
+            Size::new(400.0, 300.0),
+        );
+        let painted = texts(&laid);
+        assert!(painted.iter().any(|text| text == "Una nota"));
+        assert_eq!(
+            painted.iter().filter(|text| *text == "Dos").count(),
+            1,
+            "the name alone: {painted:?}"
+        );
+        // The chosen card takes the selected fill; the others stay raised.
+        let fills = |fill: Color| {
+            laid.commands
+                .iter()
+                .filter(|command| {
+                    matches!(command, limn::DrawCommand::FillRect { color, .. } if *color == fill)
+                })
+                .count()
+        };
+        assert!(fills(look.raised) >= 2, "the other cards are raised");
+        assert!(fills(look.selected) >= 1, "the chosen card is marked");
+    }
+
+    #[test]
     fn the_preview_shows_messages_that_do_nothing_when_clicked() {
         let look = Look::DARK;
         let (_, laid) = frame(
@@ -1031,13 +1115,13 @@ mod tests {
         };
         let (edit, uno) = (rect("profile:edit"), rect("uno"));
         assert_eq!((edit.x, edit.width), (uno.x, uno.width));
-        let rounded = |at: limn::Rect| {
+        let rounded = |at: limn::Rect, corner: f32| {
             laid.commands.iter().any(|command| {
                 matches!(command, limn::DrawCommand::FillRect { rect, radius, .. }
-                    if *rect == at && *radius == 8.0)
+                    if *rect == at && *radius == corner)
             })
         };
-        assert!(rounded(uno), "the selected page's fill");
+        assert!(rounded(uno, 6.0), "the selected page's fill");
         let mut tree = limn::UiTree::new(sidebar(
             &Account {
                 image: None,

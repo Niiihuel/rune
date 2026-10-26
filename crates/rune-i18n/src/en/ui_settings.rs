@@ -34,7 +34,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Proveedor", "Provider"),
     ("Desarrollador", "Developer"),
     ("Pruebas de la simulación", "Simulation tests"),
-    ("Experiencia", "Experience"),
     ("nombre para mostrar apodo cómo te ven", "display name nickname how others see you"),
     ("nombre de usuario handle arroba", "username handle at tag"),
     ("color del avatar inicial foto imagen", "avatar color initial photo picture image"),

@@ -9,7 +9,7 @@ use rune_components::user_settings as parts;
 use rune_i18n::{es, t, tr};
 
 use super::{select, Ctx, Section};
-use crate::settings::SettingsPage::{Appearance, Connection, System, Voice};
+use crate::settings::SettingsPage::{Activity, Appearance, Connection, Desktop, Voice};
 
 /// Whether a section of these can show: the call's encryption during a call.
 pub(super) fn available(key: &str, store: &rune_state::Store) -> bool {
@@ -40,7 +40,7 @@ pub(super) const SECTIONS: &[Section] = &[
         ],
     },
     Section {
-        page: System,
+        page: Desktop,
         key: "desktop",
         title: es("Escritorio"),
         rows: &[
@@ -51,7 +51,7 @@ pub(super) const SECTIONS: &[Section] = &[
         ],
     },
     Section {
-        page: System,
+        page: Activity,
         key: "activity",
         title: es("Actividad"),
         rows: &[
@@ -64,7 +64,7 @@ pub(super) const SECTIONS: &[Section] = &[
     },
     // Desktop session and games (escritorio-sesion-y-juegos).
     Section {
-        page: System,
+        page: Activity,
         key: "games",
         title: es("Juegos registrados"),
         rows: &[
@@ -81,7 +81,7 @@ pub(super) const SECTIONS: &[Section] = &[
     },
     // Linux desktop (escritorio-linux).
     Section {
-        page: System,
+        page: Desktop,
         key: "window",
         title: es("Ventana"),
         rows: &[(
@@ -90,7 +90,7 @@ pub(super) const SECTIONS: &[Section] = &[
         )],
     },
     Section {
-        page: System,
+        page: Desktop,
         key: "graphics",
         title: es("Gráficos"),
         rows: &[(
