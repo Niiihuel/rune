@@ -3,7 +3,8 @@
 //! On Linux this asks the xdg-desktop-portal `GlobalShortcuts` interface.
 //! The compositor owns the grab and may ask the person to confirm it or to
 //! choose another trigger. RUNE never grabs X11 keys nor reads input devices.
-//! On Windows each shortcut is a system hotkey (windows-base).
+//! On Windows low-level keyboard and mouse hooks compare each input with the
+//! bound shortcuts and consume nothing (windows-base, docs/SECURITY.md).
 //! A session lives on its own thread and ends when its handle is dropped.
 
 use rune_i18n::{es, t};
@@ -49,6 +50,10 @@ impl ShortcutError {
     pub const DENIED: Self = Self(es("El escritorio no autorizó el atajo global."));
     pub const CLOSED: Self = Self(es("El escritorio cerró los atajos globales."));
     pub const FAILED: Self = Self(es("El portal de atajos globales no respondió."));
+    pub const WINDOWS_KEY: Self = Self(es("Windows no puede usar esa tecla como atajo global."));
+    pub const WINDOWS_HOOK: Self = Self(es(
+        "Windows no dejó instalar el escucha de teclado y ratón para el atajo global.",
+    ));
 }
 
 impl fmt::Display for ShortcutError {

@@ -1791,6 +1791,28 @@ fn push_to_talk_key(ctx: &Ctx) -> Element {
     if let Some(global) = global {
         column.push(text(global, 13.0, look.muted));
     }
+    if let Some(line) = &ui.audio.hyprland_bind {
+        column.push(text(
+            t("Hyprland no asigna la tecla por sí mismo. Agrega esta línea a tu configuración:"),
+            13.0,
+            look.muted,
+        ));
+        column.push(
+            Element::row(vec![
+                text(line.clone(), 13.0, look.text).centered_y(),
+                parts::secondary_button("us:ptt-hypr-copy", t("Copiar"), true, look),
+            ])
+            .gap(12.0),
+        );
+    }
+    // A game elevated on Windows does not get the hook's input without it.
+    if cfg!(windows) {
+        column.push(text(
+            t("Si un juego se ejecuta como administrador, abre RUNE también como administrador para que el atajo funcione dentro de él."),
+            13.0,
+            look.muted,
+        ));
+    }
     if ui.audio.testing {
         column.push(line(
             if ui.audio.transmitting {

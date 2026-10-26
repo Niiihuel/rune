@@ -485,6 +485,14 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Funciona con la ventana de RUNE enfocada.", "Works while RUNE's window has focus."),
     ("Sin atajo", "No shortcut"),
     ("Grabar atajo", "Record shortcut"),
+    (
+        "Hyprland no asigna la tecla por sí mismo. Agrega esta línea a tu configuración:",
+        "Hyprland does not assign the key by itself. Add this line to your configuration:",
+    ),
+    (
+        "Si un juego se ejecuta como administrador, abre RUNE también como administrador para que el atajo funcione dentro de él.",
+        "If a game runs as administrator, open RUNE as administrator too so the shortcut works inside it.",
+    ),
     ("Pidiendo el atajo global al escritorio…", "Asking the desktop for the global shortcut…"),
     (
         "También fuera de RUNE, con el atajo que asignó el escritorio.",

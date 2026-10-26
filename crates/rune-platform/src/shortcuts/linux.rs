@@ -47,6 +47,8 @@ pub(super) fn spawn(
             };
             runtime.block_on(async {
                 if let Err(error) = run(address, &shortcuts, &report, stopped).await {
+                    // The reason only: never the keys asked for.
+                    eprintln!("rune: global shortcuts ended: {error}");
                     report(ShortcutEvent::Ended(error));
                 }
             });
@@ -199,6 +201,11 @@ async fn run(
         {
             return Err(ShortcutError::DENIED);
         }
+        eprintln!(
+            "rune: global shortcuts: the desktop bound {} of {}",
+            bound.len(),
+            shortcuts.len()
+        );
         report(ShortcutEvent::Bound(bound));
         loop {
             tokio::select! {

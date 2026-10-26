@@ -606,6 +606,8 @@ pub struct Audio {
     pub transmitting: bool,
     /// Push-to-talk while another window has focus, as the desktop allows it.
     pub global_keys: GlobalKeys,
+    /// The line to add to Hyprland's config for push-to-talk, on Hyprland only.
+    pub hyprland_bind: Option<String>,
     /// While testing the microphone, one hears it back on the output.
     pub loopback: bool,
     /// The output is opening for the loopback.

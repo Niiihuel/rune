@@ -79,19 +79,39 @@ pub fn window_pressed(pressed: &[(Key, Modifiers)], binding: &str) -> bool {
     })
 }
 
-/// The freedesktop shortcuts format of `binding`, for keys whose keysym name
-/// is plain; the desktop lets the person choose when there is none.
+/// The freedesktop shortcuts format of `binding`, with the keysym names of
+/// the keys that have one; the desktop lets the person choose when there is none.
 fn trigger(binding: &str) -> Option<String> {
     let (key, modifiers) = parse(binding)?;
     let name = key.name();
-    let keysym = if name.len() == 1 && name.as_bytes()[0].is_ascii_alphanumeric() {
-        name.to_ascii_lowercase()
-    } else if function_key(key) {
-        name.to_owned()
-    } else if key == Key::Space {
-        "space".to_owned()
-    } else {
-        return None;
+    let keysym = match key {
+        Key::Space => "space".to_owned(),
+        Key::Backtick => "grave".to_owned(),
+        Key::Minus => "minus".to_owned(),
+        Key::Equals => "equal".to_owned(),
+        Key::Comma => "comma".to_owned(),
+        Key::Period => "period".to_owned(),
+        Key::Slash => "slash".to_owned(),
+        Key::Semicolon => "semicolon".to_owned(),
+        Key::Quote => "apostrophe".to_owned(),
+        Key::OpenBracket => "bracketleft".to_owned(),
+        Key::CloseBracket => "bracketright".to_owned(),
+        Key::Backslash => "backslash".to_owned(),
+        Key::ArrowLeft => "Left".to_owned(),
+        Key::ArrowRight => "Right".to_owned(),
+        Key::ArrowUp => "Up".to_owned(),
+        Key::ArrowDown => "Down".to_owned(),
+        Key::Home => "Home".to_owned(),
+        Key::End => "End".to_owned(),
+        Key::PageUp => "Page_Up".to_owned(),
+        Key::PageDown => "Page_Down".to_owned(),
+        Key::Insert => "Insert".to_owned(),
+        Key::Delete => "Delete".to_owned(),
+        _ if name.len() == 1 && name.as_bytes()[0].is_ascii_alphanumeric() => {
+            name.to_ascii_lowercase()
+        }
+        _ if function_key(key) => name.to_owned(),
+        _ => return None,
     };
     let mut trigger = String::new();
     for (held, modifier) in [
@@ -112,11 +132,52 @@ fn function_key(key: Key) -> bool {
     name.len() > 1 && name.starts_with('F') && name[1..].bytes().all(|b| b.is_ascii_digit())
 }
 
-/// A key held everywhere would also type everywhere: only a combination
-/// or a function key is asked of the desktop, as Serein does.
+/// On Windows a key held everywhere would also type everywhere, so only a
+/// combination or a function key is asked, as Serein does. The Linux desktop
+/// takes any key, as the owner asked on 2026-10-26.
 pub fn global_allowed(binding: &str) -> bool {
-    parse(binding)
-        .is_some_and(|(key, modifiers)| modifiers != Modifiers::default() || function_key(key))
+    cfg!(target_os = "linux")
+        || parse(binding)
+            .is_some_and(|(key, modifiers)| modifiers != Modifiers::default() || function_key(key))
+}
+
+/// Hyprland assigns no key by itself: this is the line to add to its config
+/// for `binding`, in Lua (`lua`) or in the classic form. `None` without a trigger.
+pub fn hyprland_line(binding: &str, lua: bool) -> Option<String> {
+    let trigger = trigger(binding)?;
+    let (mods, key) = trigger.rsplit_once('+').unwrap_or(("", trigger.as_str()));
+    Some(if lua {
+        let combo = if mods.is_empty() {
+            key.to_owned()
+        } else {
+            format!("{} + {key}", mods.replace('+', " + "))
+        };
+        format!(r#"hl.bind("{combo}", hl.dsp.global("rune:{ID}"))"#)
+    } else {
+        format!(
+            "bind = {}, {key}, global, rune:{ID}",
+            mods.replace('+', " ")
+        )
+    })
+}
+
+/// Whether the session runs under Hyprland, by its environment.
+fn hyprland() -> bool {
+    std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some()
+        || std::env::var("XDG_CURRENT_DESKTOP").is_ok_and(|desktop| {
+            desktop
+                .split(':')
+                .any(|part| part.eq_ignore_ascii_case("Hyprland"))
+        })
+}
+
+/// Whether the person's Hyprland config is Lua (read only).
+fn hyprland_lua() -> bool {
+    std::env::var_os("HOME").is_some_and(|home| {
+        std::path::Path::new(&home)
+            .join(".config/hypr/hyprland.lua")
+            .is_file()
+    })
 }
 
 /// The desktop's push-to-talk session: one per account and set of keys,
@@ -187,6 +248,9 @@ impl GlobalPushToTalk {
         let wanted = account
             .filter(|_| !keys.is_empty())
             .map(|account| (account, keys));
+        ui.audio.hyprland_bind = key
+            .filter(|_| hyprland())
+            .and_then(|key| hyprland_line(key, hyprland_lua()));
         if wanted != self.wanted {
             // Dropping the old session closes it and releases its keys.
             self.session = None;
@@ -236,6 +300,16 @@ impl GlobalPushToTalk {
         match event {
             ShortcutEvent::Bound(bound) => {
                 self.bound = bound.iter().map(|(id, _)| id.clone()).collect();
+                // Asked for but not bound: outside the window it does not work.
+                let asked = self
+                    .wanted
+                    .as_ref()
+                    .is_some_and(|(_, keys)| keys.iter().any(|(known, _)| known == ID));
+                if asked && !self.bound.contains(ID) {
+                    ui.audio.global_keys =
+                        GlobalKeys::Unavailable(es("el sistema no puede dar esa tecla.").into());
+                    return;
+                }
                 // The first one tells how the desktop describes them.
                 let trigger = bound
                     .iter()
@@ -304,7 +378,8 @@ mod tests {
         assert_eq!(parse(&named), Some((Key::T, ctrl_shift)));
         assert_eq!(trigger(&named).as_deref(), Some("CTRL+SHIFT+t"));
         assert_eq!(trigger("F13").as_deref(), Some("F13"));
-        assert_eq!(trigger("Alt+Backtick"), None, "the desktop chooses");
+        assert_eq!(trigger("Alt+Backtick").as_deref(), Some("ALT+grave"));
+        assert_eq!(trigger("Colon"), None, "the desktop chooses");
         assert_eq!(parse("Plus").map(|(key, _)| key), Some(Key::Plus));
         // Every key limn knows, digits and punctuation too, keeps egui's
         // name, so a key recorded before reads the same.
@@ -320,11 +395,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "linux"))]
     fn only_combinations_and_function_keys_go_global() {
         assert!(global_allowed("Ctrl+V"));
         assert!(global_allowed("F9"));
         assert!(!global_allowed("V"), "it would type everywhere");
         assert!(!global_allowed("Backtick"));
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn the_linux_desktop_takes_any_key() {
+        assert!(global_allowed("V"));
+        assert!(global_allowed("Backtick"));
+    }
+
+    #[test]
+    fn the_desktop_gets_the_names_of_more_keys_and_hyprland_its_bind_line() {
+        assert_eq!(trigger("Shift+ArrowLeft").as_deref(), Some("SHIFT+Left"));
+        assert_eq!(trigger("Ctrl+PageUp").as_deref(), Some("CTRL+Page_Up"));
+        assert_eq!(trigger("Ctrl+Slash").as_deref(), Some("CTRL+slash"));
+        assert_eq!(trigger("Quote").as_deref(), Some("apostrophe"));
+        assert_eq!(
+            hyprland_line("Ctrl+Shift+T", false).as_deref(),
+            Some("bind = CTRL SHIFT, t, global, rune:push-to-talk")
+        );
+        assert_eq!(
+            hyprland_line("Ctrl+Shift+T", true).as_deref(),
+            Some(r#"hl.bind("CTRL + SHIFT + t", hl.dsp.global("rune:push-to-talk"))"#)
+        );
+        assert_eq!(
+            hyprland_line("F9", false).as_deref(),
+            Some("bind = , F9, global, rune:push-to-talk")
+        );
     }
 
     #[test]
@@ -366,6 +469,18 @@ mod tests {
             "Shift was not held"
         );
         assert!(!window_pressed(&[], "Ctrl+M"));
+    }
+
+    #[test]
+    fn a_push_to_talk_the_desktop_did_not_bind_is_not_shown_as_another_one() {
+        let mut global = GlobalPushToTalk::default();
+        let mut ui = ptt("Ctrl+T");
+        global.sync(&mut ui, Some(UserId(1)), true, |_| None);
+        global.apply(
+            &mut ui,
+            ShortcutEvent::Bound(vec![("mute".into(), "Ctrl+M".into())]),
+        );
+        assert!(matches!(ui.audio.global_keys, GlobalKeys::Unavailable(_)));
     }
 
     fn ptt(key: &str) -> Ui {
@@ -439,11 +554,13 @@ mod tests {
             None
         });
         let ids: Vec<&str> = asked.iter().map(|shortcut| shortcut.id.as_str()).collect();
-        assert_eq!(
-            ids,
-            ["mute", "ptm"],
-            "a plain key is not asked of the desktop"
-        );
+        // A plain key is asked of the desktop only on Linux.
+        let plain: &[&str] = if cfg!(target_os = "linux") {
+            &["mute", "deafen", "ptm"]
+        } else {
+            &["mute", "ptm"]
+        };
+        assert_eq!(ids, plain);
         assert_eq!(asked[0].preferred_trigger.as_deref(), Some("CTRL+SHIFT+m"));
         assert_eq!(ui.audio.global_keys, GlobalKeys::Waiting);
         global.apply(
@@ -472,6 +589,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "linux"))]
     fn a_plain_key_stays_in_the_window_and_says_why() {
         let mut global = GlobalPushToTalk::default();
         let mut ui = ptt("V");

@@ -68,6 +68,13 @@ con la interfaz hecha en [limn](https://github.com/Niiihuel/limn). Leer
   Sin evasión de CAPTCHA/MFA (los resuelve la persona, nunca se automatizan
   ni se reenvían), lectura de sesiones o datos locales del cliente oficial
   ni acceso a cuentas ajenas. Ver [docs/SECURITY.md](docs/SECURITY.md).
+  El 2026-10-26 el dueño autorizó, sólo en Windows, un gancho de bajo nivel
+  de teclado y de ratón (`WH_KEYBOARD_LL` y `WH_MOUSE_LL`), como Discord, para
+  Pulsar para hablar fuera de RUNE: nunca consume la entrada (siempre
+  `CallNextHookEx`), sólo compara cada evento con la combinación ligada y no
+  guarda, almacena en búfer, envía ni registra teclas. En Linux/Hyprland el
+  atajo global puede ser cualquier tecla. Ver
+  [docs/SECURITY.md](docs/SECURITY.md#pulsar-para-hablar-global).
 - RUNE no es un administrador de bots. La arquitectura se mantiene
   independiente del proveedor: nada por encima de `rune-provider` conoce un
   servicio concreto. Distinguir proveedor oficial, simulado y no oficial;

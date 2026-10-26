@@ -86,4 +86,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "atajos de teclado voz pulsar para hablar silenciar ensordecer micrófono global fuera de la ventana tecla combinación push to mute ptt",
         "keyboard shortcuts voice push to talk mute deafen microphone global outside the window key combination push to mute ptt",
     ),
+    ("Windows no puede usar esa tecla como atajo global.", "Windows can't use that key as a global shortcut."),
+    (
+        "Windows no dejó instalar el escucha de teclado y ratón para el atajo global.",
+        "Windows did not let the global shortcut install its keyboard and mouse listener.",
+    ),
+    ("el sistema no puede dar esa tecla.", "the system can't give that key."),
 ];

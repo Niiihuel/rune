@@ -104,6 +104,48 @@ el hCaptcha. Reimplementado, sin copiar ([DISCORD.md](DISCORD.md)).
 - **Riesgo:** presentarse como navegador no asegura que Discord acepte una
   invitación ni que no pida el teléfono o restrinja la cuenta.
 
+## Pulsar para hablar global
+
+Autorizado por el dueño el 2026-10-26 (AGENTS.md).
+
+### Windows: gancho de bajo nivel
+
+- **Qué ve.** `WH_KEYBOARD_LL` recibe cada tecla que se pulsa o suelta en la
+  sesión, con su código virtual, y `WH_MOUSE_LL` cada botón medio o lateral
+  del ratón. Sólo se mira lo que coincide con el atajo ligado.
+- **Qué hace.** Compara con el atajo ligado. Guarda un indicador por atajo y
+  los modificadores pulsados, ambos de esos mismos eventos (izquierda y
+  derecha cuentan igual). Siempre pasa el evento al siguiente gancho
+  (`CallNextHookEx`): **nunca consume entrada**.
+- **Qué no hace.** No guarda, no almacena en búfer, no envía ni registra
+  teclas ni botones, y no cuenta pulsaciones. El registro sólo dice que los
+  ganchos se instalaron o no, con el código de error de Windows.
+- **Entrada inyectada.** Lo que envían otros programas (`SendInput`) cuenta
+  igual, como para cualquier gancho.
+- **Elevación.** Windows puede no entregar a los ganchos la entrada de una
+  ventana con más privilegios (UIPI). Entonces el atajo no funciona fuera de
+  RUNE salvo que RUNE también se ejecute como administrador. No está
+  comprobado en hardware; Ajustes lo indica en la fila de Pulsar para hablar.
+- **Hilo y vida.** Un hilo propio con su bucle de mensajes. Los ganchos se
+  quitan al cerrar la sesión del atajo y al cerrar RUNE.
+- **Límites conocidos.** Las teclas se comparan con los códigos del teclado
+  de EE. UU. (los signos pueden no coincidir en otra disposición). Los
+  botones del ratón no se pueden grabar todavía: limn no entrega el botón
+  central ni suelta los laterales (un límite para subir a limn antes de
+  usarlos). Por eso hoy ningún atajo es un botón del ratón.
+
+### Linux: portal y Hyprland
+
+- Cualquier tecla puede ser el atajo global; el escritorio la pide por el
+  portal `GlobalShortcuts`.
+- Hyprland no asigna la tecla por sí mismo. Ajustes muestra la línea para
+  pegar en su configuración, con botón «Copiar»: la forma `hl.bind` si existe
+  `~/.config/hypr/hyprland.lua` (sólo se comprueba que exista) o la clásica
+  `bind = …, global, rune:push-to-talk` en otro caso. No se escribe ningún
+  archivo del compositor.
+- El registro tiene una línea por estado (sesión, cuántos atajos asignó el
+  escritorio, motivo de fallo), sin teclas.
+
 ## Reglas
 
 1. **Credenciales fuera del agente y del almacenamiento general.** No

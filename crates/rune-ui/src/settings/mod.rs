@@ -1388,6 +1388,13 @@ pub fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<In
             ui.settings_state.recording = None;
             vec![save("push_to_talk", prefs.push_to_talk)]
         }
+        "ptt-hypr-copy" => ui
+            .audio
+            .hyprland_bind
+            .clone()
+            .map(Intent::Copy)
+            .into_iter()
+            .collect(),
         "ptt-record" => {
             let state = &mut ui.settings_state;
             state.recording = match state.recording {
