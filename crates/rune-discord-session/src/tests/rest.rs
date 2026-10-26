@@ -893,13 +893,15 @@ async fn a_read_is_sent_once_more_after_a_dead_connection() {
 /// The same dead connection for a write: it is never sent a second time.
 #[tokio::test]
 async fn a_write_to_a_dead_connection_is_never_sent_twice() {
-    let probe = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let address = probe.local_addr().unwrap();
-    drop(probe);
+    // The connection dies after the request instead of being refused: Windows
+    // keeps a refused SYN retrying for seconds, so a late bind sees the first try.
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
     let http = Http::local(&format!("http://{address}"));
     let server = tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(300)).await;
-        let listener = TcpListener::bind(address).await.unwrap();
+        let (mut socket, _) = listener.accept().await.unwrap();
+        request(&mut socket).await;
+        drop(socket);
         // A retry would have arrived about a second after the first attempt.
         assert!(
             tokio::time::timeout(Duration::from_millis(1_500), listener.accept())
