@@ -984,14 +984,14 @@ fn the_gpu_does_the_video_until_it_is_turned_off_and_that_is_kept() {
 
 #[cfg(windows)]
 #[test]
-fn on_windows_the_gpu_switch_says_openh264_does_the_video() {
+fn on_windows_the_gpu_switch_says_the_processor_does_the_video() {
     let mut host = Host::new();
     host.us_open();
     host.us_write(SEARCH, "aceleración por hardware");
     host.click("us:page=voice");
     assert!(!host.us_buttons().iter().any(|id| id == "us:video-hardware"));
     let said = host.frame().commands.iter().any(|command| {
-        matches!(command, limn::DrawCommand::Text { text, .. } if text.contains("OpenH264"))
+        matches!(command, limn::DrawCommand::Text { text, .. } if text == "En Windows, el video todavía se procesa en el procesador.")
     });
     assert!(said);
 }
