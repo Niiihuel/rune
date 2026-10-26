@@ -25,6 +25,13 @@ pub enum CallSound {
     Unmute,
     Deafen,
     Undeafen,
+    /// The account's microphone opens or closes by push-to-talk, as
+    /// Discord: only in that mode, and not while self-muted.
+    PttStart,
+    PttStop,
+    /// The account's camera starts or stops sending in its call.
+    CameraOn,
+    CameraOff,
     /// The account's own stream starts and ends.
     StreamStart,
     StreamStop,
@@ -42,7 +49,7 @@ pub enum CallSound {
 }
 
 impl CallSound {
-    pub const ALL: [Self; 15] = [
+    pub const ALL: [Self; 19] = [
         Self::Join,
         Self::Leave,
         Self::UserJoin,
@@ -51,6 +58,10 @@ impl CallSound {
         Self::Unmute,
         Self::Deafen,
         Self::Undeafen,
+        Self::PttStart,
+        Self::PttStop,
+        Self::CameraOn,
+        Self::CameraOff,
         Self::StreamStart,
         Self::StreamStop,
         Self::UserStream,
@@ -72,6 +83,10 @@ impl CallSound {
             Self::Unmute => "unmute",
             Self::Deafen => "deafen",
             Self::Undeafen => "undeafen",
+            Self::PttStart => "ptt_start",
+            Self::PttStop => "ptt_stop",
+            Self::CameraOn => "camera_on",
+            Self::CameraOff => "camera_off",
             Self::StreamStart => "stream_start",
             Self::StreamStop => "stream_stop",
             Self::UserStream => "user_stream",
@@ -97,6 +112,10 @@ impl CallSound {
             Self::Unmute => es("Dejar de silenciarte"),
             Self::Deafen => es("Ensordecerte"),
             Self::Undeafen => es("Dejar de ensordecerte"),
+            Self::PttStart => es("Pulsar para hablar: activar"),
+            Self::PttStop => es("Pulsar para hablar: soltar"),
+            Self::CameraOn => es("Encender la cámara"),
+            Self::CameraOff => es("Apagar la cámara"),
             Self::StreamStart => es("Empezar a transmitir"),
             Self::StreamStop => es("Dejar de transmitir"),
             Self::UserStream => es("Alguien empieza a transmitir"),

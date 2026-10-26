@@ -28,3 +28,15 @@ contains the checksum of the packaged byte-identical MP3 file.
 | `message` | `message1.mp3` | `3ed22d14f3c30bc4.mp3` |
 | `ring` | `call_ringing.mp3` | `c2a7111bb44b8da0.mp3` |
 | `ring_out` | `call_calling.mp3` | `5146737af413d88e.mp3` |
+| `ptt_start` | `ptt_start.mp3` | `f5c8ec31889c5317.mp3` |
+| `ptt_stop` | `ptt_stop.mp3` | `34b5969be3a063ba.mp3` |
+| `camera_on` | `camera_on.mp3` | `855607d0932ea396.mp3` |
+| `camera_off` | `camera_off.mp3` | `b1dd204729fe78b4.mp3` |
+
+The `ptt_*` and `camera_*` rows come from the public bundle
+`https://discord.com/assets/web.057e7776e1c6251b.js`
+(SHA-256 `8694f2d540278e3d14c45eb414e96ada1c64f5a9cbcb52df69347ea35a72574e`),
+where the sound maps `./ptt_start.mp3`, `./ptt_stop.mp3`, `./camera_on.mp3` and
+`./camera_off.mp3` point at module ids `81025`, `79851`, `423967` and `679283`,
+whose exports are those hashed assets. Fetched 2026-10-26
+with plain curl.

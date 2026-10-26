@@ -635,6 +635,12 @@ pub(super) const ENTRIES: super::Entries = &[
         "sound someone streams shares screen live",
     ),
     ("sonido desconexión error se cortó la llamada", "sound disconnection error call dropped"),
+    ("sonido pulsar para hablar activar micrófono abierto", "sound push to talk start microphone open"),
+    ("sonido pulsar para hablar soltar micrófono cerrado", "sound push to talk release microphone closed"),
+    ("Pulsar para hablar: activar", "Push to talk: start"),
+    ("Pulsar para hablar: soltar", "Push to talk: release"),
+    ("sonido encender cámara video activar enviar", "sound turn on camera video start send"),
+    ("sonido apagar cámara video desactivar dejar de enviar", "sound turn off camera video stop sending"),
     ("sonido mensaje nuevo mención mensaje directo", "sound new message mention direct message"),
     (
         "carpeta de sonidos propios archivos personalizados reemplazar ogg opus mp3 wav",

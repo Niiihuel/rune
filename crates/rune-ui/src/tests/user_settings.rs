@@ -777,7 +777,7 @@ fn each_call_sound_turns_off_alone_plays_on_trial_and_a_folder_of_ones_own_is_ke
             error: None,
         },
     );
-    assert!(painted_has(&mut host, "Usa 1 de 15: mute.wav."));
+    assert!(painted_has(&mut host, "Usa 1 de 19: mute.wav."));
     assert!(painted_has(
         &mut host,
         "leave.ogg: dura más de 5 s. Suena el de RUNE."

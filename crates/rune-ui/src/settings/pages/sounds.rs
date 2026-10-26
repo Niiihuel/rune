@@ -44,6 +44,22 @@ pub(super) const ROWS: &[(&str, &str)] = &[
         es("sonido dejar de ensordecer auriculares"),
     ),
     (
+        "sound:ptt_start",
+        es("sonido pulsar para hablar activar micrófono abierto"),
+    ),
+    (
+        "sound:ptt_stop",
+        es("sonido pulsar para hablar soltar micrófono cerrado"),
+    ),
+    (
+        "sound:camera_on",
+        es("sonido encender cámara video activar enviar"),
+    ),
+    (
+        "sound:camera_off",
+        es("sonido apagar cámara video desactivar dejar de enviar"),
+    ),
+    (
         "sound:stream_start",
         es("sonido empezar a transmitir compartir pantalla en vivo"),
     ),

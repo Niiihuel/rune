@@ -30,6 +30,10 @@ pub fn default_audio(sound: CallSound) -> &'static [u8] {
         CallSound::Unmute => include_bytes!("../../../assets/sounds/discord/unmute.mp3"),
         CallSound::Deafen => include_bytes!("../../../assets/sounds/discord/deafen.mp3"),
         CallSound::Undeafen => include_bytes!("../../../assets/sounds/discord/undeafen.mp3"),
+        CallSound::PttStart => include_bytes!("../../../assets/sounds/discord/ptt_start.mp3"),
+        CallSound::PttStop => include_bytes!("../../../assets/sounds/discord/ptt_stop.mp3"),
+        CallSound::CameraOn => include_bytes!("../../../assets/sounds/discord/camera_on.mp3"),
+        CallSound::CameraOff => include_bytes!("../../../assets/sounds/discord/camera_off.mp3"),
         CallSound::StreamStart => {
             include_bytes!("../../../assets/sounds/discord/stream_started.mp3")
         }
@@ -68,6 +72,8 @@ pub struct Watch {
     own: Option<(bool, bool)>,
     /// The account's own stream is on.
     sharing: Option<bool>,
+    /// The account's camera in its call, as the service reports it.
+    camera: Option<bool>,
     // Private calls.
     /// The ring sounding, and when it played last.
     ring: Option<(CallSound, std::time::Instant)>,
@@ -126,6 +132,19 @@ impl Watch {
         let sharing = store.sharing().is_some_and(|sharing| {
             matches!(sharing.phase, StreamPhase::Live | StreamPhase::Paused)
         });
+        let camera_now = store.call().and_then(|call| {
+            store
+                .voice_in(call.channel)
+                .iter()
+                .find(|state| Some(state.user) == me)
+                .map(|state| state.camera)
+        });
+        let before = std::mem::replace(&mut self.camera, camera_now);
+        let camera = match (before, camera_now) {
+            (Some(false), Some(true)) => Some(CallSound::CameraOn),
+            (Some(true), Some(false)) => Some(CallSound::CameraOff),
+            _ => None,
+        };
         let stream = match self.sharing.replace(sharing) {
             Some(before) if before != sharing => Some(if sharing {
                 CallSound::StreamStart
@@ -174,7 +193,8 @@ impl Watch {
                 CallSound::Join | CallSound::Leave | CallSound::Disconnect
             )
         });
-        mine.or(call_level)
+        mine.or(camera)
+            .or(call_level)
             .or(stream)
             .or(theirs)
             .filter(|sound| ui.prefs.sound_on(*sound))
@@ -407,6 +427,30 @@ mod tests {
         assert_eq!(watch.step(&mut ui, &store), None);
         ui.prefs.sounds_off = vec![CallSound::Mute];
         ui.muted = true;
+        assert_eq!(watch.step(&mut ui, &store), None, "turned off");
+    }
+
+    #[test]
+    fn the_camera_starting_and_stopping_in_the_call_sounds_once_each() {
+        let (mut store, mut ui, mut watch) = ready();
+        store.begin_call(ROOM, false, false);
+        connected(&mut store);
+        assert_eq!(watch.step(&mut ui, &store), Some(CallSound::Join));
+        let me = store.me().unwrap();
+        let camera = |on: bool| VoiceState {
+            camera: on,
+            ..state(me, false)
+        };
+        // Its state is known from the first look: nothing plays for it.
+        store.apply(Event::VoiceChanged(camera(false)), Instant::now());
+        assert_eq!(watch.step(&mut ui, &store), None, "the first look");
+        store.apply(Event::VoiceChanged(camera(true)), Instant::now());
+        assert_eq!(watch.step(&mut ui, &store), Some(CallSound::CameraOn));
+        assert_eq!(watch.step(&mut ui, &store), None, "once");
+        store.apply(Event::VoiceChanged(camera(false)), Instant::now());
+        assert_eq!(watch.step(&mut ui, &store), Some(CallSound::CameraOff));
+        ui.prefs.sounds_off = vec![CallSound::CameraOn];
+        store.apply(Event::VoiceChanged(camera(true)), Instant::now());
         assert_eq!(watch.step(&mut ui, &store), None, "turned off");
     }
 

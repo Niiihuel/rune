@@ -82,6 +82,9 @@ pub struct Audio {
     sounds: Vec<Playing>,
     /// RUNE's sounds, and the person's own folder's.
     library: Library,
+    /// Whether the microphone was open at the last frame it was captured,
+    /// for the push-to-talk sounds: none until one frame has been seen.
+    ptt_open: Option<bool>,
     /// The microphone (speaker) is the default standing in for a chosen one
     /// that is missing: said once when that changes.
     input_fell_back: bool,
@@ -112,6 +115,7 @@ impl Default for Audio {
             sound: None,
             sounds: Vec::new(),
             library: Library::default(),
+            ptt_open: None,
             input_fell_back: false,
             output_fell_back: false,
         }
@@ -607,7 +611,10 @@ impl Audio {
             (wanted && snapshot.state == CaptureState::Running && snapshot.processed_frames > 0)
                 .then_some(snapshot.system_echo);
         match &snapshot.state {
-            CaptureState::Failed(error) => self.failed(ui, store, error.clone(), now),
+            CaptureState::Failed(error) => {
+                self.ptt_open = None;
+                self.failed(ui, store, error.clone(), now);
+            }
             CaptureState::Running => {
                 // Voice activity always lets the microphone through.
                 let transmitting = (!(ui.prefs.push_to_talk || store.push_to_talk_required()) || {
@@ -615,6 +622,14 @@ impl Audio {
                     self.push_to_talk.update(self.held, now)
                 }) && !self.muted_held;
                 ui.audio.transmitting = transmitting;
+                if let Some(sound) = ptt_sound(
+                    self.ptt_open.replace(transmitting),
+                    transmitting,
+                    ui.prefs.push_to_talk,
+                    audible_call(ui, store).is_some(),
+                ) {
+                    self.sound = Some((sound, false));
+                }
                 if ui.audio.testing && now.duration_since(self.sampled) >= Duration::from_millis(80)
                 {
                     self.sampled = now;
@@ -659,6 +674,7 @@ impl Audio {
         self.voice.reset();
         self.push_to_talk.reset();
         ui.audio.transmitting = false;
+        self.ptt_open = None;
         self.clear_marker(store);
     }
 
@@ -696,6 +712,20 @@ fn announce_switch(ui: &mut Ui, input: bool, fallback: bool, now: Instant) {
         tr!("Salida cambiada a {name}", name)
     };
     ui.notify(title, None, false, now);
+}
+
+/// The push-to-talk sound for the microphone opening or closing (`was` is
+/// what the last frame saw): only in push-to-talk, in a call one is heard
+/// in, and never on the first look.
+fn ptt_sound(was: Option<bool>, open: bool, push_to_talk: bool, heard: bool) -> Option<CallSound> {
+    if !push_to_talk || !heard || was.is_none_or(|was| was == open) {
+        return None;
+    }
+    Some(if open {
+        CallSound::PttStart
+    } else {
+        CallSound::PttStop
+    })
 }
 
 fn audible_call(ui: &Ui, store: &Store) -> Option<ChannelId> {
@@ -942,6 +972,24 @@ mod tests {
         assert_eq!(request.device.as_deref(), Some("speaker"));
         assert_eq!(request.source, PlaybackSource::Feed);
         assert_eq!(request.volume, 0.4);
+    }
+
+    #[test]
+    fn push_to_talk_sounds_once_per_opening_and_closing_in_a_heard_call() {
+        // The first look only remembers; then each change plays once.
+        assert_eq!(ptt_sound(None, true, true, true), None);
+        assert_eq!(
+            ptt_sound(Some(false), true, true, true),
+            Some(CallSound::PttStart)
+        );
+        assert_eq!(ptt_sound(Some(true), true, true, true), None, "still open");
+        assert_eq!(
+            ptt_sound(Some(true), false, true, true),
+            Some(CallSound::PttStop)
+        );
+        // Not in voice activity, self-muted (not heard), or outside a call.
+        assert_eq!(ptt_sound(Some(false), true, false, true), None);
+        assert_eq!(ptt_sound(Some(false), true, true, false), None);
     }
 
     #[test]
