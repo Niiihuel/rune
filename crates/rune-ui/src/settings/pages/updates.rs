@@ -4,7 +4,7 @@
 
 use limn::Element;
 
-use rune_components::updates::{ids, release_notes, Stage};
+use rune_components::updates::{ids, progress, release_notes, Stage};
 use rune_components::{line, time, user_settings as parts};
 use rune_i18n::{es, t, tr};
 
@@ -60,18 +60,22 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             )
         }
         "update-check" => {
+            let offered = updates.offered.as_ref();
             let status = if updates.checking {
                 t("Buscando…").to_owned()
             } else if let Some(error) = &updates.error {
                 error.clone()
-            } else if let Some(offered) = &updates.offered {
+            } else if let Some(offered) = offered {
                 match &offered.stage {
-                    Stage::Downloading { .. } | Stage::Installing => tr!(
+                    Stage::Installing => tr!(
                         "Instalando RUNE {version}…",
                         version = offered.version
                     ),
-                    Stage::Failed(reason) => reason.clone(),
-                    Stage::Offered => tr!(
+                    Stage::Restarting | Stage::Installed => tr!(
+                        "RUNE {version} está instalada.",
+                        version = offered.version
+                    ),
+                    Stage::Offered | Stage::Downloading { .. } | Stage::Failed(_) => tr!(
                         "RUNE {version} está disponible.",
                         version = offered.version
                     ),
@@ -92,24 +96,44 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             let mut controls = vec![parts::secondary_button(
                 ids::CHECK,
                 t("Buscar ahora"),
-                !updates.checking,
+                !updates.checking && !updates.busy,
                 look,
             )];
-            if updates.installable() {
-                controls.push(parts::primary_button(
+            match offered.map(|offered| &offered.stage) {
+                Some(Stage::Failed(_)) => controls.push(parts::primary_button(
+                    ids::RETRY,
+                    t("Reintentar"),
+                    true,
+                    look,
+                )),
+                Some(Stage::Installed) => controls.push(parts::primary_button(
+                    ids::RESTART,
+                    t("Reiniciar ahora"),
+                    true,
+                    look,
+                )),
+                _ if updates.installable() => controls.push(parts::primary_button(
                     ids::INSTALL,
                     t("Actualizar y reiniciar"),
                     true,
                     look,
-                ));
+                )),
+                _ => {}
             }
+            let mut rows = vec![parts::setting(
+                t("Buscar actualizaciones"),
+                Some(&note),
+                None,
+                true,
+                look,
+            )];
+            // The bar under the note, across the page, as the screens show it.
+            rows.extend(offered.and_then(|offered| progress(&offered.stage, look)));
             // The buttons under it: beside, two of them leave a narrow
             // window's label no room.
-            Element::column(vec![
-                parts::setting(t("Buscar actualizaciones"), Some(&note), None, true, look),
-                Element::row(controls).gap(12.0),
-                Element::spacer().size(None, Some(12.0)),
-            ])
+            rows.push(Element::row(controls).gap(12.0));
+            rows.push(Element::spacer().size(None, Some(12.0)));
+            Element::column(rows)
         }
         "update-at-start" => parts::toggle(
             ids::AT_START,

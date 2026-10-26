@@ -21,6 +21,8 @@ pub struct Updates {
     pub at_start: bool,
     /// A check is on its way.
     pub checking: bool,
+    /// A check or an install is on its way: the buttons wait for it.
+    pub busy: bool,
     /// When the last check ended, and why it failed if it did.
     pub checked: Option<Timestamp>,
     pub error: Option<String>,
@@ -42,6 +44,7 @@ impl Default for Updates {
             // On until turned off (owner's decision, 2026-10-19).
             at_start: true,
             checking: false,
+            busy: false,
             checked: None,
             error: None,
             offered: None,
@@ -86,9 +89,13 @@ pub(crate) fn update(ui: &mut Ui, action: &UiAction) -> Option<Vec<Intent>> {
     };
     let updates = &mut ui.updates;
     Some(match id.as_str() {
-        ids::CHECK if !updates.checking => vec![Intent::CheckForUpdates],
+        ids::CHECK if !updates.checking && !updates.busy => vec![Intent::CheckForUpdates],
         ids::INSTALL | ids::RETRY if updates.installable() => vec![Intent::InstallUpdate],
-        ids::CHECK | ids::INSTALL | ids::RETRY => Vec::new(),
+        ids::RESTART if matches!(&updates.offered, Some(offered) if offered.stage == Stage::Installed) =>
+        {
+            vec![Intent::RestartForUpdate]
+        }
+        ids::CHECK | ids::INSTALL | ids::RETRY | ids::RESTART => Vec::new(),
         ids::LATER => {
             updates.later = true;
             Vec::new()

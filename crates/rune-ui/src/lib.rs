@@ -527,6 +527,8 @@ pub enum Intent {
     CheckForUpdates,
     /// Download the update offered, install it and start RUNE again.
     InstallUpdate,
+    /// Close RUNE, as any close does, to start the version installed.
+    RestartForUpdate,
     /// Look for a newer RUNE when it starts, or no longer.
     CheckUpdatesAtStart(bool),
     // The window's own title bar (barra-e-icono).

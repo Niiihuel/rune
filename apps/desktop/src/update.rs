@@ -343,6 +343,7 @@ impl Updates {
             wake();
         });
         self.job = Some(reports);
+        ui.updates.busy = true;
     }
 
     /// «Actualizar y reiniciar».
@@ -354,7 +355,26 @@ impl Updates {
             return;
         }
         self.job = Some(install_job(release, install, true, self.wake.clone()));
+        ui.updates.busy = true;
         ui.updates.offered = Some(view_of(release, Stage::Downloading { have: 0, whole: 0 }));
+    }
+
+    /// «Reiniciar ahora»: the close that starts the installed version is
+    /// under way again.
+    pub fn restarting(&mut self, ui: &mut rune_ui::Ui) {
+        if let Some(offered) = &mut ui.updates.offered {
+            offered.stage = Stage::Restarting;
+        }
+    }
+
+    /// Esc cancelled the close that starts the installed version: offer to
+    /// start it from Ajustes instead.
+    pub fn close_cancelled(&self, ui: &mut rune_ui::Ui) {
+        if let Some(offered) = &mut ui.updates.offered {
+            if offered.stage == Stage::Restarting {
+                offered.stage = Stage::Installed;
+            }
+        }
     }
 
     /// What the job reported since the last frame. Returns `true` once the
@@ -363,7 +383,34 @@ impl Updates {
         let Some(job) = &self.job else {
             return false;
         };
-        let reports: Vec<Report> = job.try_iter().collect();
+        let mut reports = Vec::new();
+        let mut lost = false;
+        loop {
+            match job.try_recv() {
+                Ok(report) => reports.push(report),
+                Err(mpsc::TryRecvError::Empty) => break,
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    lost = true;
+                    break;
+                }
+            }
+        }
+        // A thread that ends without its last report (a panic) fails the
+        // job: nothing is left to wait for.
+        let finished = reports.iter().any(|report| {
+            matches!(
+                report,
+                Report::Checked(_) | Report::Installed(_) | Report::Failed(_)
+            )
+        });
+        if lost && !finished {
+            reports.push(if ui.updates.checking {
+                Report::Checked(Err(Error::Interrupted))
+            } else {
+                Report::Failed(Error::Interrupted)
+            });
+        }
+        let mut restart = false;
         for report in reports {
             let stage = match report {
                 Report::Checked(found) => {
@@ -376,7 +423,8 @@ impl Updates {
                 Report::Installed(program) => {
                     self.job = None;
                     restart_after_exit(program, Vec::new());
-                    return true;
+                    restart = true;
+                    Stage::Restarting
                 }
                 Report::Failed(error) => {
                     self.job = None;
@@ -387,7 +435,8 @@ impl Updates {
                 ui.updates.offered = Some(view_of(release, stage));
             }
         }
-        false
+        ui.updates.busy = self.job.is_some();
+        restart
     }
 }
 
@@ -651,5 +700,112 @@ pub fn install_self() -> i32 {
             eprintln!("rune: could not install: {error}");
             1
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn release() -> Release {
+        Release {
+            version: Version::parse("1.2.0").expect("a version"),
+            date: String::new(),
+            notes: "Notas.".into(),
+            mandatory: false,
+            artifact: None,
+        }
+    }
+
+    fn updates(job: mpsc::Receiver<Report>) -> Updates {
+        Updates {
+            keep: false,
+            install: None,
+            release: Some(release()),
+            job: Some(job),
+            wake: Arc::new(|| {}),
+        }
+    }
+
+    #[test]
+    fn a_job_whose_thread_ends_without_a_report_fails_and_is_cleared() {
+        // The install's thread is gone: «Descargando…» must not stay.
+        let (sender, job) = mpsc::channel();
+        drop(sender);
+        let mut ui = rune_ui::Ui::new();
+        ui.updates.busy = true;
+        ui.updates.offered = Some(view_of(
+            &release(),
+            Stage::Downloading { have: 1, whole: 2 },
+        ));
+        let mut job_state = updates(job);
+        assert!(!job_state.step(&mut ui));
+        assert!(job_state.job.is_none());
+        assert!(!ui.updates.busy);
+        let offered = ui.updates.offered.expect("the offer stays");
+        assert!(
+            matches!(offered.stage, Stage::Failed(_)),
+            "{:?}",
+            offered.stage
+        );
+    }
+
+    #[test]
+    fn a_lost_check_ends_the_checking_with_an_error() {
+        let (sender, job) = mpsc::channel();
+        drop(sender);
+        let mut ui = rune_ui::Ui::new();
+        ui.updates.checking = true;
+        let mut job_state = updates(job);
+        job_state.step(&mut ui);
+        assert!(!ui.updates.checking);
+        assert!(ui.updates.error.is_some());
+        assert!(job_state.job.is_none());
+    }
+
+    #[test]
+    fn a_thread_that_ends_after_a_final_report_keeps_that_report() {
+        let (sender, job) = mpsc::channel();
+        sender.send(Report::Checked(Err(Error::Network))).unwrap();
+        drop(sender);
+        let mut ui = rune_ui::Ui::new();
+        ui.updates.checking = true;
+        let mut job_state = updates(job);
+        job_state.step(&mut ui);
+        assert_eq!(ui.updates.error, Some(Error::Network.label()));
+    }
+
+    #[test]
+    fn a_job_lost_mid_install_fails_after_its_last_progress() {
+        let (sender, job) = mpsc::channel();
+        sender.send(Report::Installing).unwrap();
+        drop(sender);
+        let mut ui = rune_ui::Ui::new();
+        let mut job_state = updates(job);
+        job_state.step(&mut ui);
+        let offered = ui.updates.offered.expect("the offer");
+        assert!(
+            matches!(offered.stage, Stage::Failed(_)),
+            "{:?}",
+            offered.stage
+        );
+    }
+
+    #[test]
+    fn a_cancelled_restart_is_offered_again_from_settings() {
+        let (_sender, job) = mpsc::channel();
+        let mut ui = rune_ui::Ui::new();
+        let mut job_state = updates(job);
+        ui.updates.offered = Some(view_of(&release(), Stage::Installing));
+        job_state.restarting(&mut ui);
+        assert_eq!(
+            ui.updates.offered.as_ref().map(|o| &o.stage),
+            Some(&Stage::Restarting)
+        );
+        job_state.close_cancelled(&mut ui);
+        assert_eq!(
+            ui.updates.offered.as_ref().map(|o| &o.stage),
+            Some(&Stage::Installed)
+        );
     }
 }

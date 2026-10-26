@@ -28,6 +28,8 @@ pub mod ids {
     pub const AT_START: &str = "update:at-start";
     /// The release's page on GitHub, with its pictures and videos.
     pub const ON_GITHUB: &str = "update:on-github";
+    /// Start the installed version now, after a close was cancelled (settings).
+    pub const RESTART: &str = "update:restart";
 }
 
 /// Where a release's page is, as GitHub shows it: its notes with their
@@ -79,6 +81,10 @@ pub enum Stage {
         whole: u64,
     },
     Installing,
+    /// Installed; RUNE closes to start the new version.
+    Restarting,
+    /// Installed, but the close that starts it was cancelled: start it now.
+    Installed,
     /// Why it stopped; RUNE is as it was.
     Failed(String),
 }
@@ -173,7 +179,53 @@ fn notes(notes: &str, height: f32, look: &Look) -> Element {
         .max_height(height)
 }
 
-/// The progress, the failure or the buttons of where it stands.
+/// The bar and bytes of a download, the install, the restart or the reason
+/// it failed: the same words on the screens and in Ajustes. `None` before
+/// the download starts.
+pub fn progress(stage: &Stage, look: &Look) -> Option<Element> {
+    Some(match stage {
+        Stage::Offered => return None,
+        Stage::Downloading { have, whole } => {
+            let fraction = if *whole == 0 {
+                0.0
+            } else {
+                *have as f32 / *whole as f32
+            };
+            let said = tr!(
+                "Descargando… {have} de {whole}",
+                have = file_size(*have),
+                whole = file_size(*whole)
+            );
+            let percent = (fraction * 100.0).round() as u32;
+            Element::column(vec![
+                Bar::new(fraction, look.accent_palette())
+                    .id("update:progress")
+                    .render()
+                    .accessibility_label(said.clone()),
+                line(format!("{said} · {percent}%"), 12.0, look.muted),
+            ])
+            .gap(6.0)
+        }
+        Stage::Installing => Element::row(vec![
+            Spinner::new("update:installing", look.accent).render(),
+            line(t("Instalando…"), 12.0, look.muted),
+        ])
+        .gap(8.0),
+        Stage::Restarting => Element::row(vec![
+            Spinner::new("update:restarting", look.accent).render(),
+            line(t("Reiniciando RUNE…"), 12.0, look.muted),
+        ])
+        .gap(8.0),
+        Stage::Installed => line(t("Instalada; reiniciá RUNE para usarla."), 12.0, look.muted),
+        Stage::Failed(reason) => text(reason.clone(), 13.0, look.danger).accessible(
+            Access::new(Role::Alert)
+                .id("update:error")
+                .name(reason.clone()),
+        ),
+    })
+}
+
+/// The buttons of where the update stands, under its progress.
 fn stage(view: &UpdateView, look: &Look, mandatory: bool) -> Element {
     let button = |id: &str, label: &str, primary: bool| {
         Button::new(
@@ -194,60 +246,35 @@ fn stage(view: &UpdateView, look: &Look, mandatory: bool) -> Element {
         .render()
     };
     let buttons = |list: Vec<Element>| Element::row(list).gap(8.0);
-    match &view.stage {
+    let actions = match &view.stage {
         Stage::Offered if mandatory => {
-            centered(Spinner::new("update:waiting", look.accent).render()).size(None, Some(24.0))
+            return centered(Spinner::new("update:waiting", look.accent).render())
+                .size(None, Some(24.0));
         }
-        Stage::Offered => buttons(vec![
+        Stage::Offered => Some(buttons(vec![
             button(ids::INSTALL, t("Actualizar y reiniciar"), true),
             button(ids::LATER, t("Más tarde"), false),
             button(ids::NOTES, t("Notas"), false),
-        ]),
-        Stage::Downloading { have, whole } => {
-            let fraction = if *whole == 0 {
-                0.0
-            } else {
-                *have as f32 / *whole as f32
-            };
-            let said = tr!(
-                "Descargando… {have} de {whole}",
-                have = file_size(*have),
-                whole = file_size(*whole)
-            );
-            Element::column(vec![
-                Bar::new(fraction, look.accent_palette())
-                    .id("update:progress")
-                    .render()
-                    .accessibility_label(said.clone()),
-                line(said, 12.0, look.muted),
-            ])
-            .gap(6.0)
-        }
-        Stage::Installing => Element::row(vec![
-            Spinner::new("update:installing", look.accent).render(),
-            line(t("Instalando…"), 12.0, look.muted),
-        ])
-        .gap(8.0),
-        Stage::Failed(reason) => Element::column(vec![
-            text(reason.clone(), 13.0, look.danger).accessible(
-                Access::new(Role::Alert)
-                    .id("update:error")
-                    .name(reason.clone()),
-            ),
-            if mandatory {
-                buttons(vec![
-                    button(ids::RETRY, t("Reintentar"), true),
-                    button(ids::QUIT, t("Salir"), false),
-                ])
-            } else {
-                buttons(vec![
-                    button(ids::RETRY, t("Reintentar"), true),
-                    button(ids::LATER, t("Más tarde"), false),
-                ])
-            },
-        ])
-        .gap(8.0),
-    }
+        ])),
+        Stage::Failed(_) if mandatory => Some(buttons(vec![
+            button(ids::RETRY, t("Reintentar"), true),
+            button(ids::QUIT, t("Salir"), false),
+        ])),
+        Stage::Failed(_) => Some(buttons(vec![
+            button(ids::RETRY, t("Reintentar"), true),
+            button(ids::LATER, t("Más tarde"), false),
+        ])),
+        Stage::Installed => Some(buttons(vec![button(
+            ids::RESTART,
+            t("Reiniciar ahora"),
+            true,
+        )])),
+        Stage::Downloading { .. } | Stage::Installing | Stage::Restarting => None,
+    };
+    let mut parts = Vec::new();
+    parts.extend(progress(&view.stage, look));
+    parts.extend(actions);
+    Element::column(parts).gap(8.0)
 }
 
 #[cfg(test)]

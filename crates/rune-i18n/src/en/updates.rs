@@ -48,6 +48,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "Esta copia de RUNE no se instaló con su instalador: actualizala desde donde la compilaste.",
         "This copy of RUNE was not installed by its installer: update it where you built it.",
     ),
+    (
+        "La actualización se interrumpió. Reintentá para completarla.",
+        "The update was interrupted. Try again to finish it.",
+    ),
     // rune-components: the mandatory screen and the optional notice.
     ("Actualización obligatoria", "Mandatory update"),
     (
@@ -64,6 +68,12 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Notas", "Notes"),
     ("Descargando… {have} de {whole}", "Downloading… {have} of {whole}"),
     ("Instalando…", "Installing…"),
+    ("Reiniciando RUNE…", "Restarting RUNE…"),
+    (
+        "Instalada; reiniciá RUNE para usarla.",
+        "Installed; restart RUNE to use it.",
+    ),
+    ("Reiniciar ahora", "Restart now"),
     ("Reintentar", "Try again"),
     ("Salir", "Quit"),
     // rune-ui: Ajustes › Actualizaciones.
@@ -92,6 +102,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Buscando…", "Checking…"),
     ("Instalando RUNE {version}…", "Installing RUNE {version}…"),
     ("RUNE {version} está disponible.", "RUNE {version} is available."),
+    ("RUNE {version} está instalada.", "RUNE {version} is installed."),
     ("Tenés la última versión.", "You have the latest version."),
     ("Novedades de RUNE {version}", "What's new in RUNE {version}"),
     ("Ver en GitHub", "View on GitHub"),

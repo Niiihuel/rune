@@ -109,6 +109,8 @@ pub enum Error {
     Disk,
     /// This copy is not one the updater installed (a build from source).
     NotInstalled,
+    /// The job ended without saying how (its thread stopped early).
+    Interrupted,
 }
 
 impl Error {
@@ -129,6 +131,7 @@ impl Error {
             Self::Digest => t("Lo descargado no coincide con lo firmado: se borró.").into(),
             Self::Disk => t("No se pudo escribir la actualización en el disco.").into(),
             Self::NotInstalled => t("Esta copia de RUNE no se instaló con su instalador: actualizala desde donde la compilaste.").into(),
+            Self::Interrupted => t("La actualización se interrumpió. Reintentá para completarla.").into(),
         }
     }
 }

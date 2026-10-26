@@ -1683,6 +1683,12 @@ impl App {
                 // RUNE's own updates (actualizaciones).
                 Intent::CheckForUpdates => self.updates.check(&mut self.ui),
                 Intent::InstallUpdate => self.updates.install(&mut self.ui),
+                // Closes as any close does, saving first; the next start is the new version.
+                Intent::RestartForUpdate => {
+                    self.updates.restarting(&mut self.ui);
+                    self.desktop.quit = true;
+                    ctx.request_repaint();
+                }
                 Intent::CheckUpdatesAtStart(on) => {
                     if self.keeps_window_settings() {
                         update::set_at_start(on);
@@ -4205,6 +4211,7 @@ impl eframe::App for App {
             self.pending_storage.closing && ctx.input(|input| input.key_pressed(egui::Key::Escape));
         if cancelled_close {
             self.pending_storage.cancel_close();
+            self.updates.close_cancelled(&mut self.ui);
             self.ui.notify(t("Cierre cancelado"), None, false, now);
         }
         if !self.pending_storage.closing {

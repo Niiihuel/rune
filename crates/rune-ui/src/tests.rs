@@ -1179,6 +1179,7 @@ mod server_menu;
 mod server_settings;
 mod stage;
 mod threads;
+mod update_settings;
 mod uploads;
 mod user_settings;
 mod voice;
