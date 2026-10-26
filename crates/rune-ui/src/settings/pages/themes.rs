@@ -143,7 +143,7 @@ fn editor(ctx: &Ctx) -> Option<Element> {
             look,
         ),
         text(
-            t("Elegí una base y cambiá los colores que quieras: la vista previa los muestra al instante y la ventana, al guardar. Se guarda en este equipo."),
+            t("Elige una base y cambia los colores que quieras: la vista previa los muestra al instante y la ventana, al guardar. Se guarda en este equipo."),
             14.0,
             look.muted,
         ),

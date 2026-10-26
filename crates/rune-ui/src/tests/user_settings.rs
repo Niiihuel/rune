@@ -187,7 +187,7 @@ fn the_panel_floats_over_the_window_with_the_reference_s_measures() {
         (next.y - account.y - 41.0).abs() < 0.5,
         "items are 41 px apart"
     );
-    assert!(painted_has(&mut host, "Información de cuenta"));
+    assert!(painted_has(&mut host, "Tu cuenta"));
 }
 
 #[test]
@@ -236,11 +236,9 @@ fn searching_keeps_what_matches_and_opening_a_result_jumps_to_it() {
     assert_eq!(host.ui.settings, Some(SettingsPage::Accessibility));
     assert_eq!(host.ui.settings_state.section, Some("density"));
     let painted = host.painted();
-    assert!(painted.iter().any(|text| text == "Nivel de zoom"));
+    assert!(painted.iter().any(|text| text == "Zoom"));
     assert!(
-        !painted
-            .iter()
-            .any(|text| text == "Tamaño de texto en el chat"),
+        !painted.iter().any(|text| text == "Tamaño del texto"),
         "only what matches shows: {painted:?}"
     );
     assert!(host.us_buttons().contains(&"us:jump=density".to_owned()));
@@ -270,9 +268,13 @@ fn a_section_s_link_jumps_to_it_and_the_sidebar_follows_the_scroll() {
     host.frame();
     let top = host.tree.anchor_offset("us:section:color").unwrap();
     let margin = jump_margin(SettingsPage::Accessibility);
-    // A few pixels more when the page ends first: the shorter sections leave
-    // less room to scroll, and the jump stops at the end.
-    assert!((top - margin).abs() < 8.0, "{top} under the preview");
+    // Under the preview, unless the page ends first: then the jump stops at
+    // the end, a little lower.
+    let scroll = SettingsPage::Accessibility.scroll_id();
+    assert!(
+        (top - margin).abs() < 8.0 || (top > margin && host.tree.is_scroll_at_end(&scroll, 1.0)),
+        "{top} under the preview"
+    );
     assert_eq!(host.ui.settings_state.section, Some("color"));
     // Scrolled back up by hand, the first section is the one being read.
     host.tree
@@ -645,7 +647,7 @@ fn noise_suppression_offers_rnnoise_and_webrtc_honestly_and_survives_a_restart()
     host.us_write(SEARCH, "krisp");
     host.click("us:page=voice");
     assert!(painted_has(&mut host, "Supresión de ruido"));
-    assert!(painted_has(&mut host, "Krisp"));
+    assert!(painted_has(&mut host, "Quita el ruido de fondo."));
     let buttons = host.us_buttons();
     for id in [
         "us:suppression=rnnoise",
@@ -894,10 +896,7 @@ fn changing_microphone_clears_old_levels_and_sensitivity_follows_the_room_by_def
         "Determinar automáticamente la sensibilidad de entrada"
     ));
     // With RNNoise, the default, its gate decides, and says so.
-    assert!(painted_has(
-        &mut host,
-        "Umbral: lo que RNNoise oye como voz"
-    ));
+    assert!(painted_has(&mut host, "Umbral: lo que suena como voz"));
     // Without it, where the room put it, as the host last heard it.
     host.ui.prefs.input_profile = crate::InputProfile::Studio;
     host.ui.audio.threshold = Some(0.5);
@@ -1172,10 +1171,7 @@ fn cancelling_the_pcs_sound_is_on_searchable_honest_and_kept() {
     host.us_open();
     host.us_write(SEARCH, "música juegos");
     host.click("us:page=voice");
-    assert!(painted_has(
-        &mut host,
-        "Cancelar también el sonido de la PC"
-    ));
+    assert!(painted_has(&mut host, "Cancelar sonido del equipo"));
     // Whether the canceller hears the output is said as it is.
     host.ui.audio.system_echo = Some(false);
     assert!(painted_has(

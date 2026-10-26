@@ -125,7 +125,7 @@ fn volume(ctx: &Ctx) -> Element {
     Element::column(vec![
         parts::setting(
             t("Volumen de los sonidos"),
-            Some(t("Bajo el volumen de salida. Ensordecido solo suenan ensordecer y dejar de ensordecer, como en Discord, y una llamada entrante.")),
+            Some(t("Se mezcla con el volumen de salida. Suenan al ensordecer, al dejar de ensordecer y con una llamada entrante.")),
             None,
             true,
             look,

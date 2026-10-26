@@ -113,7 +113,7 @@ impl SettingsPage {
             Self::Account => t("Cuenta"),
             Self::Privacy => t("Datos y privacidad"),
             Self::Notifications => t("Notificaciones"),
-            Self::Voice => t("Voz y video"),
+            Self::Voice => t("Voz y vídeo"),
             Self::Appearance => t("Apariencia"),
             Self::Accessibility => t("Accesibilidad"),
             Self::Keybinds => t("Atajos de teclado"),

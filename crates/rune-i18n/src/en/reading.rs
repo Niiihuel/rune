@@ -77,8 +77,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Usa {used} de {limit}.", "{used} of {limit} used."),
     (
-        "Sin llavero del sistema o sin cuenta, las imágenes quedan sólo en memoria.",
-        "Without the system keyring or an account, images stay in memory only.",
+        "Sin almacén seguro del sistema, las imágenes quedan solo en memoria.",
+        "Without the system's secure store, images stay only in memory.",
     ),
     ("{count} días", "{count} days"),
     (

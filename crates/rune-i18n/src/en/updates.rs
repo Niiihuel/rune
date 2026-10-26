@@ -95,8 +95,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "Installed in {folder}. An update replaces it whole, or leaves it alone.",
     ),
     (
-        "Esta copia no se instaló con el instalador de RUNE: avisa si hay una versión nueva, pero se actualiza desde donde la compilaste.",
-        "This copy was not installed by RUNE's installer: it tells you of a new version, but you update it where you built it.",
+        "Compilación propia: avisa si hay una versión nueva, pero se actualiza desde tu código.",
+        "Custom build: it tells you when there is a new version, but you update from your source.",
     ),
     ("Versión instalada", "Installed version"),
     ("Instalando RUNE {version}…", "Installing RUNE {version}…"),
@@ -126,7 +126,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "No se pudo buscar actualizaciones",
         "Could not check for updates",
     ),
-    ("Tenés la última versión", "You have the latest version"),
+    ("Tienes la última versión", "You have the latest version"),
     ("Al día", "Up to date"),
     ("Todavía no se buscó", "Not checked yet"),
     (

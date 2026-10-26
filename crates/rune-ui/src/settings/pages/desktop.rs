@@ -129,7 +129,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
                 Some(privacy) => privacy,
                 None => parts::setting(
                     t("Código de privacidad"),
-                    Some(t("Durante una llamada cifrada aparece acá y en Detalles de voz, con el código para verificar a cada persona.")),
+                    Some(t("Durante una llamada cifrada aparece aquí y en Detalles de voz, con el código para verificar a cada persona.")),
                     None,
                     true,
                     look,
@@ -155,8 +155,8 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
                 .map(|(id, label, chosen, enabled)| (id.as_str(), label.as_str(), *chosen, *enabled))
                 .collect();
             let note = ui.desktop.font_problem.as_deref().map_or_else(|| {
-                windows(es("La del texto de toda la ventana. Las fuentes del sistema se leen con DirectWrite; si una se desinstala, RUNE vuelve a la suya."))
-                    .unwrap_or(t("La del texto de toda la ventana. Las fuentes del sistema se leen con fontconfig; si una se desinstala, RUNE vuelve a la suya."))
+                windows(es("La del texto de toda la ventana. Si desinstalas una fuente, RUNE vuelve a la suya."))
+                    .unwrap_or(t("La del texto de toda la ventana. Si desinstalas una fuente, RUNE vuelve a la suya."))
             }, t);
             Element::column(vec![
                 parts::setting(t("Fuente de la interfaz"), Some(note), None, true, look),
@@ -167,7 +167,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
         "panel-widths" => parts::setting(
             t("Ancho de los paneles"),
             Some(&tr!(
-                "Arrastrá el borde de la lista de canales o de la de miembros. Ahora: {channels} y {members} px.",
+                "Arrastra el borde de la lista de canales o de la de miembros. Ahora: {channels} y {members} px.",
                 channels = format!("{:.0}", prefs.sidebar_width),
                 members = format!("{:.0}", prefs.members_width),
             )),
@@ -178,19 +178,19 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
         "hidden-channels" => toggle(
             "us:hidden-channels",
             t("Mostrar los canales ocultos"),
-            t("Lista también los canales que no podés ver, atenuados y sin abrirse. Los favoritos se marcan desde el menú de cada canal, y los mensajes directos se fijan desde el suyo."),
+            t("Lista también los canales que no puedes ver, atenuados y sin abrirse."),
             prefs.show_hidden,
             None,
         ),
         "tray" => {
             let denied = match ui.desktop.tray {
-                Some(false) => Some(windows(es("El área de notificación de Windows no está disponible: cerrar sale de RUNE.")).unwrap_or(t("El escritorio no tiene una bandeja del sistema (StatusNotifierItem): cerrar sale de RUNE."))),
+                Some(false) => Some(windows(es("El área de notificación de Windows no está disponible: cerrar sale de RUNE.")).unwrap_or(t("El escritorio no tiene bandeja del sistema: cerrar sale de RUNE."))),
                 _ => None,
             };
             toggle(
                 "us:tray-close",
                 t("Cerrar a la bandeja"),
-                t("Cerrar la ventana deja a RUNE en la bandeja del sistema, con su menú: abrir, silenciar, ensordecer, estado y salir."),
+                t("Al cerrar la ventana, RUNE sigue en la bandeja del sistema."),
                 prefs.close_to_tray,
                 denied,
             )
@@ -198,7 +198,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
         "autostart" => {
             let note = ui.desktop.autostart_problem.as_deref().map_or_else(|| {
                 windows(es("Agrega RUNE a las aplicaciones que Windows abre al iniciar sesión (Configuración › Aplicaciones › Inicio)."))
-                    .unwrap_or(t("Agrega RUNE a los programas que abre tu sesión (~/.config/autostart)."))
+                    .unwrap_or(t("RUNE se abre al iniciar la sesión."))
             }, t);
             match ui.desktop.autostart {
                 Some(on) => toggle("us:autostart", t("Iniciar con la sesión"), note, on, None),
@@ -216,8 +216,8 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
             let denied = (!capable(|can| can.local_activity)).then_some(t("Este proveedor no publica actividades."));
             let note = match (&ui.desktop.rich_presence_problem, prefs.rich_presence) {
                 (Some(problem), true) => t(problem),
-                _ => windows(es("Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por la tubería local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu sesión de Windows, sin puertos de red."))
-                    .unwrap_or(t("Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por el socket local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu usuario, sin puertos de red.")),
+                _ => windows(es("Otros programas de este equipo, como juegos o reproductores, pueden mostrar lo que haces. Solo ven tu usuario, sin acceso a la red."))
+                    .unwrap_or(t("Otros programas de este equipo, como juegos o reproductores, pueden mostrar lo que haces. Solo ven tu usuario, sin acceso a la red.")),
             };
             toggle(
                 "us:rich-presence",
@@ -232,7 +232,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
             toggle(
                 "us:game-activity",
                 t("Detectar juegos"),
-                t("Cada 10 s RUNE mira el nombre de tus programas abiertos (nada más) y, si es un juego que el proveedor reconoce o que agregaste, lo muestra como «Jugando a…»."),
+                t("Cada 10 s RUNE mira el nombre de tus programas abiertos y muestra «Jugando a…» si es un juego."),
                 prefs.game_activity,
                 denied,
             )
@@ -263,12 +263,12 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Option<Element>> {
         "autostart-minimized" => {
             let denied = match ui.desktop.autostart {
                 None => Some(t("Leyendo…")),
-                Some(false) => Some(t("Primero activá «Iniciar con la sesión».")),
+                Some(false) => Some(t("Primero activa «Iniciar con la sesión».")),
                 Some(true) => None,
             };
             let note = match ui.desktop.tray {
                 Some(false) => t("Sin bandeja del sistema, RUNE abre su ventana igual."),
-                _ => t("Al iniciar la sesión, RUNE arranca en la bandeja sin abrir la ventana: abrila desde su ícono."),
+                _ => t("RUNE arranca en la bandeja, sin abrir la ventana."),
             };
             toggle(
                 "us:autostart-minimized",
@@ -304,7 +304,7 @@ fn seen(store: &rune_state::Store) -> Option<String> {
         Some(Received) => t("La sesión la recibió; todavía no se sabe si tu cuenta la muestra."),
         Some(Hidden) => t("Tu cuenta la oculta: nadie la ve."),
         Some(Missing) => {
-            t("Tu cuenta no la muestra: revisá tus juegos y la privacidad de cada servidor.")
+            t("Tu cuenta no la muestra: revisa tus juegos y la privacidad de cada servidor.")
         }
         Some(Unconfirmed) | None => t("Esperando que tu cuenta la confirme."),
     };
@@ -387,7 +387,7 @@ fn proxy(ctx: &Ctx) -> Element {
         .iter()
         .map(|(id, label, chosen)| (*id, *label, *chosen, true))
         .collect();
-    let mut note = t("Sólo las llamadas a la API (REST) de los proveedores; la conexión en vivo y la voz no pasan por él. Sin usuario ni contraseña: RUNE no guarda credenciales de un proxy. Se aplica la próxima vez que abras RUNE o cambies de proveedor.").to_owned();
+    let mut note = t("Solo para las llamadas a la API. La conexión en vivo y la voz no pasan por él. Se aplica la próxima vez que abras RUNE.").to_owned();
     if let (ApiProxy::Url(url), None) = (current, writing) {
         note = format!("{note} {}", tr!("Ahora: {url}", url = url.as_str()));
     }
@@ -494,12 +494,20 @@ fn title_bar(ctx: &Ctx) -> Element {
     Element::column(vec![
         parts::setting(
             t("Barra de título"),
-            Some(t("Automática: la de RUNE en Windows y en X11, la del sistema en Wayland. La de RUNE pone minimizar, maximizar y cerrar al final de la cabecera: arrastrá la cabecera para mover la ventana, hacé doble clic para maximizarla y cambiá su tamaño desde los bordes.")),
+            Some(t(
+                "Automática: la de RUNE, salvo en Wayland, donde usa la del sistema.",
+            )),
             None,
             true,
             ctx.look,
         ),
-        select(ctx, "title-bar", t("Barra de título"), &options, ctx.geometry.column),
+        select(
+            ctx,
+            "title-bar",
+            t("Barra de título"),
+            &options,
+            ctx.geometry.column,
+        ),
         Element::spacer().size(None, Some(12.0)),
     ])
 }

@@ -828,13 +828,13 @@ pub(crate) fn privacy_setting(
     Some(match key {
         "server-dms" => toggle(
             "us:privacy:server-dms",
-            t("Permitir mensajes directos de miembros de servidores"),
+            t("Permitir mensajes directos de miembros del servidor"),
             t("Para los servidores a los que entres desde ahora; cada uno se cambia abajo."),
             privacy.server_dms,
         ),
         "message-requests" => toggle(
             "us:privacy:requests",
-            t("Filtrar como solicitudes los mensajes de quienes quizás no conozcas"),
+            t("Solicitudes de mensajes"),
             t("Los de miembros de servidores llegan a «Solicitudes de mensajes» en vez de a tus mensajes directos."),
             privacy.request_filter,
         ),
@@ -939,7 +939,7 @@ pub(crate) fn privacy_setting(
         "friend-requests" => {
             let sources = privacy.friend_sources;
             Element::column(vec![
-                setting_parts::subtitle(t("Quién puede mandarte solicitudes de amistad"), look),
+                setting_parts::subtitle(t("Quién puede enviarte solicitudes de amistad"), look),
                 setting_parts::rows(
                     vec![
                         toggle(
@@ -1003,7 +1003,7 @@ pub(crate) fn privacy_setting(
                 );
             }
             stacked(
-                t("Por servidor"),
+                t("Privacidad del servidor"),
                 t("Si sus miembros pueden escribirte directamente, y si sus mensajes se filtran como solicitudes."),
                 Element::column(rows).gap(4.0).size(Some(width.min(520.0)), None),
             )

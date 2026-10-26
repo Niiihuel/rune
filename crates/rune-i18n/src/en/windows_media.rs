@@ -4,12 +4,12 @@
 
 pub(super) const ENTRIES: super::Entries = &[
     (
-        "La del texto de toda la ventana. Las fuentes del sistema se leen con DirectWrite; si una se desinstala, RUNE vuelve a la suya.",
-        "The font of all the window's text. System fonts are read with DirectWrite; if one is uninstalled, RUNE goes back to its own.",
+        "La del texto de toda la ventana. Si desinstalas una fuente, RUNE vuelve a la suya.",
+        "The text font for the whole window. If you uninstall a font, RUNE goes back to its own.",
     ),
     (
-        "Otros programas de este equipo (juegos, reproductores) pueden decir qué estás haciendo por la tubería local discord-ipc, como con el cliente oficial; RUNE lo publica como tu actividad. Sólo los programas de tu sesión de Windows, sin puertos de red.",
-        "Other programs on this device (games, players) can say what you're doing through the local discord-ipc pipe, as with the official client; RUNE publishes it as your activity. Only your Windows session's programs, with no network ports.",
+        "Otros programas de este equipo, como juegos o reproductores, pueden mostrar lo que haces. Solo ven tu usuario, sin acceso a la red.",
+        "Other programs on this computer, like games or players, can show what you're doing. They only see your user, with no network access.",
     ),
     // RUNE's own screen picker and the screen (rune-media, rune-components).
     ("Pantallas", "Screens"),
@@ -45,7 +45,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // Video settings (rune-ui).
     (
-        "En Windows RUNE todavía codifica y decodifica el video con OpenH264, en el procesador.",
-        "On Windows RUNE still encodes and decodes video with OpenH264, on the processor.",
+        "En Windows, el video todavía se procesa en el procesador.",
+        "On Windows, video is still processed by the processor.",
     ),
 ];

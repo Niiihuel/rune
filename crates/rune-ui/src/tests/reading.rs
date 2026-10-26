@@ -213,7 +213,7 @@ fn the_image_cache_says_what_it_takes_and_clears_each_part() {
     assert!(host
         .painted()
         .iter()
-        .any(|text| text.contains("quedan sólo en memoria")));
+        .any(|text| text.contains("quedan solo en memoria")));
     assert!(host.reading_press("us:cache-clear=media").is_empty());
     host.ui.image_cache = Some(CacheUsage {
         media_bytes: 3 * 1024 * 1024 / 2,

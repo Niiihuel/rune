@@ -84,7 +84,7 @@ fn row(ctx: &Ctx, action: Action) -> Row {
             .then(|| t("Restablecer").to_owned()),
     };
     let note = if recording {
-        Some(t("Pulsá la combinación. Esc cancela.").to_owned())
+        Some(t("Pulsa la combinación. Esc cancela.").to_owned())
     } else {
         match action {
             Action::Voice(voice) => voice_note(ctx, voice, caps.is_some()),
@@ -111,7 +111,7 @@ fn row(ctx: &Ctx, action: Action) -> Row {
 fn voice_note(ctx: &Ctx, voice: Voice, bound: bool) -> Option<String> {
     Some(match (&ctx.ui.audio.global_keys, bound) {
         (_, false) => match voice {
-            Voice::PushToMute => t("Mientras lo mantenés, el micrófono no pasa.").to_owned(),
+            Voice::PushToMute => t("Mientras lo mantienes, el micrófono no pasa.").to_owned(),
             _ => return None,
         },
         (GlobalKeys::Unavailable(reason), true) => {

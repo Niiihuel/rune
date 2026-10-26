@@ -93,7 +93,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Exportar…", "Export…"),
     ("¿Borrar «{name}»? No se puede deshacer.", "Delete “{name}”? It cannot be undone."),
     (
-        "Elegí una base y cambiá los colores que quieras: la vista previa los muestra al instante y la ventana, al guardar. Se guarda en este equipo.",
+        "Elige una base y cambia los colores que quieras: la vista previa los muestra al instante y la ventana, al guardar. Se guarda en este equipo.",
         "Choose a base and change the colors you want: the preview shows them at once and the window when you save. It is kept on this computer.",
     ),
     ("Nombre del tema", "Theme name"),

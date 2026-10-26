@@ -40,8 +40,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("La de RUNE", "RUNE's"),
     ("La del sistema", "The system's"),
     (
-        "Automática: la de RUNE en Windows y en X11, la del sistema en Wayland. La de RUNE pone minimizar, maximizar y cerrar al final de la cabecera: arrastrá la cabecera para mover la ventana, hacé doble clic para maximizarla y cambiá su tamaño desde los bordes.",
-        "Automatic: RUNE's on Windows and X11, the system's on Wayland. RUNE's puts minimize, maximize and close at the end of the header: drag the header to move the window, double-click it to maximize it and resize it from its edges.",
+        "Automática: la de RUNE, salvo en Wayland, donde usa la del sistema.",
+        "Automatic: RUNE's, except on Wayland, where it uses the system's.",
     ),
     ("Gráficos", "Graphics"),
     (

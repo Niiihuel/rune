@@ -66,9 +66,7 @@ fn part(ctx: &Ctx, part: CachePart) -> Element {
             used = file_size(usage.bytes(part)),
             limit = size_label(chosen)
         ),
-        None => {
-            t("Sin llavero del sistema o sin cuenta, las imágenes quedan sólo en memoria.").into()
-        }
+        None => t("Sin almacén seguro del sistema, las imágenes quedan solo en memoria.").into(),
     };
     let options: Vec<(String, String)> = presets
         .iter()

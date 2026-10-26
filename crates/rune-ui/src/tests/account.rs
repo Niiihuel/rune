@@ -205,7 +205,7 @@ fn messaging_privacy_is_shown_and_changed_from_the_settings() {
     assert!(host
         .painted()
         .iter()
-        .any(|text| text == "Mensajes directos y solicitudes"));
+        .any(|text| text == "Mensajes directos"));
     let from = host.sent.len();
     host.ac_choose("us:privacy:server-dms");
     assert_eq!(

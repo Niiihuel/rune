@@ -49,9 +49,9 @@ fn now(ctx: &Ctx) -> Element {
     let (ui, look) = (ctx.ui, ctx.look);
     let Some(running) = &ui.desktop.games.running else {
         let note = if ui.prefs.game_activity {
-            t("Cuando abras un juego que RUNE reconozca, aparece acá.")
+            t("Cuando abras un juego que RUNE reconozca, aparece aquí.")
         } else {
-            t("Activá «Detectar juegos» para que RUNE reconozca los que abrís.")
+            t("Activa «Detectar juegos» para que RUNE reconozca los que abres.")
         };
         return parts::setting(t("Ningún juego detectado"), Some(note), None, true, look);
     };
@@ -67,7 +67,7 @@ fn now(ctx: &Ctx) -> Element {
     parts::setting(
         &tr!("Ahora: {name}", name),
         Some(t(
-            "Detectado en este equipo. ¿No es este juego? Ocultalo y no se detecta más.",
+            "Detectado en este equipo. ¿No es este juego? Ocúltalo y no se detecta más.",
         )),
         Some(
             Element::row(vec![
@@ -123,7 +123,7 @@ fn add(ctx: &Ctx) -> Element {
     Element::column(vec![
         parts::setting(
             t("Agregar un programa"),
-            Some(t("¿No ves tu juego? Elegí uno de tus programas abiertos: RUNE lo detecta como juego desde ahora, sin el proveedor.")),
+            Some(t("¿No ves tu juego? Elige uno de tus programas abiertos: RUNE lo detecta como juego desde ahora, sin el proveedor.")),
             None,
             true,
             look,

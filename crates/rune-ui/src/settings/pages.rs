@@ -61,7 +61,7 @@ const SECTIONS: &[Section] = &[
     Section {
         page: Account,
         key: "account-info",
-        title: es("Información de cuenta"),
+        title: es("Tu cuenta"),
         rows: &[
             ("display-name", es("nombre para mostrar apodo cómo te ven")),
             ("handle", es("nombre de usuario handle arroba")),
@@ -85,7 +85,7 @@ const SECTIONS: &[Section] = &[
     Section {
         page: Privacy,
         key: "messaging",
-        title: es("Mensajes directos y solicitudes"),
+        title: es("Mensajes directos"),
         rows: &[
             (
                 "server-dms",
@@ -170,7 +170,7 @@ const SECTIONS: &[Section] = &[
     Section {
         page: Voice,
         key: "mic-test",
-        title: es("Comprobemos el micrófono"),
+        title: es("Probar micrófono"),
         rows: &[
             (
                 "meter",
@@ -247,7 +247,7 @@ const SECTIONS: &[Section] = &[
     Section {
         page: Voice,
         key: "video",
-        title: es("Cámara y video"),
+        title: es("Cámara y vídeo"),
         rows: &[
             (
                 "camera",
@@ -335,7 +335,7 @@ const SECTIONS: &[Section] = &[
         page: Language,
         key: "language",
         title: es("Idioma"),
-        rows: &[("language", es("seleccioná un idioma español inglés lengua"))],
+        rows: &[("language", es("selecciona un idioma español inglés lengua"))],
     },
     Section {
         page: Language,
@@ -784,7 +784,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "display-name" => display_name(ctx),
         "handle" => parts::setting(
             t("Nombre de usuario"),
-            Some(t("Lo asigna el proveedor: RUNE no puede cambiarlo.")),
+            Some(t("No se puede cambiar.")),
             Some(line(
                 format!("@{}", store.me_user()?.name),
                 16.0,
@@ -799,7 +799,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 parts::setting(
                     t("Color del avatar"),
                     Some(locked.unwrap_or(
-                        t("RUNE no tiene fotos de perfil: tu inicial se dibuja sobre este color."),
+                        t("Tu inicial se muestra sobre este color."),
                     )),
                     None,
                     locked.is_none(),
@@ -867,35 +867,35 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             ));
             stacked(
                 t("Cambiar de cuenta"),
-                Some(t("Cambiar cierra esta sesión sin olvidarla: sigue recordada en este equipo.")),
+                Some(t("Sigue recordada en este equipo.")),
                 Element::column(choices).gap(8.0),
             )
         }
         "sign-out" => parts::setting(
             t("Cerrar sesión"),
-            Some(t("Desconectá esta cuenta de RUNE en este equipo.")),
+            Some(t("Sales de RUNE en este equipo.")),
             Some(parts::danger_button("us:sign-out", t("Cerrar sesión"), look)),
             true,
             look,
         ),
         "forget" => parts::setting(
             t("Borrar lo guardado en este equipo"),
-            Some(t("Mensajes en caché, borradores, instantánea e imágenes guardadas de esta cuenta. Los ajustes se conservan.")),
+            Some(t("Mensajes, borradores e imágenes guardadas de esta cuenta. Tus ajustes se conservan.")),
             Some(parts::danger_button("us:forget", t("Borrar"), look)),
             true,
             look,
         ),
         "credentials" => parts::setting(
-            t("Credenciales"),
-            Some(t("Los datos de acceso no se guardan en la caché de mensajes. Consultá los detalles de la sesión en Conexión.")),
+            t("Sesión"),
+            Some(t("Tus datos de acceso no se guardan en la caché de mensajes.")),
             None,
             true,
             look,
         ),
         "desktop" => toggle(
             "us:desktop",
-            t("Activar las notificaciones de escritorio"),
-            Some(t("Las menciones y los mensajes directos avisan con una notificación del sistema, salvo en «No molestar», en lo silenciado y en la conversación que estás leyendo. Hacé clic en una para abrirla.")),
+            t("Notificaciones de escritorio"),
+            Some(t("Avisos del sistema para menciones y mensajes directos.")),
             prefs.desktop_notifications,
         ),
         "notification-content" => toggle(
@@ -912,14 +912,14 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         ),
         "unread-badges" => toggle(
             "us:unread-badges",
-            t("Marcar los servidores con mensajes sin leer"),
-            Some(t("Una marca junto al ícono del servidor, en el riel, mientras tiene algo sin leer.")),
+            t("Marcar servidores con mensajes sin leer"),
+            Some(t("Una marca junto al servidor mientras tenga mensajes sin leer.")),
             prefs.unread_badges,
         ),
         "mention-badges" => toggle(
             "us:mention-badges",
-            t("Mostrar cuántas menciones tenés"),
-            Some(t("Un globo con el número sobre el ícono del servidor y el de los mensajes directos.")),
+            t("Contador de menciones"),
+            Some(t("Un globo con el número sobre el servidor y en mensajes directos.")),
             prefs.mention_badges,
         ),
         "devices" => devices(ctx),
@@ -929,15 +929,15 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             let note = if ui.audio.loopback && ui.audio.output_starting {
                 t("Abriendo la salida…")
             } else {
-                t("Oí tu micrófono procesado en el altavoz elegido. Usá auriculares: por altavoces se acopla.")
+                t("Usa auriculares: con altavoces se produce eco.")
             };
             parts::toggle(
                 "us:loopback",
-                t("Escucharme"),
+                t("Escucharte"),
                 Some(note),
                 ui.audio.loopback,
                 crate::quick_voice::call_holds_output(store).then_some(t(
-                    "En una llamada la salida es suya: podés escucharte de nuevo al colgar.",
+                    "En una llamada la salida es suya: puedes escucharte de nuevo al colgar.",
                 )),
                 look,
             )
@@ -949,7 +949,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 (
                     "us:profile=voice-isolation".to_owned(),
                     t("Aislamiento de voz"),
-                    Some(t("Solo tu voz: RNNoise, cancelación de eco, ganancia automática y una compuerta que deja pasar lo que RNNoise oye como voz.")),
+                    Some(t("Solo tu voz: se quitan el ruido de fondo, el eco y lo que no es voz.")),
                 ),
                 (
                     "us:profile=studio".to_owned(),
@@ -959,7 +959,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 (
                     "us:profile=custom".to_owned(),
                     t("Personalizado"),
-                    Some(t("Elegí vos el procesamiento de voz, más abajo.")),
+                    Some(t("Elige tú el procesamiento de voz, más abajo.")),
                 ),
             ],
             &format!("us:profile={}", prefs.input_profile.key()),
@@ -971,9 +971,9 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             stacked(
                 t("Supresión de ruido"),
                 Some(if custom {
-                    t("Discord usa Krisp, que es privativo; RUNE ofrece RNNoise y WebRTC, abiertos y en este equipo.")
+                    t("Quita el ruido de fondo. Lo eliges tú.")
                 } else {
-                    t("Lo elige el perfil; cambiar algo acá lo pasa a Personalizado. Krisp, el de Discord, es privativo: RUNE ofrece RNNoise y WebRTC.")
+                    t("Quita el ruido de fondo. Lo elige el perfil; cambiar algo aquí lo pasa a Personalizado.")
                 }),
                 parts::choices(
                     "us:suppression",
@@ -982,7 +982,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                         (
                             "us:suppression=rnnoise".to_owned(),
                             "RNNoise",
-                            Some(t("Red neuronal abierta: también teclado y ruidos que cambian, y con la sensibilidad automática decide qué es voz. Sirve con cualquier micrófono: RUNE lo pasa a 48 kHz.")),
+                            Some(t("Quita también el teclado y los ruidos que cambian. Sirve con cualquier micrófono.")),
                         ),
                         (
                             "us:suppression=webrtc".to_owned(),
@@ -1003,19 +1003,19 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "echo-cancellation" => toggle(
             "us:echo-cancellation",
             t("Cancelación de eco"),
-            Some(t("Evita que el micrófono capte lo que suena en tus auriculares, así nadie se escucha a sí mismo.")),
+            Some(t("Evita que el micrófono capte lo que suena en tus auriculares.")),
             prefs.effective_processing().echo_cancellation,
         ),
         "system-echo" => {
             let echo = prefs.effective_processing().echo_cancellation;
             let note = match ui.audio.system_echo.filter(|_| echo && prefs.system_echo) {
-                Some(true) => t("Activo: se cancela todo lo que suena en tu salida. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía."),
+                Some(true) => t("Se cancela lo que suena en tu salida. Nunca se graba ni se envía."),
                 Some(false) => t("No se pudo escuchar tu salida: por ahora se cancela sólo lo que reproduce RUNE."),
-                None => t("Juegos, música y videos que suenan en tu salida no se cuelan por el micrófono. Lo que suena se usa sólo como referencia en este equipo: nunca se graba ni se envía."),
+                None => t("Lo que suena en tu salida no se cuela por el micrófono. Nunca se graba ni se envía."),
             };
             parts::toggle(
                 "us:system-echo",
-                t("Cancelar también el sonido de la PC"),
+                t("Cancelar sonido del equipo"),
                 Some(note),
                 echo && prefs.system_echo,
                 (!echo).then_some(t("Necesita la cancelación de eco.")),
@@ -1025,23 +1025,23 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "automatic-gain" => toggle(
             "us:automatic-gain",
             t("Control automático de ganancia"),
-            Some(t("Sube o baja tu voz para mantenerla pareja. Es digital: no toca el volumen del micrófono en el sistema.")),
+            Some(t("Mantiene tu voz a un nivel parejo. No cambia el volumen del micrófono.")),
             prefs.effective_processing().automatic_gain,
         ),
         "camera" => camera(ctx),
         // Windows has no GPU engine yet: OpenH264 always (windows-medios).
         "video-hardware" if cfg!(windows) => parts::toggle(
             "us:video-hardware",
-            t("Aceleración por hardware de H.264"),
+            t("Aceleración por hardware"),
             None,
             false,
-            Some(t("En Windows RUNE todavía codifica y decodifica el video con OpenH264, en el procesador.")),
+            Some(t("En Windows, el video todavía se procesa en el procesador.")),
             look,
         ),
         "video-hardware" => toggle(
             "us:video-hardware",
-            t("Aceleración por hardware de H.264"),
-            Some(t("Codifica y decodifica el video con la GPU (VA-API, NVENC o NVDEC) cuando hay una. Apagala para usar OpenH264 en el procesador si la imagen se ve mal. Cambia en el momento, también lo que ya mandás o mirás.")),
+            t("Aceleración por hardware"),
+            Some(t("Usa la tarjeta gráfica para el video cuando puede. Apágala si la imagen se ve mal.")),
             prefs.video_hardware,
         ),
         // The section's title names it already.
@@ -1054,12 +1054,12 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                     (
                         "us:input=voice".to_owned(),
                         t("Detección de voz"),
-                        Some(t("El micrófono pasa cuando hablás por encima de la sensibilidad.")),
+                        Some(t("El micrófono pasa cuando hablas por encima de la sensibilidad.")),
                     ),
                     (
                         "us:input=ptt".to_owned(),
                         t("Pulsar para hablar"),
-                        Some(t("El micrófono pasa sólo mientras mantenés el atajo.")),
+                        Some(t("El micrófono pasa sólo mientras mantienes el atajo.")),
                     ),
                 ],
                 if prefs.push_to_talk {
@@ -1105,29 +1105,29 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             parts::subtitle(t("Imágenes, archivos y reacciones"), look),
             toggle(
                 "us:image-previews",
-                t("Mostrar la vista previa de las imágenes subidas"),
+                t("Vista previa de imágenes"),
                 Some(t("Apagado, una imagen se muestra como cualquier otro archivo.")),
                 prefs.image_previews,
             ),
         ]),
         "reactions" => toggle(
             "us:reactions",
-            t("Mostrar reacciones de emojis"),
+            t("Reacciones"),
             None,
             prefs.reactions,
         ),
         "emoticons" => toggle(
             "us:emoticons",
-            t("Convertir los emoticonos de tus mensajes en emojis"),
+            t("Convertir emoticonos en emojis"),
             Some(t("Al enviar o editar, :) se vuelve 🙂. El código y los enlaces no cambian.")),
             prefs.convert_emoticons,
         ),
         "avatars" => parts::toggle(
             "us:avatars",
-            t("Mostrar los avatares de los usuarios"),
+            t("Avatares"),
             None,
             !prefs.compact,
-            Some(t("Para ocultar los avatares, elegí Compacto en Accesibilidad › Mostrar el mensaje del chat.")),
+            Some(t("Para ocultar los avatares, elige Compacto en Accesibilidad › Mostrar el mensaje del chat.")),
             look,
         ),
         "related-accessibility" => parts::related(
@@ -1138,11 +1138,11 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             look,
         ),
         "text-size" => stacked(
-            t("Tamaño de texto en el chat"),
-            Some(t("Ajustá el tamaño de la fuente del chat.")),
+            t("Tamaño del texto"),
+            Some(t("Ajusta el tamaño del texto en el chat.")),
             ticked(
                 "us:text-size",
-                t("Tamaño de texto en el chat"),
+                t("Tamaño del texto"),
                 &TEXT_SIZES.map(|size| format!("{size}px")),
                 TEXT_SIZES.iter().position(|size| *size == prefs.text_size),
                 1,
@@ -1151,15 +1151,15 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             ),
         ),
         "display" => stacked(
-            t("Mostrar el mensaje del chat"),
-            Some(t("Cambiá cómo se ven los mensajes del chat.")),
+            t("Vista de mensajes"),
+            Some(t("Cómo se ven los mensajes del chat.")),
             parts::choices(
                 "us:display",
-                t("Mostrar el mensaje del chat"),
+                t("Vista de mensajes"),
                 &[
                     (
                         "us:display=cozy".to_owned(),
-                        t("Predeterminado"),
+                        t("Acogedor"),
                         Some(t("El nombre y el avatar encabezan cada grupo de mensajes.")),
                     ),
                     (
@@ -1177,11 +1177,11 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
             ),
         ),
         "group-gap" => stacked(
-            t("Espacio entre grupos de mensajes"),
+            t("Espacio entre grupos"),
             None,
             ticked(
                 "us:group-gap",
-                t("Espacio entre grupos de mensajes"),
+                t("Espacio entre grupos"),
                 &GROUP_GAPS.map(|gap| format!("{gap}px")),
                 GROUP_GAPS.iter().position(|gap| *gap == prefs.group_gap),
                 3,
@@ -1196,11 +1196,11 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 .min_by_key(|(_, zoom)| zoom.abs_diff(prefs.zoom))
                 .map(|(mark, _)| mark);
             stacked(
-                t("Nivel de zoom"),
-                Some(t("Ajustá el tamaño de toda la interfaz. También podés cambiarlo con Ctrl + y Ctrl −, y volver al 100 % con Ctrl + 0.")),
+                t("Zoom"),
+                Some(t("Cambia el tamaño de toda la interfaz.")),
                 ticked(
                     "us:zoom",
-                    t("Nivel de zoom"),
+                    t("Zoom"),
                     &ZOOMS.map(|zoom| zoom.to_string()),
                     ui.settings_state.zoom_drag.or(nearest),
                     5,
@@ -1214,14 +1214,14 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 ("us:role-colors=on", t("En los nombres"), prefs.role_colors, true),
                 (
                     "us:role-colors=off",
-                    t("No mostrar colores de rol"),
+                    t("No mostrar colores"),
                     !prefs.role_colors,
                     true,
                 ),
             ];
             parts::setting(
                 t("Colores de rol"),
-                Some(t("Si los nombres toman el color de su rol más alto, en el chat y en la lista de miembros.")),
+                Some(t("Los nombres toman el color de su rol más alto.")),
                 Some(select(
                     ctx,
                     "role-colors",
@@ -1235,7 +1235,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         }
         "motion" => toggle(
             "us:motion",
-            t("Activar el movimiento reducido"),
+            t("Activar movimiento reducido"),
             Some(t("Sin animaciones ni desplazamientos suaves.")),
             ui.reduced_motion,
         ),
@@ -1319,7 +1319,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "choose" => {
             crate::providers::choosable(ui).then_some(())?;
             stacked(
-                t("Elige el proveedor"),
+                t("Cambiar de proveedor"),
                 Some(t("Cada uno dice de dónde vienen sus datos. Cambiar cierra la sesión de este.")),
                 Element::column(crate::providers::choices(ui, width, look)).gap(8.0),
             )
@@ -1327,14 +1327,14 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "remembered" => match store.remembered? {
             true => parts::setting(
                 t("Sesión recordada"),
-                Some(t("Guardada en el llavero del sistema: RUNE la restaura al abrirse. Cerrar sesión también la borra.")),
+                Some(t("Se guarda en el almacén seguro del sistema, y RUNE la restaura al abrirse.")),
                 Some(parts::danger_button("us:forget-session", t("Olvidar esta sesión"), look)),
                 true,
                 look,
             ),
             false => parts::setting(
                 t("Sesión no recordada"),
-                Some(t("Vive sólo en memoria: al cerrar RUNE vas a tener que iniciar sesión otra vez.")),
+                Some(t("Solo está en memoria: al cerrar RUNE tendrás que volver a iniciar sesión.")),
                 None,
                 true,
                 look,
@@ -1347,7 +1347,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 "us:page=developer",
                 icon_of(Developer),
                 t("Pruebas de la simulación"),
-                t("Cortá la conexión o hacé fallar un envío para ver cómo responde RUNE."),
+                t("Corta la conexión o haz fallar un envío para ver cómo responde RUNE."),
                 look,
             )
         }
@@ -1359,7 +1359,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         ),
         "metrics" => toggle(
             "us:metrics",
-            t("Mostrar métricas"),
+            t("Métricas de rendimiento"),
             Some(t("Tiempos de cada cuadro, memoria y CPU, sobre la ventana. También con F12.")),
             ui.show_metrics,
         ),
@@ -1535,7 +1535,7 @@ fn devices(ctx: &Ctx) -> Element {
         let (title, missing, id, name, volume, most) = if output {
             (
                 t("Dispositivo de salida"),
-                t("La salida elegida no está conectada. Conectala o elegí otra."),
+                t("La salida elegida no está conectada. Conéctala o elige otra."),
                 "us:output-volume",
                 t("Volumen de salida"),
                 ui.prefs.output_volume,
@@ -1544,7 +1544,7 @@ fn devices(ctx: &Ctx) -> Element {
         } else {
             (
                 t("Dispositivo de entrada"),
-                t("El micrófono elegido no está conectado. Conectalo o elegí otro."),
+                t("El micrófono elegido no está conectado. Conéctalo o elige otro."),
                 "us:input-volume",
                 t("Volumen de entrada"),
                 ui.prefs.input_volume,
@@ -1651,7 +1651,7 @@ fn meter(ctx: &Ctx) -> Element {
     let width = ctx.geometry.column;
     let live = ui.audio.testing && !ui.audio.starting;
     let mut rows = vec![text(
-        t("Empezá la prueba y decí algo: la barra muestra tu nivel, y la marca, dónde empieza a contar como voz. Es local; no se envía nada."),
+        t("Empieza la prueba y di algo: la barra muestra tu nivel, y la marca, dónde empieza a contar como voz. Es local; no se envía nada."),
         14.0,
         look.muted,
     )];
@@ -1725,11 +1725,11 @@ fn push_to_talk_key(ctx: &Ctx) -> Element {
         .filter(|(action, _)| *action == crate::keybinds::Action::default())
         .map(|(_, why)| why.as_str());
     let note = if recording {
-        t("Pulsá la tecla o la combinación. Esc cancela.")
+        t("Pulsa la tecla o la combinación. Esc cancela.")
     } else if let Some(why) = refused {
         why
     } else if key.is_none() {
-        t("Todavía no tiene atajo: grabá uno.")
+        t("Todavía no tiene atajo: graba uno.")
     } else {
         t("Funciona con la ventana de RUNE enfocada.")
     };
@@ -1786,7 +1786,7 @@ fn push_to_talk_key(ctx: &Ctx) -> Element {
             if ui.audio.transmitting {
                 t("Transmitiendo: el micrófono pasa.")
             } else {
-                t("En silencio: mantené el atajo para hablar.")
+                t("En silencio: mantén el atajo para hablar.")
             },
             13.0,
             look.muted,
@@ -1927,11 +1927,11 @@ fn sensitivity(ctx: &Ctx) -> Element {
         "us:auto-sensitivity",
         t("Determinar automáticamente la sensibilidad de entrada"),
         Some(if prefs.speech_gate() {
-            t("Decide RNNoise: pasa tu voz, y el teclado, la respiración y el ruido de fondo no abren el micrófono.")
+            t("Decide sola: pasa tu voz, y el teclado, la respiración y el ruido de fondo no abren el micrófono.")
         } else if prefs.auto_sensitivity {
             t("RUNE sigue el ruido de la sala: tu voz tiene que superarlo por 15 dB.")
         } else {
-            t("Arrastrá el umbral: lo que suene por encima cuenta como voz.")
+            t("Arrastra el umbral: lo que suene por encima cuenta como voz.")
         }),
         prefs.auto_sensitivity,
         None,
@@ -1960,7 +1960,7 @@ fn sensitivity(ctx: &Ctx) -> Element {
     let decibels = format!("{decibels:.0}");
     column.push(line(
         if prefs.speech_gate() {
-            t("Umbral: lo que RNNoise oye como voz").to_owned()
+            t("Umbral: lo que suena como voz").to_owned()
         } else if prefs.auto_sensitivity {
             tr!("Umbral: {decibels} dBFS · automático", decibels)
         } else {
@@ -2075,7 +2075,7 @@ pub fn switcher(ui: &Ui, store: &Store, root: Element, look: &Look, window: Size
         root,
         true,
         t("Ir a…"),
-        t("Buscá un servidor, un canal o una conversación. ↑↓ para elegir, Enter para ir."),
+        t("Busca un servidor, un canal o una conversación. ↑↓ para elegir, Enter para ir."),
         "switcher:close",
         look.menu_palette(),
     )
@@ -2085,7 +2085,7 @@ pub fn switcher(ui: &Ui, store: &Store, root: Element, look: &Look, window: Size
             SearchField::new(
                 SWITCHER_QUERY,
                 state.query.clone(),
-                t("¿A dónde querés ir?"),
+                t("¿A dónde quieres ir?"),
                 look.menu_palette(),
             )
             .shortcut("Ctrl+K")
@@ -2106,10 +2106,10 @@ mod tests {
 
     #[test]
     fn searching_folds_case_and_accents_and_wants_every_word() {
-        assert!(found("ZOOM", &["Nivel de zoom"]));
+        assert!(found("ZOOM", &["Zoom"]));
         assert!(found("animacion", &["animaciones"]));
-        assert!(found("tamaño texto", &["Tamaño de texto en el chat"]));
-        assert!(!found("tamaño voz", &["Tamaño de texto en el chat"]));
+        assert!(found("tamaño texto", &["Tamaño del texto"]));
+        assert!(!found("tamaño voz", &["Tamaño del texto"]));
     }
 
     #[test]

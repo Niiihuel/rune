@@ -6,15 +6,15 @@ pub(super) const ENTRIES: super::Entries = &[
     // Starting in the tray.
     ("Iniciar minimizado", "Start minimized"),
     (
-        "Al iniciar la sesión, RUNE arranca en la bandeja sin abrir la ventana: abrila desde su ícono.",
-        "When your session starts, RUNE starts in the tray without opening its window: open it from its icon.",
+        "RUNE arranca en la bandeja, sin abrir la ventana.",
+        "RUNE starts in the tray, without opening its window.",
     ),
     (
         "Sin bandeja del sistema, RUNE abre su ventana igual.",
         "Without a system tray, RUNE opens its window anyway.",
     ),
     (
-        "Primero activá «Iniciar con la sesión».",
+        "Primero activa «Iniciar con la sesión».",
         "Turn on «Start with the session» first.",
     ),
     (
@@ -54,7 +54,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Your account hides it: nobody sees it.",
     ),
     (
-        "Tu cuenta no la muestra: revisá tus juegos y la privacidad de cada servidor.",
+        "Tu cuenta no la muestra: revisa tus juegos y la privacidad de cada servidor.",
         "Your account doesn't show it: check your games and each server's privacy.",
     ),
     (
@@ -73,23 +73,23 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Juegos registrados", "Registered games"),
     ("Ningún juego detectado", "No game detected"),
     (
-        "Cuando abras un juego que RUNE reconozca, aparece acá.",
+        "Cuando abras un juego que RUNE reconozca, aparece aquí.",
         "When you open a game RUNE recognizes, it shows up here.",
     ),
     (
-        "Activá «Detectar juegos» para que RUNE reconozca los que abrís.",
+        "Activa «Detectar juegos» para que RUNE reconozca los que abres.",
         "Turn on «Detect games» so RUNE recognizes the ones you open.",
     ),
     ("Ahora: {name}", "Now: {name}"),
     (
-        "Detectado en este equipo. ¿No es este juego? Ocultalo y no se detecta más.",
+        "Detectado en este equipo. ¿No es este juego? Ocúltalo y no se detecta más.",
         "Detected on this computer. Not this game? Hide it and it won't be detected again.",
     ),
     ("No es este juego", "Not this game"),
     ("Nombre del juego", "Game name"),
     ("Agregar un programa", "Add a program"),
     (
-        "¿No ves tu juego? Elegí uno de tus programas abiertos: RUNE lo detecta como juego desde ahora, sin el proveedor.",
+        "¿No ves tu juego? Elige uno de tus programas abiertos: RUNE lo detecta como juego desde ahora, sin el proveedor.",
         "Not seeing your game? Choose one of your open programs: RUNE detects it as a game from now on, without the provider.",
     ),
     (
@@ -133,8 +133,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Dirección del proxy", "Proxy address"),
     ("Ahora: {url}", "Now: {url}"),
     (
-        "Sólo las llamadas a la API (REST) de los proveedores; la conexión en vivo y la voz no pasan por él. Sin usuario ni contraseña: RUNE no guarda credenciales de un proxy. Se aplica la próxima vez que abras RUNE o cambies de proveedor.",
-        "Only the providers' API (REST) calls; the live connection and voice don't go through it. No user or password: RUNE doesn't keep a proxy's credentials. It applies the next time you open RUNE or change providers.",
+        "Solo para las llamadas a la API. La conexión en vivo y la voz no pasan por él. Se aplica la próxima vez que abras RUNE.",
+        "Only for API calls. The live connection and voice don't go through it. It applies the next time you open RUNE.",
     ),
     (
         "proxy http https api rest red intermediario dirección sin proxy",

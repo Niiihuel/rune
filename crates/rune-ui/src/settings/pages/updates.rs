@@ -45,7 +45,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                     "Instalada en {folder}. Una actualización la reemplaza entera, o no la toca.",
                     folder = folder
                 ),
-                None => t("Esta copia no se instaló con el instalador de RUNE: avisa si hay una versión nueva, pero se actualiza desde donde la compilaste.").into(),
+                None => t("Compilación propia: avisa si hay una versión nueva, pero se actualiza desde tu código.").into(),
             };
             parts::setting(
                 t("Versión instalada"),
@@ -100,7 +100,7 @@ pub(super) fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
                 )
             } else if updates.checked.is_some() {
                 (
-                    t("Tenés la última versión").to_owned(),
+                    t("Tienes la última versión").to_owned(),
                     Some((t("Al día").to_owned(), Tone::Online)),
                 )
             } else {

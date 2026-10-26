@@ -81,7 +81,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "what happened to all the beans?",
     ),
     (
-        "acá tenés un enlace: https://example.org/rune",
+        "aquí tienes un enlace: https://example.org/rune",
         "here's a link: https://example.org/rune",
     ),
     ("Botón de ejemplo", "Sample button"),

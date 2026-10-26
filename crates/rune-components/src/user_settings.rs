@@ -849,7 +849,7 @@ pub fn preview(preview: &Preview, width: f32, look: &Look) -> Element {
     );
     let second = sample(
         2,
-        t("acá tenés un enlace: https://example.org/rune"),
+        t("aquí tienes un enlace: https://example.org/rune"),
         Vec::new(),
     );
     let messages_width = (width - 120.0).max(160.0);
