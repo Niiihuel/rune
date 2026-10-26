@@ -420,10 +420,14 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Esperando video…", "Waiting for video…"),
     ("La transmisión está en pausa", "The stream is paused"),
     ("Reconectando con la transmisión…", "Reconnecting to the stream…"),
-    ("La transmisión terminó", "The stream ended"),
-    ("La transmisión se detuvo. Se reanudará cuando vuelva a transmitir.", "The stream stopped. It will resume when they stream again."),
+    // Over: the stage says so, with the picture at rest (2026-10-26).
+    ("Esta transmisión ha finalizado.", "This stream has ended."),
+    ("Cerrar transmisión", "Close stream"),
     ("No se pudo conectar a la transmisión.", "Couldn't connect to the stream."),
     ("Detenida", "Stopped"),
+    // The stage's pill over the bar.
+    ("Ocultar participantes", "Hide participants"),
+    ("Mostrar participantes", "Show participants"),
     ("{note} · simulada", "{note} · simulated"),
     ("Pantalla completa", "Full screen"),
     ("Ventana aparte", "Separate window"),

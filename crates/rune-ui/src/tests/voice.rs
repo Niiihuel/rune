@@ -1820,6 +1820,38 @@ fn a_tile_under_the_pointer_plays_the_frame_over_their_face() {
 }
 
 #[test]
+fn the_tiles_under_a_stream_focused_hide_with_the_pill_and_show_again() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    let other = host.vz_other(room);
+    let mut state = host
+        .store
+        .voice_in(room)
+        .into_iter()
+        .find(|state| state.user == other)
+        .cloned()
+        .unwrap();
+    state.streaming = true;
+    host.event(Event::VoiceChanged(state));
+    host.click(&ids::watch(other.0));
+    // Watched alone, it takes the stage. The pointer on it keeps the bar,
+    // and the pill over the bar shows the tiles.
+    let stream = host.vz_rect(&ids::stream_tile(other.0));
+    host.send(UiEvent::PointerMove(limn::Point::new(
+        stream.x + stream.width / 2.0,
+        stream.y + stream.height / 2.0,
+    )));
+    host.frame();
+    let me = host.vz_me();
+    assert!(host.vz_shows(ids::TILES) && host.vz_shows(&ids::tile(me.0)));
+    host.click(ids::TILES);
+    assert!(!host.vz_shows(&ids::tile(me.0)) && host.vz_shows(ids::TILES));
+    host.click(ids::TILES);
+    assert!(host.vz_shows(&ids::tile(me.0)));
+}
+
+#[test]
 fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its_owner_streams() {
     use rune_model::StreamPhase;
     let mut host = Host::new();
@@ -1847,7 +1879,7 @@ fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its
             })
             .collect()
     };
-    // Failed: the picture says why, with «Reintentar» (watched again) and «Cerrar».
+    // Failed: the picture says why, with «Reintentar» (watched again) and «Cerrar transmisión».
     host.event(Event::StreamPhase {
         channel: room,
         owner: other,
@@ -1857,7 +1889,8 @@ fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its
     assert!(host.vz_usable(&retry) && host.vz_usable(&ids::stop_watching(other.0)));
     let shown = texts(&mut host);
     assert!(
-        shown.iter().any(|text| text == "Reintentar") && shown.iter().any(|text| text == "Cerrar"),
+        shown.iter().any(|text| text == "Reintentar")
+            && shown.iter().any(|text| text == "Cerrar transmisión"),
         "{shown:?}"
     );
     assert!(shown
@@ -1870,7 +1903,8 @@ fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its
         host.sent[from..].last(),
         Some(Command::WatchStream { channel, owner }) if *channel == room && *owner == other
     ));
-    // Stopped by its owner while they are in the call: waiting, not ended.
+    // Stopped by its owner while they are in the call: it says it has ended,
+    // with the way out, and never «Terminó» (no badge over it).
     host.event(Event::StreamPhase {
         channel: room,
         owner: other,
@@ -1878,7 +1912,11 @@ fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its
     });
     let shown = texts(&mut host);
     assert!(
-        shown.iter().any(|text| text.starts_with("Detenida")),
+        shown
+            .iter()
+            .any(|text| text == "Esta transmisión ha finalizado.")
+            && shown.iter().any(|text| text == "Cerrar transmisión")
+            && !shown.iter().any(|text| text.starts_with("Terminó")),
         "{shown:?}"
     );
     // Ended while the owner still streams: never «Terminó».
@@ -1889,7 +1927,9 @@ fn a_stream_that_failed_is_watched_again_by_its_button_and_never_ended_while_its
     });
     let shown = texts(&mut host);
     assert!(
-        shown.iter().any(|text| text.starts_with("Sin conexión"))
+        shown
+            .iter()
+            .any(|text| text.starts_with("No se pudo conectar"))
             && !shown.iter().any(|text| text.starts_with("Terminó")),
         "{shown:?}"
     );

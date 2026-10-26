@@ -33,6 +33,8 @@ pub struct Voice {
     pub details: bool,
     /// «Más opciones» of the stage's bar is open.
     pub more: bool,
+    /// The tiles under a stream focused are hidden; kept for the session.
+    pub tiles_hidden: bool,
     /// A person's menu.
     pub menu: Option<Menu>,
     /// A person's card: who, in which channel, and whether from their tile
@@ -510,6 +512,10 @@ pub(crate) fn update(
         }
         ids::VOICE_SETTINGS => settings::open_settings(ui, store, SettingsPage::Voice),
         ids::CHAT => toggle_chat(ui, store),
+        parts::ids::TILES => {
+            ui.voice.tiles_hidden = !ui.voice.tiles_hidden;
+            Vec::new()
+        }
         rune_components::private_call::ids::EXPAND => {
             crate::private_calls::toggle_expanded(ui, store)
         }
@@ -941,6 +947,7 @@ pub(crate) fn stage_of(
                 None => Ok(()),
             },
             watching: video::streams(ui, store, channel, now),
+            tiles_hidden: ui.voice.tiles_hidden,
             private,
             quick: crate::quick_voice::view(ui, store, look, true),
             camera_panel: crate::quick_voice::camera_view(ui, store, look),

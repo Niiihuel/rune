@@ -71,6 +71,8 @@ pub mod ids {
     pub const FULLSCREEN_EXIT: &str = "vz:fullscreen-exit";
     /// The stage's header: the channel's chat.
     pub const CHAT: &str = "vz:chat";
+    /// The pill over the bar that hides the tiles under a stream focused.
+    pub const TILES: &str = "call:tiles:toggle";
     /// A person's menu, and their card.
     pub const MENU_DISMISS: &str = "vz:menu:dismiss";
     pub const CARD_DISMISS: &str = "vz:card:dismiss";
@@ -359,6 +361,9 @@ pub struct StreamTile {
     /// It fills the window, full screen: its way back in place of full
     /// screen.
     pub fullscreen: bool,
+    /// It is over for now (stopped, ended or failed): the stage says so with
+    /// a picture at rest in place of the stream, and no note.
+    pub over: bool,
     /// The pointer rested on it a while: what is drawn over it fades out,
     /// the bar under it too, and the pointer hides over it, as the official
     /// client's (REA: 3 s). Only while it takes the stage or the window.
@@ -467,19 +472,11 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                     .size(Some(width as f32 * scale), Some(height as f32 * scale)),
             )
         }
-        // A stream that failed says why, and offers to be watched again or closed.
-        None => match (&view.stream, view.actions.first()) {
-            (Some(_), Some((retry, label))) => centered(
-                Element::column(vec![
-                    line(&view.waiting, 14.0, look.muted),
-                    Element::row(vec![
-                        stream_text_button(retry, t(label), look),
-                        stream_text_button(&view.stop.0, t(view.stop.1), look),
-                    ])
-                    .gap(8.0),
-                ])
-                .gap(12.0),
-            ),
+        // A stream over says so, and offers to be watched again or closed.
+        None => match &view.stream {
+            Some(stream) if stream.over => {
+                over_picture(view, size.height >= OVER_PICTURE_HEIGHT && !compact, look)
+            }
             _ => centered(line(&view.waiting, 14.0, look.muted)),
         },
     };
@@ -562,6 +559,36 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
     .accessibility_label(view.title.clone())
 }
 
+/// RUNE's own picture of a stream at rest: a screen on its stand with the
+/// mark dimmed on it (`assets/illustrations`), in two single-colour parts.
+const ENDED_SCREEN: &str = include_str!("../../../assets/illustrations/stream-ended-screen.svg");
+const ENDED_MARK: &str = include_str!("../../../assets/illustrations/stream-ended-mark.svg");
+/// The picture needs this much height of a tile, else it stays out.
+// shortcut: the grid's tiles are too short for the picture; only the stage shows it, upgrade if tiles grow
+const OVER_PICTURE_HEIGHT: f32 = 220.0;
+
+/// What a stream over shows in its place: its picture at rest when `picture`,
+/// what happened and the ways out, all centred.
+fn over_picture(view: &Preview, picture: bool, look: &Look) -> Element {
+    let mut column = Vec::new();
+    if picture {
+        let size = Some(200.0);
+        column.push(Element::stack(vec![
+            icon(Icon::Custom(ENDED_SCREEN), look.muted).size(size, Some(120.0)),
+            icon(Icon::Custom(ENDED_MARK), Color::rgba(214, 45, 45, 115)).size(size, Some(120.0)),
+        ]));
+    }
+    column.push(line(&view.waiting, 15.0, look.text));
+    let mut buttons: Vec<Element> = view
+        .actions
+        .iter()
+        .map(|(id, label)| stream_text_button(id, t(label), look))
+        .collect();
+    buttons.push(stream_text_button(&view.stop.0, t(view.stop.1), look));
+    column.push(Element::row(buttons).gap(8.0));
+    centered(Element::column(column).gap(12.0))
+}
+
 /// A text button on a stream that failed, as the call panel's «Reintentar».
 fn stream_text_button(id: &str, label: &str, look: &Look) -> Element {
     Button::new(id, label, look.sidebar_palette())
@@ -582,6 +609,14 @@ fn stream_text_button(id: &str, label: &str, look: &Look) -> Element {
 /// the grid the controls show under the pointer; while it takes the stage
 /// or the window all of it shows until the pointer rests, then fades.
 fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look) -> Element {
+    // Over: no note and no controls, only its name.
+    if stream.over {
+        return Element::column(vec![
+            Element::spacer().flex(1.0),
+            Element::row(vec![title, Element::spacer().flex(1.0)]),
+        ])
+        .padding(12.5);
+    }
     let big = view.focused || stream.fullscreen;
     if big && stream.idle {
         return Element::spacer();
@@ -1756,6 +1791,9 @@ pub struct Stage {
     pub watch: Result<(), String>,
     /// The streams watched: they take the stage, side by side.
     pub watching: Vec<Preview>,
+    /// The tiles under a stream focused are hidden: the stage takes their
+    /// room, and the pill over the bar shows them again.
+    pub tiles_hidden: bool,
     // Private calls.
     /// A direct or group conversation's call: what it adds. `None` for a
     /// voice channel.
@@ -1959,7 +1997,10 @@ fn call(view: &Stage, look: &Look) -> Element {
     };
     // Streams (transmisiones): a stream focused takes the stage, the rest
     // in a strip under it, as in the official client and Serein.
-    let tiles = match previews.iter().position(|shown| shown.focused) {
+    let focus = previews.iter().position(|shown| shown.focused);
+    // The pill over the bar offers to hide the tiles, when there are some.
+    let hideable = focus.is_some() && previews.len() + people.len() + ringing.len() > 1;
+    let tiles = match focus {
         Some(index) => {
             let count = previews.len() - 1 + people.len() + ringing.len();
             let strip = if count > 0 && area.height >= MIN_STRIP + TILE_GAP + MIN_FOCUS {
@@ -1967,6 +2008,7 @@ fn call(view: &Stage, look: &Look) -> Element {
             } else {
                 0.0
             };
+            let strip = if view.tiles_hidden { 0.0 } else { strip };
             // 16:9 as the official client's tiles, so what is over the
             // stream sits on its picture rather than on black bars.
             let room = Size::new(area.width, area.height - strip - TILE_GAP.min(strip));
@@ -2053,19 +2095,59 @@ fn call(view: &Stage, look: &Look) -> Element {
         .iter()
         .filter(|shown| shown.focused)
         .find_map(|shown| shown.stream.as_ref());
-    let bar = match focused {
-        Some(stream) if stream.idle => Element::spacer(),
-        Some(_) => bar(view, look).animate_presence(ids::BAR),
-        None => bar(view, look),
+    let (bar, pill) = match focused {
+        Some(stream) if stream.idle => (Element::spacer(), None),
+        Some(_) => (
+            bar(view, look).animate_presence(ids::BAR),
+            hideable.then(|| tiles_pill(view.tiles_hidden)),
+        ),
+        None => (bar(view, look), None),
     };
-    Element::stack(vec![
-        tiles,
-        Element::column(vec![
-            Element::spacer().flex(1.0),
-            bar.size(None, Some(BAR_HEIGHT)),
-            gap(0.0, BAR_BOTTOM),
-        ]),
-    ])
+    let mut over = vec![Element::spacer().flex(1.0)];
+    if let Some(pill) = pill {
+        over.push(
+            Element::row(vec![
+                Element::spacer().flex(1.0),
+                pill,
+                Element::spacer().flex(1.0),
+            ])
+            .size(None, Some(TILES_PILL_HEIGHT)),
+        );
+        over.push(gap(0.0, BAR_GAP));
+    }
+    over.push(bar.size(None, Some(BAR_HEIGHT)));
+    over.push(gap(0.0, BAR_BOTTOM));
+    Element::stack(vec![tiles, Element::column(over)])
+}
+
+const TILES_PILL_HEIGHT: f32 = 24.0;
+
+/// The pill over the bar, as the official client's: a chevron and the people,
+/// over a stream focused. Up shows the tiles, down hides them.
+fn tiles_pill(hidden: bool) -> Element {
+    let (chevron, hint) = if hidden {
+        (Icon::ChevronUp, t("Mostrar participantes"))
+    } else {
+        (Icon::ChevronDown, t("Ocultar participantes"))
+    };
+    Element::clickable(
+        ids::TILES,
+        Element::panel(Element::row(vec![
+            gap(8.0, 0.0),
+            icon(chevron, OVER_INK)
+                .size(Some(12.0), Some(12.0))
+                .centered_y(),
+            gap(6.0, 0.0),
+            icon(Icon::Users, OVER_INK)
+                .size(Some(16.0), Some(16.0))
+                .centered_y(),
+            gap(8.0, 0.0),
+        ]))
+        .size(Some(36.0), Some(TILES_PILL_HEIGHT))
+        .radius(TILES_PILL_HEIGHT / 2.0)
+        .background(OVER),
+    )
+    .accessibility_label(hint)
 }
 
 /// The bar under the tiles: the microphone, the sound and the camera; the
@@ -2817,6 +2899,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -2904,6 +2987,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -2964,6 +3048,7 @@ mod tests {
             },
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             previews: Vec::new(),
             private: None,
             quick: None,
@@ -3028,6 +3113,7 @@ mod tests {
             },
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             previews: Vec::new(),
             private: None,
             quick: None,
@@ -3080,6 +3166,7 @@ mod tests {
             },
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3188,6 +3275,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3253,6 +3341,7 @@ mod tests {
             previews: Vec::new(),
             watch,
             watching,
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3366,6 +3455,7 @@ mod tests {
                 windowed: false,
                 menu: None,
                 fullscreen: false,
+                over: false,
                 idle: false,
             }),
             focused,
@@ -3392,6 +3482,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching,
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3520,6 +3611,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3621,6 +3713,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -3667,6 +3760,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching: Vec::new(),
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,
@@ -4155,6 +4249,108 @@ mod tests {
     // Streams (transmisiones): icons over a stream, hidden once the pointer
     // rests, as the official client's.
     #[test]
+    fn an_ended_stream_says_so_and_the_tiles_hide_under_a_stream_focused() {
+        let over = |user: u64, focused| Preview {
+            surface: ids::stream_surface(user),
+            title: format!("Pantalla de Persona {user}"),
+            frame: None,
+            waiting: "Esta transmisión ha finalizado.".into(),
+            stop: (ids::stop_watching(user), "Cerrar transmisión"),
+            note: "Terminó".into(),
+            actions: Vec::new(),
+            stream: Some(StreamTile {
+                owner: user,
+                sound: user + 1_000,
+                silenced: false,
+                windowed: false,
+                menu: None,
+                fullscreen: false,
+                over: true,
+                idle: false,
+            }),
+            focused,
+        };
+        let live = |user: u64, focused| Preview {
+            frame: Some((1280, 720)),
+            waiting: "Esperando video…".into(),
+            stream: Some(StreamTile {
+                over: false,
+                ..over(user, focused).stream.unwrap()
+            }),
+            ..over(user, focused)
+        };
+        let view = |watching, tiles_hidden| Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![
+                person(1, false, false, false),
+                person(2, false, false, false),
+            ],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size: Size::new(980.0, 762.0),
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching,
+            tiles_hidden,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        // Over: no note, no badge, and the way out is «Cerrar transmisión».
+        let (_, ended) = frame(stage(view(vec![over(2, false)], false), &look), size);
+        let said = texts(&ended);
+        assert!(said.contains(&"Esta transmisión ha finalizado.".to_owned()));
+        assert!(!said.contains(&"Terminó".to_owned()));
+        assert!(controls(&ended).contains(&ids::stop_watching(2)));
+        assert!(said.contains(&"Cerrar transmisión".to_owned()));
+        // Focused, the tiles of the others sit under it, and the pill hides
+        // them: the stage takes their room.
+        let stage_height = |laid: &limn::Frame| {
+            laid.commands
+                .iter()
+                .find_map(|command| match command {
+                    limn::DrawCommand::Surface { id, rect, .. }
+                        if *id == ids::stream_surface(2) =>
+                    {
+                        Some(rect.height)
+                    }
+                    _ => None,
+                })
+                .unwrap()
+        };
+        let (_, shown) = frame(stage(view(vec![live(2, true)], false), &look), size);
+        assert!(controls(&shown).contains(&ids::tile(1)));
+        assert!(controls(&shown).contains(&ids::TILES.to_owned()));
+        let (_, hidden) = frame(stage(view(vec![live(2, true)], true), &look), size);
+        assert!(!controls(&hidden).contains(&ids::tile(1)));
+        assert!(controls(&hidden).contains(&ids::TILES.to_owned()));
+        assert!(stage_height(&hidden) > stage_height(&shown));
+        // Nothing to hide with a single stream: no pill.
+        let (_, alone) = frame(
+            stage(
+                Stage {
+                    people: Vec::new(),
+                    ..view(vec![live(2, true)], false)
+                },
+                &look,
+            ),
+            size,
+        );
+        assert!(!controls(&alone).contains(&ids::TILES.to_owned()));
+    }
+
+    #[test]
     fn over_a_stream_focused_its_controls_are_named_icons_that_rest_hides() {
         let stream = |idle: bool, fullscreen: bool| Preview {
             surface: ids::stream_surface(2),
@@ -4171,6 +4367,7 @@ mod tests {
                 windowed: false,
                 menu: None,
                 fullscreen,
+                over: false,
                 idle,
             }),
             focused: !fullscreen,
@@ -4252,6 +4449,7 @@ mod tests {
                 windowed: false,
                 menu: None,
                 fullscreen: false,
+                over: false,
                 idle,
             }),
             focused,
@@ -4276,6 +4474,7 @@ mod tests {
             previews: Vec::new(),
             watch: Ok(()),
             watching,
+            tiles_hidden: false,
             private: None,
             quick: None,
             camera_panel: None,

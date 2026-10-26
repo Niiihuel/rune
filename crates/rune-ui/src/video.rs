@@ -696,10 +696,8 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
             t("Reconectando…"),
             t("Reconectando con la transmisión…").into(),
         ),
-        StreamPhase::Waiting => (
-            t("Detenida"),
-            t("La transmisión se detuvo. Se reanudará cuando vuelva a transmitir.").into(),
-        ),
+        // Stopped by its owner: it is over for now, and the stage says so.
+        StreamPhase::Waiting => (t("Detenida"), t("Esta transmisión ha finalizado.").into()),
         StreamPhase::Failed(reason) => (
             t("Sin conexión"),
             format!(
@@ -715,12 +713,7 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
                 .clone()
                 .unwrap_or_else(|| t("No se pudo conectar a la transmisión.").into()),
         ),
-        StreamPhase::Ended(reason) => (
-            t("Terminó"),
-            reason
-                .clone()
-                .unwrap_or_else(|| t("La transmisión terminó").into()),
-        ),
+        StreamPhase::Ended(_) => (t("Terminó"), t("Esta transmisión ha finalizado.").into()),
     };
     let note = if crate::voice::simulated(store) {
         tr!("{note} · simulada", note)
@@ -745,6 +738,7 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
             .then(|| crate::streams::menu_entries(ui, store, owner)),
         fullscreen: ui.video.focus == Some(owner),
         idle: idle(ui, store, now),
+        over: ended,
     };
     let shown = ui
         .video
@@ -762,8 +756,8 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         waiting,
         stop: (
             ids::stop_watching(watching.owner.0),
-            if failed {
-                t("Cerrar")
+            if ended {
+                t("Cerrar transmisión")
             } else {
                 t("Dejar de ver")
             },
