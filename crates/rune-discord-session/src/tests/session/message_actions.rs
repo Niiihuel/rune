@@ -294,9 +294,12 @@ async fn voice_moderation_patches_the_member_within_the_permission() {
             json!({"id":"60","name":"Synthetic","owner_id":"99",
                 "roles":[{"id":"60","name":"@everyone",
                     "permissions":(VIEW | CONNECT | MUTE | MOVE).to_string()},
-                    {"id":"63","name":"Moderación","position":1,"permissions":"0"}],
+                    {"id":"63","name":"Moderación","position":1,"permissions":"0"},
+                    {"id":"64","name":"Admin","position":2,"permissions":"0"}],
+                // Peer's role is above the account's: voice moderation asks
+                // only for the permission, as Discord's does.
                 "members":[{"user":{"id":"42","username":"Local"},"roles":["63"]},
-                    {"user":{"id":"43","username":"Peer"},"roles":[]}],
+                    {"user":{"id":"43","username":"Peer"},"roles":["64"]}],
                 "channels":[{"id":"61","type":2,"name":"Voz","permission_overwrites":[]},
                     {"id":"62","type":2,"name":"Otra","permission_overwrites":[]}],
                 "voice_states":[{"user_id":"43","channel_id":"61"}]}),

@@ -570,16 +570,16 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             standing.member_below(*user)?;
             valid_reason(reason.as_deref())
         }
-        // Voice moderation (P4): someone in voice in this server, below the
-        // account, as the rest of the administration; a move goes to
-        // another voice channel of it they may join.
+        // Voice moderation (P4): someone in voice in this server, whatever
+        // their roles (Discord asks only for the permission, as its own
+        // menu does); a move goes to another voice channel of it they may
+        // join.
         Command::ModerateVoice { user, change, .. } => {
             standing.needs(match change {
                 VoiceModeration::Mute(_) => Permissions::MUTE_MEMBERS,
                 VoiceModeration::Deafen(_) => Permissions::DEAFEN_MEMBERS,
                 VoiceModeration::Move(_) | VoiceModeration::Disconnect => Permissions::MOVE_MEMBERS,
             })?;
-            standing.member_below(*user)?;
             let here = snapshot
                 .voice
                 .iter()
