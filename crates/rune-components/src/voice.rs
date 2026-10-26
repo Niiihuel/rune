@@ -122,8 +122,12 @@ pub mod ids {
     }
 
     // Rows in the column (voz-filas-y-arrastre).
-    /// The card of someone live beside their row, shown on hover.
-    pub const LIVE_DISMISS: &str = "vz:live:dismiss";
+    /// The card of someone live beside their row, shown on hover. Each its
+    /// own: limn holds a hover card open while the pointer is on the surface
+    /// named by it, so a shared one opened every card at once.
+    pub fn live_dismiss(user: u64) -> String {
+        format!("vz:live:dismiss:{user}")
+    }
 
     /// «Ver transmisión» on the card of someone live beside their row.
     pub fn live_watch(user: u64) -> String {
@@ -1495,7 +1499,7 @@ pub fn participant(
         (None, Some(live)) => Element::popover(
             row,
             live_card(live, look),
-            ids::LIVE_DISMISS,
+            ids::live_dismiss(person.user),
             PopoverPlacement::RightStart,
         )
         .popover_on_hover(),
@@ -4140,7 +4144,7 @@ mod tests {
         let surface = shown
             .regions
             .iter()
-            .find(|region| region.id == format!("popover_surface:{}", ids::LIVE_DISMISS))
+            .find(|region| region.id == format!("popover_surface:{}", ids::live_dismiss(2)))
             .unwrap()
             .rect;
         assert_eq!(surface.x, row.x + row.width);

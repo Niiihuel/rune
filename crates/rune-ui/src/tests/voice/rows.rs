@@ -172,6 +172,18 @@ fn one_live_card_at_a_time_and_it_stays_while_the_pointer_is_on_it() {
     )));
     host.frame();
     assert!(host.vz_shows(&ids::live_watch(a.0)));
+    // On A's card, above its button (the card itself, not a control): A's
+    // alone, not B's too (both cards once shared the surface they hold on).
+    host.send(UiEvent::PointerMove(Point::new(
+        rect.x + rect.width / 2.0,
+        rect.y - 40.0,
+    )));
+    host.frame();
+    assert!(host.vz_shows(&ids::live_watch(a.0)));
+    assert!(
+        !host.vz_shows(&ids::live_watch(b.0)),
+        "B's card opened over A's"
+    );
     // Watched from A's card, then the pointer goes to B's row: A's closes.
     host.click(&ids::live_watch(a.0));
     host.rows_point(&ids::row(b.0));
