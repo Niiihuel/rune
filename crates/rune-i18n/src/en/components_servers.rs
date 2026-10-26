@@ -259,6 +259,15 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Dejar de silenciar servidor", "Unmute server"),
     ("Notificaciones push para móvil", "Mobile push notifications"),
     ("Ajustes de notificaciones del servidor", "Server notification settings"),
+    ("Ajustes de privacidad", "Privacy settings"),
+    (
+        "Permite que los miembros de este servidor te escriban directamente.",
+        "Lets this server's members message you directly.",
+    ),
+    (
+        "Los mensajes de miembros de este servidor que no son tus amigos llegan a Solicitudes.",
+        "Messages from this server's members who aren't your friends go to Requests.",
+    ),
     ("Enlace de invitación copiado", "Invite link copied"),
     // limn adoption (2026-10-18).
     ("Color del servidor", "Server color"),

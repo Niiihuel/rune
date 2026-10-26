@@ -427,6 +427,7 @@ fn every_dialog_closes_with_escape_and_keeps_tab_inside() {
     host.frame();
     for opener in [
         format!("sm:notify:{server}"),
+        format!("sm:privacy:{server}"),
         format!("sm:profile:{server}"),
         // The owner cannot leave its own server: ask of another one.
         format!("sm:leave:{}", host.store.servers()[0].id),

@@ -104,10 +104,6 @@ const SECTIONS: &[Section] = &[
                 "friend-requests",
                 es("quién puede mandarte solicitudes de amistad amigos de amigos"),
             ),
-            (
-                "server-privacy",
-                es("por servidor mensajes directos solicitudes privacidad de cada servidor"),
-            ),
         ],
     },
     Section {
@@ -756,7 +752,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         ])
     };
     let open = ui.settings_state.select;
-    if let Some(shown) = crate::account::privacy_setting(store, key, look, width, open) {
+    if let Some(shown) = crate::account::privacy_setting(store, key, look, open) {
         return Some(shown);
     }
     if let Some(shown) = desktop::setting(ctx, key) {

@@ -43,6 +43,12 @@ pub mod ids {
     pub const NOTIFY_EVERYONE: &str = "sm:notify:everyone";
     pub const NOTIFY_ROLES: &str = "sm:notify:roles";
 
+    pub const PRIVACY_CLOSE: &str = "sm:privacy:close";
+    /// Followed by the server's number: whether its members may write.
+    pub const PRIVACY_DMS: &str = "sm:privacy:dms-in:";
+    /// Followed by the server's number: whether its messages are requests.
+    pub const PRIVACY_REQUESTS: &str = "sm:privacy:requests-in:";
+
     pub const NICK: &str = "sm:nick";
     pub const NICK_SAVE: &str = "sm:nick:save";
     pub const NICK_CLOSE: &str = "sm:nick:close";
@@ -496,6 +502,69 @@ pub fn notify_dialog(root: Element, form: &NotifyForm, width: f32, look: &Look) 
             .render(),
     )
     .initial_focus(ids::NOTIFY_MUTE)
+    .render()
+}
+
+/// A server's privacy settings, as their dialog shows them.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PrivacyForm {
+    pub server: String,
+    /// The server's number, in its switches' ids.
+    pub id: u64,
+    pub dms: bool,
+    pub requests: bool,
+    /// Why the switches cannot change, if they cannot.
+    pub denied: Option<String>,
+}
+
+/// The privacy settings of a server, over `root`.
+pub fn privacy_dialog(root: Element, form: &PrivacyForm, width: f32, look: &Look) -> Element {
+    let palette = look.menu_palette();
+    let enabled = form.denied.is_none();
+    let row = |id: String, title: &str, note: &str, on: bool| {
+        ActionRow::new(title, palette)
+            .subtitle(note)
+            .trailing(
+                limn::Switch::new(id, on, palette)
+                    .accessibility_label(title)
+                    .enabled(enabled)
+                    .render(),
+            )
+            .render()
+    };
+    let mut parts = vec![
+        row(
+            format!("{}{}", ids::PRIVACY_DMS, form.id),
+            t("Mensajes directos"),
+            t("Permite que los miembros de este servidor te escriban directamente."),
+            form.dms,
+        ),
+        separator(look),
+        row(
+            format!("{}{}", ids::PRIVACY_REQUESTS, form.id),
+            t("Solicitudes de mensajes"),
+            t("Los mensajes de miembros de este servidor que no son tus amigos llegan a Solicitudes."),
+            form.requests,
+        ),
+    ];
+    if let Some(reason) = &form.denied {
+        parts.push(line(reason, 12.0, look.muted));
+    }
+    Modal::new(
+        root,
+        true,
+        t("Ajustes de privacidad"),
+        &form.server,
+        ids::PRIVACY_CLOSE,
+        palette,
+    )
+    .width(width)
+    .body(Element::column(parts).gap(10.0))
+    .footer(
+        Button::new(ids::PRIVACY_CLOSE, t("Listo"), look.accent_palette())
+            .size(ControlSize::Spacious)
+            .render(),
+    )
     .render()
 }
 

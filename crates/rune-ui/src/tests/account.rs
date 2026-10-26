@@ -216,12 +216,45 @@ fn messaging_privacy_is_shown_and_changed_from_the_settings() {
     );
     host.answer_account(from);
     assert!(!host.store.messaging_privacy().unwrap().server_dms);
-    // One server's members are let write again.
+    // The servers are not listed here: each one's privacy is in its menu.
+    host.frame();
+    assert!(!host
+        .painted()
+        .iter()
+        .any(|text| text == "Privacidad del servidor"));
+}
+
+#[test]
+fn a_servers_privacy_is_changed_from_its_menu() {
+    let mut host = Host::new();
+    host.ac_load();
     let club = host.ac_server("Club de Fotografía");
+    host.ac_choose(&format!("sm:privacy:{club}"));
+    host.frame();
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text == "Ajustes de privacidad"));
+    // One server's members are let write again.
     let from = host.sent.len();
-    host.ac_choose(&format!("us:privacy:dms-in:{club}"));
+    host.ac_choose(&format!("sm:privacy:dms-in:{club}"));
     host.answer_account(from);
     assert!(host.store.messaging_privacy().unwrap().dms_in(club));
+    // Its requests switch the other way.
+    let before = host.store.messaging_privacy().unwrap().requests_in(club);
+    let from = host.sent.len();
+    host.ac_choose(&format!("sm:privacy:requests-in:{club}"));
+    host.answer_account(from);
+    assert_eq!(
+        host.store.messaging_privacy().unwrap().requests_in(club),
+        !before
+    );
+    host.ac_choose(menu_ids::PRIVACY_CLOSE);
+    host.frame();
+    assert!(!host
+        .painted()
+        .iter()
+        .any(|text| text == "Ajustes de privacidad"));
 }
 
 #[test]

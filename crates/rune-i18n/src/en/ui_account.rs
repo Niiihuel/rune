@@ -186,8 +186,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "Allow direct messages from server members",
     ),
     (
-        "Para los servidores a los que entres desde ahora; cada uno se cambia abajo.",
-        "For the servers you join from now on; each one is changed below.",
+        "Para los servidores a los que entres desde ahora.",
+        "For the servers you join from now on.",
     ),
     (
         "Solicitudes de mensajes",
@@ -196,6 +196,10 @@ pub(super) const ENTRIES: super::Entries = &[
     (
         "Los de miembros de servidores llegan a «Solicitudes de mensajes» en vez de a tus mensajes directos.",
         "Those from server members go to “Message requests” instead of your direct messages.",
+    ),
+    (
+        "Para cambiarlo en un servidor, usa «Ajustes de privacidad» en su menú.",
+        "To change it for a server, use “Privacy settings” in its menu.",
     ),
     ("Filtrar todo el spam", "Filter all spam"),
     ("También los de tus amigos.", "Your friends' too."),
@@ -246,20 +250,6 @@ pub(super) const ENTRIES: super::Entries = &[
         "People who are in a server with you.",
     ),
     ("Mensajes directos", "Direct messages"),
-    ("Solicitudes", "Requests"),
-    (
-        "Mensajes directos de miembros de {server}",
-        "Direct messages from members of {server}",
-    ),
-    (
-        "Filtrar solicitudes de miembros de {server}",
-        "Filter requests from members of {server}",
-    ),
-    ("Privacidad del servidor", "Server privacy"),
-    (
-        "Si sus miembros pueden escribirte directamente, y si sus mensajes se filtran como solicitudes.",
-        "Whether its members can message you directly, and whether their messages are filtered as requests.",
-    ),
     ("No se pudo cambiar la privacidad", "Couldn't change the privacy"),
     ("No se pudo guardar la nota", "Couldn't save the note"),
     ("La nota es muy larga", "The note is too long"),

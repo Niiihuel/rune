@@ -67,6 +67,8 @@ pub enum Dialog {
     /// A new channel or category.
     Channel(NewChannel),
     Notifications(ServerId),
+    /// Who may write to the server's members, and whether it is filtered.
+    Privacy(ServerId),
     /// The account's name in the server, as written in the field.
     Nick {
         server: ServerId,
@@ -164,6 +166,17 @@ pub(crate) fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) ->
     if let Some(server) = number("sm:notify:") {
         ui.server_menu.dialog = Some(Dialog::Notifications(ServerId(server)));
         return Vec::new();
+    }
+    if let Some(server) = number("sm:privacy:") {
+        ui.server_menu.dialog = Some(Dialog::Privacy(ServerId(server)));
+        return Vec::new();
+    }
+    // Its switches are the messaging privacy's own actions, `sm:privacy:{flag}:{server}`.
+    if let Some(rest) = id
+        .strip_prefix("sm:privacy:")
+        .filter(|rest| rest.contains(':'))
+    {
+        return crate::account::privacy_clicked(ui, store, rest, now);
     }
     // The menu's entries of the rail and the header: a mute, a level, a check.
     if let Some((server, key)) = id.strip_prefix("sm:mute:").and_then(split_server) {
@@ -292,6 +305,7 @@ pub(crate) fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) ->
         }
         ids::CHANNEL_CLOSE
         | ids::NOTIFY_CLOSE
+        | ids::PRIVACY_CLOSE
         | ids::NICK_CLOSE
         | ids::LEAVE_CANCEL
         | ids::SERVER_CLOSE => {
@@ -938,6 +952,20 @@ pub(crate) fn server_groups(
             .into(),
         );
     }
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.capabilities.messaging_privacy)
+    {
+        notifications.push(
+            act(
+                format!("sm:privacy:{server}"),
+                t("Ajustes de privacidad"),
+                None,
+            )
+            .into(),
+        );
+    }
     groups.push(notifications);
 
     let manages = [
@@ -1094,6 +1122,20 @@ pub(crate) fn dialogs(
                 suppress_roles: synced.then(|| kept.is_some_and(|kept| kept.suppress_roles)),
             };
             parts::notify_dialog(root, &form, width, look)
+        }
+        Some(Dialog::Privacy(server)) => {
+            let Some(name) = name_of(*server) else {
+                return root;
+            };
+            let (dms, requests, denied) = crate::account::server_privacy(store, *server);
+            let form = parts::PrivacyForm {
+                server: name,
+                id: server.0,
+                dms,
+                requests,
+                denied,
+            };
+            parts::privacy_dialog(root, &form, width, look)
         }
         Some(Dialog::Nick { server, nick }) => match nick_form(store, *server, nick, look) {
             Some(form) => parts::nick_dialog(root, &form, width, look),

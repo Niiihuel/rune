@@ -19,7 +19,7 @@ use rune_components::profile::NoteField;
 use rune_components::rail::{Placement, RailEntry, RailFolder, RailItem};
 use rune_components::user_settings as setting_parts;
 use rune_components::{line, Look};
-use rune_i18n::{t, tr};
+use rune_i18n::t;
 use rune_model::{
     account::{valid_folders, valid_note},
     ChannelId, ContentFilter, FriendSources, MessagingPrivacy, NotificationChange, PrivacyChange,
@@ -798,7 +798,6 @@ pub(crate) fn privacy_setting(
     store: &Store,
     key: &str,
     look: &Look,
-    width: f32,
     open: Option<&str>,
 ) -> Option<Element> {
     let permit = store.account_abilities().privacy;
@@ -829,15 +828,22 @@ pub(crate) fn privacy_setting(
         "server-dms" => toggle(
             "us:privacy:server-dms",
             t("Permitir mensajes directos de miembros del servidor"),
-            t("Para los servidores a los que entres desde ahora; cada uno se cambia abajo."),
+            t("Para los servidores a los que entres desde ahora."),
             privacy.server_dms,
         ),
-        "message-requests" => toggle(
-            "us:privacy:requests",
-            t("Solicitudes de mensajes"),
-            t("Los de miembros de servidores llegan a «Solicitudes de mensajes» en vez de a tus mensajes directos."),
-            privacy.request_filter,
-        ),
+        "message-requests" => Element::column(vec![
+            toggle(
+                "us:privacy:requests",
+                t("Solicitudes de mensajes"),
+                t("Los de miembros de servidores llegan a «Solicitudes de mensajes» en vez de a tus mensajes directos."),
+                privacy.request_filter,
+            ),
+            line(
+                t("Para cambiarlo en un servidor, usa «Ajustes de privacidad» en su menú."),
+                14.0,
+                look.muted,
+            ),
+        ]),
         "spam-filter" => {
             let selected = match privacy.spam {
                 SpamFilter::Everyone => "us:privacy:spam=everyone",
@@ -965,51 +971,26 @@ pub(crate) fn privacy_setting(
                 ),
             ])
         }
-        "server-privacy" => {
-            let palette = look.palette();
-            let mut rows = vec![Element::row(vec![
-                line(t("Servidor"), 12.0, look.muted).flex(1.0),
-                line(t("Mensajes directos"), 12.0, look.muted).size(Some(130.0), None),
-                line(t("Solicitudes"), 12.0, look.muted).size(Some(90.0), None),
-            ])
-            .gap(8.0)];
-            for server in store.servers() {
-                let switch = |id: String, on: bool, label: String| {
-                    limn::Switch::new(id, on, palette)
-                        .accessibility_label(label)
-                        .enabled(denied.is_none())
-                        .render()
-                };
-                rows.push(
-                    Element::row(vec![
-                        line(server.shown_name(), 15.0, look.text).flex(1.0).centered_y(),
-                        Element::row(vec![switch(
-                            format!("us:privacy:dms-in:{}", server.id),
-                            privacy.dms_in(server.id),
-                            tr!("Mensajes directos de miembros de {server}", server = server.shown_name()),
-                        )])
-                        .size(Some(130.0), None)
-                        .centered_y(),
-                        Element::row(vec![switch(
-                            format!("us:privacy:requests-in:{}", server.id),
-                            privacy.requests_in(server.id),
-                            tr!("Filtrar solicitudes de miembros de {server}", server = server.shown_name()),
-                        )])
-                        .size(Some(90.0), None)
-                        .centered_y(),
-                    ])
-                    .gap(8.0)
-                    .size(None, Some(36.0)),
-                );
-            }
-            stacked(
-                t("Privacidad del servidor"),
-                t("Si sus miembros pueden escribirte directamente, y si sus mensajes se filtran como solicitudes."),
-                Element::column(rows).gap(4.0).size(Some(width.min(520.0)), None),
-            )
-        }
         _ => return None,
     })
+}
+
+/// Whether members of `server` may write and whether their messages are
+/// requests, as the server's menu shows them, and why they cannot change.
+pub(crate) fn server_privacy(store: &Store, server: ServerId) -> (bool, bool, Option<String>) {
+    let denied = store
+        .account_abilities()
+        .privacy
+        .reason()
+        .map(str::to_owned)
+        .or_else(|| {
+            store
+                .messaging_privacy()
+                .is_none()
+                .then(|| t("Todavía no se leyó la privacidad de tu cuenta.").into())
+        });
+    let privacy = store.messaging_privacy().cloned().unwrap_or_default();
+    (privacy.dms_in(server), privacy.requests_in(server), denied)
 }
 
 /// A click on a privacy setting: `rest` follows `us:privacy:`.

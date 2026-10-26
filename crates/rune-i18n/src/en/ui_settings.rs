@@ -61,10 +61,6 @@ pub(super) const ENTRIES: super::Entries = &[
         "who can send you friend requests friends of friends",
     ),
     (
-        "por servidor mensajes directos solicitudes privacidad de cada servidor",
-        "per server direct messages dms requests privacy each server",
-    ),
-    (
         "borrar lo guardado en este equipo caché borradores instantánea eliminar datos",
         "delete what is saved on this computer cache drafts snapshot clear data",
     ),
