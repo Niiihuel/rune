@@ -34,7 +34,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "What is the server about? It shows on its profile.",
     ),
     (
-        "Contale a la gente de qué se trata este servidor.",
+        "Cuéntale a la gente de qué se trata este servidor.",
         "Tell people what this server is about.",
     ),
     ("Descripción del servidor", "Server description"),
@@ -44,19 +44,19 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // Roles.
     (
-        "Usá roles para agrupar a los miembros del servidor y darles permisos.",
+        "Usa roles para agrupar a los miembros del servidor y darles permisos.",
         "Use roles to group your server's members and give them permissions.",
     ),
-    ("Organizá a tus miembros", "Organize your members"),
+    ("Organiza a tus miembros", "Organize your members"),
     ("Crear rol", "Create role"),
     ("Buscar roles", "Search roles"),
     (
-        "Los miembros usan el color del rol más alto que tengan en esta lista. Arrastrá los roles para reordenarlos.",
+        "Los miembros usan el color del rol más alto que tengan en esta lista. Arrastra los roles para reordenarlos.",
         "Members use the color of the highest role they have on this list. Drag roles to reorder them.",
     ),
     ("Subir", "Move up"),
     (
-        "Ya está lo más arriba que podés ponerlo.",
+        "Ya está lo más arriba que puedes ponerlo.",
         "It's already as high as you can put it.",
     ),
     ("Bajar", "Move down"),
@@ -101,7 +101,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Buscar miembros del rol", "Search the role's members"),
     ("Añadir miembros", "Add members"),
     ("No hay miembros con este rol.", "No members have this role."),
-    ("Añadí miembros a este rol.", "Add members to this role."),
+    ("Añade miembros a este rol.", "Add members to this role."),
     ("nuevo rol", "new role"),
     // Members.
     ("Cambiar apodo", "Change nickname"),
@@ -192,12 +192,12 @@ pub(super) const ENTRIES: super::Entries = &[
     // Dialogs.
     ("Eliminar rol", "Delete role"),
     (
-        "¿Seguro que querés eliminar el rol «{name}»? No se puede deshacer.",
+        "¿Seguro que quieres eliminar el rol «{name}»? No se puede deshacer.",
         "Are you sure you want to delete the role “{name}”? This can't be undone.",
     ),
     ("Nadie más para agregar.", "Nobody else to add."),
     (
-        "Elegí a quiénes darles el rol «{name}».",
+        "Elige a quiénes darles el rol «{name}».",
         "Choose who gets the role “{name}”.",
     ),
     ("Buscar miembros para agregar", "Search members to add"),
@@ -250,19 +250,19 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Eliminar sticker", "Delete sticker"),
     ("el sticker «{name}»", "the sticker “{name}”"),
     (
-        "¿Seguro que querés eliminar {what}? Nadie del servidor va a poder usarlo. No se puede deshacer.",
+        "¿Seguro que quieres eliminar {what}? Nadie del servidor va a poder usarlo. No se puede deshacer.",
         "Are you sure you want to delete {what}? No one in the server will be able to use it. This can't be undone.",
     ),
-    ("Escribí el nombre del servidor", "Type the server's name"),
+    ("Escribe el nombre del servidor", "Type the server's name"),
     ("Nombre del servidor, para confirmar", "Server name, to confirm"),
     ("Eliminar «{name}»", "Delete “{name}”"),
     (
-        "¿Seguro que querés eliminar {name}? No se puede deshacer.",
+        "¿Seguro que quieres eliminar {name}? No se puede deshacer.",
         "Are you sure you want to delete {name}? This can't be undone.",
     ),
     // Why something cannot be done, and notices.
     (
-        "Este rol está a la altura del tuyo o por encima: no podés cambiarlo.",
+        "Este rol está a la altura del tuyo o por encima: no puedes cambiarlo.",
         "This role is as high as yours or higher: you can't change it.",
     ),
     (
@@ -270,7 +270,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "This role is as high as yours or higher.",
     ),
     (
-        "No lo tenés, así que no podés darlo.",
+        "No lo tienes, así que no puedes darlo.",
         "You don't have it, so you can't give it.",
     ),
     (
@@ -283,7 +283,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Tus permisos cambiaron", "Your permissions changed"),
     (
-        "Revisá los cambios antes de guardar.",
+        "Revisa los cambios antes de guardar.",
         "Review the changes before saving.",
     ),
     ("Tus permisos cambiaron.", "Your permissions changed."),
@@ -301,13 +301,13 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No se aisló a la persona", "The person wasn't timed out"),
     ("No se creó la invitación", "The invite wasn't created"),
     (
-        "No podés invitar a ningún canal de este servidor.",
+        "No puedes invitar a ningún canal de este servidor.",
         "You can't invite to any channel of this server.",
     ),
     ("No se agregó", "It wasn't added"),
     ("No se podó", "Nothing was pruned"),
     ("No se guardó el webhook", "The webhook wasn't saved"),
-    ("Elegí un canal de texto.", "Choose a text channel."),
+    ("Elige un canal de texto.", "Choose a text channel."),
     ("No se eliminó el webhook", "The webhook wasn't deleted"),
     ("No se quitó la integración", "The integration wasn't removed"),
     ("Enlace copiado", "Link copied"),

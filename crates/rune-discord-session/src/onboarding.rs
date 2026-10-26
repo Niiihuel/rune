@@ -73,7 +73,7 @@ fn server_of(command: &Command) -> Option<ServerId> {
 
 /// Answers that do not go as they are: nothing left, and the reason is
 /// RUNE's own, not something Discord said.
-pub(crate) const INCOMPLETE: &str = es("Las respuestas no están completas: revisalas.");
+pub(crate) const INCOMPLETE: &str = es("Las respuestas no están completas: revísalas.");
 
 /// Whether `command` may go to Discord, checked against what this session
 /// knows; Discord stays the last word.
@@ -119,7 +119,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             };
             if !permissions.contains(Permissions::MANAGE_SERVER | Permissions::MANAGE_ROLES) {
                 return Err(LoginError::new(es(
-                    "No tenés permiso para cambiar la incorporación.",
+                    "No tienes permiso para cambiar la incorporación.",
                 )));
             }
             if !server.options.community {
@@ -168,7 +168,7 @@ fn edit_known(
     };
     match onboarding.problem(writes) {
         Some(_) => Err(LoginError::new(es(
-            "La incorporación no cumple lo que Discord pide; revisala.",
+            "La incorporación no cumple lo que Discord pide; revísala.",
         ))),
         None => Ok(()),
     }
@@ -466,14 +466,14 @@ mod tests {
     fn club_form() -> Value {
         json!({
             "version": "2026-09-30T18:45:12.402000+00:00",
-            "description": "  Presentate antes de publicar.  ",
+            "description": "  Preséntate antes de publicar.  ",
             "form_fields": [
-                {"field_type": "PARAGRAPH", "label": "Contanos qué fotografiás",
+                {"field_type": "PARAGRAPH", "label": "Cuéntanos qué fotografías",
                     "placeholder": "Retratos, calle, astro…", "required": true,
                     "field_hint": "kept"},
                 {"field_type": "TERMS", "label": "Normas del club", "required": true,
-                    "values": ["Citá al autor de cada foto  ", "Nada de \u{7}marcas de agua ajenas"]},
-                {"field_type": "MULTIPLE_CHOICE", "label": "¿Hace cuánto sacás?",
+                    "values": ["Cita al autor de cada foto  ", "Nada de \u{7}marcas de agua ajenas"]},
+                {"field_type": "MULTIPLE_CHOICE", "label": "¿Hace cuánto sacas?",
                     "choices": ["Menos de un año", "Uno a cinco", "Más"], "required": false},
                 {"field_type": "SELFIE_CHECK", "label": "Verificación", "required": false},
             ],
@@ -485,7 +485,7 @@ mod tests {
         let rules = rules(&club_form()).unwrap().unwrap();
         assert_eq!(
             rules.description.as_deref(),
-            Some("Presentate antes de publicar.")
+            Some("Preséntate antes de publicar.")
         );
         let kinds: Vec<_> = rules
             .fields
@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(
             rules.fields[1].rules,
             [
-                "Citá al autor de cada foto",
+                "Cita al autor de cada foto",
                 "Nada de marcas de agua ajenas"
             ]
         );

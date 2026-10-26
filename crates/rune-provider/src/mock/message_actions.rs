@@ -93,7 +93,7 @@ impl World {
             return Err(t("ahí no se escriben mensajes").into());
         }
         if found.server.is_some() && !found.permissions.contains(Permissions::SEND | also) {
-            return Err(t("no tenés permiso").into());
+            return Err(t("no tienes permiso").into());
         }
         if self.restricted_in(channel, now).is_some() {
             return Err(t("estás aislado en este servidor (simulado)").into());
@@ -260,10 +260,10 @@ impl World {
             None => self
                 .channel(id)
                 .cloned()
-                .ok_or(t("no tenés acceso a esa conversación"))?,
+                .ok_or(t("no tienes acceso a esa conversación"))?,
         };
         if found.server.is_some() && !found.permissions.contains(Permissions::VIEW) {
-            return Err(t("no tenés acceso a esa conversación").into());
+            return Err(t("no tienes acceso a esa conversación").into());
         }
         Ok(vec![
             Event::ChannelChanged(found),
@@ -729,7 +729,7 @@ mod tests {
     #[test]
     fn links_and_moments_become_references() {
         let found = references(&format!(
-            "Mirá {LINKS}/7/70/700, o {LINKS}/@me/9. Es <t:1700000000:R> y <t:5>"
+            "Mira {LINKS}/7/70/700, o {LINKS}/@me/9. Es <t:1700000000:R> y <t:5>"
         ));
         assert_eq!(
             found[0].target,

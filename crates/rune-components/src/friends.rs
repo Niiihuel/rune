@@ -378,7 +378,7 @@ pub fn add_friend(form: &AddFriend, look: &Look) -> Element {
     let mut parts = vec![
         strong_line(t("Añadir amigo"), 16.0, look.text),
         text(
-            t("Podés añadir amigos con su nombre de usuario."),
+            t("Puedes añadir amigos con su nombre de usuario."),
             14.0,
             look.muted,
         ),
@@ -439,7 +439,7 @@ pub fn nickname_dialog(root: Element, name: &str, value: &str, look: &Look) -> E
         root,
         true,
         t("Cambiar apodo"),
-        tr!("Un nombre para {name} que solo ves vos.", name),
+        tr!("Un nombre para {name} que solo ves tú.", name),
         ids::NICKNAME_CLOSE,
         palette,
     )

@@ -328,7 +328,7 @@ fn searchable(snapshot: &Snapshot, search: &RemoteSearch, offset: u32) -> Result
     }
     if !readable(snapshot, search.channel) {
         return Err(LoginError::new(es(
-            "No tenés permiso para leer el historial de esa conversación.",
+            "No tienes permiso para leer el historial de esa conversación.",
         )));
     }
     if search
@@ -337,7 +337,7 @@ fn searchable(snapshot: &Snapshot, search: &RemoteSearch, offset: u32) -> Result
         .any(|channel| !readable(snapshot, *channel))
     {
         return Err(LoginError::new(es(
-            "No podés leer uno de los canales elegidos.",
+            "No puedes leer uno de los canales elegidos.",
         )));
     }
     Ok(())

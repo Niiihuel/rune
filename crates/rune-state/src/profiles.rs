@@ -31,17 +31,17 @@ fn system_wall() -> Timestamp {
 pub(crate) fn restricted(restriction: Restriction, server: &str) -> Permit {
     Permit::Denied(match restriction {
         Restriction::TimedOut { .. } => {
-            tr!("Estás aislado en {server}: podés leer, pero no participar", server)
+            tr!("Estás aislado en {server}: puedes leer, pero no participar", server)
         }
-        Restriction::Pending => tr!("Aceptá las reglas de {server} para participar", server),
+        Restriction::Pending => tr!("Acepta las reglas de {server} para participar", server),
         Restriction::Quarantined => {
             tr!(
-                "La moderación automática de {server} retiene tu cuenta: no podés participar",
+                "La moderación automática de {server} retiene tu cuenta: no puedes participar",
                 server
             )
         }
         Restriction::TagQuarantined => tr!(
-            "La moderación automática de {server} bloqueó la etiqueta de servidor que mostrás: cambiala o dejá de mostrarla para participar",
+            "La moderación automática de {server} bloqueó la etiqueta de servidor que muestras: cámbiala o deja de mostrarla para participar",
             server
         ),
     })
@@ -192,7 +192,7 @@ impl Store {
             return Permit::Denied(t("Este proveedor no permite cargar perfiles").into());
         }
         if self.me.is_none() || self.from_cache || self.connection != ConnectionState::Connected {
-            return Permit::Denied(t("Esperá a que la conexión esté disponible").into());
+            return Permit::Denied(t("Espera a que la conexión esté disponible").into());
         }
         if request == 0
             || self

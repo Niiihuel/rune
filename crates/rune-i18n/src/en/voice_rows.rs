@@ -7,7 +7,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Cargando la vista previa…", "Loading the preview…"),
     ("Vista previa no disponible", "Preview unavailable"),
     (
-        "Entrá al canal de voz para ver la transmisión",
+        "Entra al canal de voz para ver la transmisión",
         "Join the voice channel to watch the stream",
     ),
 ];

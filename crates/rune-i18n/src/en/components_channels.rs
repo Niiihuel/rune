@@ -112,7 +112,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Lets members start threads only invited people and moderators can see.",
     ),
     (
-        "Los enlaces que se compartan acá muestran una vista previa.",
+        "Los enlaces que se compartan aquí muestran una vista previa.",
         "Links shared here show a preview.",
     ),
     (
@@ -290,15 +290,15 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // What «Ver el canal» adds for @everyone.
     (
-        "Si se lo quitás a @everyone, el canal de voz pasa a ser privado.",
+        "Si se lo quitas a @everyone, el canal de voz pasa a ser privado.",
         "If you take it away from @everyone, the voice channel becomes private.",
     ),
     (
-        "Si se lo quitás a @everyone, los canales de la categoría pasan a ser privados.",
+        "Si se lo quitas a @everyone, los canales de la categoría pasan a ser privados.",
         "If you take it away from @everyone, the category's channels become private.",
     ),
     (
-        "Si se lo quitás a @everyone, el canal pasa a ser privado.",
+        "Si se lo quitas a @everyone, el canal pasa a ser privado.",
         "If you take it away from @everyone, the channel becomes private.",
     ),
     // The control of three states.
@@ -317,12 +317,12 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Sincronizar ahora", "Sync now"),
     ("Categoría privada", "Private category"),
     (
-        "Si la hacés privada, solo los roles y miembros que elijas van a poder verla. Los canales sincronizados con ella toman los mismos permisos.",
+        "Si la haces privada, solo los roles y miembros que elijas van a poder verla. Los canales sincronizados con ella toman los mismos permisos.",
         "If you make it private, only the roles and members you choose will be able to see it. Channels synced with it take the same permissions.",
     ),
     ("Canal privado", "Private channel"),
     (
-        "Si lo hacés privado, solo los roles y miembros que elijas van a poder verlo.",
+        "Si lo haces privado, solo los roles y miembros que elijas van a poder verlo.",
         "If you make it private, only the roles and members you choose will be able to see it.",
     ),
     (
@@ -358,7 +358,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Volver a intentar", "Try again"),
     ("Todavía no hay mensajes fijados", "No pinned messages yet"),
     (
-        "Los mensajes que se fijen en esta conversación van a aparecer acá.",
+        "Los mensajes que se fijen en esta conversación van a aparecer aquí.",
         "Messages pinned in this conversation will show up here.",
     ),
     ("Ir", "Jump"),
@@ -378,15 +378,15 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Eliminar canal", "Delete channel"),
     ("Eliminar categoría", "Delete category"),
     (
-        "¿Seguro que querés eliminar #{name}? No se puede deshacer.",
+        "¿Seguro que quieres eliminar #{name}? No se puede deshacer.",
         "Are you sure you want to delete #{name}? This can't be undone.",
     ),
     (
-        "¿Seguro que querés eliminar {name}? No se puede deshacer.",
+        "¿Seguro que quieres eliminar {name}? No se puede deshacer.",
         "Are you sure you want to delete {name}? This can't be undone.",
     ),
     (
-        "¿Seguro que querés eliminar la categoría {name}? Sus canales quedan sin categoría. No se puede deshacer.",
+        "¿Seguro que quieres eliminar la categoría {name}? Sus canales quedan sin categoría. No se puede deshacer.",
         "Are you sure you want to delete the category {name}? Its channels will be left without a category. This can't be undone.",
     ),
     // The column of channels.

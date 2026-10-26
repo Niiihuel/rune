@@ -266,7 +266,7 @@ pub fn create_dialog(root: Element, form: &NewGroupForm, look: &Look) -> Element
     let mut parts = vec![
         text(
             tr!(
-                "Elegí a quiénes sumar: hasta {most} amigos. Con uno solo se abre su conversación.",
+                "Elige a quiénes sumar: hasta {most} amigos. Con uno solo se abre su conversación.",
                 most = form.most
             ),
             13.0,
@@ -462,7 +462,7 @@ mod tests {
             confirm(
                 Element::spacer(),
                 "Abandonar «Proyecto»",
-                "Dejás de verlo.",
+                "Dejas de verlo.",
                 "Abandonar",
                 &Look::DARK,
             ),

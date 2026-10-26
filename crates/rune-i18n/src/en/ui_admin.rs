@@ -3,11 +3,11 @@
 pub(super) const ENTRIES: super::Entries = &[
     // channel_settings/mod.rs
     (
-        "Este rol está a la altura del tuyo o por encima: no podés cambiar sus permisos.",
+        "Este rol está a la altura del tuyo o por encima: no puedes cambiar sus permisos.",
         "This role is at or above yours: you can't change its permissions.",
     ),
     (
-        "No lo tenés en este canal, así que no podés cambiarlo.",
+        "No lo tienes en este canal, así que no puedes cambiarlo.",
         "You don't have it in this channel, so you can't change it.",
     ),
     // channel_settings/view.rs
@@ -16,7 +16,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("El nombre no puede quedar vacío.", "The name can't be empty."),
     ("Se va a llamar #{saved_as}", "It will be called #{saved_as}"),
     (
-        "Contale a todos para qué es este canal.",
+        "Cuéntale a todos para qué es este canal.",
         "Let everyone know what this channel is for.",
     ),
     ("Modo lento", "Slowmode"),
@@ -32,17 +32,17 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Rol eliminado", "Deleted role"),
     ("Ajustes de la categoría", "Category settings"),
     (
-        "Usá los permisos para elegir quién puede hacer qué en esta categoría.",
+        "Usa los permisos para elegir quién puede hacer qué en esta categoría.",
         "Use permissions to choose who can do what in this category.",
     ),
     ("Permisos del canal", "Channel permissions"),
     (
-        "Usá los permisos para elegir quién puede hacer qué en este canal.",
+        "Usa los permisos para elegir quién puede hacer qué en este canal.",
         "Use permissions to choose who can do what in this channel.",
     ),
     ("Propietario del servidor", "Server owner"),
     // «¿Querés que #canal tenga los permisos de CATEGORÍA? …», in spans.
-    ("¿Querés que ", "Do you want "),
+    ("¿Quieres que ", "Do you want "),
     (" tenga los permisos de ", " to take the permissions of "),
     (
         "? Sus permisos propios se reemplazan.",
@@ -96,7 +96,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Searched among the {known} loaded members.",
     ),
     (
-        "Este proveedor no permite agregar nuevos: acá se renombran y eliminan.",
+        "Este proveedor no permite agregar nuevos: aquí se renombran y eliminan.",
         "This provider doesn't allow adding new ones: here you can rename and delete them.",
     ),
     ("Subir sticker", "Upload sticker"),
@@ -117,7 +117,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Editar webhook", "Edit webhook"),
     ("No hay webhooks", "No webhooks"),
     (
-        "Creá uno para que otra aplicación publique en un canal.",
+        "Crea uno para que otra aplicación publique en un canal.",
         "Create one so another app can post in a channel.",
     ),
     ("Entrante", "Incoming"),
@@ -148,11 +148,11 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Invitación creada", "Invite created"),
     (
-        "Compartí el enlace con quien quieras que entre.",
+        "Comparte el enlace con quien quieras que entre.",
         "Share the link with whoever you want to join.",
     ),
     (
-        "Elegí adónde lleva, cuánto dura y cuántas veces se puede usar.",
+        "Elige adónde lleva, cuánto dura y cuántas veces se puede usar.",
         "Choose where it leads, how long it lasts and how many times it can be used.",
     ),
     ("Canal", "Channel"),
@@ -179,7 +179,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Simulated: the image isn't published, only the name.",
     ),
     (
-        "Elegí cómo se llama. Se agrega al servidor para todos.",
+        "Elige cómo se llama. Se agrega al servidor para todos.",
         "Choose its name. It's added to the server for everyone.",
     ),
     ("Subiendo…", "Uploading…"),
@@ -218,16 +218,16 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Canal del webhook", "Webhook channel"),
     ("Eliminar webhook", "Delete webhook"),
     (
-        "¿Seguro que querés eliminar «{name}»? Lo que lo use deja de poder publicar. No se puede deshacer.",
+        "¿Seguro que quieres eliminar «{name}»? Lo que lo use deja de poder publicar. No se puede deshacer.",
         "Are you sure you want to delete “{name}”? Whatever uses it will no longer be able to post. This can't be undone.",
     ),
     ("Quitar integración", "Remove integration"),
     (
-        "¿Seguro que querés quitar «{name}»? Su bot también sale del servidor.",
+        "¿Seguro que quieres quitar «{name}»? Su bot también sale del servidor.",
         "Are you sure you want to remove “{name}”? Its bot leaves the server too.",
     ),
     (
-        "¿Seguro que querés quitar «{name}»? Deja de estar conectada al servidor.",
+        "¿Seguro que quieres quitar «{name}»? Deja de estar conectada al servidor.",
         "Are you sure you want to remove “{name}”? It will no longer be connected to the server.",
     ),
     // server_settings/view/rest.rs
@@ -281,7 +281,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Whose sent images and files are scanned.",
     ),
     (
-        "Arrastrá los canales para ordenarlos o pasarlos a otra categoría; también desde el menú de cada uno. Se guarda todo junto.",
+        "Arrastra los canales para ordenarlos o pasarlos a otra categoría; también desde el menú de cada uno. Se guarda todo junto.",
         "Drag channels to reorder them or move them to another category; each one's menu does it too. Everything is saved together.",
     ),
     ("Sacar de la categoría", "Remove from category"),

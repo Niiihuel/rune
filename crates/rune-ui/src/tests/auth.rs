@@ -279,7 +279,7 @@ fn signed_out_page_explains_unconfirmed_revocation_and_session_expiry() {
         .join("\n")
         .contains("No se confirmó la revocación remota"));
     host.event(Event::Connection(ConnectionState::Disconnected {
-        reason: "La autorización venció; iniciá sesión de nuevo".into(),
+        reason: "La autorización venció; inicia sesión de nuevo".into(),
     }));
     // The expiry remains explained after its temporary toast disappears.
     host.ui.notices.clear();
@@ -438,7 +438,7 @@ fn authorization_has_accessible_hierarchy_details_and_keyboard_cancellation() {
 fn a_long_sign_in_error_can_be_read_and_scrolled_to_retry() {
     let mut host = signed_out();
     let reason =
-        "No pudimos confirmar el acceso. Revisá la conexión y volvé a intentarlo. ".repeat(12);
+        "No pudimos confirmar el acceso. Revisa la conexión y vuelve a intentarlo. ".repeat(12);
     host.event(Event::Authentication(AuthenticationState::Failed {
         reason: reason.clone(),
     }));
@@ -607,7 +607,7 @@ fn welcome_and_pending_states_keep_their_heading_and_actions_centered_in_every_t
 #[test]
 fn long_authorization_errors_keep_the_full_alert_and_scroll_to_a_complete_retry_button() {
     let reason =
-        "No pudimos confirmar el acceso. Revisá la conexión y volvé a intentarlo. ".repeat(24);
+        "No pudimos confirmar el acceso. Revisa la conexión y vuelve a intentarlo. ".repeat(24);
     for theme in [Theme::Onyx, Theme::Dark, Theme::Light] {
         for window in [Size::new(320.0, 640.0), Size::new(720.0, 480.0), WINDOW] {
             let mut host = signed_out();

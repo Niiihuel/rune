@@ -314,7 +314,7 @@ pub(super) fn clicked(
             if !can {
                 ui.notify(
                     rune_i18n::t("Tus permisos cambiaron"),
-                    Some(rune_i18n::t("Ya no podés administrar AutoMod en este servidor.").into()),
+                    Some(rune_i18n::t("Ya no puedes administrar AutoMod en este servidor.").into()),
                     true,
                     now,
                 );

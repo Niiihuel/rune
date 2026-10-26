@@ -375,7 +375,7 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<I
             dialog.sending_rules = None;
             let server = name();
             dialog.done = Some(match outcome {
-                JoinOutcome::Approved => tr!("Listo: ya podés participar en {server}.", server),
+                JoinOutcome::Approved => tr!("Listo: ya puedes participar en {server}.", server),
                 JoinOutcome::InReview => tr!(
                     "Enviado: la moderación de {server} va a revisar tus respuestas.",
                     server
@@ -413,7 +413,7 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<I
         // way says it did not arrive.
         Applied::Ready => {
             if dialog.busy() {
-                dialog.problem = Some(t("Se perdió la conexión: volvé a intentarlo.").into());
+                dialog.problem = Some(t("Se perdió la conexión: vuelve a intentarlo.").into());
             }
             dialog.loading_onboarding = None;
             dialog.loading_rules = None;
@@ -529,7 +529,7 @@ pub(crate) fn with_steps(
         ),
         (false, _) => parts::steps_bar(
             &tr!(
-                "Respondé las preguntas de {server} para elegir tus roles y canales.",
+                "Responde las preguntas de {server} para elegir tus roles y canales.",
                 server = name
             ),
             t("Responder las preguntas"),

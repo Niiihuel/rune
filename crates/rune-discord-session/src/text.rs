@@ -241,7 +241,7 @@ mod tests {
     #[test]
     fn links_to_conversations_and_moments_are_references() {
         let found = references(
-            "Mirá https://discord.com/channels/1/2/3. y <https://PTB.discordapp.com:443/channels/@me/4/> \
+            "Mira https://discord.com/channels/1/2/3. y <https://PTB.discordapp.com:443/channels/@me/4/> \
              o [esto](https://canary.discord.com/channels/1/5?x=1#y) <t:1700000000:R> <t:-5>",
         );
         let targets: Vec<&TextTarget> = found.iter().map(|found| &found.target).collect();
@@ -332,7 +332,7 @@ mod tests {
         assert_eq!(
             invitations_in(
                 "Vengan: https://discord.gg/hello-world. Y al grupo <https://discord.gg/another>, \
-                 o [acá](https://discord.com/invite/third) <@7>"
+                 o [aquí](https://discord.com/invite/third) <@7>"
             ),
             vec![
                 "https://discord.gg/hello-world",
@@ -361,7 +361,7 @@ mod tests {
             "``https://discord.gg/hello-world``",
             "```\nhttps://discord.gg/hello-world\n```",
             "```\nhttps://discord.gg/hello-world",
-            "mirá ||https://discord.gg/hello-world|| ahí",
+            "mira ||https://discord.gg/hello-world|| ahí",
             "https://discord.gg.evil.invalid/hello-world",
             "https://user:pass@discord.gg/hello-world",
             "https://discord.gg:444/hello-world",

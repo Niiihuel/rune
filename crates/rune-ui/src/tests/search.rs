@@ -400,7 +400,7 @@ fn unknown_partial_update_invalidates_device_hits_without_starting_a_query_loop(
     assert!(host
         .painted()
         .iter()
-        .any(|text| text.contains("Actualizá la búsqueda")));
+        .any(|text| text.contains("Actualiza la búsqueda")));
     host.click("message-search:refresh");
     assert!(host.local_searches.len() > count);
 }
@@ -1123,7 +1123,7 @@ fn results_show_face_name_time_day_and_the_words_found_marked() {
     host.key(Key::Backspace, false, false);
     let painted = host.painted();
     assert!(
-        painted.iter().any(|text| text == "Buscá en #general"),
+        painted.iter().any(|text| text == "Busca en #general"),
         "{painted:?}"
     );
 }
@@ -1152,7 +1152,7 @@ fn what_messages_carry_filters_loaded_ones_and_one_click_clears_every_filter() {
     assert!(host
         .painted()
         .iter()
-        .any(|text| text == "Buscá en #general"));
+        .any(|text| text == "Busca en #general"));
     assert!(host.painted().iter().any(|text| text == "Tiene"));
     // What is kept on this device knows files only.
     local_available(&mut host, true);

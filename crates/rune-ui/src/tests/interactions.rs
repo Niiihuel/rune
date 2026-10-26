@@ -120,7 +120,7 @@ fn a_button_tells_its_app_waits_for_it_and_its_private_reply_can_be_dismissed() 
     });
     host.tree.scroll_to_end(&timeline_id(general));
     let painted = host.painted().join(" ");
-    assert!(painted.contains("Sólo vos podés ver esto"), "{painted}");
+    assert!(painted.contains("Sólo tú puedes ver esto"), "{painted}");
     host.clicked(app_ids::dismiss(whisper.id));
     assert!(host
         .store
@@ -240,7 +240,7 @@ fn a_modal_checks_its_fields_before_it_goes_and_closes_once_answered() {
     assert!(host
         .painted()
         .iter()
-        .any(|said| said == "Completá este campo"));
+        .any(|said| said == "Completa este campo"));
     host.p3_act(UiAction::InputChanged {
         id: modal_ids::text("nombre"),
         value: "Ada".into(),
@@ -357,7 +357,7 @@ fn an_apps_command_checks_its_options_and_goes_with_them() {
     assert!(host
         .painted()
         .iter()
-        .any(|said| said == "Completá este campo"));
+        .any(|said| said == "Completa este campo"));
     host.p3_act(UiAction::InputChanged {
         id: command_ids::option("texto"),
         value: "regar las plantas".into(),
@@ -490,7 +490,7 @@ fn a_modals_files_are_chosen_apart_from_the_draft_go_with_it_and_are_let_go() {
     assert!(host
         .painted()
         .iter()
-        .any(|said| said == "Adjuntá un archivo"));
+        .any(|said| said == "Adjunta un archivo"));
     let me = host.store.me().unwrap();
     let choose = |host: &mut Host, token: u64| {
         host.clicked(modal_ids::files("fotos"));

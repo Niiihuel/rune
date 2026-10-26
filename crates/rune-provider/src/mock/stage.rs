@@ -105,10 +105,10 @@ impl World {
         match command {
             Command::RaiseHand { raised, .. } => {
                 if raised && !may_ask {
-                    return Err(t("no tenés permiso para pedir la palabra").into());
+                    return Err(t("no tienes permiso para pedir la palabra").into());
                 }
                 if matches!(mine, StageSeat::Speaker | StageSeat::Invited) {
-                    return Err(t("ya podés hablar").into());
+                    return Err(t("ya puedes hablar").into());
                 }
                 self.seat(channel, ME, |state| {
                     state.speak_request = raised.then_some(now);
@@ -120,7 +120,7 @@ impl World {
                 ..
             } if user == ME => {
                 if mine != StageSeat::Invited && !moderates {
-                    return Err(t("esperá que la moderación te invite a hablar").into());
+                    return Err(t("espera que la moderación te invite a hablar").into());
                 }
                 self.seat(channel, ME, |state| {
                     state.suppressed = false;

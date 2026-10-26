@@ -24,7 +24,7 @@ pub(crate) fn edit_allowed(snapshot: &Snapshot, command: &Command) -> Result<(),
                 .ok_or_else(|| LoginError::new(es("Ya no estás en ese servidor.")))?;
             match member.restrictions.at(crate::messages::wall_now()) {
                 Some(_) => Err(LoginError::new(es(
-                    "Tu cuenta está restringida en este servidor: no podés cambiar tu perfil ahí.",
+                    "Tu cuenta está restringida en este servidor: no puedes cambiar tu perfil ahí.",
                 ))),
                 None => Ok(()),
             }
@@ -236,7 +236,7 @@ mod tests {
             "user": {"id":"43","username":"peer"},
             "user_profile": {"bio":"hola <a:Rana:1234567890123456789>\nchau 🌱"},
             "guild_member": {"user":{"id":"43"},"roles":[]},
-            "guild_member_profile": {"guild_id":"10","bio":"<:rust:22> acá"}
+            "guild_member_profile": {"guild_id":"10","bio":"<:rust:22> aquí"}
         });
         let events = profile(&value, 7, UserId(43), Some(ServerId(10)), true).unwrap();
         let loaded = loaded(&events);

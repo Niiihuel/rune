@@ -487,7 +487,7 @@ fn save(ui: &mut Ui, now: Instant) -> Vec<Intent> {
     };
     let Some(name) = theme::valid_name(&editor.name) else {
         editor.error = Some(tr!(
-            "Escribí un nombre de hasta {max} caracteres.",
+            "Escribe un nombre de hasta {max} caracteres.",
             max = theme::MAX_NAME
         ));
         return Vec::new();
@@ -498,12 +498,12 @@ fn save(ui: &mut Ui, now: Instant) -> Vec<Intent> {
         .enumerate()
         .any(|(at, theme)| theme.name == name && Some(at) != editor.replaces);
     if taken {
-        editor.error = Some(t("Ya tenés un tema con ese nombre.").into());
+        editor.error = Some(t("Ya tienes un tema con ese nombre.").into());
         return Vec::new();
     }
     if editor.replaces.is_none() && themes.saved.len() >= MAX_THEMES {
         editor.error = Some(tr!(
-            "Podés guardar hasta {max} temas: borrá uno antes.",
+            "Puedes guardar hasta {max} temas: borra uno antes.",
             max = MAX_THEMES
         ));
         return Vec::new();
@@ -567,7 +567,7 @@ pub fn imported(
         ui.notify(
             t("No se pudo importar el tema"),
             Some(tr!(
-                "Podés guardar hasta {max} temas: borrá uno antes.",
+                "Puedes guardar hasta {max} temas: borra uno antes.",
                 max = MAX_THEMES
             )),
             true,

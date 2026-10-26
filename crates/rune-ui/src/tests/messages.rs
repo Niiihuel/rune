@@ -314,7 +314,7 @@ fn a_text_naming_an_emoji_it_may_not_use_here_stays_with_why() {
             .detail
             .as_deref()
             .is_some_and(|why| why
-                .starts_with(":far: No tenés permiso para usar emojis de otros servidores")),
+                .starts_with(":far: No tienes permiso para usar emojis de otros servidores")),
         "{notice:?}"
     );
     host.frame();
@@ -571,7 +571,7 @@ fn mg_poll(host: &mut Host, channel: ChannelId, multiselect: bool) -> MessageId 
         ..Default::default()
     };
     message.poll = Some(rune_model::Poll {
-        question: "¿Cuál preferís?".into(),
+        question: "¿Cuál prefieres?".into(),
         answers: vec![answer(1, 2), answer(2, 0), answer(3, 1)],
         multiselect,
         results_known: true,
@@ -806,7 +806,7 @@ fn editing_happens_in_place_saves_on_enter_and_cancels_on_escape() {
     host.frame();
     let field = edit_field(mine);
     assert_eq!(host.tree.focused_id(), Some(field.as_str()));
-    assert!(host.mg_said("Presioná Escape para "), "how to leave it");
+    assert!(host.mg_said("Presiona Escape para "), "how to leave it");
     host.type_text(" y segundo");
     host.key(Key::Enter, false, false);
     assert_eq!(
@@ -876,7 +876,7 @@ fn deleting_asks_first_unless_shift_is_held() {
     host.click(&format!("msg:{first}:actions:more"));
     host.click(&format!("msg:{first}:delete"));
     assert_eq!(host.ui.confirm_delete, Some(first));
-    assert!(host.mg_said("¿Seguro que querés eliminar este mensaje?"));
+    assert!(host.mg_said("¿Seguro que quieres eliminar este mensaje?"));
     assert!(
         host.mg_said("CONSEJO ÚTIL"),
         "from the menu it tells about Shift"
@@ -1048,7 +1048,7 @@ fn the_composer_names_the_channel_offers_emoji_and_says_why_no_files() {
 fn a_spoiler_hides_until_clicked_and_mentions_of_everyone_are_marked() {
     let mut host = Host::new();
     let general = host.open_channel("general");
-    host.mg_own(general, "che @everyone mirá");
+    host.mg_own(general, "che @everyone mira");
     assert!(
         !host.painted().contains(&"@everyone".to_owned()),
         "here the account may not notify everyone: plain text"
@@ -1261,7 +1261,7 @@ fn shift_only_skips_asking_on_the_click_it_was_held_for() {
 fn pinning_from_the_menu_closes_it() {
     let mut host = Host::new();
     let core = host.open_channel("limn-core");
-    let mine = host.mg_own(core, "fijame");
+    let mine = host.mg_own(core, "fíjame");
     host.click(&format!("msg:{mine}:actions:more"));
     host.click(&format!("msg:{mine}:pin"));
     assert!(matches!(

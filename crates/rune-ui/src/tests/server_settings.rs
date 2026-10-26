@@ -166,11 +166,11 @@ fn renaming_the_owned_server_saves_and_shows_the_name_the_provider_confirms() {
         painted_has(&mut host, "sin conexión real"),
         "the simulation is still labelled as such"
     );
-    assert!(!painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(!painted_has(&mut host, "Tienes cambios sin guardar"));
     host.write(NAME, "Laboratorio de limn");
     assert!(painted_has(
         &mut host,
-        "¡Cuidado! Tenés cambios sin guardar"
+        "¡Cuidado! Tienes cambios sin guardar"
     ));
     host.click("ss:save");
     assert!(matches!(
@@ -187,7 +187,7 @@ fn renaming_the_owned_server_saves_and_shows_the_name_the_provider_confirms() {
     host.answer();
     assert_eq!(host.store.server(lab).unwrap().name, "Laboratorio de limn");
     assert!(!host.settings().dirty(&host.store));
-    assert!(!painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(!painted_has(&mut host, "Tienes cambios sin guardar"));
     assert!(
         painted_has(&mut host, "LABORATORIO DE LIMN"),
         "the sidebar's heading follows"
@@ -249,7 +249,7 @@ fn a_new_role_opens_in_the_editor_and_its_permissions_are_saved_as_bits() {
     host.click("ss:tab:permissions");
     host.click(&permission_id(Permissions::VIEW));
     host.click(&permission_id(Permissions::MANAGE_CHANNELS));
-    assert!(painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(painted_has(&mut host, "Tienes cambios sin guardar"));
     host.click("ss:save");
     assert_eq!(
         host.sent.last(),
@@ -379,7 +379,7 @@ fn escape_with_unsaved_changes_keeps_the_settings_open_and_insists() {
     assert!(host.settings().nudged);
     assert!(painted_has(
         &mut host,
-        "Guardá o restablecé los cambios antes de salir"
+        "Guarda o restablece los cambios antes de salir"
     ));
     // Leaving the page is refused the same way.
     host.click("ss:page:roles");
@@ -424,7 +424,7 @@ fn deleting_a_role_asks_first_and_goes_back_to_the_list() {
     host.click(&format!("ss:role:{bots}:delete"));
     assert!(painted_has(
         &mut host,
-        "¿Seguro que querés eliminar el rol «Bots»?"
+        "¿Seguro que quieres eliminar el rol «Bots»?"
     ));
     host.click("ss:role-delete:confirm");
     assert!(matches!(host.sent.last(), Some(Command::DeleteRole { role, .. }) if *role == bots));
@@ -476,7 +476,7 @@ fn a_server_the_account_does_not_own_shows_why_nothing_can_be_changed() {
     host.open_settings(taller);
     assert!(painted_has(
         &mut host,
-        "No tenés permiso para cambiar el servidor en Taller de Rust"
+        "No tienes permiso para cambiar el servidor en Taller de Rust"
     ));
     assert!(
         !host.on_screen("ss:accent:e74c3c"),
@@ -489,7 +489,7 @@ fn a_server_the_account_does_not_own_shows_why_nothing_can_be_changed() {
     host.click("ss:page:roles");
     assert!(painted_has(
         &mut host,
-        "No tenés permiso para gestionar roles"
+        "No tienes permiso para gestionar roles"
     ));
     assert!(!host.on_screen("ss:role:create"));
     host.click("ss:page:audit");
@@ -506,7 +506,7 @@ fn a_server_the_account_does_not_own_shows_why_nothing_can_be_changed() {
     host.press(&format!("ss:member:{person}:kick"));
     assert!(host.settings().removal.is_none(), "kicking is not offered");
     host.press(&format!("ss:member:{person}:menu"));
-    assert!(painted_has(&mut host, "No tenés permiso para expulsar"));
+    assert!(painted_has(&mut host, "No tienes permiso para expulsar"));
 }
 
 /// The account, in a server it does not own, given Moderación and with
@@ -939,7 +939,7 @@ fn dragging_roles_reorders_them_and_saving_moves_one_at_a_time() {
         host.settings().order,
         Some(vec![collaboration, bots, moderation])
     );
-    assert!(painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(painted_has(&mut host, "Tienes cambios sin guardar"));
     host.click("ss:save");
     let answered = host.answer();
     assert_eq!(
@@ -1727,7 +1727,7 @@ fn the_profile_reads_its_traits_and_saves_them_with_a_new_picture() {
     // Below the icon and the banner (2026-10-19): scrolled into view.
     host.tree.reveal_at_start("ss:trait:add", 400.0);
     assert!(painted_has(&mut host, "Rasgos"));
-    assert!(!painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(!painted_has(&mut host, "Tienes cambios sin guardar"));
     host.press("ss:trait:add");
     host.write("ss:trait:3:label", "Gráficos");
     host.write("ss:trait:3:emoji", "🖼️");
@@ -1751,7 +1751,7 @@ fn the_profile_reads_its_traits_and_saves_them_with_a_new_picture() {
         host.now,
     );
     host.run(intents);
-    assert!(painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(painted_has(&mut host, "Tienes cambios sin guardar"));
     host.sent.clear();
     host.press("ss:save");
     let Some(Command::EditServer { edit, .. }) = host.sent.last().cloned() else {
@@ -1878,7 +1878,7 @@ fn safety_settings_are_drafted_together_and_refused_where_not_managed() {
     host.press("ss:set:afk-timeout:900");
     host.press("ss:set:system:none");
     host.press("ss:set:notify:mentions");
-    assert!(painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(painted_has(&mut host, "Tienes cambios sin guardar"));
     host.sent.clear();
     host.press("ss:save");
     let Some(Command::EditServer { edit, .. }) = host.sent.last().cloned() else {
@@ -1901,7 +1901,7 @@ fn safety_settings_are_drafted_together_and_refused_where_not_managed() {
     let other = host.server_named("Café Nocturno");
     host.open_settings(other);
     host.click("ss:page:safety");
-    assert!(painted_has(&mut host, "No tenés permiso"));
+    assert!(painted_has(&mut host, "No tienes permiso"));
     host.press("ss:set:verification:4");
     assert!(!host.settings().dirty(&host.store));
 }
@@ -1942,7 +1942,7 @@ fn channels_move_from_their_menu_and_by_dragging_and_save_in_one_batch() {
     let voice = named(&host, "Voz");
     let core = named(&host, "limn-core");
     host.press(&format!("ss:chan:{components}:to:{voice}"));
-    assert!(painted_has(&mut host, "Tenés cambios sin guardar"));
+    assert!(painted_has(&mut host, "Tienes cambios sin guardar"));
     // Dragged above `limn-core`, it stays in that category instead.
     host.act(UiAction::DragStarted {
         id: format!("ss:chan:{core}"),

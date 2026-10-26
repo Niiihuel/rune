@@ -911,13 +911,13 @@ pub(crate) fn privacy_setting(
                 toggle(
                     "us:privacy:friends-fof",
                     t("Amigos de tus amigos"),
-                    t("Quienes tienen un amigo en común con vos."),
+                    t("Quienes tienen un amigo en común contigo."),
                     sources.friends_of_friends,
                 ),
                 toggle(
                     "us:privacy:friends-members",
                     t("Miembros de tus servidores"),
-                    t("Quienes están en un servidor con vos."),
+                    t("Quienes están en un servidor contigo."),
                     sources.server_members,
                 ),
             ])

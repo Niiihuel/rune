@@ -122,7 +122,7 @@ fn the_connection_settings_offer_the_providers_and_the_column_says_the_origin() 
     host.click("me:settings");
     host.click("us:page=connection");
     let text = host.painted().join(" ");
-    assert!(text.contains("Elegí el proveedor"), "{text}");
+    assert!(text.contains("Elige el proveedor"), "{text}");
     assert!(text.contains("Sesión personal · no oficial"));
     host.click("provider:use=personal");
     assert_eq!(host.ui.providers.confirming, Some("personal"));

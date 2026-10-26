@@ -158,7 +158,7 @@ pub(crate) fn view(editor: &Editor, reason: Option<&str>) -> Option<EditorFramin
         (true, true) => Some(match reason {
             // Chosen before the plan said no: framed again, it stays still.
             Some(reason) => tr!(
-                "{reason}. Mové el encuadre para usar sólo el primer cuadro.",
+                "{reason}. Mueve el encuadre para usar sólo el primer cuadro.",
                 reason = reason.trim_end_matches('.')
             ),
             None => {

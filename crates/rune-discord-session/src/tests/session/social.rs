@@ -27,7 +27,7 @@ async fn a_closed_conversation_leaves_the_list_and_comes_back_with_a_message() {
         }
     );
     // Closed here, written in by the other person: listed again first.
-    let mut message = rest::message(300, "¿seguís ahí?");
+    let mut message = rest::message(300, "¿sigues ahí?");
     message["author"] = json!({"id":"43","username":"Peer"});
     app.dispatch
         .send(("MESSAGE_CREATE", message))

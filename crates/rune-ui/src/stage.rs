@@ -141,9 +141,9 @@ pub(crate) fn panel(store: &Store, look: &Look) -> Option<Element> {
             seat: label.into(),
             detail: match seat {
                 _ if simulated => Some(t("Simulado: la moderación te invita en un momento")),
-                StageSeat::Audience => Some(t("Levantá la mano para pedir la palabra")),
-                StageSeat::HandRaised => Some(t("Esperá que la moderación te invite a hablar")),
-                StageSeat::Invited => Some(t("Aceptá para que te escuchen")),
+                StageSeat::Audience => Some(t("Levanta la mano para pedir la palabra")),
+                StageSeat::HandRaised => Some(t("Espera que la moderación te invite a hablar")),
+                StageSeat::Invited => Some(t("Acepta para que te escuchen")),
                 StageSeat::Speaker => None,
             }
             .map(str::to_owned),

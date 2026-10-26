@@ -38,12 +38,12 @@ impl Store {
     pub fn stage_hold(&self, channel: ChannelId) -> Option<&'static str> {
         match self.stage_seat(channel, self.me()?)? {
             StageSeat::Audience => Some(t(
-                "Estás en el público: levantá la mano para pedir la palabra",
+                "Estás en el público: levanta la mano para pedir la palabra",
             )),
             StageSeat::HandRaised => Some(t(
-                "Levantaste la mano: esperá que la moderación te invite a hablar",
+                "Levantaste la mano: espera que la moderación te invite a hablar",
             )),
-            StageSeat::Invited => Some(t("Te invitaron a hablar: aceptá para que te escuchen")),
+            StageSeat::Invited => Some(t("Te invitaron a hablar: acepta para que te escuchen")),
             StageSeat::Speaker => None,
         }
     }
@@ -77,12 +77,12 @@ impl Store {
         let speaking = matches!(seat, StageSeat::Speaker);
         Some(StageAbilities {
             raise_hand: if matches!(seat, StageSeat::Speaker | StageSeat::Invited) {
-                Permit::Denied(t("Ya podés hablar").into())
+                Permit::Denied(t("Ya puedes hablar").into())
             } else {
                 gate(
                     found.permissions.contains(Permissions::REQUEST_TO_SPEAK),
                     &tr!(
-                        "No tenés permiso para pedir la palabra en #{channel}",
+                        "No tienes permiso para pedir la palabra en #{channel}",
                         channel = found.name
                     ),
                 )
@@ -92,7 +92,7 @@ impl Store {
             } else {
                 gate(
                     seat == StageSeat::Invited || moderates,
-                    t("Levantá la mano y esperá que la moderación te invite"),
+                    t("Levanta la mano y espera que la moderación te invite"),
                 )
             },
             // Stepping down is always the account's to do.

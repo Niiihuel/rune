@@ -181,7 +181,7 @@ mod tests {
         assert!(!made.is_gif());
         assert_eq!(
             prepare(b"%PDF-1.7", ExpressionKind::Emoji).unwrap_err(),
-            "Elegí una imagen PNG, JPEG, GIF o WebP."
+            "Elige una imagen PNG, JPEG, GIF o WebP."
         );
     }
 }

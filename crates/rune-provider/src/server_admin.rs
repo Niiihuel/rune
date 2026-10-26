@@ -18,13 +18,13 @@ impl RoleIcon {
     pub fn problem(&self) -> Option<&'static str> {
         match self {
             Self::Image(image) if image.is_gif() => Some(t(
-                "El ícono de un rol va sin animación: elegí un PNG o un JPG.",
+                "El ícono de un rol va sin animación: elige un PNG o un JPG.",
             )),
             Self::Emoji(emoji)
                 if !(1..=8).contains(&emoji.chars().count())
                     || emoji.chars().any(|c| c.is_alphanumeric() || c.is_control()) =>
             {
-                Some(t("Elegí un solo emoji."))
+                Some(t("Elige un solo emoji."))
             }
             _ => None,
         }

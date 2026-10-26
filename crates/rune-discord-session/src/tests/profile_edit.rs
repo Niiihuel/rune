@@ -129,16 +129,16 @@ async fn the_profile_of_a_server_saves_the_membership_then_its_profile_there() {
     let member = format!(
         r#"{{"user":{{"id":"42","username":"rune-test"}},"roles":[],"nick":"Lab","avatar":"{HASH}"}}"#
     );
-    let profile = r#"{"user":{"id":"42","username":"rune-test"},"guild_member":{"user":{"id":"42"},"nick":"Lab","roles":[]},"guild_member_profile":{"guild_id":"10","bio":"Acá","banner":null}}"#;
+    let profile = r#"{"user":{"id":"42","username":"rune-test"},"guild_member":{"user":{"id":"42"},"nick":"Lab","roles":[]},"guild_member_profile":{"guild_id":"10","bio":"Aquí","banner":null}}"#;
     let (http, mut requests) = fixtures(vec![
         response(200, &member),
-        response(200, r#"{"bio":"Acá"}"#),
+        response(200, r#"{"bio":"Aquí"}"#),
         response(200, profile),
     ])
     .await;
     let edit = ServerProfileEdit {
         nick: Some(Some("Lab".into())),
-        about: Some(Some("Acá".into())),
+        about: Some(Some("Aquí".into())),
         avatar: Some(Some(gif())),
         banner: Some(None),
     };
@@ -172,7 +172,7 @@ async fn the_profile_of_a_server_saves_the_membership_then_its_profile_there() {
         .as_ref()
         .is_some_and(|a| a.url.contains("guilds/10/users/42/avatars")));
     assert_eq!(profile.server, Some(ServerId(10)));
-    assert_eq!(profile.server_about.as_deref(), Some("Acá"));
+    assert_eq!(profile.server_about.as_deref(), Some("Aquí"));
     assert_eq!(profile.server_banner, ProfileBanner::Absent);
 }
 

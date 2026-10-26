@@ -85,10 +85,10 @@ fn answer(
             .filter(|folder| !folder.chars().any(char::is_control))
             .map(Some)
             .ok_or(t(
-                "RUNE no puede guardar el nombre de esa carpeta. Elegí otra.",
+                "RUNE no puede guardar el nombre de esa carpeta. Elige otra.",
             )),
         Ok(Err(UploadError::Cancelled)) | Err(_) => Ok(None),
-        Ok(Err(UploadError::Busy)) => Err(t("Esperá a que se cierre el otro diálogo de archivos.")),
+        Ok(Err(UploadError::Busy)) => Err(t("Espera a que se cierre el otro diálogo de archivos.")),
         Ok(Err(UploadError::Unavailable)) => Err(t(
             "El selector de archivos no está disponible en este equipo.",
         )),

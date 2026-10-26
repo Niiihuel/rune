@@ -23,7 +23,7 @@ pub fn hidden_channel(name: &str, glyph: Icon, private: bool, look: &Look) -> El
         line(name, 16.0, ink).flex(1.0).centered_y(),
     ];
     let mut access = limn::Access::new(limn::Role::ListItem)
-        .name(tr!("{name}: canal oculto, no tenés acceso", name))
+        .name(tr!("{name}: canal oculto, no tienes acceso", name))
         .disabled(true);
     if private {
         parts.push(icon(Icon::Lock, ink).centered_y());
@@ -144,7 +144,7 @@ pub fn privacy(code: Option<&str>, people: &[Verifying], simulated: bool, look: 
             body.push(Element::column(column).gap(4.0));
         }
         body.push(text(
-            t("Compará el código de una persona con el que ella ve para vos, por otro medio."),
+            t("Compara el código de una persona con el que ella ve para ti, por otro medio."),
             12.0,
             look.faint,
         ));

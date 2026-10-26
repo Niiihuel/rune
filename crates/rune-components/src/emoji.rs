@@ -677,7 +677,7 @@ pub const TABLE: &[Emoji] = &[
     e("🆕", "new", S),
     e("🆒", "cool", S),
     e("🆓", "free", S),
-    e("🆘", "sos", S),
+    e("🆘", "eres", S),
     e("🔴", "red_circle", S),
     e("🟠", "orange_circle", S),
     e("🟡", "yellow_circle", S),
@@ -1223,7 +1223,7 @@ mod tests {
             base: "react-pick",
             query,
             recent: &recent,
-            placeholder: "Encontrá la reacción perfecta",
+            placeholder: "Encuentra la reacción perfecta",
             tabs: false,
             expressions: None,
         };

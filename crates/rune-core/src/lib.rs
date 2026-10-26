@@ -741,7 +741,7 @@ impl Client {
         let chosen = self
             .uploads
             .choose_destination(request, files::safe_filename(filename), parent, signal)
-            .map_err(|_| t("Esperá a que se cierre el otro diálogo de archivos."))?;
+            .map_err(|_| t("Espera a que se cierre el otro diálogo de archivos."))?;
         self.downloads.save(request, url, size, chosen, cancel)
     }
 
@@ -771,7 +771,7 @@ impl Client {
         let chosen = self
             .uploads
             .choose_folder(request, parent, signal)
-            .map_err(|_| t("Esperá a que se cierre el otro diálogo de archivos."))?;
+            .map_err(|_| t("Espera a que se cierre el otro diálogo de archivos."))?;
         self.folders.wait(
             self.runtime.handle(),
             request,
@@ -815,7 +815,7 @@ impl Client {
         let chosen = self
             .uploads
             .choose_destination(request, files::safe_filename(filename), parent, signal)
-            .map_err(|_| t("Esperá a que se cierre el otro diálogo de archivos."))?;
+            .map_err(|_| t("Espera a que se cierre el otro diálogo de archivos."))?;
         self.theme_files.export(
             self.runtime.handle(),
             request,
@@ -1143,7 +1143,7 @@ impl Client {
                     // stay in memory, so an older one cannot hide a newer.
                     self.read_marks_state = ReadMarksState::restored(restored.read_marks.is_ok());
                     self.storage_notice = (self.read_marks_state == ReadMarksState::Unavailable).then_some(t(
-                        "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia.",
+                        "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reinicia o borra los datos locales para restaurar esa persistencia.",
                     ));
                     // Its drafts' files come back as each conversation
                     // opens (envios-y-subidas): Core keeps them till then.
@@ -1379,7 +1379,7 @@ impl Client {
                     // The worker may still be restoring its revision baseline.
                     // READY alone cannot turn that pending read into a failure.
                     if self.read_marks_state == ReadMarksState::Unavailable {
-                        self.storage_notice = Some(t("Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia."));
+                        self.storage_notice = Some(t("Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reinicia o borra los datos locales para restaurar esa persistencia."));
                     }
                     self.pending_storage = Some(PendingStorage::Snapshot(snapshot.clone()));
                 } else if same && self.fetching {
@@ -1509,7 +1509,9 @@ impl Client {
         if self.context.is_some_and(|scope| {
             now.saturating_duration_since(scope.since) >= self.deadlines.history
         }) {
-            self.fail_context(t("No se recibió el contexto a tiempo. Volvé a intentarlo."));
+            self.fail_context(t(
+                "No se recibió el contexto a tiempo. Vuelve a intentarlo.",
+            ));
         }
         let late: Vec<ChannelId> = self
             .loading
@@ -1988,7 +1990,7 @@ impl Client {
         // could hide a write that the disk correctly ignores as older.
         self.read_marks_state = ReadMarksState::restored(result.is_ok());
         self.storage_notice = (self.read_marks_state == ReadMarksState::Unavailable).then_some(t(
-            "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reiniciá o borrá los datos locales para restaurar esa persistencia.",
+            "Las marcas de lectura nuevas quedan sólo en memoria porque no se restauró su base local. Reinicia o borra los datos locales para restaurar esa persistencia.",
         ));
         result
     }

@@ -118,7 +118,7 @@ impl World {
                         }),
                         vec![
                             AutoModAction::Block {
-                                notice: Some("Guardá los spoilers para #componentes.".into()),
+                                notice: Some("Guarda los spoilers para #componentes.".into()),
                             },
                             AutoModAction::Alert { channel: core },
                         ],

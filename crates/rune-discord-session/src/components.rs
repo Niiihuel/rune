@@ -479,7 +479,7 @@ mod tests {
                 {"type": 2, "style": 5, "label": "Abrir", "url": "https://example.test/x"},
                 {"type": 2, "style": 1, "label": "Votar", "custom_id": "v"},
                 {"type": 2, "style": 5, "label": "Mal", "url": "javascript:alert(1)"}]},
-            {"type": 1, "components": [{"type": 3, "custom_id": "m", "placeholder": "Elegí"}]},
+            {"type": 1, "components": [{"type": 3, "custom_id": "m", "placeholder": "Elige"}]},
             {"type": 99}
         ]}]});
         let read = message(&value);
@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(
             parts[6],
             Component::Row(vec![Component::Select(Select {
-                placeholder: Some("Elegí".into()),
+                placeholder: Some("Elige".into()),
                 custom_id: Some("m".into()),
                 min: 1,
                 required: true,
@@ -655,7 +655,7 @@ mod tests {
     fn a_menu_shows_its_default_options_with_their_emoji() {
         let menu = |max: u64| {
             parts(
-                &json!([{"type": 3, "placeholder": "Elegí", "max_values": max, "options": [
+                &json!([{"type": 3, "placeholder": "Elige", "max_values": max, "options": [
                 {"label": "Rojo", "value": "r", "default": true,
                  "emoji": {"id": "22", "name": "rojo", "animated": true}},
                 {"label": "Verde", "value": "v"},

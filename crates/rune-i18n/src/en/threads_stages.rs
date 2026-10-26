@@ -14,18 +14,18 @@ pub(super) const ENTRIES: super::Entries = &[
         "This provider doesn't allow muting threads",
     ),
     (
-        "Seguí el hilo para silenciarlo",
+        "Sigue el hilo para silenciarlo",
         "Follow the thread to mute it",
     ),
     (
-        "seguí el hilo para silenciarlo",
+        "sigue el hilo para silenciarlo",
         "follow the thread to mute it",
     ),
     (
-        "Seguí el hilo antes de silenciarlo.",
+        "Sigue el hilo antes de silenciarlo.",
         "Follow the thread before muting it.",
     ),
-    ("Elegí cuánto tiempo.", "Choose for how long."),
+    ("Elige cuánto tiempo.", "Choose for how long."),
     // A narrow header.
     ("Más herramientas", "More tools"),
     // The simulation.

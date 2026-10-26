@@ -50,7 +50,7 @@ pub(crate) fn card(
     let watch = match denied {
         Some(reason) => Err(reason),
         None if store.call().is_some_and(|call| call.channel == channel) => Ok(()),
-        None => Err(t("Entrá al canal de voz para ver la transmisión").to_owned()),
+        None => Err(t("Entra al canal de voz para ver la transmisión").to_owned()),
     };
     let activity = store
         .presence(user)

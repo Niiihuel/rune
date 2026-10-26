@@ -105,7 +105,7 @@ impl World {
                     if group.recipients.contains(&user) {
                         Err(t("ya está en el grupo").into())
                     } else if !friend {
-                        Err(t("solo podés añadir a tus amigos").into())
+                        Err(t("solo puedes añadir a tus amigos").into())
                     } else if group.recipients.len() >= GROUP_OTHERS {
                         Err(t("un grupo tiene hasta 10 personas").into())
                     } else {
@@ -251,7 +251,7 @@ impl World {
             .map(|user| user.id)
             .ok_or(t("no encontramos a nadie con ese nombre de usuario"))?;
         if user == ME {
-            return Err(t("no podés enviarte una solicitud").into());
+            return Err(t("no puedes enviarte una solicitud").into());
         }
         match self.kind_with(user) {
             Some(RelationshipKind::Friend) => Err(t("ya son amigos").into()),
@@ -259,7 +259,7 @@ impl World {
                 Err(t("ya le enviaste una solicitud").into())
             }
             Some(RelationshipKind::Blocked) => {
-                Err(t("bloqueaste a esa persona: desbloqueala primero").into())
+                Err(t("bloqueaste a esa persona: desbloquéala primero").into())
             }
             // They had asked first: asking back accepts.
             Some(RelationshipKind::IncomingRequest) => {
@@ -309,7 +309,7 @@ impl World {
             }
         }
         if people.len() < 2 {
-            return Err(t("elegí al menos a dos amigos").into());
+            return Err(t("elige al menos a dos amigos").into());
         }
         if people.len() > GROUP_OTHERS {
             return Err(t("un grupo tiene hasta 10 personas").into());
@@ -318,7 +318,7 @@ impl World {
             .iter()
             .any(|user| self.kind_with(*user) != Some(RelationshipKind::Friend))
         {
-            return Err(t("solo podés añadir a tus amigos").into());
+            return Err(t("solo puedes añadir a tus amigos").into());
         }
         Ok(self.start_conversation(request, ChannelKind::Group, people))
     }

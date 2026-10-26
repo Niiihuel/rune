@@ -27,7 +27,7 @@ pub(crate) const AGAIN: LoginError = LoginError::new(es(
     "Discord volvió a pedir una verificación; la acción no se repite otra vez.",
 ));
 pub(crate) const BUSY: LoginError = LoginError::new(es(
-    "Discord pidió una verificación mientras otra esperaba; volvé a intentarlo después.",
+    "Discord pidió una verificación mientras otra esperaba; vuelve a intentarlo después.",
 ));
 
 /// One write stopped by a challenge, and how far its answer got.

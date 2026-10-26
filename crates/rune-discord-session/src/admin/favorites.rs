@@ -102,7 +102,7 @@ impl Favorites {
     pub(crate) fn decode(value: &Value) -> Result<Self, LoginError> {
         if value["out_of_date"].as_bool() == Some(true) {
             return Err(LoginError::new(es(
-                "Tus favoritos cambiaron en otro dispositivo; volvé a intentarlo.",
+                "Tus favoritos cambiaron en otro dispositivo; vuelve a intentarlo.",
             )));
         }
         let encoded = value["settings"]
@@ -184,7 +184,7 @@ impl Favorites {
     /// The base64 of field 2 with `gif` added (after every other one) or
     /// taken out; everything else in it stays as it came.
     pub(crate) fn patch(&self, gif: &FavoriteGif, favorite: bool) -> Result<String, LoginError> {
-        let too_many = || LoginError::new(es("Ya tenés demasiados GIF favoritos."));
+        let too_many = || LoginError::new(es("Ya tienes demasiados GIF favoritos."));
         let mut subtree = Vec::with_capacity(self.subtree.len() + 256);
         // The latest place among the entries, and how many are not `gif`.
         let mut last = None::<u64>;

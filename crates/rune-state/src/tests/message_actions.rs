@@ -100,7 +100,7 @@ fn polls_ask_for_their_permission_only_in_servers() {
     let general = store.abilities(GENERAL).unwrap();
     assert_eq!(
         general.create_poll.reason(),
-        Some("No tenés permiso para crear encuestas en #general")
+        Some("No tienes permiso para crear encuestas en #general")
     );
     assert!(general.forward.allowed() && general.reaction_list.allowed());
     assert!(store

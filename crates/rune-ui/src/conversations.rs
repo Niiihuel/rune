@@ -512,14 +512,14 @@ pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Ele
         Some(GroupConfirm::Remove(_, user)) => parts::confirm(
             root,
             &tr!("Quitar a «{name}»", name = name(user)),
-            t("Deja de ver la conversación del grupo. Podés volver a añadirle si es tu amigo."),
+            t("Deja de ver la conversación del grupo. Puedes volver a añadirle si es tu amigo."),
             t("Quitar del grupo"),
             look,
         ),
         Some(GroupConfirm::Leave(channel)) => parts::confirm(
             root,
             &tr!("Abandonar «{group}»", group = store.channel_title(channel)),
-            t("Dejás de ver sus mensajes. Para volver, alguien del grupo tiene que añadirte otra vez."),
+            t("Dejas de ver sus mensajes. Para volver, alguien del grupo tiene que añadirte otra vez."),
             t("Abandonar grupo"),
             look,
         ),
@@ -530,7 +530,7 @@ pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Ele
                 group = store.channel_title(channel),
                 name = name(user)
             ),
-            t("Pasa a ser dueño del grupo y vos dejás de serlo: ya no vas a poder quitar personas ni pasarlo de nuevo."),
+            t("Pasa a ser dueño del grupo y tú dejas de serlo: ya no vas a poder quitar personas ni pasarlo de nuevo."),
             t("Pasar propiedad"),
             look,
         ),
@@ -669,7 +669,7 @@ fn new_group_form(ui: &Ui, store: &Store, new: &NewGroup, look: &Look) -> NewGro
         Permit::Allowed if friends.is_empty() && !query.is_empty() => {
             Some(t("Ningún amigo coincide.").into())
         }
-        Permit::Allowed if friends.is_empty() => Some(t("Todavía no tenés amigos.").into()),
+        Permit::Allowed if friends.is_empty() => Some(t("Todavía no tienes amigos.").into()),
         Permit::Allowed => None,
     };
     NewGroupForm {

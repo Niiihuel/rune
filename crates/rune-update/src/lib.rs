@@ -130,8 +130,8 @@ impl Error {
             Self::Incomplete => t("La descarga quedó incompleta: se retoma al reintentar.").into(),
             Self::Digest => t("Lo descargado no coincide con lo firmado: se borró.").into(),
             Self::Disk => t("No se pudo escribir la actualización en el disco.").into(),
-            Self::NotInstalled => t("Esta copia de RUNE no se instaló con su instalador: actualizala desde donde la compilaste.").into(),
-            Self::Interrupted => t("La actualización se interrumpió. Reintentá para completarla.").into(),
+            Self::NotInstalled => t("Esta copia de RUNE no se instaló con su instalador: actualízala desde donde la compilaste.").into(),
+            Self::Interrupted => t("La actualización se interrumpió. Reintenta para completarla.").into(),
         }
     }
 }

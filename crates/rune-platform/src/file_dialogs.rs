@@ -305,14 +305,14 @@ impl PickError {
             Self::InvalidRequest => t("La solicitud del selector no es válida."),
             Self::InvalidResponse => t("El selector no devolvió un archivo local válido."),
             Self::NotRegularFile => {
-                t("Seleccioná un archivo normal, no una carpeta o un dispositivo.")
+                t("Selecciona un archivo normal, no una carpeta o un dispositivo.")
             }
             Self::TooMany => t("La selección tiene más archivos de los permitidos."),
             Self::TooLarge => {
                 t("El archivo o la respuesta del selector supera el límite permitido.")
             }
             Self::PermissionDenied => t("No se pudo obtener permiso para abrir el archivo."),
-            Self::TimedOut => t("El selector tardó demasiado. Podés volver a intentarlo."),
+            Self::TimedOut => t("El selector tardó demasiado. Puedes volver a intentarlo."),
             Self::Failed => t("No se pudo preparar el archivo seleccionado."),
         }
     }

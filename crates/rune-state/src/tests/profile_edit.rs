@@ -90,11 +90,11 @@ fn the_plan_says_what_needs_it_before_the_service_refuses() {
     assert!(everywhere.images.allowed() && everywhere.text.allowed());
     assert_eq!(
         everywhere.banner.reason(),
-        Some("Necesitás Nitro para usar un banner")
+        Some("Necesitas Nitro para usar un banner")
     );
     assert_eq!(
         everywhere.animated.reason(),
-        Some("Necesitás Nitro para usar un avatar animado")
+        Some("Necesitas Nitro para usar un avatar animado")
     );
     let taller = server_named(&store, "Taller de Rust");
     let there = store.profile_abilities(Some(taller));
@@ -102,7 +102,7 @@ fn the_plan_says_what_needs_it_before_the_service_refuses() {
     for permit in [&there.text, &there.images, &there.banner, &there.animated] {
         assert_eq!(
             permit.reason(),
-            Some("Necesitás Nitro para usar un perfil propio en cada servidor")
+            Some("Necesitas Nitro para usar un perfil propio en cada servidor")
         );
     }
     // A plan with a moving avatar and no banner, unnamed.

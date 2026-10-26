@@ -11,16 +11,16 @@ impl Store {
     /// Whether the account can ask the provider now, and why not.
     fn lookup_ready(&self, what: &str) -> Permit {
         if self.me().is_none() {
-            Permit::Denied(tr!("Conectá una cuenta para {what}", what))
+            Permit::Denied(tr!("Conecta una cuenta para {what}", what))
         } else if self.from_cache || self.connection != ConnectionState::Connected {
-            Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+            Permit::Denied(t("Espera a que la conexión esté disponible").into())
         } else if self
             .provider
             .as_ref()
             .is_some_and(|provider| provider.capabilities.authentication)
             && !matches!(self.authentication, AuthenticationState::SignedIn { .. })
         {
-            Permit::Denied(tr!("Iniciá sesión para {what}", what))
+            Permit::Denied(tr!("Inicia sesión para {what}", what))
         } else {
             Permit::Allowed
         }

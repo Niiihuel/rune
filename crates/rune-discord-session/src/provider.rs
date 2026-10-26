@@ -873,7 +873,7 @@ impl DiscordSessionProvider {
                                         None => {
                                             emit(events, Event::Authentication(AuthenticationState::SignedOut)).await?;
                                             emit(events, Event::Connection(ConnectionState::Disconnected {
-                                                reason: t("No se encontró la sesión guardada de esa cuenta. Entrá con «Usar otra cuenta» u olvidala.").into(),
+                                                reason: t("No se encontró la sesión guardada de esa cuenta. Entra con «Usar otra cuenta» u olvidala.").into(),
                                             })).await?;
                                             continue;
                                         }
@@ -1032,7 +1032,7 @@ impl DiscordSessionProvider {
                             match allowed {
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(()) if queue.len() >= COMMAND_QUEUE => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(()) => {
                                     // The Gateway tells the new status at once;
                                     // the account keeps it once Discord answers.
@@ -1059,7 +1059,7 @@ impl DiscordSessionProvider {
                             match admitted {
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(()) if queue.len() >= COMMAND_QUEUE => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(()) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
@@ -1094,7 +1094,7 @@ impl DiscordSessionProvider {
                             match allowed {
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(()) if queue.len() >= COMMAND_QUEUE => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(()) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
@@ -1113,13 +1113,13 @@ impl DiscordSessionProvider {
                             let allowed = session.as_ref().filter(|session| session.online)
                                 .ok_or_else(|| LoginError::new(es("La conexión todavía no está disponible.")))
                                 .and_then(|_| if crate::identity::valid_query(&command) { Ok(()) }
-                                    else { Err(LoginError::new(es("Buscá con un texto de hasta 50 caracteres."))) });
+                                    else { Err(LoginError::new(es("Busca con un texto de hasta 50 caracteres."))) });
                             match allowed {
                                 // A suggestion nobody waits on fails quietly.
                                 Err(_) if matches!(command, Command::SuggestGifs { .. }) => {}
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(()) if queue.len() >= COMMAND_QUEUE => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(()) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
@@ -1254,7 +1254,7 @@ impl DiscordSessionProvider {
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(None) => {}
                                 Ok(Some(_)) if queue.len() >= COMMAND_QUEUE => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(Some(command)) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
@@ -1315,7 +1315,7 @@ impl DiscordSessionProvider {
                             match allowed {
                                 Err(reason) => fail(events, &command, reason, false).await?,
                                 Ok(()) if full => fail(events, &command,
-                                    LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?,
+                                    LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?,
                                 Ok(()) => queue.push_back(Queued { command, at: Instant::now() }),
                             }
                         }
@@ -1358,7 +1358,7 @@ impl DiscordSessionProvider {
                             }
                             emit(events, Event::Authentication(AuthenticationState::SignedOut)).await?;
                             emit(events, Event::Connection(ConnectionState::Disconnected {
-                                reason: t("La sesión guardada ya no es válida. Iniciá sesión otra vez.").into(),
+                                reason: t("La sesión guardada ya no es válida. Inicia sesión otra vez.").into(),
                             })).await?;
                         }
                         Ok(Step::Unrestored { account, reason }) => {
@@ -1470,7 +1470,7 @@ impl DiscordSessionProvider {
                             // Private calls: a ring held for its call goes now.
                             if let Some(command) = calls.take_ring() {
                                 if queue.len() >= COMMAND_QUEUE {
-                                    fail(events, &command, LoginError::new(es("Hay demasiadas acciones pendientes. Volvé a intentarlo.")), false).await?;
+                                    fail(events, &command, LoginError::new(es("Hay demasiadas acciones pendientes. Vuelve a intentarlo.")), false).await?;
                                 } else {
                                     queue.push_back(Queued { command, at: Instant::now() });
                                 }
@@ -1937,7 +1937,7 @@ impl DiscordSessionProvider {
                 .await
                 .map_err(|_| {
                     LoginError::new(es(
-                        "El inicio de sesión venció. Podés iniciar otro intento.",
+                        "El inicio de sesión venció. Puedes iniciar otro intento.",
                     ))
                 })?
                 .map(Step::Acquired)

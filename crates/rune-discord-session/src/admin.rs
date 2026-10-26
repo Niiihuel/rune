@@ -41,7 +41,7 @@ pub(crate) const REASON_MAX: usize = 512;
 /// The most history a ban deletes: seven days, in seconds.
 pub(crate) const MAX_DELETE_SECONDS: u32 = 7 * 24 * 60 * 60;
 
-const NOT_ALLOWED: &str = es("No tenés permiso para esta acción en el servidor.");
+const NOT_ALLOWED: &str = es("No tienes permiso para esta acción en el servidor.");
 const ABOVE: &str = es("Su rol está a la altura del tuyo o por encima.");
 const UNCHANGED: &str = es("No hay cambios para guardar.");
 
@@ -220,7 +220,7 @@ impl Standing<'_> {
             return Err(wire::invalid());
         }
         if user == self.me {
-            return Err(LoginError::new(es("No podés hacerte esto a vos.")));
+            return Err(LoginError::new(es("No puedes hacerte esto a ti.")));
         }
         if self.server.owner == Some(user) {
             return Err(LoginError::new(es(
@@ -241,7 +241,7 @@ impl Standing<'_> {
         if mine.contains(granted) {
             Ok(())
         } else {
-            Err(LoginError::new(es("No podés dar permisos que no tenés.")))
+            Err(LoginError::new(es("No puedes dar permisos que no tienes.")))
         }
     }
 }
@@ -284,7 +284,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     if let Command::LeaveServer { .. } = command {
         return if owner {
             Err(LoginError::new(es(
-                "Sos dueño del servidor: eliminalo en vez de salir.",
+                "Eres dueño del servidor: elimínalo en vez de salir.",
             )))
         } else {
             Ok(())
@@ -298,7 +298,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     }
     if mine.is_some_and(|mine| mine.restrictions.at(wall_now()).is_some()) {
         return Err(LoginError::new(es(
-            "Tu cuenta está restringida en este servidor: podés leer, pero no administrar.",
+            "Tu cuenta está restringida en este servidor: puedes leer, pero no administrar.",
         )));
     }
     let standing = Standing {
@@ -498,7 +498,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
                 Some(position) if position < 1 => Err(wire::invalid()),
                 Some(position) if !owner && i64::from(position) >= standing.rank => {
                     Err(LoginError::new(es(
-                        "No podés subir un rol a la altura del tuyo o más arriba.",
+                        "No puedes subir un rol a la altura del tuyo o más arriba.",
                     )))
                 }
                 _ => Ok(()),
@@ -515,7 +515,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             standing.needs(Permissions::MANAGE_ROLES)?;
             let Some(found) = member(snapshot, server.id, *user) else {
                 return Err(LoginError::new(es(
-                    "Cargá a esa persona en la lista de miembros antes de cambiar sus roles.",
+                    "Carga a esa persona en la lista de miembros antes de cambiar sus roles.",
                 )));
             };
             if server.owner == Some(*user) && !owner {
@@ -1035,7 +1035,7 @@ fn holds(channel: &Channel, needed: Permissions) -> Result<(), LoginError> {
         Ok(())
     } else {
         Err(LoginError::new(es(
-            "No tenés permiso para esta acción en el canal.",
+            "No tienes permiso para esta acción en el canal.",
         )))
     }
 }

@@ -110,9 +110,9 @@ pub fn join_dialog(root: Element, view: &JoinView<'_>, width: f32, look: &Look) 
             ])];
             rows.push(line(
                 if prompt.single {
-                    t("Elegí una opción")
+                    t("Elige una opción")
                 } else {
-                    t("Elegí todas las que quieras")
+                    t("Elige todas las que quieras")
                 },
                 12.0,
                 look.muted,
@@ -286,7 +286,7 @@ pub fn join_dialog(root: Element, view: &JoinView<'_>, width: f32, look: &Look) 
                     rows.push(heading(&field.label, field.required, look));
                     rows.push(
                         text(
-                            t("RUNE todavía no completa este campo: respondelo desde el sitio del servicio."),
+                            t("RUNE todavía no completa este campo: respóndelo desde el sitio del servicio."),
                             12.0,
                             look.muted,
                         )
@@ -537,8 +537,8 @@ mod tests {
             "Fotos",
             "Respeto",
             "Leí y acepto las reglas",
-            "Respondé «¿Qué te trae?»",
-            "Aceptá las reglas para seguir",
+            "Responde «¿Qué te trae?»",
+            "Acepta las reglas para seguir",
         ] {
             assert!(painted.contains(said), "{said} in {painted}");
         }

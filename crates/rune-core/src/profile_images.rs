@@ -151,7 +151,7 @@ impl ProfileImages {
             self.finish(PickedProfileImage {
                 request,
                 kind,
-                result: Err(t("Elegí la imagen otra vez.")),
+                result: Err(t("Elige la imagen otra vez.")),
                 source: None,
             });
             (self.wake)();
@@ -478,7 +478,7 @@ mod tests {
                 false
             )
             .unwrap_err(),
-            "Elegí una imagen PNG, JPEG, GIF o WebP."
+            "Elige una imagen PNG, JPEG, GIF o WebP."
         );
     }
 
@@ -597,7 +597,7 @@ mod tests {
         let [picked] = &images.poll()[..] else {
             panic!("one answer");
         };
-        assert!(picked.request == 1 && matches!(picked.result, Err("Elegí la imagen otra vez.")));
+        assert!(picked.request == 1 && matches!(picked.result, Err("Elige la imagen otra vez.")));
         while woken.try_recv().is_ok() {}
         *images.chosen.lock().unwrap() = Some(Arc::from(encoded(400, 200)));
         let at = |x: f32| Crop {

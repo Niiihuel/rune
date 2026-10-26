@@ -167,7 +167,7 @@ pub(super) fn spoiler(size: (f32, f32), action: &str, draw: &Draw<'_>) -> Elemen
     let look = draw.look;
     let label = Element::column(vec![
         crate::strong_line("SPOILER", 13.0, look.text),
-        line(t("Hacé clic para mostrar"), 11.0, look.muted),
+        line(t("Haz clic para mostrar"), 11.0, look.muted),
     ])
     .gap(2.0);
     let card = Element::panel(crate::centered(label))
@@ -215,7 +215,7 @@ pub(super) fn explicit_label(look: &Look) -> Element {
     Element::panel(
         Element::column(vec![
             crate::strong_line(t("CONTENIDO EXPLÍCITO"), 13.0, look.text),
-            line(t("Hacé clic para mostrar"), 11.0, look.muted),
+            line(t("Haz clic para mostrar"), 11.0, look.muted),
         ])
         .gap(2.0),
     )
@@ -999,9 +999,9 @@ pub(super) fn poll(poll: &Poll, width: f32, draw: &Draw<'_>, voting: &Voting<'_>
     if !ended {
         parts.push(line(
             if poll.multiselect {
-                t("Elegí una o más respuestas")
+                t("Elige una o más respuestas")
             } else {
-                t("Elegí una respuesta")
+                t("Elige una respuesta")
             },
             12.0 * scale,
             look.muted,

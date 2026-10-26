@@ -53,7 +53,7 @@ fn needs(channel: &Channel, needed: Permissions) -> Result<(), LoginError> {
         Ok(())
     } else {
         Err(LoginError::new(es(
-            "No tenés permiso para esta acción en esa conversación.",
+            "No tienes permiso para esta acción en esa conversación.",
         )))
     }
 }

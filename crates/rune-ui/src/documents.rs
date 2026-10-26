@@ -597,7 +597,7 @@ pub(crate) fn overlay(
             "Este PDF no tiene texto para buscar: sus páginas son imágenes.",
         ))),
         Some(Ok(_)) if search.query.trim().is_empty() => body.push(status(t(
-            "Escribí una palabra para ver en qué páginas está.",
+            "Escribe una palabra para ver en qué páginas está.",
         ))),
         Some(Ok(_)) => {
             let results = search.results();

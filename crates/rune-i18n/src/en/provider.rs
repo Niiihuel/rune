@@ -7,7 +7,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "That command is no longer available here",
     ),
     (
-        "Elegí un subcomando de la lista",
+        "Elige un subcomando de la lista",
         "Choose a subcommand from the list",
     ),
     (
@@ -23,8 +23,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "The “{name}” option is not of that type",
     ),
     ("Falta la opción «{name}»", "The “{name}” option is missing"),
-    ("Completá este campo", "Fill in this field"),
-    ("Elegí una de las opciones", "Choose one of the options"),
+    ("Completa este campo", "Fill in this field"),
+    ("Elige una de las opciones", "Choose one of the options"),
     (
         "Tiene que estar entre {min} y {max}",
         "It must be between {min} and {max}",
@@ -32,27 +32,27 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Tiene que ser al menos {min}", "It must be at least {min}"),
     ("Tiene que ser como mucho {max}", "It must be at most {max}"),
     (
-        "Escribí al menos {min} caracteres",
+        "Escribe al menos {min} caracteres",
         "Write at least {min} characters",
     ),
     (
-        "Escribí como mucho {max} caracteres",
+        "Escribe como mucho {max} caracteres",
         "Write at most {max} characters",
     ),
-    ("Escribí un número entero", "Write a whole number"),
-    ("Escribí un número", "Write a number"),
-    ("Elegí sí o no", "Choose yes or no"),
-    ("Elegí a alguien", "Choose someone"),
-    ("Elegí un rol", "Choose a role"),
-    ("Elegí un canal", "Choose a channel"),
-    ("Elegí a alguien o un rol", "Choose someone or a role"),
+    ("Escribe un número entero", "Write a whole number"),
+    ("Escribe un número", "Write a number"),
+    ("Elige sí o no", "Choose yes or no"),
+    ("Elige a alguien", "Choose someone"),
+    ("Elige un rol", "Choose a role"),
+    ("Elige un canal", "Choose a channel"),
+    ("Elige a alguien o un rol", "Choose someone or a role"),
     (
         "RUNE no completa este tipo de opción",
         "RUNE can't fill in this kind of option",
     ),
-    ("Elegí una opción", "Choose an option"),
+    ("Elige una opción", "Choose an option"),
     (
-        "Elegí dentro de lo que se permite",
+        "Elige dentro de lo que se permite",
         "Choose within what is allowed",
     ),
     (
@@ -69,7 +69,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Saved history isn't available for this account.",
     ),
     (
-        "Revisá la consulta: hasta 256 caracteres y un intervalo de fechas válido.",
+        "Revisa la consulta: hasta 256 caracteres y un intervalo de fechas válido.",
         "Check the query: up to 256 characters and a valid date range.",
     ),
     (
@@ -81,7 +81,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The data is over the limit of this local read.",
     ),
     (
-        "El historial guardado cambió. Actualizá la búsqueda.",
+        "El historial guardado cambió. Actualiza la búsqueda.",
         "Saved history changed. Refresh the search.",
     ),
     (
@@ -89,7 +89,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The local read was canceled.",
     ),
     (
-        "No se pudo leer el historial guardado. Volvé a intentarlo.",
+        "No se pudo leer el historial guardado. Vuelve a intentarlo.",
         "Couldn't read saved history. Try again.",
     ),
     // rune-model/src/remote_search.rs
@@ -100,16 +100,16 @@ pub(super) const ENTRIES: super::Entries = &[
     ("sonido", "sound"),
     ("persona", "user"),
     (
-        "Escribí texto o elegí un filtro para buscar.",
+        "Escribe texto o elige un filtro para buscar.",
         "Write some text or choose a filter to search.",
     ),
     (
         "La búsqueda admite hasta 256 caracteres.",
         "Searches can be up to 256 characters.",
     ),
-    ("Usá como mucho 16 filtros.", "Use at most 16 filters."),
+    ("Usa como mucho 16 filtros.", "Use at most 16 filters."),
     (
-        "Elegí personas y canales de las sugerencias.",
+        "Elige personas y canales de las sugerencias.",
         "Choose people and channels from the suggestions.",
     ),
     (
@@ -203,7 +203,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "A sticker name needs 2 to 30 characters.",
     ),
     (
-        "Elegí un emoji relacionado o una palabra para buscarlo.",
+        "Elige un emoji relacionado o una palabra para buscarlo.",
         "Choose a related emoji or a word to find it by.",
     ),
     (
@@ -216,11 +216,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "GIF search isn't set up.",
     ),
     (
-        "Buscá con un texto de hasta 50 caracteres.",
+        "Busca con un texto de hasta 50 caracteres.",
         "Search with a text of up to 50 characters.",
     ),
     (
-        "No se pudo cargar la búsqueda. Volvé a intentarlo.",
+        "No se pudo cargar la búsqueda. Vuelve a intentarlo.",
         "Couldn't load the search. Try again.",
     ),
     (
@@ -232,7 +232,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The search's configuration has no access.",
     ),
     (
-        "Esperá antes de volver a buscar.",
+        "Espera antes de volver a buscar.",
         "Wait before searching again.",
     ),
     // rune-provider/src/invitations.rs
@@ -245,7 +245,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The invite isn't valid or this connection doesn't understand it.",
     ),
     (
-        "No se pudo consultar la invitación. Podés volver a intentarlo.",
+        "No se pudo consultar la invitación. Puedes volver a intentarlo.",
         "Couldn't look up the invite. You can try again.",
     ),
     (
@@ -261,7 +261,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The invite is no longer valid.",
     ),
     (
-        "No podés aceptar esta invitación con esta cuenta.",
+        "No puedes aceptar esta invitación con esta cuenta.",
         "You can't accept this invite with this account.",
     ),
     (
@@ -273,19 +273,19 @@ pub(super) const ENTRIES: super::Entries = &[
         "The service asks for a verification to join.",
     ),
     (
-        "Esperá antes de volver a aceptar la invitación.",
+        "Espera antes de volver a aceptar la invitación.",
         "Wait before accepting the invite again.",
     ),
     (
-        "No se pudo enviar la solicitud. Podés volver a intentarlo.",
+        "No se pudo enviar la solicitud. Puedes volver a intentarlo.",
         "Couldn't send the request. You can try again.",
     ),
     (
-        "No se pudo confirmar el ingreso. Comprobá si el servidor aparece.",
+        "No se pudo confirmar el ingreso. Comprueba si el servidor aparece.",
         "Couldn't confirm you joined. Check whether the server shows up.",
     ),
     // rune-provider/src/message_actions.rs
-    ("Escribí una pregunta", "Write a question"),
+    ("Escribe una pregunta", "Write a question"),
     ("La pregunta es demasiado larga", "The question is too long"),
     (
         "Una encuesta tiene entre 2 y 10 respuestas",
@@ -296,13 +296,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "Each answer needs text or an emoji",
     ),
     ("Una respuesta es demasiado larga", "An answer is too long"),
-    ("Elegí cuánto dura", "Choose how long it lasts"),
+    ("Elige cuánto dura", "Choose how long it lasts"),
     // rune-provider/src/server_admin.rs
     (
-        "El ícono de un rol va sin animación: elegí un PNG o un JPG.",
+        "El ícono de un rol va sin animación: elige un PNG o un JPG.",
         "A role icon can't be animated: choose a PNG or a JPG.",
     ),
-    ("Elegí un solo emoji.", "Choose a single emoji."),
+    ("Elige un solo emoji.", "Choose a single emoji."),
     // rune-provider/src/uploads.rs
     ("Se canceló el archivo.", "The file was canceled."),
     (
@@ -310,11 +310,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "Files aren't available on this connection.",
     ),
     (
-        "No tenés permiso para enviar archivos en esta conversación.",
+        "No tienes permiso para enviar archivos en esta conversación.",
         "You don't have permission to send files in this conversation.",
     ),
     (
-        "Esperá a que termine la preparación o el envío anterior.",
+        "Espera a que termine la preparación o el envío anterior.",
         "Wait for the previous preparation or upload to finish.",
     ),
     (
@@ -326,7 +326,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "This upload has more files than allowed.",
     ),
     (
-        "El archivo cambió mientras se preparaba. Volvé a seleccionarlo.",
+        "El archivo cambió mientras se preparaba. Vuelve a seleccionarlo.",
         "The file changed while it was being prepared. Select it again.",
     ),
     (
@@ -334,15 +334,15 @@ pub(super) const ENTRIES: super::Entries = &[
         "The selected file isn't valid.",
     ),
     (
-        "Venció el intento de envío. Podés volver a intentarlo.",
+        "Venció el intento de envío. Puedes volver a intentarlo.",
         "The upload attempt expired. You can try again.",
     ),
     (
-        "El archivo ya no está preparado. Volvé a seleccionarlo.",
+        "El archivo ya no está preparado. Vuelve a seleccionarlo.",
         "The file is no longer prepared. Select it again.",
     ),
     (
-        "Quitá un archivo preparado antes de agregar otro.",
+        "Quita un archivo preparado antes de agregar otro.",
         "Remove a prepared file before adding another.",
     ),
     (
@@ -387,7 +387,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "you can only edit your own messages",
     ),
     (
-        "solo podés borrar tus mensajes",
+        "solo puedes borrar tus mensajes",
         "you can only delete your messages",
     ),
     ("el mensaje no tiene encuesta", "the message has no poll"),
@@ -397,7 +397,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "those answers aren't valid for the poll",
     ),
     (
-        "no tenés permiso para fijar mensajes",
+        "no tienes permiso para fijar mensajes",
         "you don't have permission to pin messages",
     ),
     (
@@ -409,11 +409,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "That person isn't streaming in your call.",
     ),
     (
-        "Entrá a la llamada para compartir la pantalla.",
+        "Entra a la llamada para compartir la pantalla.",
         "Join the call to share your screen.",
     ),
     (
-        "Entrá a la llamada para encender la cámara.",
+        "Entra a la llamada para encender la cámara.",
         "Join the call to turn on your camera.",
     ),
     // mock/account.rs
@@ -449,7 +449,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("esa persona no es miembro", "that person isn't a member"),
     (
-        "no podés hacerte eso a vos",
+        "no puedes hacerte eso a ti",
         "you can't do that to yourself",
     ),
     (
@@ -465,7 +465,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "that channel isn't in this server",
     ),
     (
-        "no tenés permiso para invitar en ese canal",
+        "no tienes permiso para invitar en ese canal",
         "you don't have permission to invite in that channel",
     ),
     (
@@ -481,7 +481,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "the server already has {max} stickers",
     ),
     (
-        "no tenés permiso para ver los miembros",
+        "no tienes permiso para ver los miembros",
         "you don't have permission to see the members",
     ),
     ("esa página no existe", "that page doesn't exist"),
@@ -578,7 +578,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "RuneBot doesn't know that command (simulated).",
     ),
     // mock/manage.rs
-    ("no tenés permiso", "you don't have permission"),
+    ("no tienes permiso", "you don't have permission"),
     (
         "la simulación guarda los favoritos en este equipo",
         "the simulation keeps favorites on this device",
@@ -593,7 +593,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "An open workshop to try invites in.",
     ),
     (
-        "no sos miembro del servidor",
+        "no eres miembro del servidor",
         "you're not a member of the server",
     ),
     ("el rol no existe", "the role doesn't exist"),
@@ -607,7 +607,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("El servidor se borró", "The server was deleted"),
     (
-        "sos dueño: borrá el servidor en vez de abandonarlo",
+        "eres dueño: borra el servidor en vez de abandonarlo",
         "you're the owner: delete the server instead of leaving it",
     ),
     (
@@ -636,11 +636,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "@everyone only changes its permissions",
     ),
     (
-        "no podés dar permisos que no tenés",
+        "no puedes dar permisos que no tienes",
         "you can't give permissions you don't have",
     ),
     (
-        "no podés subir un rol por encima del tuyo",
+        "no puedes subir un rol por encima del tuyo",
         "you can't move a role above yours",
     ),
     ("@everyone no se puede borrar", "@everyone can't be deleted"),
@@ -701,7 +701,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("esa respuesta no existe", "that answer doesn't exist"),
     (
-        "no tenés acceso a esa conversación",
+        "no tienes acceso a esa conversación",
         "you don't have access to that conversation",
     ),
     (
@@ -715,7 +715,7 @@ pub(super) const ENTRIES: super::Entries = &[
     // mock/profiles.rs
     ("esa persona no existe", "that person doesn't exist"),
     (
-        "no sos miembro de ese servidor",
+        "no eres miembro de ese servidor",
         "you're not a member of that server",
     ),
     (
@@ -750,7 +750,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "That conversation isn't in that server.",
     ),
     (
-        "No podés leer el historial de esa conversación.",
+        "No puedes leer el historial de esa conversación.",
         "You can't read that conversation's history.",
     ),
     // mock/server_admin.rs
@@ -820,7 +820,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("ya está en el grupo", "they're already in the group"),
     (
-        "solo podés añadir a tus amigos",
+        "solo puedes añadir a tus amigos",
         "you can only add your friends",
     ),
     (
@@ -854,7 +854,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "we couldn't find anyone with that username",
     ),
     (
-        "no podés enviarte una solicitud",
+        "no puedes enviarte una solicitud",
         "you can't send yourself a request",
     ),
     ("ya son amigos", "you're already friends"),
@@ -863,22 +863,22 @@ pub(super) const ENTRIES: super::Entries = &[
         "you already sent them a request",
     ),
     (
-        "bloqueaste a esa persona: desbloqueala primero",
+        "bloqueaste a esa persona: desbloquéala primero",
         "you blocked that person: unblock them first",
     ),
     ("bloqueaste a esa persona", "you blocked that person"),
-    ("elegí al menos a dos amigos", "choose at least two friends"),
+    ("elige al menos a dos amigos", "choose at least two friends"),
     // mock/stage.rs
     ("no está en el escenario", "they're not on the stage"),
     ("el escenario no existe", "the stage doesn't exist"),
     ("no estás en el escenario", "you're not on the stage"),
     (
-        "no tenés permiso para pedir la palabra",
+        "no tienes permiso para pedir la palabra",
         "you don't have permission to request to speak",
     ),
-    ("ya podés hablar", "you can already speak"),
+    ("ya puedes hablar", "you can already speak"),
     (
-        "esperá que la moderación te invite a hablar",
+        "espera que la moderación te invite a hablar",
         "wait for the moderators to invite you to speak",
     ),
     (
@@ -887,7 +887,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // mock/threads.rs
     (
-        "no tenés permiso para escribir en este hilo",
+        "no tienes permiso para escribir en este hilo",
         "you don't have permission to write in this thread",
     ),
     ("el hilo está bloqueado", "the thread is locked"),
@@ -901,7 +901,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "a private thread only opens in a text channel, without a message",
     ),
     (
-        "no tenés permiso para abrir hilos acá",
+        "no tienes permiso para abrir hilos aquí",
         "you don't have permission to open threads here",
     ),
     (
@@ -910,7 +910,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("el foro no existe", "the forum doesn't exist"),
     (
-        "no tenés permiso para publicar en este foro",
+        "no tienes permiso para publicar en este foro",
         "you don't have permission to post in this forum",
     ),
     (
@@ -931,7 +931,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("cursor inválido", "invalid cursor"),
     (
-        "reabrí el hilo antes de seguirlo o dejarlo",
+        "reabre el hilo antes de seguirlo o dejarlo",
         "reopen the thread before following or leaving it",
     ),
     (
@@ -981,7 +981,7 @@ pub(super) const ENTRIES: super::Entries = &[
     // Reactions, pins and search (2026-10-18): rune-model/src/remote_search.rs.
     ("encuesta", "poll"),
     (
-        "Escribí el sitio como ejemplo.com.",
+        "Escribe el sitio como ejemplo.com.",
         "Write the site as example.com.",
     ),
 ];

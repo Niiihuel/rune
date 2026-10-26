@@ -944,7 +944,7 @@ mod tests {
             },
         ];
         let source = format!(
-            "Mirá {place} y [esto]({other}), [acá](https://evil.test/x) o https://ok.test/y, <t:0:R>"
+            "Mira {place} y [esto]({other}), [aquí](https://evil.test/x) o https://ok.test/y, <t:0:R>"
         );
         let mut element = Markdown::new(&source, look.palette())
             .width(900.0)
@@ -972,7 +972,7 @@ mod tests {
         // A masked link to a place opens in RUNE and keeps its text.
         assert_eq!(find("esto").unwrap().action.as_deref(), Some("place:4:0"));
         assert_eq!(
-            find("acá").unwrap().action.as_deref(),
+            find("aquí").unwrap().action.as_deref(),
             Some("link_masked:https://evil.test/x")
         );
         let bare = find("https://ok.test/y").unwrap();
@@ -1056,7 +1056,7 @@ mod tests {
         assert_eq!(text, "a || b", "a lone mark stays as written");
         // A bare link inside one hides with it, and works once shown
         // (2026-10-18: Markdown took the closing marks into the link).
-        let link = written("mirá ||https://ok.test/a||", &names, &[], &[]);
+        let link = written("mira ||https://ok.test/a||", &names, &[], &[]);
         assert!(
             !link.iter().any(|span| span.text.contains("||")),
             "{link:?}"
@@ -1066,7 +1066,7 @@ mod tests {
             hidden.and_then(|span| span.action.as_deref()),
             Some("msg:1:spoiler:0")
         );
-        let shown = written("mirá ||https://ok.test/a||", &names, &[], &[0]);
+        let shown = written("mira ||https://ok.test/a||", &names, &[], &[0]);
         let shown = shown.iter().find(|span| span.text == "https://ok.test/a");
         assert!(shown
             .and_then(|span| span.action.as_deref())

@@ -378,7 +378,7 @@ impl View<'_> {
             TextArea::new(
                 DESCRIPTION,
                 shown.description.clone().unwrap_or_default(),
-                t("Contale a la gente de qué se trata este servidor."),
+                t("Cuéntale a la gente de qué se trata este servidor."),
                 look.palette(),
             )
             .accessibility_label(t("Descripción del servidor"))
@@ -452,7 +452,7 @@ impl View<'_> {
         let mut children = vec![parts::page_title(
             t("Roles"),
             Some(t(
-                "Usá roles para agrupar a los miembros del servidor y darles permisos.",
+                "Usa roles para agrupar a los miembros del servidor y darles permisos.",
             )),
             look,
         )];
@@ -463,8 +463,8 @@ impl View<'_> {
         if order.is_empty() {
             children.push(
                 Empty::new(
-                    t("Organizá a tus miembros"),
-                    t("Usá roles para agrupar a los miembros del servidor y darles permisos."),
+                    t("Organiza a tus miembros"),
+                    t("Usa roles para agrupar a los miembros del servidor y darles permisos."),
                     look.palette(),
                 )
                 .icon(Icon::Users)
@@ -495,7 +495,7 @@ impl View<'_> {
             .gap(16.0),
         );
         children.push(text(
-            t("Los miembros usan el color del rol más alto que tengan en esta lista. Arrastrá los roles para reordenarlos."),
+            t("Los miembros usan el color del rol más alto que tengan en esta lista. Arrastra los roles para reordenarlos."),
             14.0,
             look.muted,
         ));
@@ -522,7 +522,7 @@ impl View<'_> {
                     MenuAction::new(format!("ss:role:{id}:up"), t("Subir"))
                         .icon(Icon::ArrowUp)
                         .denied(locked.clone().or_else(|| {
-                            first.then(|| t("Ya está lo más arriba que podés ponerlo.").to_owned())
+                            first.then(|| t("Ya está lo más arriba que puedes ponerlo.").to_owned())
                         })),
                     MenuAction::new(format!("ss:role:{id}:down"), t("Bajar"))
                         .icon(Icon::ArrowDown)
@@ -900,7 +900,7 @@ impl View<'_> {
                     text(t("No hay miembros con este rol."), 14.0, look.muted).centered_y(),
                     Button::new(
                         "ss:role-members:add",
-                        t("Añadí miembros a este rol."),
+                        t("Añade miembros a este rol."),
                         look.palette(),
                     )
                     .variant(ButtonVariant::Link)
@@ -1547,7 +1547,7 @@ impl View<'_> {
             settings.delete_role.is_some(),
             t("Eliminar rol"),
             tr!(
-                "¿Seguro que querés eliminar el rol «{name}»? No se puede deshacer.",
+                "¿Seguro que quieres eliminar el rol «{name}»? No se puede deshacer.",
                 name = settings.delete_role.map(role_name).unwrap_or_default()
             ),
             "ss:role-delete:confirm",
@@ -1585,7 +1585,7 @@ impl View<'_> {
                 true,
                 t("Añadir miembros"),
                 tr!(
-                    "Elegí a quiénes darles el rol «{name}».",
+                    "Elige a quiénes darles el rol «{name}».",
                     name = role_name(role)
                 ),
                 "ss:add:cancel",
@@ -1811,7 +1811,7 @@ impl View<'_> {
                 root,
                 true,
                 title,
-                tr!("¿Seguro que querés eliminar {what}? Nadie del servidor va a poder usarlo. No se puede deshacer.", what),
+                tr!("¿Seguro que quieres eliminar {what}? Nadie del servidor va a poder usarlo. No se puede deshacer.", what),
                 "ss:expression-delete:confirm",
                 "ss:expression-delete:cancel",
                 palette,
@@ -1825,7 +1825,7 @@ impl View<'_> {
             let name = &self.server.name;
             let matches = typed.trim() == name.as_str();
             let mut body = vec![FormField::new(
-                t("Escribí el nombre del servidor"),
+                t("Escribe el nombre del servidor"),
                 TextField::new(DELETE_NAME, typed.clone(), name.clone(), palette)
                     .accessibility_label(t("Nombre del servidor, para confirmar"))
                     .height(FIELD_HEIGHT)
@@ -1841,7 +1841,7 @@ impl View<'_> {
                 true,
                 tr!("Eliminar «{name}»", name),
                 tr!(
-                    "¿Seguro que querés eliminar {name}? No se puede deshacer.",
+                    "¿Seguro que quieres eliminar {name}? No se puede deshacer.",
                     name
                 ),
                 "ss:delete-server:confirm",

@@ -36,12 +36,12 @@ pub struct ChallengeProps {
 pub fn dialog(root: Element, props: &ChallengeProps, look: &Look) -> Element {
     let body = if props.simulated {
         tr!(
-            "La simulación pide una verificación para {action}. Es simulada: no se abre ninguna ventana y «Verificar» la da por resuelta. Si cancelás, no se envía nada.",
+            "La simulación pide una verificación para {action}. Es simulada: no se abre ninguna ventana y «Verificar» la da por resuelta. Si cancelas, no se envía nada.",
             action = props.action
         )
     } else {
         tr!(
-            "{service} pide una verificación para {action}. Resolvela vos en la ventana de verificación de RUNE: nada se resuelve solo, y con tu respuesta la acción se envía una sola vez. Si cancelás o cerrás la ventana, no se envía nada.",
+            "{service} pide una verificación para {action}. Resuélvela tú en la ventana de verificación de RUNE: nada se resuelve solo, y con tu respuesta la acción se envía una sola vez. Si cancelas o cierras la ventana, no se envía nada.",
             service = props.service,
             action = props.action
         )

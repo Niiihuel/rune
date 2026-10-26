@@ -39,38 +39,38 @@ const LOCAL: [(Local, &str, &str); 8] = [
     (
         Local::Gif,
         "gif",
-        es("Buscá un GIF animado: /gif [búsqueda]"),
+        es("Busca un GIF animado: /gif [búsqueda]"),
     ),
     (
         Local::Me,
         "me",
-        es("Escribí en cursiva, como una acción: /me texto"),
+        es("Escribe en cursiva, como una acción: /me texto"),
     ),
     (
         Local::Msg,
         "msg",
-        es("Escribile por privado a alguien: /msg @persona [mensaje]"),
+        es("Escríbele por privado a alguien: /msg @persona [mensaje]"),
     ),
-    (Local::Shrug, "shrug", es("Agregá ¯\\_(ツ)_/¯ a tu mensaje")),
+    (Local::Shrug, "shrug", es("Agrega ¯\\_(ツ)_/¯ a tu mensaje")),
     (
         Local::Spoiler,
         "spoiler",
-        es("Ocultá el texto como spoiler: /spoiler texto"),
+        es("Oculta el texto como spoiler: /spoiler texto"),
     ),
     (
         Local::Sticker,
         "sticker",
-        es("Buscá un sticker: /sticker [búsqueda]"),
+        es("Busca un sticker: /sticker [búsqueda]"),
     ),
     (
         Local::Tableflip,
         "tableflip",
-        es("Agregá (╯°□°)╯︵ ┻━┻ a tu mensaje"),
+        es("Agrega (╯°□°)╯︵ ┻━┻ a tu mensaje"),
     ),
     (
         Local::Unflip,
         "unflip",
-        es("Agregá ┬─┬ ノ( ゜-゜ノ) a tu mensaje"),
+        es("Agrega ┬─┬ ノ( ゜-゜ノ) a tu mensaje"),
     ),
 ];
 
@@ -488,7 +488,7 @@ fn run_local(
         Local::Sticker => return open_expressions(ui, store, channel, "stickers", arguments, now),
         Local::Msg => return message_someone(ui, store, channel, arguments, now),
         Local::Me | Local::Spoiler if arguments.is_empty() => {
-            return refuse(ui, t("Escribí algo después del comando."))
+            return refuse(ui, t("Escribe algo después del comando."))
         }
         Local::Me => format!("*{}*", crate::emoticons::sent(ui, arguments)),
         Local::Spoiler => format!("||{}||", crate::emoticons::sent(ui, arguments)),
@@ -606,12 +606,12 @@ fn message_someone(
         Vec::new()
     };
     if who.is_empty() {
-        return refuse(ui, t("Elegí a quién: /msg @persona [mensaje]"));
+        return refuse(ui, t("Elige a quién: /msg @persona [mensaje]"));
     }
     let Some(user) = recipient(store, who) else {
         return refuse(
             ui,
-            t("No encontramos a esa persona: usá su nombre de usuario o su mención."),
+            t("No encontramos a esa persona: usa su nombre de usuario o su mención."),
         );
     };
     let mut intents = set_composer(ui, channel, String::new());

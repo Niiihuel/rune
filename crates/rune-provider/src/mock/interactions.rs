@@ -216,7 +216,7 @@ impl World {
                 if !interaction.files().is_empty()
                     && !found.permissions.contains(Permissions::ATTACH)
                 {
-                    return Err(t("No tenés permiso para adjuntar archivos (simulado).").into());
+                    return Err(t("No tienes permiso para adjuntar archivos (simulado).").into());
                 }
                 Ok(())
             }
@@ -404,7 +404,7 @@ impl World {
                 t("(simulado)")
             )),
             "formulario" => return Err(self.open_modal(request, channel)),
-            "secreto" => Said::Only(format!("🤫 Sólo vos ves este mensaje {}.", t("(simulado)"))),
+            "secreto" => Said::Only(format!("🤫 Sólo tú ves este mensaje {}.", t("(simulado)"))),
             "moderar" => Said::Only(format!("🛡️ {}", t("Moderación simulada: no se hizo nada."))),
             _ => {
                 return Err(vec![failed(
@@ -515,34 +515,34 @@ impl World {
             })])
         };
         message.author = APP;
-        message.content = format!("Probá los menús de RuneBot {}:", t("(simulado)"));
+        message.content = format!("Prueba los menús de RuneBot {}:", t("(simulado)"));
         message.components = Components {
             parts: vec![
                 menu(
                     "rb:personas",
                     MenuKind::User,
-                    "Elegí personas",
+                    "Elige personas",
                     vec![Picked::User(super::ME)],
                     3,
                 ),
                 menu(
                     "rb:roles",
                     MenuKind::Role,
-                    "Elegí un rol",
+                    "Elige un rol",
                     role.map(Picked::Role).into_iter().collect(),
                     1,
                 ),
                 menu(
                     "rb:canales",
                     MenuKind::Channel,
-                    "Elegí un canal",
+                    "Elige un canal",
                     vec![Picked::Channel(channel)],
                     1,
                 ),
                 menu(
                     "rb:menciones",
                     MenuKind::Mentionable,
-                    "Elegí a quién mencionar",
+                    "Elige a quién mencionar",
                     Vec::new(),
                     2,
                 ),
@@ -617,7 +617,7 @@ fn app_parts() -> Components {
                 ]),
                 // Left picked by its app: the menu shows it, not the placeholder.
                 Component::Row(vec![Component::Select(Select {
-                    placeholder: Some("Elegí un horario".into()),
+                    placeholder: Some("Elige un horario".into()),
                     chosen: vec![rune_model::components::Choice {
                         label: format!("Jueves 18 h {}", t("(simulado)")),
                         emoji: Some("🕕".into()),
@@ -682,7 +682,7 @@ fn modal(id: u64) -> Modal {
                 },
             ),
             field(
-                "¿Qué querés aprender?",
+                "¿Qué quieres aprender?",
                 Some("Hasta 300 caracteres."),
                 ModalInput::TextInput {
                     custom_id: "tema".into(),
@@ -708,11 +708,11 @@ fn modal(id: u64) -> Modal {
                 },
             ),
             field(
-                "Días que podés",
+                "Días que puedes",
                 None,
                 ModalInput::Menu(Select {
                     custom_id: Some("dias".into()),
-                    placeholder: Some("Elegí días".into()),
+                    placeholder: Some("Elige días".into()),
                     options: vec![
                         option("Jueves", "jueves", None, false),
                         option("Viernes", "viernes", None, false),
@@ -734,7 +734,7 @@ fn modal(id: u64) -> Modal {
             ),
             field(
                 "Algo tuyo para mostrar",
-                Some("Hasta dos archivos, si querés."),
+                Some("Hasta dos archivos, si quieres."),
                 ModalInput::Files {
                     custom_id: "archivos".into(),
                     required: false,
@@ -770,7 +770,7 @@ fn commands() -> Vec<AppCommand> {
     let mut faces = option(OptionKind::Integer, "caras", "Cuántas caras tiene el dado");
     faces.min = Some(2.0);
     faces.max = Some(100.0);
-    let private = option(OptionKind::Boolean, "privado", "Que sólo lo veas vos");
+    let private = option(OptionKind::Boolean, "privado", "Que sólo lo veas tú");
     let mut text = option(OptionKind::Text, "texto", "Qué te recuerdo");
     text.required = true;
     text.max_length = Some(100);
@@ -791,12 +791,12 @@ fn commands() -> Vec<AppCommand> {
     let mut place = option(OptionKind::Channel, "en", "Dónde avisar");
     place.required = true;
     place.channels = vec![ChannelKind::Text];
-    let mut on = option(OptionKind::Subcommand, "activar", "Activá los avisos");
+    let mut on = option(OptionKind::Subcommand, "activar", "Activa los avisos");
     on.options = vec![place];
-    let off = option(OptionKind::Subcommand, "desactivar", "Desactivá los avisos");
+    let off = option(OptionKind::Subcommand, "desactivar", "Desactiva los avisos");
     let mut notices = option(OptionKind::Group, "avisos", "Los avisos de RuneBot");
     notices.options = vec![on, off];
-    let show = option(OptionKind::Subcommand, "ver", "Mirá la configuración");
+    let show = option(OptionKind::Subcommand, "ver", "Mira la configuración");
     let mut moderate = command(
         908,
         "moderar",
@@ -806,23 +806,23 @@ fn commands() -> Vec<AppCommand> {
     moderate.needs = Some(Permissions::MANAGE_MESSAGES);
     moderate.in_direct = false;
     vec![
-        command(901, "dado", "Tirá un dado", vec![faces, private]),
+        command(901, "dado", "Tira un dado", vec![faces, private]),
         command(
             902,
             "recordatorio",
-            "Pedile un recordatorio",
+            "Pídele un recordatorio",
             vec![text, when],
         ),
-        command(903, "buscar", "Buscá un tema", vec![topic]),
-        command(904, "saludar", "Saludá a alguien", vec![whom]),
-        command(905, "config", "Configurá RuneBot", vec![notices, show]),
+        command(903, "buscar", "Busca un tema", vec![topic]),
+        command(904, "saludar", "Saluda a alguien", vec![whom]),
+        command(905, "config", "Configura RuneBot", vec![notices, show]),
         command(
             906,
             "formulario",
-            "Abrí el formulario del taller",
+            "Abre el formulario del taller",
             Vec::new(),
         ),
-        command(907, "secreto", "Un mensaje que sólo ves vos", Vec::new()),
+        command(907, "secreto", "Un mensaje que sólo ves tú", Vec::new()),
         moderate,
     ]
 }

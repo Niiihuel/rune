@@ -124,7 +124,7 @@ impl NewExpression {
                 Some(t("El nombre del sticker necesita de 2 a 30 caracteres."))
             }
             ExpressionKind::Sticker if !(1..=200).contains(&self.tags.trim().chars().count()) => {
-                Some(t("Elegí un emoji relacionado o una palabra para buscarlo."))
+                Some(t("Elige un emoji relacionado o una palabra para buscarlo."))
             }
             ExpressionKind::Sticker
                 if !matches!(self.description.trim().chars().count(), 0 | 2..=100) =>

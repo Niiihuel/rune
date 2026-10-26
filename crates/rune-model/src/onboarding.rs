@@ -140,7 +140,7 @@ impl RulesField {
             }
             RulesAnswer::Text(written) => match self.max_chars() {
                 Some(max) if written.chars().count() > max => {
-                    return Some(tr!("Escribí como mucho {max} caracteres", max));
+                    return Some(tr!("Escribe como mucho {max} caracteres", max));
                 }
                 Some(_) => !written.trim().is_empty(),
                 None => false,
@@ -152,9 +152,9 @@ impl RulesField {
         }
         Some(
             match self.kind {
-                RulesFieldKind::Terms => t("Aceptá las reglas para seguir"),
-                RulesFieldKind::MultipleChoice => t("Elegí una opción"),
-                _ => t("Completá este campo"),
+                RulesFieldKind::Terms => t("Acepta las reglas para seguir"),
+                RulesFieldKind::MultipleChoice => t("Elige una opción"),
+                _ => t("Completa este campo"),
             }
             .into(),
         )
@@ -171,7 +171,7 @@ impl ServerRules {
     /// problem, or a count that does not match the fields.
     pub fn problem(&self, answers: &[RulesAnswer]) -> Option<String> {
         if answers.len() != self.fields.len() {
-            return Some(t("Las reglas cambiaron: abrilas otra vez").into());
+            return Some(t("Las reglas cambiaron: ábrelas otra vez").into());
         }
         self.fields
             .iter()
@@ -309,7 +309,7 @@ impl Onboarding {
             match self.asking(*choice) {
                 Some(prompt) => per_prompt.push(prompt.id),
                 None => {
-                    return Some(t("Esa opción ya no está: abrí las preguntas otra vez").into())
+                    return Some(t("Esa opción ya no está: abre las preguntas otra vez").into())
                 }
             }
         }
@@ -317,9 +317,9 @@ impl Onboarding {
             let title = &prompt.title;
             let count = per_prompt.iter().filter(|id| **id == prompt.id).count();
             if count == 0 && prompt.required {
-                Some(tr!("Respondé «{title}»", title))
+                Some(tr!("Responde «{title}»", title))
             } else if count > 1 && prompt.single {
-                Some(tr!("Elegí una sola opción en «{title}»", title))
+                Some(tr!("Elige una sola opción en «{title}»", title))
             } else {
                 None
             }
@@ -401,7 +401,7 @@ impl Onboarding {
         }
         if self.enabled && !self.counted_channels().into_iter().any(everyone_writes) {
             return Some(
-                t("Para activarla, elegí al menos un canal por defecto donde todos puedan escribir.")
+                t("Para activarla, elige al menos un canal por defecto donde todos puedan escribir.")
                     .into(),
             );
         }
@@ -482,7 +482,7 @@ mod tests {
 
     #[test]
     fn a_written_answer_is_bounded_by_its_kind_and_an_unknown_kind_only_blocks_when_required() {
-        let story = asking(RulesFieldKind::Paragraph, "Contanos de vos", true);
+        let story = asking(RulesFieldKind::Paragraph, "Cuéntanos de ti", true);
         let nick = asking(RulesFieldKind::ShortAnswer, "¿Cómo te dicen?", false);
         assert_eq!(story.max_chars(), Some(MAX_PARAGRAPH));
         assert_eq!(nick.max_chars(), Some(MAX_SHORT_ANSWER));
@@ -526,12 +526,12 @@ mod tests {
         assert!(!rules.reviewed());
         assert_eq!(
             rules.problem(&[RulesAnswer::Agreed(false)]),
-            Some(t("Aceptá las reglas para seguir").into())
+            Some(t("Acepta las reglas para seguir").into())
         );
         assert_eq!(rules.problem(&[RulesAnswer::Agreed(true)]), None);
         rules.fields.push(asking(
             RulesFieldKind::MultipleChoice,
-            "¿Cuándo sacás?",
+            "¿Cuándo sacas?",
             true,
         ));
         assert!(rules.reviewed());
@@ -557,7 +557,7 @@ mod tests {
     #[test]
     fn answers_count_only_the_options_of_the_questions_asked() {
         let gear = offering(
-            question(1_100, "¿Qué cámara usás?", true, true),
+            question(1_100, "¿Qué cámara usas?", true, true),
             &[(1_101, "analogica", Some(40)), (1_102, "digital", None)],
         );
         let themes = offering(
@@ -565,7 +565,7 @@ mod tests {
             &[(1_201, "retratos", None), (1_202, "paisajes", Some(41))],
         );
         let mut later = offering(
-            question(1_300, "¿Querés avisos?", false, false),
+            question(1_300, "¿Quieres avisos?", false, false),
             &[(1_301, "concursos", None)],
         );
         later.in_onboarding = false;
@@ -588,18 +588,18 @@ mod tests {
         assert_eq!(onboarding.answered(), [ChoiceId(1_202)]);
         assert_eq!(
             onboarding.answer_problem(&onboarding.chosen),
-            Some(t("Esa opción ya no está: abrí las preguntas otra vez").into())
+            Some(t("Esa opción ya no está: abre las preguntas otra vez").into())
         );
         assert_eq!(
             onboarding.answer_problem(&onboarding.answered()),
-            Some(tr!("Respondé «{title}»", title = "¿Qué cámara usás?"))
+            Some(tr!("Responde «{title}»", title = "¿Qué cámara usas?"))
         );
         let both = [ChoiceId(1_102), ChoiceId(1_101), ChoiceId(1_202)];
         assert_eq!(
             onboarding.answer_problem(&both),
             Some(tr!(
-                "Elegí una sola opción en «{title}»",
-                title = "¿Qué cámara usás?"
+                "Elige una sola opción en «{title}»",
+                title = "¿Qué cámara usas?"
             ))
         );
         assert_eq!(
@@ -664,7 +664,7 @@ mod tests {
         let snowflake = 1_300_000_000_000_000_000;
         let mut onboarding = Onboarding {
             prompts: vec![offering(
-                question(snowflake, "¿Qué cámara usás?", true, true),
+                question(snowflake, "¿Qué cámara usas?", true, true),
                 &[(snowflake + 1, "analogica", None)],
             )],
             ..Onboarding::default()

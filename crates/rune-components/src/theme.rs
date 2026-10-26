@@ -271,7 +271,7 @@ pub fn preview(look: &Look, width: f32) -> Element {
         Element::panel(Element::spacer())
             .size(Some(2.0), None)
             .background(look.accent),
-        line(t("@vos, ¿lo probaste?"), 13.0, look.text)
+        line(t("tú, ¿lo probaste?"), 13.0, look.text)
             .padding(5.0)
             .flex(1.0),
     ])
@@ -295,7 +295,7 @@ pub fn preview(look: &Look, width: f32) -> Element {
         presence(look.offline).centered_y(),
     ])
     .gap(6.0);
-    let field = Element::panel(line(t("Escribí un mensaje"), 12.0, look.faint))
+    let field = Element::panel(line(t("Escribe un mensaje"), 12.0, look.faint))
         .padding(8.0)
         .radius(6.0)
         .background(look.raised);

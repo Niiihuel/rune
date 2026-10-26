@@ -446,7 +446,7 @@ fn unknown_partial_update_requires_a_real_baseline_on_retry() {
                 reason,
                 ambiguous: false,
             } => {
-                assert!(reason.contains("Volvé a intentarlo"));
+                assert!(reason.contains("Vuelve a intentarlo"));
                 assert!(
                     !reason.contains("demasiado"),
                     "an unknown baseline is not a delta overflow"

@@ -193,7 +193,7 @@ impl Http {
                     .is_some_and(|known| *known != current)
                 {
                     return Err(RestError::rejected(
-                        es("Las carpetas cambiaron en otro dispositivo. Ya se ven como quedaron: volvé a intentarlo."),
+                        es("Las carpetas cambiaron en otro dispositivo. Ya se ven como quedaron: vuelve a intentarlo."),
                     ));
                 }
                 let subtree = read

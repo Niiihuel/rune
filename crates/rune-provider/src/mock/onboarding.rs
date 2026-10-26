@@ -72,16 +72,16 @@ fn prompt(
 fn rules() -> ServerRules {
     ServerRules {
         version: Some("2026-10-18T00:00:00+00:00".into()),
-        description: Some("Antes de escribir, leé las reglas del club.".into()),
+        description: Some("Antes de escribir, lee las reglas del club.".into()),
         fields: vec![RulesField {
             kind: RulesFieldKind::Terms,
             label: "Leí y acepto las reglas".into(),
             description: None,
             placeholder: None,
             rules: vec![
-                "Respetá a todas las personas.".into(),
+                "Respeta a todas las personas.".into(),
                 "Nada de spam ni de autopromoción sin permiso.".into(),
-                "Usá cada canal para su tema.".into(),
+                "Usa cada canal para su tema.".into(),
             ],
             choices: Vec::new(),
             required: true,
@@ -108,14 +108,14 @@ fn reviewed_rules() -> ServerRules {
         fields: vec![
             RulesField {
                 rules: vec![
-                    "Cuidá los químicos y el equipo.".into(),
-                    "Reservá la ampliadora antes de usarla.".into(),
+                    "Cuida los químicos y el equipo.".into(),
+                    "Reserva la ampliadora antes de usarla.".into(),
                 ],
                 ..field(RulesFieldKind::Terms, "Acepto las normas del taller", true)
             },
             RulesField {
                 placeholder: Some("Tu nombre".into()),
-                ..field(RulesFieldKind::ShortAnswer, "¿Cómo te llamás?", true)
+                ..field(RulesFieldKind::ShortAnswer, "¿Cómo te llamas?", true)
             },
             RulesField {
                 choices: vec![
@@ -123,7 +123,7 @@ fn reviewed_rules() -> ServerRules {
                     "Medio formato".into(),
                     "Gran formato".into(),
                 ],
-                ..field(RulesFieldKind::MultipleChoice, "¿Qué formato usás?", true)
+                ..field(RulesFieldKind::MultipleChoice, "¿Qué formato usas?", true)
             },
             field(
                 RulesFieldKind::Paragraph,
@@ -170,7 +170,7 @@ impl World {
                 default_channels: vec![core, components],
                 prompts: vec![prompt(
                     9_100,
-                    "¿En qué querés colaborar?",
+                    "¿En qué quieres colaborar?",
                     false,
                     false,
                     vec![
@@ -280,7 +280,7 @@ impl World {
                     ),
                     prompt(
                         ids.0 + 100,
-                        "¿Cómo preferís participar?",
+                        "¿Cómo prefieres participar?",
                         true,
                         false,
                         vec![
@@ -423,7 +423,7 @@ impl World {
             })
             .ok_or(t("este servidor no pide reglas"))?;
         if current != shown {
-            return Err(t("las reglas cambiaron: abrilas otra vez").into());
+            return Err(t("las reglas cambiaron: ábrelas otra vez").into());
         }
         if let Some(problem) = current.problem(answers) {
             return Err(problem);
@@ -433,7 +433,7 @@ impl World {
             .members
             .iter_mut()
             .find(|member| member.server == server && member.user == ME)
-            .ok_or(t("no sos miembro del servidor"))?;
+            .ok_or(t("no eres miembro del servidor"))?;
         if !member.restrictions.pending {
             return Err(t("ya aceptaste las reglas").into());
         }
@@ -468,7 +468,7 @@ impl World {
             .filter(|found| found.asks())
             .ok_or(t("este servidor no tiene preguntas"))?;
         if current.prompts != shown.prompts {
-            return Err(t("las preguntas cambiaron: abrilas otra vez").into());
+            return Err(t("las preguntas cambiaron: ábrelas otra vez").into());
         }
         if let Some(problem) = current.answer_problem(&chosen) {
             return Err(problem);
@@ -484,7 +484,7 @@ impl World {
             .members
             .iter_mut()
             .find(|member| member.server == server && member.user == ME)
-            .ok_or(t("no sos miembro del servidor"))?;
+            .ok_or(t("no eres miembro del servidor"))?;
         for role in given {
             if !member.roles.contains(&role) {
                 member.roles.push(role);

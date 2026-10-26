@@ -579,7 +579,7 @@ fn note(store: &Store) -> String {
         .and_then(|call| store.abilities(call.channel))
         .and_then(|abilities| abilities.send_video.reason().map(str::to_owned))
         .unwrap_or_else(|| t(rune_state::NO_VIDEO_SENDING).to_owned());
-    tr!("Solo vos lo ves. {reason}.", reason)
+    tr!("Solo tú lo ves. {reason}.", reason)
 }
 
 /// The call's camera and screen buttons.
@@ -590,7 +590,7 @@ pub(crate) fn controls(ui: &Ui, store: &Store) -> VideoControls {
         denied: unsupported().map(str::to_owned),
         note: note(store),
         screen_note: can_share(store)
-            .then(|| t("Elegí la calidad; se transmite a la llamada.").to_owned()),
+            .then(|| t("Elige la calidad; se transmite a la llamada.").to_owned()),
         camera_note: can_send_camera(store).then(|| t("Se transmite a la llamada.").to_owned()),
         picker: ui.video.picker.then_some(ui.video.quality),
         sound: !ui.video.silent,

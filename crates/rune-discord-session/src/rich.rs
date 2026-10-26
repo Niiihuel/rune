@@ -533,7 +533,7 @@ mod tests {
         let payload = json!({
             "type": "safety_system_notification",
             "fields": [
-                field("client_version_message", "Actualizá la app para ver este mensaje."),
+                field("client_version_message", "Actualiza la app para ver este mensaje."),
                 field("body", "Detectamos actividad inusual en tu cuenta."),
                 field("icon_type", "warning"),
                 field("header", "Mensaje importante de Discord acerca de tu cuenta"),

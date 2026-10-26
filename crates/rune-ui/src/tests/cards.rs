@@ -148,7 +148,7 @@ fn each_thumbnail_of_a_gallery_is_the_picture_it_opens() {
 fn a_card_behind_a_spoiler_shows_and_loads_nothing_until_revealed() {
     let link = "https://example.test/final.png";
     let (mut host, id) = posted(|message| {
-        message.content = format!("Mirá ||{link}||");
+        message.content = format!("Mira ||{link}||");
         message.embeds = vec![
             Embed {
                 kind: EmbedKind::Image,

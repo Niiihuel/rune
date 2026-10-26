@@ -165,7 +165,7 @@ pub fn captcha(
             "texts": {
                 "failed": t("La verificación no pudo cargarse. No se envió nada."),
                 "verified": t("Verificación completa. Volviendo a RUNE…"),
-                "ready": t("Completá la verificación para entrar al servidor."),
+                "ready": t("Completa la verificación para entrar al servidor."),
             },
         })
         .to_string(),

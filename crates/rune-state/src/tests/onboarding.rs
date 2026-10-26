@@ -91,7 +91,7 @@ fn reviewed_or_rejected_rules_say_so_and_stay_across_a_new_session() {
     };
     assert_eq!(
         reason(&store),
-        Some(format!("Aceptá las reglas de {name} para participar"))
+        Some(format!("Acepta las reglas de {name} para participar"))
     );
     store.apply(
         Event::RulesAnswered {

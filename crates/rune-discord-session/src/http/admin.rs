@@ -478,7 +478,7 @@ impl Http {
             } => {
                 let member = context.member.clone().ok_or_else(|| {
                     RestError::rejected(es(
-                        "Cargá a esa persona en la lista de miembros antes de cambiar sus roles.",
+                        "Carga a esa persona en la lista de miembros antes de cambiar sus roles.",
                     ))
                 })?;
                 let changes: Vec<_> = roles
@@ -899,7 +899,7 @@ impl Http {
                     cursor = next;
                 }
                 Err(RestError::rejected(es(
-                    "Muchas entradas seguidas no coinciden con el filtro; probá con otro.",
+                    "Muchas entradas seguidas no coinciden con el filtro; prueba con otro.",
                 )))
             }
             Command::LoadMembers {

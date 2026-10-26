@@ -336,7 +336,7 @@ pub(crate) fn target_lock(
         .find(|candidate| candidate.id == role && role.0 != server.0)?
         .position;
     (position >= store.my_rank(server)).then(|| {
-        t("Este rol está a la altura del tuyo o por encima: no podés cambiar sus permisos.").into()
+        t("Este rol está a la altura del tuyo o por encima: no puedes cambiar sus permisos.").into()
     })
 }
 
@@ -344,7 +344,7 @@ pub(crate) fn target_lock(
 /// cannot: nobody hands out, or takes away, what they do not have.
 pub(crate) fn permission_lock(channel: &Channel, permission: Permissions) -> Option<String> {
     (!channel.permissions.contains(permission))
-        .then(|| t("No lo tenés en este canal, así que no podés cambiarlo.").into())
+        .then(|| t("No lo tienes en este canal, así que no puedes cambiarlo.").into())
 }
 
 fn set_input(id: &str, value: &str) -> Intent {

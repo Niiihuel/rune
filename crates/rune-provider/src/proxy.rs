@@ -56,7 +56,7 @@ impl ApiProxy {
 /// fragment, spaces or backslashes.
 fn valid_url(url: &str) -> Result<(), &'static str> {
     let refused = es(
-        "Usá la dirección de un proxy HTTP o HTTPS, sin usuario ni contraseña, ruta, consulta ni fragmento: http://host:puerto.",
+        "Usa la dirección de un proxy HTTP o HTTPS, sin usuario ni contraseña, ruta, consulta ni fragmento: http://host:puerto.",
     );
     if url.is_empty()
         || url.len() > MAX_URL

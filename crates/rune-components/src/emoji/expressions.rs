@@ -175,7 +175,7 @@ pub(super) fn catalog(
     } else if total > found.len() {
         rows.push(
             line(
-                t("Se muestran 72 resultados. Refiná la búsqueda para ver otros."),
+                t("Se muestran 72 resultados. Refina la búsqueda para ver otros."),
                 13.0,
                 look.muted,
             )
@@ -219,7 +219,7 @@ pub(super) fn media_picker(view: &PickerView<'_>, look: &Look) -> Element {
         );
         children.push(
             line(
-                t("Elegí un sticker y confirmá su envío en el composer."),
+                t("Elige un sticker y confirma su envío en el composer."),
                 13.0,
                 look.muted,
             )
@@ -255,7 +255,7 @@ pub(super) fn media_picker(view: &PickerView<'_>, look: &Look) -> Element {
         );
         children.push(
             line(
-                t("Pegá un enlace HTTPS. Búsqueda sin configurar."),
+                t("Pega un enlace HTTPS. Búsqueda sin configurar."),
                 13.0,
                 look.muted,
             )

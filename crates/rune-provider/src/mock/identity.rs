@@ -505,7 +505,7 @@ impl World {
                     .contains(rune_model::Permissions::EXTERNAL_STICKERS)
             })
         {
-            return Err(t("no tenés permiso para usar stickers de otros servidores acá").into());
+            return Err(t("no tienes permiso para usar stickers de otros servidores aquí").into());
         }
         if Some(server) != here && !perks().stickers_anywhere {
             return Err(tr!(
@@ -616,7 +616,7 @@ mod tests {
         // #off-topic keeps another server's expressions out (2026-10-18).
         assert_eq!(
             world.sticker_for(named("off-topic"), sticker).unwrap_err(),
-            t("no tenés permiso para usar stickers de otros servidores acá")
+            t("no tienes permiso para usar stickers de otros servidores aquí")
         );
         assert!(world
             .sticker_for(named("charla"), sticker)

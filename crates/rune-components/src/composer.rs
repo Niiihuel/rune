@@ -206,12 +206,12 @@ pub fn composer(view: ComposerView<'_>, look: &Look) -> Element {
                 let (label, tip) = if on {
                     (
                         t("@ ACTIVADO"),
-                        t("Le llega una notificación a quien respondés"),
+                        t("Le llega una notificación a quien respondes"),
                     )
                 } else {
                     (
                         t("@ DESACTIVADO"),
-                        t("Respondés sin notificar a quien escribió"),
+                        t("Respondes sin notificar a quien escribió"),
                     )
                 };
                 limn::Tooltip::new(
@@ -493,7 +493,7 @@ mod tests {
             texts(&open).iter().any(|text| text == "Ada"),
             "who is answered"
         );
-        let closed = laid(view(Some("No podés escribir aquí".into())));
+        let closed = laid(view(Some("No puedes escribir aquí".into())));
         let ids = controls(&closed);
         assert!(
             !ids.contains(&"composer:1".to_owned()) && !ids.contains(&ids::PLUS.to_owned()),

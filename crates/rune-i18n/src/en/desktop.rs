@@ -18,7 +18,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Your session, in RUNE's own sign-in window: conversations, messages and voice, remembered in the system keyring.",
     ),
     (
-        "Falta el ID público de tu aplicación: abrí RUNE con --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID.",
+        "Falta el ID público de tu aplicación: abre RUNE con --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID.",
         "Your app's public ID is missing: open RUNE with --discord-client-id <id> or RUNE_DISCORD_CLIENT_ID.",
     ),
     (
@@ -27,7 +27,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Falta el ID público de la aplicación", "The app's public ID is missing"),
     (
-        "El login no oficial requiere Linux o Windows y compilar con --features session-login. En NixOS, usá nix-shell --arg withLogin true; la interfaz principal sigue siendo limn.",
+        "El login no oficial requiere Linux o Windows y compilar con --features session-login. En NixOS, usa nix-shell --arg withLogin true; la interfaz principal sigue siendo limn.",
         "The unofficial sign-in requires Linux or Windows and building with --features session-login. On NixOS, use nix-shell --arg withLogin true; the main interface is still limn.",
     ),
     ("No se pudo cambiar de proveedor", "Couldn't switch providers"),
@@ -62,11 +62,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "The --capture-* options require --provider mock and --screenshot",
     ),
     (
-        "Capturá búsqueda y contexto en ejecuciones separadas",
+        "Captura búsqueda y contexto en ejecuciones separadas",
         "Capture search and context in separate runs",
     ),
     (
-        "Discord requiere el ID público de tu aplicación: --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID. Registrá el redirect http://127.0.0.1:48731/oauth/callback en el Developer Portal. No ingreses contraseñas ni tokens.",
+        "Discord requiere el ID público de tu aplicación: --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID. Registra el redirect http://127.0.0.1:48731/oauth/callback en el Developer Portal. No ingreses contraseñas ni tokens.",
         "Discord requires your app's public ID: --discord-client-id <id> or RUNE_DISCORD_CLIENT_ID. Register the redirect http://127.0.0.1:48731/oauth/callback in the Developer Portal. Don't enter passwords or tokens.",
     ),
     (
@@ -170,7 +170,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // Uploads.
     (
-        "Todavía no podés adjuntar archivos arrastrándolos. Usá Adjuntar.",
+        "Todavía no puedes adjuntar archivos arrastrándolos. Usa Adjuntar.",
         "You can't attach files by dragging them yet. Use Attach files.",
     ),
     ("No se pudo reintentar", "Couldn't try again"),

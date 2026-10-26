@@ -62,7 +62,7 @@ pub(crate) fn start(
     if ui.save_as.is_some() {
         ui.notify(
             t("Ya hay un archivo guardándose"),
-            Some(t("Esperá a que termine o cancelalo.").into()),
+            Some(t("Espera a que termine o cancélalo.").into()),
             true,
             Instant::now(),
         );
@@ -221,7 +221,7 @@ fn exists(save: &SaveAs, look: &Look) -> Element {
         // Whole, wrapped: the person confirms deleting the file it names.
         rune_components::text(&save.filename, 12.0, look.muted),
         rune_components::text(
-            t("Reemplazarlo borra el que está ahí. Cancelá para elegir otro nombre."),
+            t("Reemplazarlo borra el que está ahí. Cancela para elegir otro nombre."),
             12.0,
             look.muted,
         ),

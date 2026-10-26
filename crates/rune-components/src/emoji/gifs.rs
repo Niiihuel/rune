@@ -57,7 +57,7 @@ pub(super) fn favorites(base: &str, favorites: &[String], scope: &str, look: &Lo
     .gap(6.0)];
     if favorites.is_empty() {
         rows.push(line(
-            t("Tocá el corazón de un GIF para guardarlo acá."),
+            t("Toca el corazón de un GIF para guardarlo aquí."),
             13.0,
             look.muted,
         ));
@@ -219,7 +219,7 @@ pub(super) fn search(base: &str, view: &GifSearchView, look: &Look) -> Element {
                 if view.has_page {
                     t("No hay resultados.")
                 } else {
-                    t("Buscá un GIF o explorá tendencias.")
+                    t("Busca un GIF o explora tendencias.")
                 },
                 14.0,
                 look.muted,

@@ -116,7 +116,7 @@ impl World {
                 CLUB_OUTING.0,
                 super::invitations::SERVER,
                 "Salida fotográfica",
-                Some("Caminata con cámara por la costa; llevá agua."),
+                Some("Caminata con cámara por la costa; lleva agua."),
                 at(3 * 24 + 2),
                 Some(at(3 * 24 + 5)),
                 EventPlace::External("Reserva Ecológica Costanera Sur".into()),
@@ -260,7 +260,7 @@ impl World {
         {
             Ok(())
         } else {
-            Err(t("no tenés permiso").into())
+            Err(t("no tienes permiso").into())
         }
     }
 
@@ -299,7 +299,7 @@ impl World {
             .mine(server)?
             .intersects(Permissions::CREATE_EVENTS | Permissions::MANAGE_EVENTS)
         {
-            return Err(t("no tenés permiso").into());
+            return Err(t("no tienes permiso").into());
         }
         self.check_draft(server, &draft, true)?;
         let id = ScheduledEventId(self.fresh_id());

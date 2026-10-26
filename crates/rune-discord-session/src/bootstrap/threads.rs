@@ -517,7 +517,7 @@ impl<'a> ArchiveCursor<'a> {
     }
 }
 
-const NOT_ALLOWED: &str = es("No tenés permiso para esta acción en el canal.");
+const NOT_ALLOWED: &str = es("No tienes permiso para esta acción en el canal.");
 
 /// Whether a command about threads may go to Discord, checked against what
 /// this session knows; Discord stays the last word.
@@ -641,7 +641,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
         Command::FollowThread { thread: id, .. } => {
             if thread(id)?.archived {
                 return Err(LoginError::new(es(
-                    "Abrí el hilo otra vez antes de seguirlo o dejarlo.",
+                    "Abre el hilo otra vez antes de seguirlo o dejarlo.",
                 )));
             }
             Ok(())
@@ -681,10 +681,10 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
         // offers it, only to a member of the thread.
         Command::MuteThread { thread: id, until } => {
             if !thread(id)?.joined {
-                return Err(LoginError::new(es("Seguí el hilo antes de silenciarlo.")));
+                return Err(LoginError::new(es("Sigue el hilo antes de silenciarlo.")));
             }
             if until.is_some_and(|until| until <= crate::messages::wall_now()) {
-                return Err(LoginError::new(es("Elegí cuánto tiempo.")));
+                return Err(LoginError::new(es("Elige cuánto tiempo.")));
             }
             Ok(())
         }

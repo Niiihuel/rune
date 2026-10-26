@@ -195,7 +195,7 @@ impl Dave {
             self.resets += 1;
             if self.resets > MAX_RESETS {
                 return Err(es(
-                    "El cifrado de la llamada falló varias veces. Volvé a entrar.",
+                    "El cifrado de la llamada falló varias veces. Vuelve a entrar.",
                 ));
             }
             self.reinit()?;
@@ -317,7 +317,7 @@ impl Dave {
         self.transitions += 1;
         if self.transitions > MAX_TRANSITIONS {
             return Err(es(
-                "La llamada cambió de clave demasiadas veces. Volvé a entrar.",
+                "La llamada cambió de clave demasiadas veces. Vuelve a entrar.",
             ));
         }
         Ok(())

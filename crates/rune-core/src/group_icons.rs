@@ -187,7 +187,7 @@ pub(crate) async fn chosen_bytes(
 
 /// `bytes`, a PNG, JPEG, GIF or WebP picture, decoded within bounds.
 pub(crate) fn decode(bytes: &[u8]) -> Result<image::DynamicImage, &'static str> {
-    const UNREADABLE: &str = es("Elegí una imagen PNG, JPEG, GIF o WebP.");
+    const UNREADABLE: &str = es("Elige una imagen PNG, JPEG, GIF o WebP.");
     let format = image::guess_format(bytes).map_err(|_| t(UNREADABLE))?;
     if !matches!(
         format,
@@ -255,7 +255,7 @@ mod tests {
     fn anything_else_is_refused_with_a_reason() {
         assert_eq!(
             prepare(b"%PDF-1.7 not a picture").unwrap_err(),
-            "Elegí una imagen PNG, JPEG, GIF o WebP."
+            "Elige una imagen PNG, JPEG, GIF o WebP."
         );
         let mut broken = encoded(64, 64, ImageFormat::Png);
         broken.truncate(40);

@@ -40,7 +40,7 @@ fn wire_rule(id: &str, enabled: bool) -> String {
     json!({"id": id, "guild_id": "10", "name": "Sin invitaciones", "creator_id": "42",
         "event_type": 1, "trigger_type": 1,
         "trigger_metadata": {"keyword_filter": ["*discord.gg/*"], "regex_patterns": [], "allow_list": []},
-        "actions": [{"type": 1, "metadata": {"custom_message": "Acá no."}},
+        "actions": [{"type": 1, "metadata": {"custom_message": "Aquí no."}},
             {"type": 2, "metadata": {"channel_id": "30"}}],
         "enabled": enabled, "exempt_roles": [], "exempt_channels": []})
     .to_string()
@@ -54,7 +54,7 @@ fn keywords() -> AutoModRule {
         }),
         actions: vec![
             AutoModAction::Block {
-                notice: Some("Acá no.".into()),
+                notice: Some("Aquí no.".into()),
             },
             AutoModAction::Alert {
                 channel: ChannelId(30),
@@ -117,7 +117,7 @@ async fn rules_are_read_made_turned_off_and_deleted_by_their_routes() {
     );
     assert_eq!(
         sent["actions"],
-        json!([{"type": 1, "metadata": {"custom_message": "Acá no."}},
+        json!([{"type": 1, "metadata": {"custom_message": "Aquí no."}},
             {"type": 2, "metadata": {"channel_id": "30"}}])
     );
     reply.send(response(200, &wire_rule("78", true))).unwrap();
@@ -212,7 +212,7 @@ async fn nothing_leaves_without_manage_guild_or_for_a_rule_discord_would_refuse(
     };
     assert_eq!(
         reason,
-        "No tenés permiso para administrar AutoMod en este servidor."
+        "No tienes permiso para administrar AutoMod en este servidor."
     );
     let mut owned = Harness::new().await;
     joined(&mut owned, "42").await;

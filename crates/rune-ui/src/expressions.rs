@@ -35,7 +35,7 @@ fn custom_denied(store: &Store, channel: ChannelId, emoji: &CustomEmoji) -> Opti
             .and_then(|me| store.member_of(emoji.server, me))
             .is_some_and(|member| member.roles.iter().any(|role| emoji.roles.contains(role)))
     {
-        return Some(t("No tenés el rol necesario para usar este emoji").into());
+        return Some(t("No tienes el rol necesario para usar este emoji").into());
     }
     None
 }
@@ -448,7 +448,7 @@ pub(crate) fn clicked(ui: &mut Ui, store: &Store, id: &str, now: Instant) -> Opt
         };
         let Some(url) = public_url(&value) else {
             ui.messages.expression_feedback =
-                Some(t("Usá un enlace HTTPS público sin credenciales.").into());
+                Some(t("Usa un enlace HTTPS público sin credenciales.").into());
             return Some(Vec::new());
         };
         let intents = crate::composer_selection::insert(ui, channel, &url, true, now);
@@ -571,7 +571,7 @@ mod tests {
         store.apply(Event::ChannelChanged(room), now);
         let reason = unusable_emoji(&store, channel, "hola <:far:990>").unwrap();
         assert!(
-            reason.starts_with(":far: No tenés permiso para usar emojis de otros servidores"),
+            reason.starts_with(":far: No tienes permiso para usar emojis de otros servidores"),
             "{reason}"
         );
         assert_eq!(unusable_emoji(&store, channel, "hola"), None);

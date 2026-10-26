@@ -1308,7 +1308,7 @@ pub(crate) fn composer(
                 base: composer_ids::EMOJI,
                 query: &ui.messages.query,
                 recent: &ui.messages.recent,
-                placeholder: t("Encontrá el emoji ideal"),
+                placeholder: t("Encuentra el emoji ideal"),
                 tabs: true,
                 expressions: Some(emoji::ExpressionView {
                     tab: ui.messages.expression_tab,
@@ -1463,7 +1463,7 @@ pub(crate) fn overlays(
                     limn::FontFamily::SansBold,
                 ),
                 limn::TextSpan::new(
-                    t("Podés mantener presionado Shift y hacer clic en "),
+                    t("Puedes mantener presionado Shift y hacer clic en "),
                     look.muted,
                     12.0,
                     limn::FontFamily::Sans,
@@ -1488,7 +1488,7 @@ pub(crate) fn overlays(
         root,
         true,
         t("Eliminar mensaje"),
-        t("¿Seguro que querés eliminar este mensaje?"),
+        t("¿Seguro que quieres eliminar este mensaje?"),
         "delete:confirm",
         "delete:cancel",
         look.menu_palette(),

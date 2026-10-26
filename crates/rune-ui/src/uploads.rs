@@ -525,15 +525,15 @@ pub fn attachment_pick_pending(ui: &Ui) -> bool {
 
 pub(crate) fn attach_denied(ui: &Ui, channel: ChannelId) -> Option<String> {
     if ui.uploads.pick.is_some() {
-        return Some(t("Esperá a que termine la selección del archivo").into());
+        return Some(t("Espera a que termine la selección del archivo").into());
     }
     let limits = ui.uploads.limits?;
     (ui.uploads.drafts.get(&channel).map_or(0, Vec::len) >= limits.max_files).then(|| {
         if limits.max_files == 1 {
-            t("Este mensaje admite hasta 1 archivo. Quitá uno para elegir otro.").into()
+            t("Este mensaje admite hasta 1 archivo. Quita uno para elegir otro.").into()
         } else {
             tr!(
-                "Este mensaje admite hasta {count} archivos. Quitá uno para elegir otro.",
+                "Este mensaje admite hasta {count} archivos. Quita uno para elegir otro.",
                 count = limits.max_files
             )
         }

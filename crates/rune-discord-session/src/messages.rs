@@ -172,7 +172,7 @@ impl Messages {
                 validate_content(content)?;
                 if !self.own(snapshot, *channel, *message) {
                     return Err(LoginError::new(es(
-                        "Solo podés editar un mensaje propio cargado en RUNE.",
+                        "Solo puedes editar un mensaje propio cargado en RUNE.",
                     )));
                 }
                 (*channel, Permissions::VIEW)
@@ -198,7 +198,7 @@ impl Messages {
                     .and_then(|message| message.poll.as_ref())
                 else {
                     return Err(LoginError::new(es(
-                        "Cargá la encuesta otra vez antes de votar.",
+                        "Carga la encuesta otra vez antes de votar.",
                     )));
                 };
                 if poll.ended(wall_now()) {
@@ -278,7 +278,7 @@ impl Messages {
             // once this session loaded it.
             Command::EndPoll { channel, message } if !self.own(snapshot, *channel, *message) => {
                 return Err(LoginError::new(es(
-                    "Cargá la encuesta otra vez: solo quien la creó la termina.",
+                    "Carga la encuesta otra vez: solo quien la creó la termina.",
                 )))
             }
             command if crate::message_actions::is_action(command) => {
@@ -360,7 +360,7 @@ impl Messages {
             });
         if !visible {
             return Err(LoginError::new(es(
-                "No tenés permiso para esta acción en el canal.",
+                "No tienes permiso para esta acción en el canal.",
             )));
         }
         Ok(())
@@ -456,7 +456,7 @@ impl Messages {
             Command::EditMessage { content, .. } => {
                 validate_content(content)?;
                 if author != Some(account) {
-                    return Err(LoginError::new(es("Solo podés editar un mensaje propio.")));
+                    return Err(LoginError::new(es("Solo puedes editar un mensaje propio.")));
                 }
                 Permissions::VIEW
             }
@@ -594,7 +594,7 @@ pub(crate) fn unrestricted(snapshot: &Snapshot, channel: ChannelId) -> Result<()
         .and_then(|member| member.restrictions.at(wall_now()));
     match restricted {
         Some(_) => Err(LoginError::new(es(
-            "Tu cuenta está restringida en este servidor: podés leer, pero no participar.",
+            "Tu cuenta está restringida en este servidor: puedes leer, pero no participar.",
         ))),
         None => Ok(()),
     }
@@ -612,7 +612,7 @@ fn channel_allowed(
             known.id == channel && holds_chat(known.kind) && known.permissions.contains(permission)
         })
         .then_some(())
-        .ok_or_else(|| LoginError::new(es("No tenés permiso para esta acción en el canal.")))
+        .ok_or_else(|| LoginError::new(es("No tienes permiso para esta acción en el canal.")))
 }
 
 /// Only Unicode reactions are modeled; a custom one (`name:id`) or text

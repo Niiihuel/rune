@@ -89,7 +89,7 @@ fn pasted_links_need_adapter_recognition_and_never_fall_back_to_a_browser() {
     let intents = invitation_input_result(&mut host.ui, &host.store, input, None);
     assert!(intents.is_empty());
     assert!(host.ui.invitation.is_none());
-    assert!(host.painted().join(" ").contains("Pegá el enlace completo"));
+    assert!(host.painted().join(" ").contains("Pega el enlace completo"));
     assert!(host.ui.invitation_input.is_some());
     let intents = invitation_input_result(
         &mut host.ui,
@@ -536,7 +536,7 @@ fn preview_cooldown_expires_into_one_explicit_retry_without_joining() {
     assert!(host
         .painted()
         .join(" ")
-        .contains("Podés volver a consultar en"));
+        .contains("Puedes volver a consultar en"));
     assert!(crate::invitations::next_expiry(&host.ui, host.now).is_some());
     let action = UiAction::Clicked {
         id: "invitation:retry".into(),
@@ -1218,14 +1218,14 @@ fn a_challenge_is_verified_only_by_an_explicit_click_on_the_same_attempt() {
     assert!(host
         .painted()
         .join(" ")
-        .contains("Completá la verificación"));
+        .contains("Completa la verificación"));
     // Solving takes longer than the usual wait without becoming uncertain.
     host.now += Duration::from_secs(120);
     host.ui.expire(host.now);
     assert!(host
         .painted()
         .join(" ")
-        .contains("Completá la verificación"));
+        .contains("Completa la verificación"));
     acknowledge(&mut host, request, server, Ok(()));
     assert!(host.painted().join(" ").contains("Esperando acceso"));
     membership(&mut host, server, ChannelId(90_002));
@@ -1497,7 +1497,7 @@ fn a_refusal_says_why_offers_the_browser_and_never_a_retry() {
         ),
         (
             InvitationJoinError::Denied,
-            "No podés aceptar esta invitación con esta cuenta.",
+            "No puedes aceptar esta invitación con esta cuenta.",
         ),
         (
             InvitationJoinError::Invalid,
@@ -1549,8 +1549,8 @@ fn already_joined_is_no_refusal_and_offers_to_open_what_it_gave() {
         Err(InvitationJoinError::AlreadyJoined),
     );
     let painted = host.painted().join(" ");
-    assert!(painted.contains("Ya sos miembro de este servidor."));
-    assert!(!painted.contains("No podés aceptar"));
+    assert!(painted.contains("Ya eres miembro de este servidor."));
+    assert!(!painted.contains("No puedes aceptar"));
     assert!(!shown(&mut host, "invitation:accept"));
     assert!(!shown(&mut host, "invitation:browser"));
     // Once the account's events bring it, the dialog opens it.

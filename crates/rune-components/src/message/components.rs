@@ -110,7 +110,7 @@ pub fn menu_label(
         return menu
             .placeholder
             .clone()
-            .unwrap_or_else(|| t("Elegí una opción").into());
+            .unwrap_or_else(|| t("Elige una opción").into());
     }
     picked.iter().map(name).collect::<Vec<_>>().join(", ")
 }
@@ -278,7 +278,7 @@ impl Parts<'_> {
                 let said = match chosen.as_slice() {
                     [] => placeholder
                         .clone()
-                        .unwrap_or_else(|| t("Elegí una opción").into()),
+                        .unwrap_or_else(|| t("Elige una opción").into()),
                     chosen => chosen
                         .iter()
                         .map(|choice| choice.label.as_str())
@@ -493,7 +493,7 @@ impl Parts<'_> {
         } else if let Some(reason) = app.denied {
             Err(reason.to_owned())
         } else if app.busy || self.draw.passive {
-            Err(t("Esperá la respuesta de la aplicación").into())
+            Err(t("Espera la respuesta de la aplicación").into())
         } else {
             Ok(())
         })
@@ -609,7 +609,7 @@ impl Parts<'_> {
             }
             if menu.max > 1 {
                 header.push(line(
-                    tr!("Elegí hasta {max}; se envía al cerrar", max = menu.max),
+                    tr!("Elige hasta {max}; se envía al cerrar", max = menu.max),
                     12.0,
                     look.faint,
                 ));
@@ -618,7 +618,7 @@ impl Parts<'_> {
         } else if open.is_some() && menu.max > 1 {
             select = select.header(
                 line(
-                    tr!("Elegí hasta {max}; se envía al cerrar", max = menu.max),
+                    tr!("Elige hasta {max}; se envía al cerrar", max = menu.max),
                     12.0,
                     look.faint,
                 )

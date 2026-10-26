@@ -69,7 +69,7 @@ pub fn invitation_input_result(
         Some(target) => open_invitation(ui, store, target),
         None => {
             dialog.error = Some(es(
-                "Pegá el enlace completo de una invitación compatible con esta conexión.",
+                "Pega el enlace completo de una invitación compatible con esta conexión.",
             ));
             Vec::new()
         }
@@ -830,7 +830,7 @@ pub(crate) fn overlay(
                     .as_secs()
                     .saturating_add(u64::from(left.subsec_nanos() != 0));
                 body.push(status(
-                    &tr!("Podés volver a consultar en {seconds} s.", seconds),
+                    &tr!("Puedes volver a consultar en {seconds} s.", seconds),
                     false,
                     inner,
                     look,
@@ -911,7 +911,7 @@ pub(crate) fn overlay(
             }
             if let InvitationDestination::Guest { .. } = destination {
                 body.push(status(
-                    t("Como invitado entrás sólo a un canal de voz, y salís del servidor al dejar la llamada."),
+                    t("Como invitado entras sólo a un canal de voz, y sales del servidor al dejar la llamada."),
                     false,
                     inner,
                     look,
@@ -930,7 +930,7 @@ pub(crate) fn overlay(
                             && store.first_text_channel(server).is_none() =>
                     {
                         body.push(status(
-                            t("Ya sos miembro. Todavía no hay canales visibles."),
+                            t("Ya eres miembro. Todavía no hay canales visibles."),
                             false,
                             inner,
                             look,
@@ -946,7 +946,7 @@ pub(crate) fn overlay(
                 match acceptance.map(|active| active.phase) {
                     Some(Phase::Sending) => body.push(progress(t("Entrando…"), inner, look)),
                     Some(Phase::Verifying) => body.push(progress(
-                        t("Completá la verificación en la ventana que se abrió…"),
+                        t("Completa la verificación en la ventana que se abrió…"),
                         inner,
                         look,
                     )),
@@ -996,7 +996,7 @@ pub(crate) fn overlay(
                         match destination {
                             InvitationDestination::Group(_) => t("Ya estás en este grupo."),
                             InvitationDestination::Friend(_) => t("Ya son amigos."),
-                            _ => t("Ya sos miembro de este servidor."),
+                            _ => t("Ya eres miembro de este servidor."),
                         },
                         false,
                         inner,
@@ -1031,7 +1031,7 @@ pub(crate) fn overlay(
                     );
                     if ui.invitation_join.remaining(context.now).is_some() {
                         body.push(status(
-                            t("Esperá un momento antes de volver a intentarlo."),
+                            t("Espera un momento antes de volver a intentarlo."),
                             false,
                             inner,
                             look,
@@ -1103,7 +1103,7 @@ fn input_overlay(
         TextField::new(
             INPUT,
             dialog.value.clone(),
-            t("Pegá el enlace completo"),
+            t("Pega el enlace completo"),
             look.menu_palette(),
         )
         .render()

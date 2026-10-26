@@ -58,7 +58,7 @@ async fn authenticated_session_rejections_discard_queued_actions_without_retry_o
         assert_eq!(
             reason,
             if code == 50014 {
-                "Discord rechazó la sesión; iniciá sesión otra vez."
+                "Discord rechazó la sesión; inicia sesión otra vez."
             } else {
                 "Discord requiere verificar la cuenta en su aplicación oficial."
             }

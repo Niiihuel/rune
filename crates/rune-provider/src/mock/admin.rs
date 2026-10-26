@@ -438,7 +438,7 @@ impl World {
     /// it, nobody ranked as high.
     pub(super) fn require_over(&self, server: ServerId, user: UserId) -> Result<(), String> {
         if user == ME {
-            return Err(t("no podés hacerte eso a vos").into());
+            return Err(t("no puedes hacerte eso a ti").into());
         }
         let found = self.server(server)?;
         if found.owner == Some(user) {
@@ -476,7 +476,7 @@ impl World {
             .filter(|found| found.server == Some(server) && found.kind != ChannelKind::Category)
             .ok_or(t("ese canal no es de este servidor"))?;
         if !found.permissions.contains(Permissions::CREATE_INVITE) {
-            return Err(t("no tenés permiso para invitar en ese canal").into());
+            return Err(t("no tienes permiso para invitar en ese canal").into());
         }
         if max_age_secs > 7 * 24 * 60 * 60 || max_uses > 100 {
             return Err(t("una invitación dura hasta 7 días y hasta 100 usos").into());
@@ -590,7 +590,7 @@ impl World {
                 | Permissions::MANAGE_NICKS
                 | Permissions::MANAGE_SERVER,
         ) {
-            return Err(t("no tenés permiso para ver los miembros").into());
+            return Err(t("no tienes permiso para ver los miembros").into());
         }
         let after = match after {
             Some(cursor) => Some(UserId(

@@ -155,7 +155,7 @@ pub(crate) fn join(
             // Listening only: the microphone stays closed in this channel.
             ui.muted = true;
             ui.notify(
-                t("Entrás sólo para escuchar"),
+                t("Entras sólo para escuchar"),
                 Some(reason.into()),
                 false,
                 now,
@@ -163,7 +163,7 @@ pub(crate) fn join(
         } else if !abilities.voice_activity.allowed() && !ui.prefs.push_to_talk {
             ui.notify(
                 t("Este canal exige pulsar para hablar"),
-                Some(t("Tu micrófono se abre sólo mientras mantenés la tecla").into()),
+                Some(t("Tu micrófono se abre sólo mientras mantienes la tecla").into()),
                 false,
                 now,
             );
@@ -234,7 +234,7 @@ fn chat_denied(store: &Store, channel: ChannelId, width: f32) -> Option<String> 
     match abilities.read_history.reason() {
         Some(reason) => Some(reason.to_owned()),
         None => (width < CHAT_FROM)
-            .then(|| t("Agrandá la ventana para ver el chat al lado de la llamada").to_owned()),
+            .then(|| t("Agranda la ventana para ver el chat al lado de la llamada").to_owned()),
     }
 }
 

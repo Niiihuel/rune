@@ -113,7 +113,7 @@ pub(crate) fn open_place(
         .is_some_and(|info| info.capabilities.load_channels);
     if !loads || store.channel(channel).is_some() {
         ui.notify(
-            t("No podés abrir ese enlace"),
+            t("No puedes abrir ese enlace"),
             Some(t("La conversación no está disponible para esta cuenta").into()),
             true,
             now,
@@ -222,7 +222,7 @@ pub(crate) fn on_applied(
                     .is_none_or(|found| !Store::visible(found))
             {
                 ui.notify(
-                    t("No podés abrir ese enlace"),
+                    t("No puedes abrir ese enlace"),
                     Some(t("La conversación no está disponible para esta cuenta").into()),
                     true,
                     now,

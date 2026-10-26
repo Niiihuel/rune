@@ -126,11 +126,11 @@ impl Store {
             if !declared {
                 Permit::Denied(tr!("Este proveedor no permite {what}", what))
             } else if !connected {
-                Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+                Permit::Denied(t("Espera a que la conexión esté disponible").into())
             } else if let Some(restricted) = restricted.clone() {
                 restricted
             } else if !found.permissions.contains(Permissions::VIEW) {
-                Permit::Denied(t("No podés ver esta conversación").into())
+                Permit::Denied(t("No puedes ver esta conversación").into())
             } else {
                 Permit::Allowed
             }
@@ -150,7 +150,7 @@ impl Store {
                         Permit::Allowed
                     } else {
                         Permit::Denied(
-                            t("No tenés permiso para usar comandos de aplicaciones aquí").into(),
+                            t("No tienes permiso para usar comandos de aplicaciones aquí").into(),
                         )
                     }
                 }
@@ -175,7 +175,7 @@ impl Store {
         let files = match check(capabilities.attachments, t("adjuntar archivos")) {
             _ if !parts.allowed() => parts.clone(),
             Permit::Allowed if !found.permissions.contains(Permissions::ATTACH) => {
-                Permit::Denied(t("No tenés permiso para adjuntar archivos aquí").into())
+                Permit::Denied(t("No tienes permiso para adjuntar archivos aquí").into())
             }
             permit => permit,
         };
@@ -325,7 +325,7 @@ impl Store {
             return Err(reason.to_owned());
         }
         if self.interaction_pending(now).is_some() {
-            return Err(t("Esperá la respuesta de la aplicación anterior").into());
+            return Err(t("Espera la respuesta de la aplicación anterior").into());
         }
         let part = match &interaction {
             Interaction::Part {
@@ -415,7 +415,7 @@ impl Store {
                 channel: pending.channel,
                 part: pending.part.clone(),
                 reason:
-                    t("La aplicación no respondió. Revisá la conversación antes de volver a intentar.")
+                    t("La aplicación no respondió. Revisa la conversación antes de volver a intentar.")
                         .into(),
             });
         }

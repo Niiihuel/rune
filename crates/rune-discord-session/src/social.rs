@@ -114,7 +114,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
                 Command::AddGroupMember { .. }
                     if kind_with(*user) != Some(RelationshipKind::Friend) =>
                 {
-                    refuse(es("Solo podés añadir a tus amigos."))
+                    refuse(es("Solo puedes añadir a tus amigos."))
                 }
                 Command::AddGroupMember { .. } if group.recipients.len() >= GROUP_OTHERS => {
                     refuse(es("El grupo ya tiene 10 personas."))

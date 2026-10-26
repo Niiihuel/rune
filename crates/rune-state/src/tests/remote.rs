@@ -160,7 +160,7 @@ fn lookups_say_why_not_and_found_members_join_once() {
     store.connection = ConnectionState::Connecting;
     assert_eq!(
         store.remote_search(GENERAL).reason(),
-        Some("Esperá a que la conexión esté disponible")
+        Some("Espera a que la conexión esté disponible")
     );
     store.connection = ConnectionState::Connected;
     let known = store.members(ServerId(1)).len();

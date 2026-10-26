@@ -6,11 +6,11 @@ pub(super) const ENTRIES: super::Entries = &[
     ("hacer sonar la llamada", "ring the call"),
     ("hacer llamadas", "make calls"),
     (
-        "Bloqueaste a {name}: desbloqueala para llamarle",
+        "Bloqueaste a {name}: desbloquéala para llamarle",
         "You blocked {name}: unblock them to call them",
     ),
     (
-        "Entrá a la llamada para hacerla sonar.",
+        "Entra a la llamada para hacerla sonar.",
         "Join the call to ring it.",
     ),
     (
@@ -44,7 +44,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Estás en esta llamada desde otro dispositivo",
         "You're in this call on another device",
     ),
-    ("Unirse desde acá", "Join from here"),
+    ("Unirse desde aquí", "Join from here"),
     ("Llamada entrante", "Incoming call"),
     ("Llamando a alguien", "Calling someone"),
     // The simulation's tests.

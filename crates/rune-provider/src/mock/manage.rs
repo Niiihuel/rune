@@ -18,7 +18,7 @@ use crate::{ChannelEdit, Command, Created, Event, Failure, ProfileEdit, RoleEdit
 
 type Outcome = Result<Vec<Event>, String>;
 
-const NOT_ALLOWED: &str = es("no tenés permiso");
+const NOT_ALLOWED: &str = es("no tienes permiso");
 
 impl World {
     /// Carry out a management command and report what changed, or why not.
@@ -431,7 +431,7 @@ impl World {
         let found = self.server(server)?;
         let member = self
             .member(server, ME)
-            .ok_or(t("no sos miembro del servidor"))?;
+            .ok_or(t("no eres miembro del servidor"))?;
         Ok(permissions::in_server(found, member))
     }
 
@@ -608,7 +608,7 @@ impl World {
 
     fn leave_server(&mut self, server: ServerId) -> Outcome {
         if self.server(server)?.owner == Some(ME) {
-            return Err(t("sos dueño: borrá el servidor en vez de abandonarlo").into());
+            return Err(t("eres dueño: borra el servidor en vez de abandonarlo").into());
         }
         Ok(self.forget_server(server, None))
     }
@@ -975,12 +975,12 @@ impl World {
                 .map_or(Permissions::NONE, |found| found.permissions);
             let added = permissions.without(previous);
             if !mine.contains(added) {
-                return Err(t("no podés dar permisos que no tenés").into());
+                return Err(t("no puedes dar permisos que no tienes").into());
             }
         }
         if let Some(position) = edit.position {
             if position >= self.my_rank(server) {
-                return Err(t("no podés subir un rol por encima del tuyo").into());
+                return Err(t("no puedes subir un rol por encima del tuyo").into());
             }
         }
         let name = edit.name.as_deref().map(valid_name).transpose()?;
@@ -1134,7 +1134,7 @@ impl World {
         };
         self.require(server, needed)?;
         if user == ME {
-            return Err(t("no podés hacerte eso a vos").into());
+            return Err(t("no puedes hacerte eso a ti").into());
         }
         if self.server(server)?.owner == Some(user) {
             return Err(t("nadie puede sacar a quien es dueño").into());
@@ -1759,7 +1759,7 @@ mod tests {
         });
         assert_eq!(
             failed(&refused),
-            Some("no tenés permiso para fijar mensajes")
+            Some("no tienes permiso para fijar mensajes")
         );
         assert!(matches!(
             &refused[0],
@@ -1782,7 +1782,7 @@ mod tests {
         let moderator = pin_with(&mut world, base | Permissions::MANAGE_MESSAGES);
         assert_eq!(
             failed(&moderator),
-            Some("no tenés permiso para fijar mensajes")
+            Some("no tienes permiso para fijar mensajes")
         );
         let pinner = pin_with(&mut world, base | Permissions::PIN_MESSAGES);
         assert!(

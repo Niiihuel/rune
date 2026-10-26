@@ -528,7 +528,7 @@ mod tests {
     #[test]
     fn a_menu_stored_before_it_could_be_used_still_reads() {
         let old: Component = serde_json::from_str(
-            r#"{"Select":{"placeholder":"Elegí","chosen":[{"label":"A","emoji":null,"picture":null}]}}"#,
+            r#"{"Select":{"placeholder":"Elige","chosen":[{"label":"A","emoji":null,"picture":null}]}}"#,
         )
         .unwrap();
         let Component::Select(menu) = old else {

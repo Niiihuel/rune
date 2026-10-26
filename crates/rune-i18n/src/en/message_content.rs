@@ -29,7 +29,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "No clipboard is available in this session.",
     ),
     (
-        "En Wayland, RUNE copia imágenes y videos con su ventana propia del portapapeles de XWayland, y XWayland no está activo en esta sesión. Guardá el archivo y copialo desde ahí.",
+        "En Wayland, RUNE copia imágenes y videos con su ventana propia del portapapeles de XWayland, y XWayland no está activo en esta sesión. Guarda el archivo y cópialo desde ahí.",
         "On Wayland, RUNE copies images and videos with its own XWayland clipboard window, and XWayland isn't running in this session. Save the file and copy it from there.",
     ),
     ("El portapapeles no aceptó la copia.", "The clipboard didn't accept the copy."),

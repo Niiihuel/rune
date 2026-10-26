@@ -317,7 +317,7 @@ fn to_roles(
         .as_ref()
         .clone();
     message.id = rune_model::MessageId(timeline.messages().last().unwrap().id.0 + 1);
-    message.content = "<@&9> mirá".into();
+    message.content = "<@&9> mira".into();
     message.mentions.clear();
     message.mention_roles = roles;
     message
@@ -386,7 +386,7 @@ fn everyone_tells_as_the_provider_says_unless_silenced() {
     host.ui.server = None;
     // Written by someone who may not tell everyone: the words tell nobody.
     let mut words = to_roles(&host, general, Vec::new());
-    words.content = "@everyone mirá".into();
+    words.content = "@everyone mira".into();
     assert_eq!(
         message_alert(&host.ui, &host.store, &words, false, wall),
         None
@@ -398,7 +398,7 @@ fn everyone_tells_as_the_provider_says_unless_silenced() {
     });
     assert_eq!(host.store.read(general).mentions, before);
     let mut told = to_roles(&host, general, Vec::new());
-    told.content = "@here mirá".into();
+    told.content = "@here mira".into();
     told.mention_everyone = true;
     assert!(message_alert(&host.ui, &host.store, &told, false, wall).is_some());
     host.event(Event::MessageCreated {

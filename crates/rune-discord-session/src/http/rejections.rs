@@ -85,7 +85,7 @@ impl std::fmt::Debug for Issued {
 impl Rejection {
     pub(super) fn error(self, authenticated: bool) -> RestError {
         let reason = LoginError::new(match &self {
-            Self::InvalidSession => es("Discord rechazó la sesión; iniciá sesión otra vez."),
+            Self::InvalidSession => es("Discord rechazó la sesión; inicia sesión otra vez."),
             Self::AccountVerification => {
                 es("Discord requiere verificar la cuenta en su aplicación oficial.")
             }
@@ -212,11 +212,11 @@ fn refusal(code: u64) -> Option<&'static str> {
         10013 => es("Esa persona ya no existe."),
         30002 => es("Llegaste al máximo de amigos que permite Discord."),
         30004 => es("El grupo ya tiene el máximo de personas."),
-        40003 => es("Abriste demasiadas conversaciones nuevas; esperá un rato."),
+        40003 => es("Abriste demasiadas conversaciones nuevas; espera un rato."),
         50007 => es("Esa persona no recibe mensajes directos tuyos."),
         80001 => es("Esa persona no acepta solicitudes de amistad."),
         80002 => es("No se pueden enviar solicitudes de amistad a un bot."),
-        80003 | 50096 => es("No podés enviarte una solicitud a vos."),
+        80003 | 50096 => es("No puedes enviarte una solicitud a ti."),
         80004 => es("No encontramos a nadie con ese nombre de usuario."),
         80007 => es("Ya son amigos."),
         340007 => es("Discord limitó las solicitudes de amistad de esta cuenta."),

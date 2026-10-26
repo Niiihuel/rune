@@ -117,7 +117,7 @@ pub(super) fn problem(settings: &ServerSettings, store: &Store) -> Option<String
     problem.or_else(|| {
         typed.map(|emoji| {
             tr!(
-                "«{emoji}» no es un solo emoji: escribí uno, como 📷.",
+                "«{emoji}» no es un solo emoji: escribe uno, como 📷.",
                 emoji = emoji.name
             )
         })

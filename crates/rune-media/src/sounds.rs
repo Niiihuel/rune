@@ -39,7 +39,7 @@ pub fn load(folder: &Path, names: &[&str]) -> Result<Vec<Found>, MediaError> {
     let unusable = || MediaError(t("RUNE no puede leer esa carpeta.").into());
     if !folder.is_absolute() {
         return Err(MediaError(
-            t("Escribí la ruta completa de la carpeta, desde /.").into(),
+            t("Escribe la ruta completa de la carpeta, desde /.").into(),
         ));
     }
     if !std::fs::metadata(folder).map_err(|_| unusable())?.is_dir() {

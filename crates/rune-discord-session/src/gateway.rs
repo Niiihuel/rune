@@ -286,11 +286,11 @@ fn closed(code: Option<u16>) -> Failure {
     );
     match code {
         Some(code @ 4004) => Failure::Stop(LoginError::gateway_close(
-            es("Discord rechazó la sesión Gateway. Iniciá sesión otra vez."),
+            es("Discord rechazó la sesión Gateway. Inicia sesión otra vez."),
             code,
         )),
         Some(code @ 4008) => Failure::Stop(LoginError::gateway_close(
-            es("Discord limitó la conexión Gateway. Esperá antes de volver a conectar."),
+            es("Discord limitó la conexión Gateway. Espera antes de volver a conectar."),
             code,
         )),
         Some(1000 | 1001 | 4007 | 4009) => Failure::Retry { fresh: true },
@@ -407,13 +407,13 @@ fn emit(output: &mpsc::Sender<GatewayEvent>, event: GatewayEvent) -> Result<(), 
     // explicit and terminal, rather than silently losing ordered events.
     if output.max_capacity().saturating_sub(output.capacity()) >= 32 {
         return Err(Failure::Stop(LoginError::new(es(
-            "La cola de eventos de Discord se llenó. Volvé a conectar.",
+            "La cola de eventos de Discord se llenó. Vuelve a conectar.",
         ))));
     }
     output.try_send(event).map_err(|error| match error {
         mpsc::error::TrySendError::Closed(_) => Failure::Closed,
         mpsc::error::TrySendError::Full(_) => Failure::Stop(LoginError::new(es(
-            "La cola de eventos de Discord se llenó. Volvé a conectar.",
+            "La cola de eventos de Discord se llenó. Vuelve a conectar.",
         ))),
     })
 }
@@ -713,7 +713,7 @@ impl Gateway {
                         Err(Failure::Closed) => return Ok(()),
                         _ => {
                             return Err(LoginError::new(es(
-                                "La cola de eventos de Discord se llenó. Volvé a conectar.",
+                                "La cola de eventos de Discord se llenó. Vuelve a conectar.",
                             )))
                         }
                     }

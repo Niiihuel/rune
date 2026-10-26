@@ -297,9 +297,9 @@ pub fn unsaved_bar_for(prefix: &str, bar: UnsavedBar, look: &Look) -> Element {
         (look.menu, look.text)
     };
     let message = if bar.nudged {
-        t("Guardá o restablecé los cambios antes de salir")
+        t("Guarda o restablece los cambios antes de salir")
     } else {
-        t("¡Cuidado! Tenés cambios sin guardar")
+        t("¡Cuidado! Tienes cambios sin guardar")
     };
     let (reset, save) = (format!("{prefix}:reset"), format!("{prefix}:save"));
     let reset = Button::new(reset, t("Restablecer"), look.menu_palette())

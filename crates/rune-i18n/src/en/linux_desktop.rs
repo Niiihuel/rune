@@ -9,7 +9,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "There's already a file with that name",
     ),
     (
-        "Reemplazarlo borra el que está ahí. Cancelá para elegir otro nombre.",
+        "Reemplazarlo borra el que está ahí. Cancela para elegir otro nombre.",
         "Replacing it deletes the one that's there. Cancel to choose another name.",
     ),
     ("Reemplazar", "Replace"),
@@ -18,7 +18,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Couldn't replace the file in that folder.",
     ),
     (
-        "El archivo cambió mientras se descargaba. Volvé a guardarlo.",
+        "El archivo cambió mientras se descargaba. Vuelve a guardarlo.",
         "The file changed while downloading. Save it again.",
     ),
     // The folder of sounds.
@@ -26,7 +26,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Elegir…", "Choose…"),
     ("Eligiendo…", "Choosing…"),
     (
-        "RUNE no puede guardar el nombre de esa carpeta. Elegí otra.",
+        "RUNE no puede guardar el nombre de esa carpeta. Elige otra.",
         "RUNE can't keep that folder's name. Choose another one.",
     ),
     // The window and its GPU.

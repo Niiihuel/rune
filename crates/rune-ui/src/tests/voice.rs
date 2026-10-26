@@ -300,7 +300,7 @@ fn a_stage_is_joined_and_without_speaking_the_call_only_listens() {
         host.sent[from..],
         [Command::JoinVoice { muted: true, .. }]
     ));
-    assert!(noted(&host, "No tenés permiso para hablar en #Sala común"));
+    assert!(noted(&host, "No tienes permiso para hablar en #Sala común"));
     // Unmuting is refused with the reason; nothing goes to the provider.
     host.vz_answer(from, 47);
     let from = host.sent.len();
@@ -441,7 +441,7 @@ fn the_bar_mutes_deafens_and_hangs_up_and_the_video_says_it_stays_here() {
     // choosing its quality. Their hints say so.
     for (id, note) in [
         (ids::CAMERA, "Se transmite a la llamada."),
-        (ids::SCREEN, "Elegí la calidad; se transmite a la llamada."),
+        (ids::SCREEN, "Elige la calidad; se transmite a la llamada."),
     ] {
         assert!(host.vz_shows(id) && host.vz_usable(id), "{id} is usable");
         assert!(host.vz_hint(id).contains(&note.to_owned()), "{id}");
@@ -1196,7 +1196,7 @@ fn the_camera_goes_to_the_call_says_what_it_sends_and_is_taken_back_on_every_sto
     assert!(host
         .vz_texts()
         .iter()
-        .any(|text| text.starts_with("Solo vos lo ves. No tenés permiso")));
+        .any(|text| text.starts_with("Solo tú lo ves. No tienes permiso")));
     // Hanging up lets go of it; the provider ends it with the call.
     let from = host.sent.len();
     host.click(ids::LEAVE);

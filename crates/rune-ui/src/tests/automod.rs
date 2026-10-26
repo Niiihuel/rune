@@ -102,7 +102,7 @@ fn the_owner_lists_turns_on_and_edits_its_rules() {
     press(&mut host, "ss:am:rule:900001:edit");
     let draft = page(&host).editing.clone().unwrap();
     assert_eq!(draft.keywords, "spoiler*, *final de temporada*");
-    assert_eq!(draft.notice, "Guardá los spoilers para #componentes.");
+    assert_eq!(draft.notice, "Guarda los spoilers para #componentes.");
     // A pattern the service would refuse is not sent: the page says why.
     write(&mut host, PATTERNS, "(abierto");
     let painted = host.painted().join(" ");
@@ -150,7 +150,7 @@ fn the_owner_makes_and_deletes_a_rule() {
     press(&mut host, "ss:am:new:keywords");
     assert!(page(&host).editing.is_some());
     let painted = host.painted().join(" ");
-    assert!(painted.contains("Agregá al menos una palabra"), "{painted}");
+    assert!(painted.contains("Agrega al menos una palabra"), "{painted}");
     write(&mut host, KEYWORDS, "jaja*");
     press(&mut host, "ss:am:action:alert");
     let from = host.sent.len();
@@ -178,7 +178,7 @@ fn the_owner_makes_and_deletes_a_rule() {
     assert!(host
         .painted()
         .join(" ")
-        .contains("¿Seguro que querés eliminar la regla «Bloquear palabras propias»?"));
+        .contains("¿Seguro que quieres eliminar la regla «Bloquear palabras propias»?"));
     let from = host.sent.len();
     press(&mut host, "ss:am:delete:confirm");
     assert!(matches!(
@@ -199,7 +199,7 @@ fn a_plain_member_is_told_why_and_nothing_is_asked() {
         .any(|command| matches!(command, Command::LoadAutoModRules { .. })));
     let painted = host.painted().join(" ");
     assert!(
-        painted.contains("No tenés permiso para administrar AutoMod en Taller de Rust"),
+        painted.contains("No tienes permiso para administrar AutoMod en Taller de Rust"),
         "{painted}"
     );
 }

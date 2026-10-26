@@ -577,7 +577,7 @@ pub fn timeline(
         .map(|abilities| abilities.read_history)
     {
         return limn::Empty::new(
-            t("No podés leer el historial de esa conversación."),
+            t("No puedes leer el historial de esa conversación."),
             permit.reason().unwrap_or_default(),
             look.palette(),
         )
@@ -590,7 +590,7 @@ pub fn timeline(
     {
         return limn::Empty::new(
             t("Este contexto ya no tiene mensajes disponibles"),
-            t("Podés volver a los mensajes recientes de la conversación."),
+            t("Puedes volver a los mensajes recientes de la conversación."),
             look.palette(),
         )
         .render()

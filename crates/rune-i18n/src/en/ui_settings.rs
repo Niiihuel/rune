@@ -402,7 +402,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Sin proveedor", "No provider"),
     ("RUNE no está conectado a ningún servicio.", "RUNE isn't connected to any service."),
     ("Permisos concedidos", "Granted permissions"),
-    ("Elegí el proveedor", "Choose the provider"),
+    ("Elige el proveedor", "Choose the provider"),
     (
         "Cada uno dice de dónde vienen sus datos. Cambiar cierra la sesión de este.",
         "Each one says where its data comes from. Switching signs out of this one.",
@@ -492,7 +492,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Cámara", "Camera"),
     ("Tu cámara", "Your camera"),
     ("Esperando la cámara…", "Waiting for the camera…"),
-    ("Probá el video para verte acá.", "Test the video to see yourself here."),
+    ("Prueba el video para verte aquí.", "Test the video to see yourself here."),
     (
         "Las cámaras aparecen cuando el sistema da acceso.",
         "Cameras show up when the system gives access.",
@@ -577,7 +577,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Desconexión o error", "Disconnection or error"),
     ("Mensaje nuevo", "New message"),
     (
-        "Escribí la ruta completa de la carpeta, desde / o ~/.",
+        "Escribe la ruta completa de la carpeta, desde / o ~/.",
         "Type the folder's full path, from / or ~/.",
     ),
     ("Probar", "Try"),

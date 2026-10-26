@@ -158,7 +158,7 @@ async fn a_bots_part_goes_with_the_gateway_session_and_its_answers_come_by_nonce
     let mut whisper = bot_message();
     whisper["id"] = json!("101");
     whisper["flags"] = json!(64);
-    whisper["content"] = json!("Sólo para vos");
+    whisper["content"] = json!("Sólo para ti");
     whisper.as_object_mut().unwrap().remove("components");
     app.dispatch
         .send(("MESSAGE_CREATE", whisper))

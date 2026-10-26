@@ -365,7 +365,7 @@ pub(crate) fn end_poll(
     {
         Some(reason) => {
             ui.notify(
-                t("No podés terminar la encuesta"),
+                t("No puedes terminar la encuesta"),
                 Some(reason.into()),
                 true,
                 now,
@@ -693,7 +693,7 @@ pub(crate) fn overlays(
             })
             .unwrap_or_default();
         let problem = if forward.chosen.is_empty() {
-            Some(t("Elegí al menos una conversación"))
+            Some(t("Elige al menos una conversación"))
         } else {
             None
         };
@@ -784,7 +784,7 @@ pub(crate) fn overlays(
             root,
             true,
             t("Terminar encuesta"),
-            t("¿La terminás ahora para todos? Nadie más va a poder votar."),
+            t("¿La terminas ahora para todos? Nadie más va a poder votar."),
             END_CONFIRM,
             END_CANCEL,
             look.menu_palette(),

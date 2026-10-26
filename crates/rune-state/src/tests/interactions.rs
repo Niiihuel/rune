@@ -196,7 +196,7 @@ fn a_reply_only_the_account_sees_does_not_count_and_can_be_dismissed() {
     let last = store.timeline(general).unwrap().newest().unwrap().clone();
     let mut whisper = Message::clone(&last);
     whisper.id = MessageId(last.id.0 + 1);
-    whisper.content = "sólo vos".into();
+    whisper.content = "sólo tú".into();
     whisper.components.ephemeral = true;
     store.apply(
         Event::MessageCreated {

@@ -31,7 +31,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // The camera (rune-media).
     (
-        "Windows no deja que las aplicaciones usen la cámara: permitilo en Configuración › Privacidad y seguridad › Cámara.",
+        "Windows no deja que las aplicaciones usen la cámara: permítelo en Configuración › Privacidad y seguridad › Cámara.",
         "Windows doesn't let apps use the camera: allow it in Settings › Privacy & security › Camera.",
     ),
     ("La cámara está en uso por otro programa.", "The camera is in use by another program."),
@@ -40,7 +40,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The camera doesn't offer pictures RUNE can read.",
     ),
     (
-        "Este Windows no tiene Media Foundation (en las ediciones N, instalá el Media Feature Pack).",
+        "Este Windows no tiene Media Foundation (en las ediciones N, instala el Media Feature Pack).",
         "This Windows doesn't have Media Foundation (on N editions, install the Media Feature Pack).",
     ),
     // Video settings (rune-ui).

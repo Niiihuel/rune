@@ -82,7 +82,7 @@ const CONTENT: &[&str] = &[
     " · empieza el ",
     "Probé con ",
     // The owned server's onboarding (rules and onboarding, 2026-10-18).
-    "¿En qué querés colaborar?",
+    "¿En qué quieres colaborar?",
     // The owned server's AutoMod rules (automod).
     "Sin spoilers",
     "Spam de menciones",

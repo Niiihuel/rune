@@ -70,7 +70,7 @@ impl Attempt {
                 let accepted = matches!(result, Callback::Code(_) | Callback::Denied);
                 let (head, body) = if accepted {
                     ("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; frame-ancestors 'none'\r\nConnection: close\r\n\r\n",
-                        t("Respuesta recibida. Volvé a RUNE para ver el resultado."))
+                        t("Respuesta recibida. Vuelve a RUNE para ver el resultado."))
                 } else {
                     ("HTTP/1.1 400 Bad Request\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: 0\r\n\r\n", "")
                 };
@@ -82,8 +82,8 @@ impl Attempt {
                     Callback::Invalid => {}
                 }
             }
-            Err(AuthError(es("Demasiadas respuestas de autorización inválidas. Volvé a intentarlo.")))
-        }).await.map_err(|_| AuthError(es("Se agotó el tiempo para autorizar. Volvé a iniciar sesión.")))?
+            Err(AuthError(es("Demasiadas respuestas de autorización inválidas. Vuelve a intentarlo.")))
+        }).await.map_err(|_| AuthError(es("Se agotó el tiempo para autorizar. Vuelve a iniciar sesión.")))?
     }
 
     pub(crate) fn parse(&self, headers: &str) -> Callback {

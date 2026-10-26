@@ -36,7 +36,7 @@ impl NewPoll {
     /// when it would.
     pub fn problem(&self) -> Option<&'static str> {
         if self.question.trim().is_empty() {
-            Some(t("Escribí una pregunta"))
+            Some(t("Escribe una pregunta"))
         } else if self.question.chars().count() > POLL_QUESTION_MAX {
             Some(t("La pregunta es demasiado larga"))
         } else if !POLL_ANSWERS.contains(&self.answers.len()) {
@@ -54,7 +54,7 @@ impl NewPoll {
         {
             Some(t("Una respuesta es demasiado larga"))
         } else if !POLL_HOURS.contains(&self.hours) {
-            Some(t("Elegí cuánto dura"))
+            Some(t("Elige cuánto dura"))
         } else {
             None
         }

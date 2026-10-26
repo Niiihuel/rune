@@ -526,7 +526,7 @@ fn conversation(
         let (title, detail) = if available {
             (
                 t("Nada abierto"),
-                t("Elegí un canal o una conversación de la columna."),
+                t("Elige un canal o una conversación de la columna."),
             )
         } else if ui.server.is_some() {
             (

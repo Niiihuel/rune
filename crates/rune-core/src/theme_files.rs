@@ -184,14 +184,14 @@ async fn write(
         Ok(Ok(path)) => path,
         Ok(Err(UploadError::Cancelled)) | Err(_) => return Ok(None),
         Ok(Err(UploadError::Busy)) => {
-            return Err(t("Esperá a que se cierre el otro diálogo de archivos."))
+            return Err(t("Espera a que se cierre el otro diálogo de archivos."))
         }
         Ok(Err(_)) => return Err(t("No se pudo abrir el selector de archivos.")),
     };
     let filename = path
         .file_name()
         .and_then(|name| name.to_str())
-        .ok_or(t("Elegí un nombre de archivo válido."))?
+        .ok_or(t("Elige un nombre de archivo válido."))?
         .to_owned();
     let mut file = match tokio::fs::OpenOptions::new()
         .write(true)
@@ -201,7 +201,7 @@ async fn write(
     {
         Ok(file) => file,
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            return Err(t("Ya hay un archivo con ese nombre. Elegí otro."))
+            return Err(t("Ya hay un archivo con ese nombre. Elige otro."))
         }
         Err(_) => return Err(t("No se pudo guardar el archivo en esa carpeta.")),
     };

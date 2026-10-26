@@ -50,12 +50,12 @@ const VIDEO: u32 = MF_SOURCE_READER_FIRST_VIDEO_STREAM.0 as u32;
 
 const NO_CAMERA: &str = es("No hay ninguna cámara conectada.");
 const DENIED: &str = es(
-    "Windows no deja que las aplicaciones usen la cámara: permitilo en Configuración › Privacidad y seguridad › Cámara.",
+    "Windows no deja que las aplicaciones usen la cámara: permítelo en Configuración › Privacidad y seguridad › Cámara.",
 );
 const BUSY: &str = es("La cámara está en uso por otro programa.");
 const NO_FORMAT: &str = es("La cámara no ofrece imágenes que RUNE pueda leer.");
 const NO_MEDIA: &str = es(
-    "Este Windows no tiene Media Foundation (en las ediciones N, instalá el Media Feature Pack).",
+    "Este Windows no tiene Media Foundation (en las ediciones N, instala el Media Feature Pack).",
 );
 const STALLED: &str = es("La cámara dejó de enviar imágenes.");
 

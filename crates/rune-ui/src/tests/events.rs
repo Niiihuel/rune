@@ -95,7 +95,7 @@ fn the_owner_plans_marks_and_deletes_an_event() {
     assert!(host
         .painted()
         .join(" ")
-        .contains("Escribí dónde es el evento."));
+        .contains("Escribe dónde es el evento."));
     write(&mut host, ids::LOCATION, "Sede del club");
     // A day picked in the calendar is written in its field.
     press(&mut host, &format!("{}:day:2031-03-02", ids::END_DATE));

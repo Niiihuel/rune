@@ -228,27 +228,27 @@ fn heading(state: &AuthenticationState, kind: ProviderKind) -> (&'static str, &'
     match state {
         AuthenticationState::Unavailable => (
             t("Preparando el acceso"),
-            t("Enseguida podés conectar tu cuenta."),
+            t("Enseguida puedes conectar tu cuenta."),
         ),
         AuthenticationState::SignedOut if kind == ProviderKind::Unofficial => (
             t("¡Qué bueno verte!"),
-            t("Iniciá sesión para volver a tus conversaciones."),
+            t("Inicia sesión para volver a tus conversaciones."),
         ),
         AuthenticationState::SignedOut => (
             t("¡Qué bueno verte!"),
-            t("Conectá tu cuenta desde el navegador para continuar."),
+            t("Conecta tu cuenta desde el navegador para continuar."),
         ),
         AuthenticationState::Failed { .. } => (
             t("No pudimos iniciar sesión"),
-            t("Podés volver a intentarlo cuando quieras."),
+            t("Puedes volver a intentarlo cuando quieras."),
         ),
         AuthenticationState::AwaitingBrowser { .. } => (
-            t("Continuá en tu navegador"),
-            t("Autorizá el acceso y volvé a RUNE para continuar."),
+            t("Continúa en tu navegador"),
+            t("Autoriza el acceso y vuelve a RUNE para continuar."),
         ),
         AuthenticationState::AwaitingExternal => (
-            t("Continuá el inicio de sesión"),
-            t("Completá el acceso en la ventana de inicio de sesión."),
+            t("Continúa el inicio de sesión"),
+            t("Completa el acceso en la ventana de inicio de sesión."),
         ),
         AuthenticationState::Exchanging => (t("Un momento…"), t("Estamos verificando tu cuenta.")),
         AuthenticationState::SignedIn { .. } => (t("Tu cuenta"), ""),

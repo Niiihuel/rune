@@ -33,7 +33,7 @@ fn stage_of(
         .iter()
         .find(|state| state.user == me && state.channel == channel)
         .map(|state| state.stage_seat())
-        .ok_or(LoginError::new(es("Entrá al escenario primero.")))?;
+        .ok_or(LoginError::new(es("Entra al escenario primero.")))?;
     Ok((server, found.permissions, seat, me))
 }
 
@@ -48,11 +48,11 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             }
             if !permissions.contains(Permissions::REQUEST_TO_SPEAK) {
                 return refused(es(
-                    "No tenés permiso para pedir la palabra en este escenario.",
+                    "No tienes permiso para pedir la palabra en este escenario.",
                 ));
             }
             if matches!(seat, StageSeat::Speaker | StageSeat::Invited) {
-                return refused(es("Ya podés hablar en este escenario."));
+                return refused(es("Ya puedes hablar en este escenario."));
             }
             Ok(())
         }
@@ -67,7 +67,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
                 // Stepping down is always the account's; stepping up needs
                 // an invitation or moderation.
                 if *speaker && seat != StageSeat::Invited && !moderates {
-                    return refused(es("Esperá que la moderación te invite a hablar."));
+                    return refused(es("Espera que la moderación te invite a hablar."));
                 }
                 return Ok(());
             }

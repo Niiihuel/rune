@@ -179,11 +179,11 @@ impl Store {
     /// exists always can; a new one needs the provider and no block.
     pub fn open_direct(&self, user: UserId) -> Permit {
         if Some(user) == self.me {
-            Permit::Denied(t("No podés escribirte a vos").into())
+            Permit::Denied(t("No puedes escribirte a ti").into())
         } else if self.direct_with(user).is_some() {
             Permit::Allowed
         } else if self.blocked(user) {
-            Permit::Denied(t("Bloqueaste a esta persona: desbloqueala para escribirle").into())
+            Permit::Denied(t("Bloqueaste a esta persona: desbloquéala para escribirle").into())
         } else {
             self.social_write(self.capabilities().open_direct, t("iniciar conversaciones"))
         }
@@ -194,13 +194,13 @@ impl Store {
         if !supported {
             Permit::Denied(tr!("Esta conexión no permite {what}", what))
         } else if self.me.is_none() {
-            Permit::Denied(t("Conectá una cuenta primero").into())
+            Permit::Denied(t("Conecta una cuenta primero").into())
         } else if self.from_cache || self.connection != ConnectionState::Connected {
-            Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+            Permit::Denied(t("Espera a que la conexión esté disponible").into())
         } else if self.capabilities().authentication
             && !matches!(self.authentication, AuthenticationState::SignedIn { .. })
         {
-            Permit::Denied(t("Iniciá sesión primero").into())
+            Permit::Denied(t("Inicia sesión primero").into())
         } else {
             Permit::Allowed
         }

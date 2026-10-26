@@ -86,7 +86,7 @@ pub(crate) fn insert(
     if value.encode_utf16().count() > 2000 {
         ui.notify(
             t("El borrador es demasiado largo"),
-            Some(t("Dejá espacio antes de insertar este elemento.").into()),
+            Some(t("Deja espacio antes de insertar este elemento.").into()),
             true,
             now,
         );
@@ -173,7 +173,7 @@ pub(crate) fn wrap(
     if value.encode_utf16().count() > 2000 {
         ui.notify(
             t("El formato no entra en el mensaje"),
-            Some(t("Dejá espacio antes de darle formato.").into()),
+            Some(t("Deja espacio antes de darle formato.").into()),
             true,
             now,
         );

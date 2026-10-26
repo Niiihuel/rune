@@ -48,10 +48,10 @@ async fn joined(app: &mut Harness, owner: &str, pending: bool) {
 
 /// The darkroom's form: its rules to agree to, with a key RUNE does not
 /// model, which goes back as it came.
-const FORM: &str = r#"{"description": "Leé las normas antes de entrar a la mesada.",
+const FORM: &str = r#"{"description": "Lee las normas antes de entrar a la mesada.",
     "version": "2026-10-01T09:30:00.000000+00:00",
     "form_fields": [{"required": true, "field_type": "TERMS", "label": "Normas del cuarto oscuro",
-        "values": ["Luz roja siempre encendida", "Devolvé los químicos a su estante"],
+        "values": ["Luz roja siempre encendida", "Devuelve los químicos a su estante"],
         "description": null, "group": 1}]}"#;
 
 /// The darkroom's onboarding: one question whose option gives a role and
@@ -61,7 +61,7 @@ const ONBOARDING: &str = r#"{"enabled": true, "mode": 0, "guild_id": "10",
     "prompts": [{"options": [{"title": "Copias en papel", "id": "1290000000000000201",
         "channel_ids": ["32"], "role_ids": ["12"], "description": "Turnos de ampliadora",
         "emoji": {"name": "🎞️", "id": null}}],
-        "title": "¿Qué querés hacer?", "id": "1290000000000000200", "type": 0,
+        "title": "¿Qué quieres hacer?", "id": "1290000000000000200", "type": 0,
         "required": true, "single_select": true, "in_onboarding": true}]}"#;
 
 fn form() -> rune_model::ServerRules {
@@ -346,7 +346,7 @@ async fn the_owner_saves_the_onboarding_as_discord_documents_it() {
     reply
         .send(response(
             200,
-            &ONBOARDING.replace("¿Qué querés hacer?", "¿Qué vas a revelar?"),
+            &ONBOARDING.replace("¿Qué quieres hacer?", "¿Qué vas a revelar?"),
         ))
         .unwrap();
     let Event::OnboardingLoaded {

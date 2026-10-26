@@ -187,7 +187,7 @@ impl Calls {
             .is_none_or(|call| call.channel != *channel)
         {
             return Err(LoginError::new(es(
-                "Entrá a la llamada para hacerla sonar.",
+                "Entra a la llamada para hacerla sonar.",
             )));
         }
         if self.known.iter().any(|(known, _)| *known == channel.0) {

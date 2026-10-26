@@ -60,7 +60,7 @@ fn on_a_stage_the_account_listens_raises_its_hand_and_speaks_when_invited() {
     assert_eq!(hands, 1);
     assert_eq!(
         host.store.mic_held().as_deref(),
-        Some("Estás en el público: levantá la mano para pedir la palabra")
+        Some("Estás en el público: levanta la mano para pedir la palabra")
     );
     assert!(!host.store.abilities(stage).unwrap().speak.allowed());
 

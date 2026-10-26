@@ -92,7 +92,7 @@ impl Store {
                 && !matches!(self.authentication, AuthenticationState::SignedIn { .. })
         {
             return Permit::Denied(
-                t("Esperá a que la sesión esté disponible para consultar los mensajes fijados")
+                t("Espera a que la sesión esté disponible para consultar los mensajes fijados")
                     .into(),
             );
         }
@@ -324,15 +324,15 @@ impl Store {
         }
         let reject = if let Some(invalid) = read.invalid {
             Some(match invalid {
-                PinsInvalidation::DeltaOverflow => t("Los mensajes fijados cambiaron demasiado durante la carga. Volvé a intentarlo."),
-                PinsInvalidation::UnknownBaseline => t("No pudimos verificar un cambio porque no conservamos el mensaje original. Volvé a intentarlo."),
+                PinsInvalidation::DeltaOverflow => t("Los mensajes fijados cambiaron demasiado durante la carga. Vuelve a intentarlo."),
+                PinsInvalidation::UnknownBaseline => t("No pudimos verificar un cambio porque no conservamos el mensaje original. Vuelve a intentarlo."),
             })
         } else if messages
             .iter()
             .any(|message| message.channel != channel || message.id.0 == 0 || !message.pinned)
         {
             Some(t(
-                "La lista de mensajes fijados recibida no es válida. Volvé a intentarlo.",
+                "La lista de mensajes fijados recibida no es válida. Vuelve a intentarlo.",
             ))
         } else {
             None
@@ -380,7 +380,7 @@ impl Store {
                             .find(|known| known.id == id && known.pinned)
                     }) else {
                         self.drop_provisional_pins(channel);
-                        return failure(t("La lista de mensajes fijados cambió durante la carga. Volvé a intentarlo."));
+                        return failure(t("La lista de mensajes fijados cambió durante la carga. Vuelve a intentarlo."));
                     };
                     if merged
                         .get(&id)

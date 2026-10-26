@@ -388,7 +388,7 @@ pub(crate) fn role_lock(store: &Store, server: ServerId, role: &Role) -> Option<
         return Some(reason.to_owned());
     }
     (role.id != RoleId(server.0) && role.position >= store.my_rank(server))
-        .then(|| t("Este rol está a la altura del tuyo o por encima: no podés cambiarlo.").into())
+        .then(|| t("Este rol está a la altura del tuyo o por encima: no puedes cambiarlo.").into())
 }
 
 /// Why the account cannot give or take `role`, when it cannot.
@@ -409,7 +409,7 @@ pub(crate) fn permission_lock(
     permission: Permissions,
 ) -> Option<String> {
     (!store.server_permissions(server).contains(permission))
-        .then(|| t("No lo tenés, así que no podés darlo.").into())
+        .then(|| t("No lo tienes, así que no puedes darlo.").into())
 }
 
 /// Why the account cannot do what `permit` allows to `user`, when it cannot:
@@ -1246,7 +1246,7 @@ fn clicked(
             {
                 ui.notify(
                     t("Tus permisos cambiaron"),
-                    Some(t("Revisá los cambios antes de guardar.").into()),
+                    Some(t("Revisa los cambios antes de guardar.").into()),
                     true,
                     now,
                 );

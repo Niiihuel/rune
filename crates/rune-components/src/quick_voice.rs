@@ -549,7 +549,7 @@ pub fn camera(view: &Camera, look: &Look) -> Vec<Element> {
         if showing {
             t("Esperando la cámara…")
         } else {
-            t("Probá el video para verte acá.")
+            t("Prueba el video para verte aquí.")
         },
         Size::new(width, width * 9.0 / 16.0),
         look,
@@ -923,7 +923,7 @@ mod tests {
         assert!(surfaces(&off).is_empty(), "nothing shows before the test");
         let painted = texts(&off);
         assert!(painted.contains(&"Probar video".to_owned()));
-        assert!(painted.contains(&"Probá el video para verte acá.".to_owned()));
+        assert!(painted.contains(&"Prueba el video para verte aquí.".to_owned()));
         assert!(painted
             .iter()
             .any(|it| it.starts_with("Las cámaras aparecen")));

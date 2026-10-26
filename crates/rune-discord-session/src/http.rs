@@ -309,7 +309,7 @@ impl Http {
         let response = sent.map_err(|error| {
             // Only the kind: the error's own text may name the route.
             let reason = if error.is_connect() {
-                es("No se pudo conectar con Discord. Revisá la conexión a internet.")
+                es("No se pudo conectar con Discord. Revisa la conexión a internet.")
             } else if error.is_timeout() {
                 es("Discord no respondió a tiempo.")
             } else {
@@ -1056,8 +1056,8 @@ fn preview_url(value: &Value, key: &str) -> Result<String, &'static str> {
 fn status_error(status: StatusCode, mutating: bool) -> RestError {
     RestError {
         reason: LoginError::new(match status.as_u16() {
-            401 => es("Discord rechazó la sesión; iniciá sesión otra vez."),
-            403 => es("No tenés permiso para completar esta acción."),
+            401 => es("Discord rechazó la sesión; inicia sesión otra vez."),
+            403 => es("No tienes permiso para completar esta acción."),
             404 => es("El canal o mensaje ya no está disponible."),
             429 => es("Discord pidió esperar. La acción no se reintentó."),
             400 => es("Discord rechazó los datos de esta acción."),

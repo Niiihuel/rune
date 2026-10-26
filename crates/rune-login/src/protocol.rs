@@ -85,7 +85,7 @@ pub const RUNTIME_MISSING: i32 = 11;
 
 /// What RUNE says without WebView2, with Microsoft's own installer.
 fn runtime_missing() -> &'static str {
-    es("Falta WebView2 Runtime de Microsoft, el navegador de la ventana de acceso en Windows. Instalalo desde https://go.microsoft.com/fwlink/p/?LinkId=2124703 y volvé a intentarlo.")
+    es("Falta WebView2 Runtime de Microsoft, el navegador de la ventana de acceso en Windows. Instálalo desde https://go.microsoft.com/fwlink/p/?LinkId=2124703 y vuelve a intentarlo.")
 }
 
 /// Why the engine's probe told nothing (Windows).
@@ -106,9 +106,9 @@ pub fn captcha_error(code: Option<i32>) -> LoginError {
         }
         Some(5) => es("Esta compilación no incluye la ventana de verificación."),
         Some(RUNTIME_MISSING) => runtime_missing(),
-        Some(10) => {
-            es("La verificación no pudo cargarse. Podés aceptar la invitación desde el navegador.")
-        }
+        Some(10) => es(
+            "La verificación no pudo cargarse. Puedes aceptar la invitación desde el navegador.",
+        ),
         _ => es("No se pudo completar la verificación. No se envió nada."),
     })
 }
@@ -166,7 +166,7 @@ pub fn helper_error(code: Option<i32>) -> LoginError {
     LoginError::new(match code {
         Some(2) => es("Se canceló el inicio de sesión."),
         Some(3) => es("Se agotó el tiempo de inicio de sesión."),
-        Some(4) => es("El navegador de la ventana de acceso falló. Volvé a intentarlo."),
+        Some(4) => es("El navegador de la ventana de acceso falló. Vuelve a intentarlo."),
         Some(5) => es("Esta compilación no incluye la ventana de inicio de sesión."),
         Some(7) => es("El navegador cerró la ventana de acceso al superar su límite de memoria."),
         Some(8) => es("La aplicación pidió terminar el navegador de la ventana de acceso."),

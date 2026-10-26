@@ -29,7 +29,7 @@ const MAX_RULES_READ: usize = 64;
 /// Characters of what matched, as an execution reports it, kept.
 const MAX_MATCHED: usize = 100;
 
-const NOT_ALLOWED: &str = es("No tenés permiso para administrar AutoMod en este servidor.");
+const NOT_ALLOWED: &str = es("No tienes permiso para administrar AutoMod en este servidor.");
 
 /// Whether `command` is about AutoMod.
 pub(crate) fn is_automod(command: &Command) -> bool {
@@ -76,7 +76,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     }
     if mine.is_some_and(|mine| mine.restrictions.at(wall_now()).is_some()) {
         return Err(LoginError::new(es(
-            "Tu cuenta está restringida en este servidor: podés leer, pero no administrar.",
+            "Tu cuenta está restringida en este servidor: puedes leer, pero no administrar.",
         )));
     }
     let permissions = match mine {
@@ -90,7 +90,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     if let Command::SaveAutoModRule { rule, .. } = command {
         if rule.problem().is_some() {
             return Err(LoginError::new(es(
-                "La regla no está completa: revisala antes de guardarla.",
+                "La regla no está completa: revísala antes de guardarla.",
             )));
         }
         for action in &rule.actions {
@@ -416,7 +416,7 @@ mod tests {
                 "allow_list": ["gatito"]
             },
             "actions": [
-                { "type": 1, "metadata": { "custom_message": "Acá no." } },
+                { "type": 1, "metadata": { "custom_message": "Aquí no." } },
                 { "type": 2, "metadata": { "channel_id": "123456789123456789" } },
                 { "type": 3, "metadata": { "duration_seconds": 60 } }
             ],
@@ -439,7 +439,7 @@ mod tests {
         assert_eq!(
             read.actions[0],
             AutoModAction::Block {
-                notice: Some("Acá no.".into())
+                notice: Some("Aquí no.".into())
             }
         );
         assert_eq!(read.actions[2], AutoModAction::Timeout { seconds: 60 });

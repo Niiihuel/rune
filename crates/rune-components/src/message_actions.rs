@@ -148,7 +148,7 @@ pub fn forward_dialog(root: Element, view: ForwardView<'_>, width: f32, look: &L
         TextField::new(
             ids::FORWARD_NOTE,
             view.note.to_owned(),
-            t("Agregá un mensaje (opcional)"),
+            t("Agrega un mensaje (opcional)"),
             palette,
         )
         .accessibility_label(t("Mensaje opcional"))
@@ -174,7 +174,7 @@ pub fn forward_dialog(root: Element, view: ForwardView<'_>, width: f32, look: &L
         root,
         true,
         t("Reenviar a"),
-        t("Elegí dónde compartir este mensaje."),
+        t("Elige dónde compartir este mensaje."),
         ids::FORWARD_CLOSE,
         palette,
     )
@@ -230,7 +230,7 @@ pub fn poll_dialog(root: Element, view: PollView<'_>, width: f32, look: &Look) -
         TextField::new(
             ids::POLL_QUESTION,
             view.question.to_owned(),
-            t("¿Qué querés preguntar?"),
+            t("¿Qué quieres preguntar?"),
             palette,
         )
         .accessibility_label(t("Pregunta"))
@@ -506,7 +506,7 @@ pub fn link_dialog(root: Element, view: LinkView<'_>, width: f32, look: &Look) -
             Element::row(vec![
                 icon(Icon::WarningTriangle, look.idle).centered_y(),
                 text(
-                    t("El texto de este enlace no es su dirección: fijate bien a dónde lleva."),
+                    t("El texto de este enlace no es su dirección: fíjate bien a dónde lleva."),
                     13.0,
                     look.text,
                 )
@@ -623,7 +623,7 @@ mod tests {
                         multiselect: false,
                         picking: None,
                         posting: false,
-                        problem: Some("Escribí una pregunta"),
+                        problem: Some("Escribe una pregunta"),
                         error: None,
                         lengths: &[1, 4, 8, 24, 72, 168],
                         max_answers: 10,

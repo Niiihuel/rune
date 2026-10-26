@@ -75,7 +75,7 @@ pub fn read_attachments(
 const NO_CLIPBOARD: &str = rune_i18n::es("No hay un portapapeles disponible en esta sesión.");
 #[cfg(target_os = "linux")]
 const NO_WINDOW: &str = rune_i18n::es(
-    "En Wayland, RUNE copia imágenes y videos con su ventana propia del portapapeles de XWayland, y XWayland no está activo en esta sesión. Guardá el archivo y copialo desde ahí.",
+    "En Wayland, RUNE copia imágenes y videos con su ventana propia del portapapeles de XWayland, y XWayland no está activo en esta sesión. Guarda el archivo y cópialo desde ahí.",
 );
 const NOT_COPIED: &str = rune_i18n::es("El portapapeles no aceptó la copia.");
 

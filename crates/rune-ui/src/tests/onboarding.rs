@@ -145,7 +145,7 @@ fn joining_the_club_asks_its_questions_and_rules_and_lets_the_account_in_once_an
         &format!("Antes de participar en {club}"),
         "¿Qué te trae por el club?",
         "Reglas del servidor",
-        "Respetá a todas las personas.",
+        "Respeta a todas las personas.",
         "Leí y acepto las reglas",
         "Simulación local: no se envía nada a ningún servicio.",
     ] {
@@ -160,7 +160,7 @@ fn joining_the_club_asks_its_questions_and_rules_and_lets_the_account_in_once_an
             .write
             .reason()
             .map(str::to_owned),
-        Some(format!("Aceptá las reglas de {club} para participar"))
+        Some(format!("Acepta las reglas de {club} para participar"))
     );
     // Nothing answered: nothing goes, and each part says what is missing.
     let before = host.sent.len();
@@ -168,7 +168,7 @@ fn joining_the_club_asks_its_questions_and_rules_and_lets_the_account_in_once_an
     assert_eq!(host.sent.len(), before);
     let painted = host.painted().join(" ");
     assert!(
-        painted.contains("Respondé «¿Qué te trae por el club?»"),
+        painted.contains("Responde «¿Qué te trae por el club?»"),
         "{painted}"
     );
     // Photography, and the rules: the questions go first.
@@ -189,7 +189,7 @@ fn joining_the_club_asks_its_questions_and_rules_and_lets_the_account_in_once_an
         .any(|command| matches!(command, Command::AnswerServerRules { .. })));
     let painted = host.painted().join(" ");
     assert!(
-        painted.contains(&format!("Listo: ya podés participar en {club}.")),
+        painted.contains(&format!("Listo: ya puedes participar en {club}.")),
         "{painted}"
     );
     assert!(!host.store.join_steps(CLUB).any());
@@ -325,7 +325,7 @@ fn the_owner_edits_its_communitys_onboarding_and_an_incomplete_question_never_go
     host.click("ss:save");
     assert!(sent_since(&host, from).is_empty());
     assert!(host.ui.notices.iter().any(|notice| notice.detail.as_deref()
-        == Some("«ab» no es un solo emoji: escribí uno, como 📷.")));
+        == Some("«ab» no es un solo emoji: escribe uno, como 📷.")));
     write(
         &mut host,
         &format!("ss:onb:option:{}:emoji", option.0),
@@ -382,8 +382,8 @@ fn the_darkrooms_moderators_review_written_and_chosen_answers() {
     let painted = host.painted().join(" ");
     for said in [
         "Acepto las normas del taller",
-        "Cuidá los químicos y el equipo.",
-        "¿CÓMO TE LLAMÁS?",
+        "Cuida los químicos y el equipo.",
+        "¿CÓMO TE LLAMAS?",
         "Medio formato",
         "0/150",
     ] {

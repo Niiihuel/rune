@@ -175,7 +175,7 @@ fn moderation_needs_the_permission_and_a_higher_rank() {
     assert!(allowed(&snapshot, &kick(PEER)).is_ok());
     assert!(refused(&snapshot, kick(BOSS)).contains("altura"));
     assert!(refused(&snapshot, kick(OWNER)).contains("dueño"));
-    assert!(refused(&snapshot, kick(ME)).contains("vos"));
+    assert!(refused(&snapshot, kick(ME)).contains("a ti"));
     // Someone this session never loaded ranks lowest: Discord decides.
     assert!(allowed(&snapshot, &kick(UserId(77))).is_ok());
     let long = Command::Ban {
@@ -257,7 +257,7 @@ fn roles_change_only_below_and_never_grant_more_than_the_account_has() {
         permissions: Some(Permissions::ADMINISTRATOR),
         ..Default::default()
     };
-    assert!(refused(&snapshot, edit(LOW, admin)).contains("no tenés"));
+    assert!(refused(&snapshot, edit(LOW, admin)).contains("no tienes"));
     let kick = RoleEdit {
         permissions: Some(Permissions::KICK),
         ..Default::default()
@@ -293,7 +293,7 @@ fn roles_change_only_below_and_never_grant_more_than_the_account_has() {
         user: UserId(77),
         roles: vec![LOW],
     };
-    assert!(refused(&snapshot, stranger).contains("Cargá"));
+    assert!(refused(&snapshot, stranger).contains("Carga"));
     assert!(refused(
         &snapshot,
         Command::DeleteRole {
@@ -329,7 +329,7 @@ fn channels_overwrites_and_names_are_checked_before_leaving() {
         &snapshot,
         overwrite(OverwriteTarget::Member(PEER), Permissions::ADMINISTRATOR)
     )
-    .contains("no tenés"));
+    .contains("no tienes"));
     assert!(refused(
         &snapshot,
         Command::RemoveOverwrite {

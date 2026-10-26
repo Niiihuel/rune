@@ -7,7 +7,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "This account already has what the invite gives.",
     ),
     (
-        "Llegaste al máximo de servidores: salí de uno para entrar.",
+        "Llegaste al máximo de servidores: sal de uno para entrar.",
         "You're at the server limit: leave one to join.",
     ),
     (
@@ -38,7 +38,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Ya estás en este grupo.", "You're already in this group."),
     ("Ya son amigos.", "You're already friends."),
     (
-        "Ya sos miembro de este servidor.",
+        "Ya eres miembro de este servidor.",
         "You're already a member of this server.",
     ),
     ("Abrir en el navegador", "Open in browser"),

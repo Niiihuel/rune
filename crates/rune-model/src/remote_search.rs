@@ -234,7 +234,7 @@ impl RemoteSearch {
     /// Why it cannot be sent, as the interface says it.
     pub fn validate(&self) -> Result<(), &'static str> {
         if self.is_empty() {
-            return Err(t("Escribí texto o elegí un filtro para buscar."));
+            return Err(t("Escribe texto o elige un filtro para buscar."));
         }
         if self.text.len() > 1024
             || self.text.chars().count() > 256
@@ -243,7 +243,7 @@ impl RemoteSearch {
             return Err(t("La búsqueda admite hasta 256 caracteres."));
         }
         if self.filters() > MAX_REMOTE_FILTERS {
-            return Err(t("Usá como mucho 16 filtros."));
+            return Err(t("Usa como mucho 16 filtros."));
         }
         if self.channel.0 == 0
             || self.server.is_some_and(|server| server.0 == 0)
@@ -254,14 +254,14 @@ impl RemoteSearch {
                 .any(|user| user.0 == 0)
             || self.channels.iter().any(|channel| channel.0 == 0)
         {
-            return Err(t("Elegí personas y canales de las sugerencias."));
+            return Err(t("Elige personas y canales de las sugerencias."));
         }
         if self
             .link_hosts
             .iter()
             .any(|host| link_host(host).as_ref() != Some(host))
         {
-            return Err(t("Escribí el sitio como ejemplo.com."));
+            return Err(t("Escribe el sitio como ejemplo.com."));
         }
         if self.server.is_none() && !self.channels.is_empty() {
             return Err(t("«en:» sólo busca en canales de un servidor."));
@@ -448,7 +448,7 @@ mod tests {
 
     #[test]
     fn the_loaded_matcher_checks_every_filter_or_declines() {
-        let mut picture = message(5, "mirá https://example.invalid");
+        let mut picture = message(5, "mira https://example.invalid");
         picture.attachments.push(Attachment {
             id: AttachmentId(1),
             filename: "a.png".into(),
@@ -468,11 +468,11 @@ mod tests {
             has: vec![Has::Link, Has::Image, Has::File],
             after: Some(Timestamp(1_000)),
             before: Some(Timestamp(1_001)),
-            ..search("MIRÁ")
+            ..search("MIRA")
         };
         let matches = wanted.loaded_matcher().unwrap();
         assert!(matches(&picture));
-        assert!(!matches(&message(6, "mirá")), "no link, no image");
+        assert!(!matches(&message(6, "mira")), "no link, no image");
         let video = RemoteSearch {
             has: vec![Has::Video],
             ..search("")
@@ -501,7 +501,7 @@ mod tests {
         for bad in ["", "a b", "-x.com", "x..com", "https://", "ñandú.ar"] {
             assert_eq!(link_host(bad), None, "{bad}");
         }
-        let linked = message(5, "mirá <https://www.docs.rs/limn> y http://otro.ar");
+        let linked = message(5, "mira <https://www.docs.rs/limn> y http://otro.ar");
         let sites = |hosts: &[&str]| RemoteSearch {
             link_hosts: hosts.iter().map(|host| host.to_string()).collect(),
             ..search("")

@@ -39,13 +39,13 @@ impl crate::Store {
         if !provider.capabilities.manage_servers {
             Permit::Denied(t("Esta conexión no permite crear servidores").into())
         } else if self.me().is_none() {
-            Permit::Denied(t("Conectá una cuenta para crear un servidor").into())
+            Permit::Denied(t("Conecta una cuenta para crear un servidor").into())
         } else if self.from_cache || self.connection != ConnectionState::Connected {
-            Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+            Permit::Denied(t("Espera a que la conexión esté disponible").into())
         } else if provider.capabilities.authentication
             && !matches!(self.authentication, AuthenticationState::SignedIn { .. })
         {
-            Permit::Denied(t("Iniciá sesión para crear un servidor").into())
+            Permit::Denied(t("Inicia sesión para crear un servidor").into())
         } else {
             Permit::Allowed
         }
@@ -61,7 +61,7 @@ impl crate::Store {
         {
             Permit::Denied(t("Esta conexión no permite consultar invitaciones").into())
         } else if self.me().is_none() {
-            Permit::Denied(t("Conectá una cuenta para consultar esta invitación").into())
+            Permit::Denied(t("Conecta una cuenta para consultar esta invitación").into())
         } else {
             Permit::Allowed
         }
@@ -89,13 +89,13 @@ impl crate::Store {
                 .into(),
             )
         } else if self.me().is_none() {
-            Permit::Denied(t("Conectá una cuenta para aceptar la invitación").into())
+            Permit::Denied(t("Conecta una cuenta para aceptar la invitación").into())
         } else if self.from_cache || self.connection != ConnectionState::Connected {
-            Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+            Permit::Denied(t("Espera a que la conexión esté disponible").into())
         } else if provider.capabilities.authentication
             && !matches!(self.authentication, AuthenticationState::SignedIn { .. })
         {
-            Permit::Denied(t("Iniciá sesión para aceptar la invitación").into())
+            Permit::Denied(t("Inicia sesión para aceptar la invitación").into())
         } else if !destination.valid() {
             Permit::Denied(t("La invitación no identifica un destino válido").into())
         } else if matches!(destination, InvitationDestination::Friend(user) if self.me() == Some(user))
@@ -292,7 +292,7 @@ pub fn server_abilities(
             Permit::Denied(tr!("Este proveedor no permite {what}", what))
         } else if !permissions.contains(permission) {
             Permit::Denied(tr!(
-                "No tenés permiso para {what} en {server}",
+                "No tienes permiso para {what} en {server}",
                 what,
                 server = server.name
             ))
@@ -311,7 +311,7 @@ pub fn server_abilities(
             | Permissions::MANAGE_SERVER,
     ) {
         Permit::Denied(tr!(
-            "No tenés permiso para administrar a los miembros de {server}",
+            "No tienes permiso para administrar a los miembros de {server}",
             server = server.name
         ))
     } else {
@@ -424,7 +424,7 @@ pub fn server_abilities(
         leave: if !capabilities.leave_servers {
             Permit::Denied(t("Este proveedor no permite abandonar servidores").into())
         } else if owner {
-            Permit::Denied(t("Sos dueño: no podés abandonar tu propio servidor").into())
+            Permit::Denied(t("Eres dueño: no puedes abandonar tu propio servidor").into())
         } else {
             Permit::Allowed
         },
@@ -548,7 +548,7 @@ pub fn abilities(channel: &Channel, capabilities: Capabilities) -> Abilities {
         if !provider {
             Permit::Denied(tr!("Este proveedor no permite {what}", what))
         } else if !channel.permissions.contains(permission) {
-            Permit::Denied(tr!("No tenés permiso para {what} en {name}", what, name))
+            Permit::Denied(tr!("No tienes permiso para {what} en {name}", what, name))
         } else {
             Permit::Allowed
         }
@@ -604,7 +604,7 @@ pub fn abilities(channel: &Channel, capabilities: Capabilities) -> Abilities {
                 ))
             } else if thread.archived && !reopens {
                 Some(t(
-                    "Este hilo está archivado: respondé para abrirlo otra vez",
+                    "Este hilo está archivado: responde para abrirlo otra vez",
                 ))
             } else {
                 None
@@ -1103,7 +1103,7 @@ mod tests {
                 abilities(&channel(ChannelKind::Text, permissions), supported)
                     .typing
                     .reason(),
-                Some("No tenés permiso para avisar que estás escribiendo en #anuncios")
+                Some("No tienes permiso para avisar que estás escribiendo en #anuncios")
             );
         }
     }
@@ -1175,7 +1175,7 @@ mod tests {
         let abilities = abilities(&read_only, everything());
         assert_eq!(
             abilities.write.reason(),
-            Some("No tenés permiso para escribir en #anuncios")
+            Some("No tienes permiso para escribir en #anuncios")
         );
         assert!(abilities.react.allowed());
         assert_eq!(
@@ -1225,7 +1225,7 @@ mod tests {
         assert!(listener.join_voice.allowed());
         assert_eq!(
             listener.speak.reason(),
-            Some("No tenés permiso para hablar en #anuncios")
+            Some("No tienes permiso para hablar en #anuncios")
         );
         assert!(!listener.voice_activity.allowed());
         let stage = abilities(

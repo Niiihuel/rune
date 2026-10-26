@@ -317,7 +317,7 @@ impl View<'_> {
             TextArea::new(
                 TOPIC,
                 topic,
-                t("Contale a todos para qué es este canal."),
+                t("Cuéntale a todos para qué es este canal."),
                 look.palette(),
             )
             .accessibility_label(t("Tema del canal"))
@@ -469,12 +469,12 @@ impl View<'_> {
         let (title, description) = if self.category() {
             (
                 t("Ajustes de la categoría"),
-                t("Usá los permisos para elegir quién puede hacer qué en esta categoría."),
+                t("Usa los permisos para elegir quién puede hacer qué en esta categoría."),
             )
         } else {
             (
                 t("Permisos del canal"),
-                t("Usá los permisos para elegir quién puede hacer qué en este canal."),
+                t("Usa los permisos para elegir quién puede hacer qué en este canal."),
             )
         };
         let mut children = vec![parts::page_title(title, Some(description), look)];
@@ -840,7 +840,7 @@ impl View<'_> {
             .and_then(|parent| self.store.channel(parent));
         if let (true, Some(category)) = (settings.sync, category) {
             let question = Element::formatted_text(vec![
-                TextSpan::new(t("¿Querés que "), look.muted, 15.0, FontFamily::Sans),
+                TextSpan::new(t("¿Quieres que "), look.muted, 15.0, FontFamily::Sans),
                 TextSpan::new(self.title(), look.text, 15.0, FontFamily::SansBold),
                 TextSpan::new(
                     t(" tenga los permisos de "),
@@ -899,7 +899,7 @@ impl View<'_> {
                 t("Eliminar categoría"),
                 t("Eliminar categoría"),
                 tr!(
-                    "¿Seguro que querés eliminar la categoría {name}? Sus canales quedan sin categoría. No se puede deshacer.",
+                    "¿Seguro que quieres eliminar la categoría {name}? Sus canales quedan sin categoría. No se puede deshacer.",
                     name = self.channel.name
                 ),
             )
@@ -908,7 +908,7 @@ impl View<'_> {
                 t("Eliminar canal"),
                 t("Eliminar canal"),
                 tr!(
-                    "¿Seguro que querés eliminar {name}? No se puede deshacer.",
+                    "¿Seguro que quieres eliminar {name}? No se puede deshacer.",
                     name = self.title()
                 ),
             )

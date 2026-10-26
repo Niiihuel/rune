@@ -45,22 +45,22 @@ pub(super) const ENTRIES: super::Entries = &[
         "Could not write the update to disk.",
     ),
     (
-        "Esta copia de RUNE no se instaló con su instalador: actualizala desde donde la compilaste.",
+        "Esta copia de RUNE no se instaló con su instalador: actualízala desde donde la compilaste.",
         "This copy of RUNE was not installed by its installer: update it where you built it.",
     ),
     (
-        "La actualización se interrumpió. Reintentá para completarla.",
+        "La actualización se interrumpió. Reintenta para completarla.",
         "The update was interrupted. Try again to finish it.",
     ),
     // rune-components: the mandatory screen and the optional notice.
     ("Actualización obligatoria", "Mandatory update"),
     (
-        "RUNE {version} reemplaza a la {installed} que tenés instalada, que ya no se puede usar. RUNE se actualiza antes de abrir.",
+        "RUNE {version} reemplaza a la {installed} que tienes instalada, que ya no se puede usar. RUNE se actualiza antes de abrir.",
         "RUNE {version} replaces the {installed} you have installed, which can no longer be used. RUNE updates before it opens.",
     ),
     ("RUNE {version} está disponible", "RUNE {version} is available"),
     (
-        "Tenés la {installed}. Se instala y RUNE vuelve a abrir.",
+        "Tienes la {installed}. Se instala y RUNE vuelve a abrir.",
         "You have {installed}. It installs and RUNE opens again.",
     ),
     ("Actualizar y reiniciar", "Update and restart"),
@@ -70,7 +70,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Instalando…", "Installing…"),
     ("Reiniciando RUNE…", "Restarting RUNE…"),
     (
-        "Instalada; reiniciá RUNE para usarla.",
+        "Instalada; reinicia RUNE para usarla.",
         "Installed; restart RUNE to use it.",
     ),
     ("Reiniciar ahora", "Restart now"),

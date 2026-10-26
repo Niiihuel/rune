@@ -56,7 +56,7 @@ impl Store {
             return permit;
         }
         if self.me().is_none() {
-            return Permit::Denied(t("Conectá una cuenta para consultar su historial").into());
+            return Permit::Denied(t("Conecta una cuenta para consultar su historial").into());
         }
         if source == HistorySource::Provider
             && (self.from_cache
@@ -68,7 +68,7 @@ impl Store {
                     && !matches!(self.authentication, AuthenticationState::SignedIn { .. }))
         {
             return Permit::Denied(
-                t("Esperá a que la sesión esté disponible para cargar el contexto").into(),
+                t("Espera a que la sesión esté disponible para cargar el contexto").into(),
             );
         }
         Permit::Allowed
@@ -159,7 +159,7 @@ impl Store {
         }
         if read.dirty {
             return failed(t(
-                "Los mensajes cambiaron durante la carga del contexto. Volvé a intentarlo.",
+                "Los mensajes cambiaron durante la carga del contexto. Vuelve a intentarlo.",
             ));
         }
         if anchor != read.anchor
@@ -170,7 +170,7 @@ impl Store {
             })
             || messages.windows(2).any(|pair| pair[0].id >= pair[1].id)
         {
-            return failed(t("El contexto recibido no es válido o no contiene el mensaje buscado. Volvé a intentarlo."));
+            return failed(t("El contexto recibido no es válido o no contiene el mensaje buscado. Vuelve a intentarlo."));
         }
         if self
             .timelines

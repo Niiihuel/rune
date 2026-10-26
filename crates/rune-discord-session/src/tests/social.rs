@@ -376,7 +376,7 @@ async fn refusals_are_explained_and_a_challenge_goes_back_to_the_provider() {
         )
         .await
         .unwrap_err();
-    assert!(!error.ambiguous && error.reason.to_string().starts_with("Escribí un nombre"));
+    assert!(!error.ambiguous && error.reason.to_string().starts_with("Escribe un nombre"));
 }
 
 #[tokio::test]

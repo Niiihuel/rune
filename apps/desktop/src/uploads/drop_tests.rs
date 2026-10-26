@@ -247,7 +247,7 @@ fn legacy_file_drop_actions_cannot_bypass_rejection_without_the_raw_hook() {
         "dropping files never sends a message"
     );
     assert!(app.ui.notices.iter().any(|notice| {
-        notice.title == "Todavía no podés adjuntar archivos arrastrándolos. Usá Adjuntar."
+        notice.title == "Todavía no puedes adjuntar archivos arrastrándolos. Usa Adjuntar."
     }));
 }
 
@@ -291,7 +291,7 @@ fn legacy_drop_with_a_later_editor_pointer_is_rejected_before_any_file_work() {
         "rejection must not send a text-only or attachment message"
     );
     assert!(app.ui.notices.iter().any(|notice| {
-        notice.title == "Todavía no podés adjuntar archivos arrastrándolos. Usá Adjuntar."
+        notice.title == "Todavía no puedes adjuntar archivos arrastrándolos. Usa Adjuntar."
     }));
 }
 

@@ -244,7 +244,7 @@ pub fn list(root: Element, view: &ThreadList, look: &Look) -> Element {
     parts.extend(section(
         t("Seguidos"),
         &view.followed,
-        t("No seguís ningún hilo de este canal."),
+        t("No sigues ningún hilo de este canal."),
         look,
     ));
     parts.push(gap(0.0, 6.0));
@@ -258,7 +258,7 @@ pub fn list(root: Element, view: &ThreadList, look: &Look) -> Element {
     parts.extend(section(
         t("Archivados"),
         &view.archived,
-        t("Los hilos archivados se cargan cuando los pedís."),
+        t("Los hilos archivados se cargan cuando los pides."),
         look,
     ));
     let (label, denied) = &view.more;
@@ -396,7 +396,7 @@ pub fn create_dialog(root: Element, form: &NewThreadForm, look: &Look) -> Elemen
             TextArea::new(
                 ids::NEW_CONTENT,
                 content.clone(),
-                t("Contá tu pregunta o tu idea."),
+                t("Cuenta tu pregunta o tu idea."),
                 palette,
             )
             .accessibility_label(t("Primer mensaje"))
@@ -622,7 +622,7 @@ mod tests {
                 "Cargar más".into(),
                 Some("No hay más hilos archivados".into()),
             ),
-            start_denied: Some("No tenés permiso".into()),
+            start_denied: Some("No tienes permiso".into()),
             ..view
         };
         let (_, laid) = frame(
@@ -659,7 +659,7 @@ mod tests {
                 },
             ],
             tag_required: true,
-            denied: Some("Escribí un título".into()),
+            denied: Some("Escribe un título".into()),
             files: Some(PostFiles {
                 forum: 23,
                 files: vec![rune_model::PendingAttachment {

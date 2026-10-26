@@ -467,10 +467,10 @@ fn refused(action: Action, chord: Chord) -> Option<&'static str> {
     }
     let modified = chord.ctrl || chord.alt;
     if chord.key == Key::Tab && !chord.ctrl {
-        return Some(es("Tab mueve el foco entre los controles: elegí otra."));
+        return Some(es("Tab mueve el foco entre los controles: elige otra."));
     }
     if chord.key == Key::F10 && chord.shift && !modified {
-        return Some(es("Shift+F10 abre el menú contextual: elegí otra."));
+        return Some(es("Shift+F10 abre el menú contextual: elige otra."));
     }
     if chord.ctrl
         && !chord.alt
@@ -480,7 +480,7 @@ fn refused(action: Action, chord: Chord) -> Option<&'static str> {
         )
         && !(chord.shift && matches!(chord.key, Key::C | Key::X))
     {
-        return Some(es("La usa la edición de texto: elegí otra."));
+        return Some(es("La usa la edición de texto: elige otra."));
     }
     let name = chord.key.name();
     let letter = name.len() == 1 && name.as_bytes()[0].is_ascii_alphabetic();
@@ -503,7 +503,7 @@ fn refused(action: Action, chord: Chord) -> Option<&'static str> {
     // The composer's own keys may be the editor's: Enter, the arrows.
     let composer = action.group() == Group::Messages && !typing;
     if !modified && (typing || editing) && !composer {
-        return Some(es("Sola escribe o mueve el cursor: sumale Ctrl o Alt."));
+        return Some(es("Sola escribe o mueve el cursor: súmale Ctrl o Alt."));
     }
     None
 }

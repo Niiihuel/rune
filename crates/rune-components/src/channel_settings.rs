@@ -123,7 +123,7 @@ const TEXT: Groups = &[
             (
                 Permissions::EMBED_LINKS,
                 es("Insertar enlaces"),
-                es("Los enlaces que se compartan acá muestran una vista previa."),
+                es("Los enlaces que se compartan aquí muestran una vista previa."),
             ),
             (
                 Permissions::ATTACH,
@@ -466,11 +466,11 @@ pub fn permission_groups(kind: ChannelKind) -> Groups {
 /// What «Ver el canal» adds for `@everyone`: taking it away makes it private.
 pub fn everyone_view_note(kind: ChannelKind) -> &'static str {
     match kind {
-        ChannelKind::Voice => t("Si se lo quitás a @everyone, el canal de voz pasa a ser privado."),
+        ChannelKind::Voice => t("Si se lo quitas a @everyone, el canal de voz pasa a ser privado."),
         ChannelKind::Category => {
-            t("Si se lo quitás a @everyone, los canales de la categoría pasan a ser privados.")
+            t("Si se lo quitas a @everyone, los canales de la categoría pasan a ser privados.")
         }
-        _ => t("Si se lo quitás a @everyone, el canal pasa a ser privado."),
+        _ => t("Si se lo quitas a @everyone, el canal pasa a ser privado."),
     }
 }
 
@@ -640,13 +640,13 @@ pub fn private_card(card: &PrivateCard, look: &Look) -> Element {
         (
             t("Categoría privada"),
             t(
-                "Si la hacés privada, solo los roles y miembros que elijas van a poder verla. Los canales sincronizados con ella toman los mismos permisos.",
+                "Si la haces privada, solo los roles y miembros que elijas van a poder verla. Los canales sincronizados con ella toman los mismos permisos.",
             ),
         )
     } else {
         (
             t("Canal privado"),
-            t("Si lo hacés privado, solo los roles y miembros que elijas van a poder verlo."),
+            t("Si lo haces privado, solo los roles y miembros que elijas van a poder verlo."),
         )
     };
     let head = Element::column(vec![

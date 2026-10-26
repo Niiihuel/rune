@@ -120,7 +120,7 @@ pub fn screen(view: &UpdateView, window: Size, look: &Look) -> Element {
         .size(None, Some(28.0)),
         text(
             tr!(
-                "RUNE {version} reemplaza a la {installed} que tenés instalada, que ya no se puede usar. RUNE se actualiza antes de abrir.",
+                "RUNE {version} reemplaza a la {installed} que tienes instalada, que ya no se puede usar. RUNE se actualiza antes de abrir.",
                 version = view.version,
                 installed = view.installed
             ),
@@ -149,7 +149,7 @@ pub fn notice(view: &UpdateView, notes_open: bool, look: &Look) -> Element {
         ),
         text(
             tr!(
-                "Tenés la {installed}. Se instala y RUNE vuelve a abrir.",
+                "Tienes la {installed}. Se instala y RUNE vuelve a abrir.",
                 installed = view.installed
             ),
             12.0,
@@ -218,7 +218,7 @@ pub fn progress(stage: &Stage, look: &Look) -> Option<Element> {
             line(t("Reiniciando RUNE…"), 12.0, look.muted),
         ])
         .gap(8.0),
-        Stage::Installed => line(t("Instalada; reiniciá RUNE para usarla."), 12.0, look.muted),
+        Stage::Installed => line(t("Instalada; reinicia RUNE para usarla."), 12.0, look.muted),
         Stage::Failed(reason) => text(reason.clone(), 13.0, look.danger).accessible(
             Access::new(Role::Alert)
                 .id("update:error")
@@ -369,7 +369,7 @@ fn card_body(stage: Option<&Stage>, error: Option<&str>, look: &Look) -> Option<
             .gap(8.0),
         ),
         Some(Stage::Installed) => Some(line(
-            t("Instalada; reiniciá RUNE para usarla."),
+            t("Instalada; reinicia RUNE para usarla."),
             12.0,
             look.muted,
         )),

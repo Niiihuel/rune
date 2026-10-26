@@ -54,7 +54,7 @@ fn a_timeout_blocks_taking_part_with_its_reason_and_lifts_at_its_end() {
     ] {
         assert_eq!(
             permit.reason(),
-            Some("Estás aislado en Café Nocturno: podés leer, pero no participar")
+            Some("Estás aislado en Café Nocturno: puedes leer, pero no participar")
         );
     }
     assert!(abilities.read_history.allowed() && abilities.delete_own.allowed());
@@ -91,7 +91,7 @@ fn pending_verification_restricts_the_server_but_leaving_stays() {
     assert_eq!(store.restriction(server), Some(Restriction::Pending));
     assert_eq!(
         store.abilities(general).unwrap().write.reason(),
-        Some("Aceptá las reglas de Taller de Rust para participar")
+        Some("Acepta las reglas de Taller de Rust para participar")
     );
     assert!(store.abilities(general).unwrap().read_history.allowed());
     let server_abilities = store.server_abilities(server).unwrap();

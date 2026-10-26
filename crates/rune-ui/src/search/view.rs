@@ -183,7 +183,7 @@ fn author(ui: &Ui, store: &Store, search: &MessageSearch, look: &Look) -> Elemen
             .render()
             .size(None, Some(216.0)),
             line(
-                t("Hasta 64 autores conocidos. Escribí para filtrar."),
+                t("Hasta 64 autores conocidos. Escribe para filtrar."),
                 12.0,
                 look.muted,
             ),
@@ -315,7 +315,7 @@ fn shown(search: &MessageSearch, store: &Store) -> Shown {
             Some((_, Phase::Failed(error))) => Shown::Problem(error.label().into()),
             Some((_, Phase::Dirty)) => Shown::Nothing(
                 t("Los mensajes cambiaron").into(),
-                t("Los mensajes cambiaron. Actualizá la búsqueda.").into(),
+                t("Los mensajes cambiaron. Actualiza la búsqueda.").into(),
             ),
             Some((cached, Phase::Ready)) if empty => Shown::Nothing(
                 t("Sin resultados").into(),
@@ -324,9 +324,9 @@ fn shown(search: &MessageSearch, store: &Store) -> Shown {
                     .back()
                     .is_some_and(|page| page.continuation.is_some())
                 {
-                    t("Sin coincidencias en este tramo. Podés seguir buscando.")
+                    t("Sin coincidencias en este tramo. Puedes seguir buscando.")
                 } else {
-                    t("Probá con otras palabras o quitá filtros.")
+                    t("Prueba con otras palabras o quita filtros.")
                 }
                 .into(),
             ),
@@ -342,7 +342,7 @@ fn shown(search: &MessageSearch, store: &Store) -> Shown {
             if !search.query.trim().is_empty() && store.remote_search(search.channel).allowed() {
                 t("Nada de lo cargado coincide. Enter busca en todo el historial.")
             } else {
-                t("Nada de lo cargado coincide. Probá con otras palabras o quitá filtros.")
+                t("Nada de lo cargado coincide. Prueba con otras palabras o quita filtros.")
             }
             .into(),
         ),
@@ -518,11 +518,11 @@ pub(crate) fn view(
     match shown {
         Shown::Idle => body.push(state(
             Empty::new(
-                tr!("Buscá en {place}", place = place.as_str()),
+                tr!("Busca en {place}", place = place.as_str()),
                 if search.scope == Scope::Remote {
-                    t("Escribí y apretá Enter. Filtros: from:, has:, in:, before:, after:, pinned:.")
+                    t("Escribe y aprieta Enter. Filtros: from:, has:, in:, before:, after:, pinned:.")
                 } else {
-                    t("Escribí una palabra o elegí un filtro.")
+                    t("Escribe una palabra o elige un filtro.")
                 },
                 palette,
             )

@@ -178,7 +178,7 @@ impl Http {
                         } else {
                             let end = chrono::DateTime::from_timestamp_millis(until.0)
                                 .map(|end| end.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
-                                .ok_or_else(|| RestError::rejected(es("Elegí cuánto tiempo.")))?;
+                                .ok_or_else(|| RestError::rejected(es("Elige cuánto tiempo.")))?;
                             // The window chosen, to the minute: 900 for 15 minutes.
                             let left = until.0 - crate::messages::wall_now().0;
                             (json!(end), ((left + 30_000) / 60_000).max(1) * 60)

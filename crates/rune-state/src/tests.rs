@@ -1582,7 +1582,7 @@ fn pinning_takes_the_pin_bit_in_a_server_and_a_provider_that_pins() {
     store.provider.as_mut().unwrap().capabilities = capabilities(true);
     assert_eq!(
         store.abilities(GENERAL).unwrap().pin.reason(),
-        Some("No tenés permiso para fijar mensajes en #general")
+        Some("No tienes permiso para fijar mensajes en #general")
     );
     // Managing messages alone does not pin, as in the official client.
     let mut moderated = store.channel(GENERAL).unwrap().clone();
@@ -1747,7 +1747,7 @@ fn cameras_are_seen_only_with_the_capability_and_in_the_call() {
     store.end_call();
     assert_eq!(
         store.abilities(VOICE).unwrap().watch_camera.reason(),
-        Some("Entrá a la llamada para ver las cámaras")
+        Some("Entra a la llamada para ver las cámaras")
     );
 }
 
@@ -1768,7 +1768,7 @@ fn a_stream_is_watched_only_in_the_call_and_goes_with_it() {
     });
     assert_eq!(
         store.abilities(VOICE).unwrap().watch_stream.reason(),
-        Some("Entrá a la llamada para ver la transmisión")
+        Some("Entra a la llamada para ver la transmisión")
     );
     store.begin_call(VOICE, false, false);
     assert!(store.abilities(VOICE).unwrap().watch_stream.allowed());
@@ -1990,7 +1990,7 @@ fn a_providers_placeholders_follow_the_language_they_are_shown_in() {
             "Servidor no disponible".into(),
             "SN".into(),
             "Conversación".into(),
-            "Necesitás Plus (simulado) para usar stickers de otros servidores acá".into()
+            "Necesitas Plus (simulado) para usar stickers de otros servidores aquí".into()
         )
     );
     // The language changes after they arrived: they follow it.

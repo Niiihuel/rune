@@ -478,7 +478,7 @@ async fn malformed_unknown_and_oversized_rejections_never_invent_session_failure
         assert!(!error.ends_session && !error.ambiguous);
         assert_eq!(
             error.reason.to_string(),
-            "No tenés permiso para completar esta acción."
+            "No tienes permiso para completar esta acción."
         );
     }
 }

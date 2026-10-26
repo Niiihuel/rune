@@ -12,7 +12,7 @@ pub(super) const ENTRIES: super::Entries = &[
     // Server administration.
     ("@everyone no se puede eliminar.", "@everyone can't be deleted."),
     (
-        "Cargá a esa persona en la lista de miembros antes de cambiar sus roles.",
+        "Carga a esa persona en la lista de miembros antes de cambiar sus roles.",
         "Load that person in the member list before changing their roles.",
     ),
     ("De @everyone solo cambian sus permisos.", "Only @everyone's permissions can change."),
@@ -82,10 +82,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "Nobody can do that to the server's owner.",
     ),
     ("No hay cambios para guardar.", "There are no changes to save."),
-    ("No podés dar permisos que no tenés.", "You can't give permissions you don't have."),
-    ("No podés hacerte esto a vos.", "You can't do this to yourself."),
+    ("No puedes dar permisos que no tienes.", "You can't give permissions you don't have."),
+    ("No puedes hacerte esto a ti.", "You can't do this to yourself."),
     (
-        "No podés subir un rol a la altura del tuyo o más arriba.",
+        "No puedes subir un rol a la altura del tuyo o más arriba.",
         "You can't move a role as high as yours or higher.",
     ),
     (
@@ -94,7 +94,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("No se puede mover a ese canal.", "Can't move to that channel."),
     (
-        "No tenés permiso para esta acción en el servidor.",
+        "No tienes permiso para esta acción en el servidor.",
         "You don't have permission for this action in the server.",
     ),
     (
@@ -110,7 +110,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Only the owner can delete the server.",
     ),
     (
-        "Sos dueño del servidor: eliminalo en vez de salir.",
+        "Eres dueño del servidor: elimínalo en vez de salir.",
         "You own the server: delete it instead of leaving.",
     ),
     (
@@ -118,7 +118,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Their role is as high as yours or higher.",
     ),
     (
-        "Tu cuenta está restringida en este servidor: podés leer, pero no administrar.",
+        "Tu cuenta está restringida en este servidor: puedes leer, pero no administrar.",
         "Your account is restricted in this server: you can read, but not manage.",
     ),
     (
@@ -183,10 +183,10 @@ pub(super) const ENTRIES: super::Entries = &[
     // Favorites and the rest of administration.
     ("Ese GIF no se puede guardar como favorito.", "That GIF can't be saved as a favorite."),
     (
-        "Tus favoritos cambiaron en otro dispositivo; volvé a intentarlo.",
+        "Tus favoritos cambiaron en otro dispositivo; vuelve a intentarlo.",
         "Your favorites changed on another device; try again.",
     ),
-    ("Ya tenés demasiados GIF favoritos.", "You already have too many favorite GIFs."),
+    ("Ya tienes demasiados GIF favoritos.", "You already have too many favorite GIFs."),
     ("Ese canal no sirve para eso.", "That channel can't be used for that."),
     (
         "Este servidor no tiene desbloqueados los degradés de rol.",
@@ -220,7 +220,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Servidor no disponible", "Server unavailable"),
     // Threads and forums.
     (
-        "Abrí el hilo otra vez antes de seguirlo o dejarlo.",
+        "Abre el hilo otra vez antes de seguirlo o dejarlo.",
         "Open the thread again before following or leaving it.",
     ),
     ("El canal ya no está disponible.", "The channel is no longer available."),
@@ -248,7 +248,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "You canceled the verification; nothing was sent.",
     ),
     (
-        "Discord pidió una verificación mientras otra esperaba; volvé a intentarlo después.",
+        "Discord pidió una verificación mientras otra esperaba; vuelve a intentarlo después.",
         "Discord asked for a verification while another was waiting; try again later.",
     ),
     (
@@ -277,12 +277,12 @@ pub(super) const ENTRIES: super::Entries = &[
         "Discord sent an incompatible Gateway event.",
     ),
     (
-        "Discord limitó la conexión Gateway. Esperá antes de volver a conectar.",
+        "Discord limitó la conexión Gateway. Espera antes de volver a conectar.",
         "Discord rate limited the Gateway connection. Wait before connecting again.",
     ),
     ("Discord rechazó la conexión Gateway.", "Discord rejected the Gateway connection."),
     (
-        "Discord rechazó la sesión Gateway. Iniciá sesión otra vez.",
+        "Discord rechazó la sesión Gateway. Inicia sesión otra vez.",
         "Discord rejected the Gateway session. Sign in again.",
     ),
     (
@@ -290,7 +290,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The Gateway asked for too many replies. The connection stopped.",
     ),
     (
-        "La cola de eventos de Discord se llenó. Volvé a conectar.",
+        "La cola de eventos de Discord se llenó. Vuelve a conectar.",
         "Discord's event queue filled up. Connect again.",
     ),
     ("No se pudo preparar Gateway.", "Couldn't prepare the Gateway."),
@@ -313,7 +313,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Discord asked to wait. The action wasn't retried.",
     ),
     (
-        "Discord rechazó la sesión; iniciá sesión otra vez.",
+        "Discord rechazó la sesión; inicia sesión otra vez.",
         "Discord rejected the session; sign in again.",
     ),
     ("Discord rechazó los datos de esta acción.", "Discord rejected this action's data."),
@@ -342,13 +342,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "Couldn't confirm Discord's response.",
     ),
     (
-        "No se pudo conectar con Discord. Revisá la conexión a internet.",
+        "No se pudo conectar con Discord. Revisa la conexión a internet.",
         "Couldn't connect to Discord. Check your internet connection.",
     ),
     ("Discord no respondió a tiempo.", "Discord didn't respond in time."),
     ("No se pudo iniciar el cliente HTTPS.", "Couldn't start the HTTPS client."),
     (
-        "No tenés permiso para completar esta acción.",
+        "No tienes permiso para completar esta acción.",
         "You don't have permission to complete this action.",
     ),
     (
@@ -365,13 +365,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "That change doesn't fit in the account settings.",
     ),
     (
-        "Las carpetas cambiaron en otro dispositivo. Ya se ven como quedaron: volvé a intentarlo.",
+        "Las carpetas cambiaron en otro dispositivo. Ya se ven como quedaron: vuelve a intentarlo.",
         "The folders changed on another device. They now show as they are: try again.",
     ),
     ("Esa invitación no es válida.", "That invite isn't valid."),
     ("Ese webhook ya no existe.", "That webhook no longer exists."),
     (
-        "Muchas entradas seguidas no coinciden con el filtro; probá con otro.",
+        "Muchas entradas seguidas no coinciden con el filtro; prueba con otro.",
         "Many entries in a row don't match the filter; try another one.",
     ),
     ("No se pudo preparar el sticker.", "Couldn't prepare the sticker."),
@@ -406,13 +406,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "The profile has text that's too long or has characters that aren't allowed.",
     ),
     (
-        "Se guardó, pero no se pudo confirmar cómo quedó. Abrí el perfil otra vez antes de volver a cambiarlo.",
+        "Se guardó, pero no se pudo confirmar cómo quedó. Abre el perfil otra vez antes de volver a cambiarlo.",
         "It was saved, but how it ended up couldn't be confirmed. Open the profile again before changing it again.",
     ),
     ("Discord envió resultados incompatibles.", "Discord sent incompatible results."),
     // Refusals about people and conversations.
     (
-        "Abriste demasiadas conversaciones nuevas; esperá un rato.",
+        "Abriste demasiadas conversaciones nuevas; espera un rato.",
         "You opened too many new conversations; wait a while.",
     ),
     (
@@ -445,7 +445,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "No encontramos a nadie con ese nombre de usuario.",
         "We couldn't find anyone with that username.",
     ),
-    ("No podés enviarte una solicitud a vos.", "You can't send a request to yourself."),
+    ("No puedes enviarte una solicitud a ti.", "You can't send a request to yourself."),
     (
         "No se pueden enviar solicitudes de amistad a un bot.",
         "Friend requests can't be sent to a bot.",
@@ -456,11 +456,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "A name can have up to 100 characters, without line breaks.",
     ),
     (
-        "Escribí un nombre de usuario válido: de 2 a 32 letras minúsculas, números, «_» o «.».",
+        "Escribe un nombre de usuario válido: de 2 a 32 letras minúsculas, números, «_» o «.».",
         "Enter a valid username: 2 to 32 lowercase letters, numbers, “_” or “.”.",
     ),
     (
-        "Esta conexión no deja un grupo sin nombre: escribí uno.",
+        "Esta conexión no deja un grupo sin nombre: escribe uno.",
         "This connection doesn't allow a group without a name: enter one.",
     ),
     // Uploads.
@@ -479,7 +479,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("GIF de Discord", "Discord GIF"),
     // Apps and interactions.
     ("Aplicación", "App"),
-    ("Cargá el mensaje otra vez antes de usarlo.", "Load the message again before using it."),
+    ("Carga el mensaje otra vez antes de usarlo.", "Load the message again before using it."),
     ("El comando no tiene esa opción.", "The command doesn't have that option."),
     ("El formulario ya no está abierto.", "The form is no longer open."),
     ("Ese control ya no se puede usar.", "That control can no longer be used."),
@@ -493,10 +493,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "The interaction is too large: it wasn't sent.",
     ),
     (
-        "No tenés permiso para usar aplicaciones en el canal.",
+        "No tienes permiso para usar aplicaciones en el canal.",
         "You don't have permission to use apps in the channel.",
     ),
-    ("Volvé a cargar los comandos: este cambió.", "Load the commands again: this one changed."),
+    ("Vuelve a cargar los comandos: este cambió.", "Load the commands again: this one changed."),
     // Messages.
     (
         "Esta compilación no incluye la ventana de verificación.",
@@ -504,12 +504,12 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("La encuesta no está completa.", "The poll isn't complete."),
     (
-        "No tenés permiso para esta acción en esa conversación.",
+        "No tienes permiso para esta acción en esa conversación.",
         "You don't have permission for this action in that conversation.",
     ),
-    ("Cargá la encuesta otra vez antes de votar.", "Load the poll again before voting."),
+    ("Carga la encuesta otra vez antes de votar.", "Load the poll again before voting."),
     (
-        "Cargá la encuesta otra vez: solo quien la creó la termina.",
+        "Carga la encuesta otra vez: solo quien la creó la termina.",
         "Load the poll again: only whoever created it can end it.",
     ),
     (
@@ -527,28 +527,28 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("La encuesta ya terminó.", "The poll already ended."),
     (
-        "No tenés permiso para esta acción en el canal.",
+        "No tienes permiso para esta acción en el canal.",
         "You don't have permission for this action in the channel.",
     ),
     (
-        "Solo podés editar un mensaje propio cargado en RUNE.",
+        "Solo puedes editar un mensaje propio cargado en RUNE.",
         "You can only edit your own message loaded in RUNE.",
     ),
-    ("Solo podés editar un mensaje propio.", "You can only edit your own message."),
+    ("Solo puedes editar un mensaje propio.", "You can only edit your own message."),
     (
-        "Tu cuenta está restringida en este servidor: podés leer, pero no participar.",
+        "Tu cuenta está restringida en este servidor: puedes leer, pero no participar.",
         "Your account is restricted in this server: you can read, but not take part.",
     ),
     ("Ya no estás en ese servidor.", "You're no longer in that server."),
     (
-        "Tu cuenta está restringida en este servidor: no podés cambiar tu perfil ahí.",
+        "Tu cuenta está restringida en este servidor: no puedes cambiar tu perfil ahí.",
         "Your account is restricted in this server: you can't change your profile there.",
     ),
     // The provider: session, keyring, connection.
-    ("Buscá con un texto de hasta 50 caracteres.", "Search with a text of up to 50 characters."),
+    ("Busca con un texto de hasta 50 caracteres.", "Search with a text of up to 50 characters."),
     ("Cambiando de cuenta.", "Switching accounts."),
     (
-        "El inicio de sesión venció. Podés iniciar otro intento.",
+        "El inicio de sesión venció. Puedes iniciar otro intento.",
         "The sign-in expired. You can start another attempt.",
     ),
     (
@@ -560,13 +560,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "The message or the session changed before the action was completed.",
     ),
     (
-        "Hay demasiadas acciones pendientes. Volvé a intentarlo.",
+        "Hay demasiadas acciones pendientes. Vuelve a intentarlo.",
         "There are too many pending actions. Try again.",
     ),
     ("La conexión con Discord terminó.", "The connection to Discord ended."),
     ("La conexión todavía no está disponible.", "The connection isn't available yet."),
     (
-        "La sesión guardada ya no es válida. Iniciá sesión otra vez.",
+        "La sesión guardada ya no es válida. Inicia sesión otra vez.",
         "The saved session is no longer valid. Sign in again.",
     ),
     (
@@ -575,7 +575,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("La sesión ya no está disponible.", "The session is no longer available."),
     (
-        "No se encontró la sesión guardada de esa cuenta. Entrá con «Usar otra cuenta» u olvidala.",
+        "No se encontró la sesión guardada de esa cuenta. Entra con «Usar otra cuenta» u olvidala.",
         "The saved session of that account wasn't found. Sign in with “Use another account” or forget it.",
     ),
     (
@@ -600,9 +600,9 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Esa conversación ya no está disponible.", "That conversation is no longer available."),
     ("Esa página de resultados no existe.", "That page of results doesn't exist."),
-    ("No podés leer uno de los canales elegidos.", "You can't read one of the chosen channels."),
+    ("No puedes leer uno de los canales elegidos.", "You can't read one of the chosen channels."),
     (
-        "No tenés permiso para leer el historial de esa conversación.",
+        "No tienes permiso para leer el historial de esa conversación.",
         "You don't have permission to read that conversation's history.",
     ),
     // Friends and groups.
@@ -618,7 +618,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("No hay ninguna relación con esa persona.", "There's no relationship with that person."),
     ("No hay una solicitud de esa persona.", "There's no request from that person."),
-    ("Solo podés añadir a tus amigos.", "You can only add your friends."),
+    ("Solo puedes añadir a tus amigos.", "You can only add your friends."),
     ("Solo quien es dueño del grupo puede hacerlo.", "Only the group owner can do that."),
     (
         "Solo se crea un grupo con amigos, cada uno una vez.",
@@ -627,22 +627,22 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Solo tus amigos pueden tener un apodo.", "Only your friends can have a nickname."),
     ("Un grupo nuevo lleva de 2 a 9 amigos.", "A new group takes 2 to 9 friends."),
     // Stages.
-    ("Entrá al escenario primero.", "Join the stage first."),
+    ("Entra al escenario primero.", "Join the stage first."),
     ("Esa persona ya no está en el escenario.", "That person is no longer on the stage."),
     ("Ese escenario no está disponible.", "That stage isn't available."),
     (
-        "Esperá que la moderación te invite a hablar.",
+        "Espera que la moderación te invite a hablar.",
         "Wait for the moderators to invite you to speak.",
     ),
     (
-        "No tenés permiso para pedir la palabra en este escenario.",
+        "No tienes permiso para pedir la palabra en este escenario.",
         "You don't have permission to request to speak on this stage.",
     ),
     (
         "Solo la moderación invita a hablar o pasa al público.",
         "Only moderators invite to speak or move to the audience.",
     ),
-    ("Ya podés hablar en este escenario.", "You can already speak on this stage."),
+    ("Ya puedes hablar en este escenario.", "You can already speak on this stage."),
     // Voice and streams.
     ("Discord cerró la conexión de voz.", "Discord closed the voice connection."),
     (
@@ -681,15 +681,15 @@ pub(super) const ENTRIES: super::Entries = &[
         "The voice server doesn't offer the required encryption.",
     ),
     (
-        "El servidor de voz no respondió por UDP; revisá el cortafuegos.",
+        "El servidor de voz no respondió por UDP; revisa el cortafuegos.",
         "The voice server didn't respond over UDP; check the firewall.",
     ),
     ("El servidor de voz no respondió.", "The voice server didn't respond."),
     ("El servidor de voz no retomó la llamada.", "The voice server didn't resume the call."),
     ("El servidor de voz se reinició.", "The voice server restarted."),
     ("La conexión de voz no responde.", "The voice connection isn't responding."),
-    ("La llamada agotó sus claves. Volvé a entrar.", "The call ran out of keys. Join again."),
-    ("La sesión de voz terminó. Volvé a entrar.", "The voice session ended. Join again."),
+    ("La llamada agotó sus claves. Vuelve a entrar.", "The call ran out of keys. Join again."),
+    ("La sesión de voz terminó. Vuelve a entrar.", "The voice session ended. Join again."),
     ("No se pudo abrir la conexión de audio.", "Couldn't open the audio connection."),
     ("No se pudo acordar el cifrado de la llamada.", "Couldn't agree on the call's encryption."),
     ("No se pudo conectar con el servidor de voz.", "Couldn't connect to the voice server."),
@@ -703,7 +703,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Discord sacó a esta cuenta de la llamada.", "Discord removed this account from the call."),
     (
-        "El cifrado de la llamada falló varias veces. Volvé a entrar.",
+        "El cifrado de la llamada falló varias veces. Vuelve a entrar.",
         "The call's encryption failed several times. Join again.",
     ),
     (
@@ -723,7 +723,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The voice server proposed an invalid group change.",
     ),
     (
-        "La llamada cambió de clave demasiadas veces. Volvé a entrar.",
+        "La llamada cambió de clave demasiadas veces. Vuelve a entrar.",
         "The call changed keys too many times. Join again.",
     ),
     ("La llamada superó el límite de participantes.", "The call exceeded the participant limit."),
@@ -747,11 +747,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "Discord didn't let you stream in this channel.",
     ),
     (
-        "Entrá a la llamada para compartir la pantalla.",
+        "Entra a la llamada para compartir la pantalla.",
         "Join the call to share your screen.",
     ),
-    ("Entrá a la llamada para encender la cámara.", "Join the call to turn on your camera."),
-    ("Entrá a la llamada para ver la transmisión.", "Join the call to watch the stream."),
+    ("Entra a la llamada para encender la cámara.", "Join the call to turn on your camera."),
+    ("Entra a la llamada para ver la transmisión.", "Join the call to watch the stream."),
     ("Esa calidad de transmisión no existe.", "That stream quality doesn't exist."),
     (
         "Esa persona no está transmitiendo en tu llamada.",
@@ -766,7 +766,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("La transmisión está llena.", "The stream is full."),
     ("La transmisión terminó.", "The stream ended."),
     (
-        "No tenés permiso para ver esta transmisión.",
+        "No tienes permiso para ver esta transmisión.",
         "You don't have permission to watch this stream.",
     ),
     ("Te desconectaron de la llamada.", "You were disconnected from the call."),
@@ -778,7 +778,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // OAuth2.
     (
-        "Demasiadas respuestas de autorización inválidas. Volvé a intentarlo.",
+        "Demasiadas respuestas de autorización inválidas. Vuelve a intentarlo.",
         "Too many invalid authorization responses. Try again.",
     ),
     (
@@ -795,11 +795,11 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Respuesta local incompleta.", "Incomplete local response."),
     ("Respuesta local inválida.", "Invalid local response."),
     (
-        "Respuesta recibida. Volvé a RUNE para ver el resultado.",
+        "Respuesta recibida. Vuelve a RUNE para ver el resultado.",
         "Response received. Go back to RUNE to see the result.",
     ),
     (
-        "Se agotó el tiempo para autorizar. Volvé a iniciar sesión.",
+        "Se agotó el tiempo para autorizar. Vuelve a iniciar sesión.",
         "The time to authorize ran out. Sign in again.",
     ),
     (
@@ -825,7 +825,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Discord asked to wait before trying again.",
     ),
     (
-        "Discord rechazó la autorización. Revisá Public Client, el ID y el redirect registrado; el canje público directo es experimental.",
+        "Discord rechazó la autorización. Revisa Public Client, el ID y el redirect registrado; el canje público directo es experimental.",
         "Discord rejected the authorization. Check Public Client, the ID and the registered redirect; the direct public exchange is experimental.",
     ),
     (
@@ -864,11 +864,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "The app's public ID must not have leading zeros.",
     ),
     (
-        "El puerto local de autorización está ocupado. Cerrá el otro intento y volvé a intentar.",
+        "El puerto local de autorización está ocupado. Cierra el otro intento y vuelve a intentar.",
         "The local authorization port is busy. Close the other attempt and try again.",
     ),
     (
-        "La autorización caducó. Volvé a iniciar sesión.",
+        "La autorización caducó. Vuelve a iniciar sesión.",
         "The authorization expired. Sign in again.",
     ),
     (
@@ -876,7 +876,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The OAuth2 integration only allows identity and a basic server list; this feature isn't enabled.",
     ),
     (
-        "La sesión local ya está cerrada. No se confirmó la revocación remota; podés quitar RUNE en Discord → Ajustes → Aplicaciones autorizadas.",
+        "La sesión local ya está cerrada. No se confirmó la revocación remota; puedes quitar RUNE en Discord → Ajustes → Aplicaciones autorizadas.",
         "The local session is already closed. The remote revocation wasn't confirmed; you can remove RUNE in Discord → Settings → Authorized Apps.",
     ),
     ("Discord · OAuth2 experimental", "Discord · Experimental OAuth2"),
@@ -910,7 +910,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No se pudo localizar el ejecutable de RUNE.", "Couldn't find RUNE's executable."),
     ("Se agotó el tiempo de inicio de sesión.", "The sign-in timed out."),
     (
-        "El navegador de la ventana de acceso falló. Volvé a intentarlo.",
+        "El navegador de la ventana de acceso falló. Vuelve a intentarlo.",
         "The sign-in window's browser failed. Try again.",
     ),
     (
@@ -934,7 +934,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The verification's response isn't valid.",
     ),
     (
-        "La verificación no pudo cargarse. Podés aceptar la invitación desde el navegador.",
+        "La verificación no pudo cargarse. Puedes aceptar la invitación desde el navegador.",
         "The verification couldn't load. You can accept the invite from the browser.",
     ),
     (
@@ -965,7 +965,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Cargando la verificación…", "Loading the verification…"),
     // windows-login: WebView2, the browser of those windows on Windows.
     (
-        "Falta WebView2 Runtime de Microsoft, el navegador de la ventana de acceso en Windows. Instalalo desde https://go.microsoft.com/fwlink/p/?LinkId=2124703 y volvé a intentarlo.",
+        "Falta WebView2 Runtime de Microsoft, el navegador de la ventana de acceso en Windows. Instálalo desde https://go.microsoft.com/fwlink/p/?LinkId=2124703 y vuelve a intentarlo.",
         "Microsoft's WebView2 Runtime, the browser of the sign-in window on Windows, is missing. Install it from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and try again.",
     ),
     (
@@ -977,7 +977,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The sign-in window's browser gave an invalid identity.",
     ),
     (
-        "Completá la verificación para entrar al servidor.",
+        "Completa la verificación para entrar al servidor.",
         "Complete the verification to join the server.",
     ),
     ("Empezar la verificación", "Start the verification"),
@@ -1008,7 +1008,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The picker didn't return a valid local file.",
     ),
     (
-        "El selector tardó demasiado. Podés volver a intentarlo.",
+        "El selector tardó demasiado. Puedes volver a intentarlo.",
         "The picker took too long. You can try again.",
     ),
     (
@@ -1023,7 +1023,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No se pudo preparar el archivo seleccionado.", "Couldn't prepare the selected file."),
     ("Se canceló la selección del archivo.", "The file selection was canceled."),
     (
-        "Seleccioná un archivo normal, no una carpeta o un dispositivo.",
+        "Selecciona un archivo normal, no una carpeta o un dispositivo.",
         "Select a regular file, not a folder or a device.",
     ),
     ("Abrir", "Open"),

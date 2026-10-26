@@ -318,7 +318,7 @@ impl View<'_> {
                 "rules",
                 options.rules_channel,
                 &[ChannelKind::Text],
-                t("Elegí un canal"),
+                t("Elige un canal"),
                 t("Canal de reglas"),
                 channels.is_none(),
             ),
@@ -332,7 +332,7 @@ impl View<'_> {
                 "updates",
                 options.updates_channel,
                 &[ChannelKind::Text],
-                t("Elegí un canal"),
+                t("Elige un canal"),
                 t("Canal de novedades de la comunidad"),
                 channels.is_none(),
             ),
@@ -428,7 +428,7 @@ impl View<'_> {
         let slots = rest::shown_layout(self.settings, self.store);
         let mut children = vec![parts::page_title(
             t("Canales"),
-            Some(t("Arrastrá los canales para ordenarlos o pasarlos a otra categoría; también desde el menú de cada uno. Se guarda todo junto.")),
+            Some(t("Arrastra los canales para ordenarlos o pasarlos a otra categoría; también desde el menú de cada uno. Se guarda todo junto.")),
             look,
         )];
         if let Some(reason) = denied {

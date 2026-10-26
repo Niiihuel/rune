@@ -484,7 +484,7 @@ mod tests {
         assert!(!has_spoiler("a || b"));
         assert!(!has_spoiler("||||"));
         let url = "https://a.test/x.png";
-        assert!(spoiled_link(&format!("mirá ||{url}|| ojo"), url));
+        assert!(spoiled_link(&format!("mira ||{url}|| ojo"), url));
         assert!(spoiled_link(&format!("||nada|| y ||ojo {url}||"), url));
         assert!(!spoiled_link(&format!("||nada|| {url}"), url));
         assert!(!spoiled_link(&format!("||{url}"), url));

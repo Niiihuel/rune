@@ -104,7 +104,12 @@ pub(crate) fn update(
         _ => return Some(Vec::new()),
     };
     if let Some(reason) = permit.reason() {
-        ui.notify(t("No podés moderar su voz"), Some(reason.into()), true, now);
+        ui.notify(
+            t("No puedes moderar su voz"),
+            Some(reason.into()),
+            true,
+            now,
+        );
         return Some(Vec::new());
     }
     Some(vec![Intent::Command(Command::ModerateVoice {

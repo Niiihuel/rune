@@ -109,11 +109,11 @@ impl GifError {
     pub fn label(self) -> &'static str {
         match self {
             Self::NotConfigured => t("El buscador de GIF no está configurado."),
-            Self::InvalidQuery => t("Buscá con un texto de hasta 50 caracteres."),
-            Self::Unavailable => t("No se pudo cargar la búsqueda. Volvé a intentarlo."),
+            Self::InvalidQuery => t("Busca con un texto de hasta 50 caracteres."),
+            Self::Unavailable => t("No se pudo cargar la búsqueda. Vuelve a intentarlo."),
             Self::InvalidResponse => t("El buscador devolvió una respuesta no compatible."),
             Self::AccessDenied => t("La configuración del buscador no tiene acceso."),
-            Self::RateLimited { .. } => t("Esperá antes de volver a buscar."),
+            Self::RateLimited { .. } => t("Espera antes de volver a buscar."),
         }
     }
 }

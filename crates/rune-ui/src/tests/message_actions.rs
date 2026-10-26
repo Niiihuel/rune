@@ -75,7 +75,7 @@ fn a_forward_goes_once_per_conversation_with_the_note_after_it() {
     host.ma_click(&ids::forward_pick(ayuda));
     host.ma_input(ids::FORWARD_QUERY, "");
     host.ma_click(&ids::forward_pick(direct));
-    host.ma_input(ids::FORWARD_NOTE, "Mirá esto");
+    host.ma_input(ids::FORWARD_NOTE, "Mira esto");
     let from = host.sent.len();
     host.ma_click(ids::FORWARD_SEND);
     assert!(host.ui.message_actions.forward.is_none());
@@ -86,7 +86,7 @@ fn a_forward_goes_once_per_conversation_with_the_note_after_it() {
             Command::ForwardMessage { to, .. } => Some((*to, true)),
             Command::SendMessage {
                 channel, content, ..
-            } if content == "Mirá esto" => Some((*channel, false)),
+            } if content == "Mira esto" => Some((*channel, false)),
             _ => None,
         })
         .collect();
@@ -480,7 +480,7 @@ fn a_reply_with_files_keeps_its_mention_switch_and_carries_the_choice() {
         &mut host.store,
         &UiAction::Submitted {
             id: editor_id(general),
-            value: "mirá".into(),
+            value: "mira".into(),
         },
         host.now,
     );

@@ -128,7 +128,7 @@ impl Store {
             if !declared {
                 Permit::Denied(reason.into())
             } else if !connected {
-                Permit::Denied(t("Esperá a que la conexión esté disponible").into())
+                Permit::Denied(t("Espera a que la conexión esté disponible").into())
             } else {
                 Permit::Allowed
             }
@@ -300,6 +300,6 @@ mod tests {
             .account_abilities()
             .folders
             .reason()
-            .is_some_and(|reason| reason.starts_with("Esperá")));
+            .is_some_and(|reason| reason.starts_with("Espera")));
     }
 }

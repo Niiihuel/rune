@@ -150,7 +150,7 @@ fn channels(store: &Store, server: ServerId) -> impl Iterator<Item = &rune_model
 }
 
 fn day(value: &str, next: bool) -> Result<Timestamp, &'static str> {
-    time::local_date_boundary(value, next).ok_or(t("Escribí las fechas como AAAA-MM-DD."))
+    time::local_date_boundary(value, next).ok_or(t("Escribe las fechas como AAAA-MM-DD."))
 }
 
 /// `text` as a search from `channel`, through its whole server when it has
@@ -173,12 +173,12 @@ pub(super) fn parse(
             continue;
         };
         if value.is_empty() {
-            return Err(t("Completá el filtro o elegí una sugerencia."));
+            return Err(t("Completa el filtro o elige una sugerencia."));
         }
         match key {
             Key::From | Key::Mentions => {
                 let user = person(store, channel, value)
-                    .ok_or(t("Elegí una persona de las sugerencias."))?;
+                    .ok_or(t("Elige una persona de las sugerencias."))?;
                 let list = if key == Key::From {
                     &mut search.authors
                 } else {
@@ -190,7 +190,7 @@ pub(super) fn parse(
             }
             Key::Has => {
                 let has = Has::parse(value).ok_or(t(
-                    "Elegí enlace, tarjeta, archivo, imagen, video, sonido, sticker o encuesta.",
+                    "Elige enlace, tarjeta, archivo, imagen, video, sonido, sticker o encuesta.",
                 ))?;
                 if !search.has.contains(&has) {
                     search.has.push(has);
@@ -205,7 +205,7 @@ pub(super) fn parse(
                             || token(&channel.name).to_lowercase() == name
                             || channel.id.0.to_string() == name
                     })
-                    .ok_or(t("Elegí un canal de las sugerencias."))?;
+                    .ok_or(t("Elige un canal de las sugerencias."))?;
                 if !search.channels.contains(&found.id) {
                     search.channels.push(found.id);
                 }
@@ -220,18 +220,18 @@ pub(super) fn parse(
                 search.pinned = Some(match value.to_lowercase().as_str() {
                     "true" | "si" | "sí" => true,
                     "false" | "no" => false,
-                    _ => return Err(t("Elegí true o false para «pinned:».")),
+                    _ => return Err(t("Elige true o false para «pinned:».")),
                 })
             }
             Key::AuthorType => {
-                let kind = AuthorKind::parse(value).ok_or(t("Elegí persona, bot o webhook."))?;
+                let kind = AuthorKind::parse(value).ok_or(t("Elige persona, bot o webhook."))?;
                 if !search.author_kinds.contains(&kind) {
                     search.author_kinds.push(kind);
                 }
             }
             Key::LinkFrom => {
                 let host =
-                    rune_model::link_host(value).ok_or(t("Escribí el sitio como ejemplo.com."))?;
+                    rune_model::link_host(value).ok_or(t("Escribe el sitio como ejemplo.com."))?;
                 if !search.link_hosts.contains(&host) {
                     search.link_hosts.push(host);
                 }

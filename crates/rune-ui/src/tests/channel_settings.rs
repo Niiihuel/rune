@@ -159,7 +159,7 @@ fn the_overview_of_a_text_channel_saves_in_one_edit_once_the_provider_answers() 
         "the simulation is still labelled as such"
     );
     assert!(host.cs_shows("cs:delete"), "the owner may delete it");
-    assert!(!host.cs_painted("Tenés cambios sin guardar"));
+    assert!(!host.cs_painted("Tienes cambios sin guardar"));
 
     host.cs_write(NAME, "Núcleo de Limn");
     assert!(
@@ -171,7 +171,7 @@ fn the_overview_of_a_text_channel_saves_in_one_edit_once_the_provider_answers() 
     host.click("cs:slowmode:30");
     assert!(host.cs_painted("30 segundos"));
     host.click("cs:nsfw");
-    assert!(host.cs_painted("¡Cuidado! Tenés cambios sin guardar"));
+    assert!(host.cs_painted("¡Cuidado! Tienes cambios sin guardar"));
     host.click("cs:save");
     let edits: Vec<&Command> = host
         .sent
@@ -207,7 +207,7 @@ fn the_overview_of_a_text_channel_saves_in_one_edit_once_the_provider_answers() 
     assert_eq!(saved.topic.as_deref(), Some("Donde se habla del núcleo."));
     assert_eq!((saved.slowmode_secs, saved.nsfw), (30, true));
     assert!(!host.cs_dirty() && !host.cs_settings().saving());
-    assert!(!host.cs_painted("Tenés cambios sin guardar"));
+    assert!(!host.cs_painted("Tienes cambios sin guardar"));
     assert!(
         host.cs_painted("NÚCLEO-DE-LIMN"),
         "the sidebar's heading follows"
@@ -227,7 +227,7 @@ fn unsaved_changes_keep_the_settings_and_the_page_until_saved_or_reset() {
         "Esc does not drop changes"
     );
     assert!(host.cs_settings().nudged);
-    assert!(host.cs_painted("Guardá o restablecé los cambios antes de salir"));
+    assert!(host.cs_painted("Guarda o restablece los cambios antes de salir"));
     host.click("cs:page:permissions");
     assert_eq!(
         host.cs_settings().page,
@@ -526,7 +526,7 @@ fn deleting_the_open_channel_asks_and_enter_does_not_delete() {
     host.cs_open(channel);
     host.click("cs:delete");
     assert!(host.cs_settings().delete);
-    assert!(host.cs_painted("¿Seguro que querés eliminar #componentes?"));
+    assert!(host.cs_painted("¿Seguro que quieres eliminar #componentes?"));
     host.frame();
     assert_eq!(
         host.tree.focused_id(),
@@ -563,7 +563,7 @@ fn a_channel_of_a_server_not_owned_is_read_only_and_says_why() {
     let mut host = Host::new();
     let channel = host.channel_named("general");
     host.cs_open(channel);
-    assert!(host.cs_painted("No tenés permiso para gestionar el canal en #general"));
+    assert!(host.cs_painted("No tienes permiso para gestionar el canal en #general"));
     assert!(!host.cs_shows("cs:delete"), "nor can it be deleted");
     assert!(!host.cs_shows("cs:slowmode") && !host.cs_shows("cs:nsfw"));
     for id in ["cs:nsfw", "cs:slowmode", "cs:slowmode:30", "cs:delete"] {
@@ -571,7 +571,7 @@ fn a_channel_of_a_server_not_owned_is_read_only_and_says_why() {
     }
     assert!(!host.cs_dirty() && !host.cs_settings().delete);
     host.click("cs:page:permissions");
-    assert!(host.cs_painted("No tenés permiso para cambiar los permisos en #general"));
+    assert!(host.cs_painted("No tienes permiso para cambiar los permisos en #general"));
     assert!(!host.cs_shows("cs:private"));
     host.cs_press("cs:advanced");
     assert!(!host.cs_shows("cs:add"));
@@ -758,7 +758,7 @@ fn a_forum_s_tags_reaction_and_defaults_are_drafted_and_saved_together() {
     host.cs_write(crate::channel_settings::forum::REACTION, "👍");
     host.cs_press("cs:forum:gallery");
     host.cs_press("cs:forum:require-tag");
-    assert!(host.cs_painted("Tenés cambios sin guardar"));
+    assert!(host.cs_painted("Tienes cambios sin guardar"));
     host.sent.clear();
     host.cs_press("cs:save");
     let Some(Command::EditChannel { channel, edit }) = host.sent.last().cloned() else {

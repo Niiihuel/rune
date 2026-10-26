@@ -465,7 +465,7 @@ async fn another_file_put_at_the_name_after_asking_is_kept() {
         save_answering(url, Ok(target.clone()), 4, true).await,
         (
             Err(Some(
-                "El archivo cambió mientras se descargaba. Volvé a guardarlo."
+                "El archivo cambió mientras se descargaba. Vuelve a guardarlo."
             )),
             true
         )

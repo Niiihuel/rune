@@ -10,7 +10,7 @@ use crate::{Applied, Permit, Store};
 
 /// Why the username, email and password are never changed here: the service
 /// asks for the password to change them, and RUNE never asks for it.
-pub const CREDENTIALS_DENIED: &str = es("Cambiar el nombre de usuario, el correo o la contraseña pide tu contraseña, y RUNE nunca la pide: hacelo desde el servicio.");
+pub const CREDENTIALS_DENIED: &str = es("Cambiar el nombre de usuario, el correo o la contraseña pide tu contraseña, y RUNE nunca la pide: hazlo desde el servicio.");
 
 /// What the account may change of its profile, in one server or across all.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,7 +146,7 @@ impl Store {
             Some(perks) if !has(perks) => Permit::Denied(match &perks.upgrade {
                 // A plan's name may be a provider's text kept in Spanish.
                 Some(upgrade) => tr!(
-                    "Necesitás {upgrade} para usar {what}",
+                    "Necesitas {upgrade} para usar {what}",
                     upgrade = t(upgrade),
                     what
                 ),

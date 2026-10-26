@@ -886,7 +886,7 @@ fn pf_missing_profile_fields_are_unknown_and_not_claimed_to_be_empty_on_the_serv
     );
     assert!(!text
         .iter()
-        .any(|line| line == "Agregá tus pronombres" || line == "Contá algo sobre vos."));
+        .any(|line| line == "Agrega tus pronombres" || line == "Cuenta algo sobre ti."));
 }
 
 #[test]
@@ -1276,7 +1276,7 @@ fn pf_without_the_plan_a_banner_is_not_chosen_and_a_moving_avatar_stays_still() 
     assert!(host
         .painted()
         .iter()
-        .any(|text| text.contains("Necesitás Nitro para usar un banner")));
+        .any(|text| text.contains("Necesitas Nitro para usar un banner")));
     let asked = host.upload_intents.len();
     host.pf_act(ids::BANNER_PICK);
     assert_eq!(
@@ -1309,7 +1309,7 @@ fn pf_without_the_plan_a_banner_is_not_chosen_and_a_moving_avatar_stays_still() 
         .join(" ");
     assert!(
         painted
-            .contains("Necesitás Nitro para usar un avatar animado. Se usa sólo el primer cuadro."),
+            .contains("Necesitas Nitro para usar un avatar animado. Se usa sólo el primer cuadro."),
         "{painted}"
     );
 }
@@ -1393,20 +1393,20 @@ fn pf_what_the_plan_denies_after_the_choice_is_said_on_saving_and_not_sent() {
         ..Default::default()
     }));
     assert!(host.pf_painted().contains(
-        "Necesitás Nitro para usar un avatar animado. Mové el encuadre para usar sólo el primer cuadro."
+        "Necesitas Nitro para usar un avatar animado. Mueve el encuadre para usar sólo el primer cuadro."
     ));
     let sent = host.sent.len();
     host.pf_act(ids::SAVE);
     assert_eq!(host.sent.len(), sent, "before the service refuses it");
     assert!(host
         .pf_painted()
-        .contains("No se pudo guardar: Necesitás Nitro para usar un banner"));
+        .contains("No se pudo guardar: Necesitas Nitro para usar un banner"));
     host.pf_act(ids::BANNER_REMOVE);
     host.pf_act(ids::SAVE);
     assert_eq!(host.sent.len(), sent);
     assert!(host
         .pf_painted()
-        .contains("No se pudo guardar: Necesitás Nitro para usar un avatar animado"));
+        .contains("No se pudo guardar: Necesitas Nitro para usar un avatar animado"));
     // Framed again, it is asked still; once still, it is saved.
     let (request, _, animated) = host.pf_drag(0.0);
     assert!(!animated);
@@ -1420,7 +1420,7 @@ fn pf_what_the_plan_denies_after_the_choice_is_said_on_saving_and_not_sent() {
     host.run(intents);
     assert!(host
         .pf_painted()
-        .contains("Necesitás Nitro para usar un avatar animado. Se usa sólo el primer cuadro."));
+        .contains("Necesitas Nitro para usar un avatar animado. Se usa sólo el primer cuadro."));
     host.pf_act(ids::SAVE);
     assert!(matches!(
         &host.sent[sent..],
@@ -1596,7 +1596,7 @@ fn pf_the_editor_changes_the_profile_of_a_server_and_waits_where_restricted() {
     ));
     host.pf_answer(from);
     host.pf_input(ids::NICK, "Lab");
-    host.pf_input(ids::ABOUT, "Acá pruebo cosas");
+    host.pf_input(ids::ABOUT, "Aquí pruebo cosas");
     // Going elsewhere with that unsaved is refused, as leaving is.
     host.pf_act(ids::MAIN_PROFILE);
     assert!(host.ui.profiles.editor.as_ref().unwrap().nudged);
@@ -1608,7 +1608,7 @@ fn pf_the_editor_changes_the_profile_of_a_server_and_waits_where_restricted() {
             server: taller,
             edit: rune_provider::ServerProfileEdit {
                 nick: Some(Some("Lab".into())),
-                about: Some(Some("Acá pruebo cosas".into())),
+                about: Some(Some("Aquí pruebo cosas".into())),
                 ..Default::default()
             },
         })
@@ -1623,7 +1623,7 @@ fn pf_the_editor_changes_the_profile_of_a_server_and_waits_where_restricted() {
         host.store
             .profile(me, Some(taller))
             .and_then(|profile| profile.server_about.as_deref()),
-        Some("Acá pruebo cosas")
+        Some("Aquí pruebo cosas")
     );
     let editor = host.ui.profiles.editor.as_ref().unwrap();
     assert!(!editor.saving && !editor.dirty(&host.store));

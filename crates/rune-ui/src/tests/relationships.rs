@@ -528,7 +528,7 @@ fn messages_of_someone_blocked_fold_until_shown() {
     let mut said = (*host.store.timeline(channel).unwrap().messages()[0]).clone();
     said.id = rune_model::MessageId(last.0 + 1);
     said.author = YAGO;
-    said.content = "un mensaje que no querés ver".into();
+    said.content = "un mensaje que no quieres ver".into();
     said.timestamp = rune_model::Timestamp(said.timestamp.0 + 1);
     said.reply_to = None;
     host.event(Event::MessageCreated {
@@ -541,10 +541,10 @@ fn messages_of_someone_blocked_fold_until_shown() {
         painted.iter().any(|text| text == "1 mensaje bloqueado"),
         "{painted:?}"
     );
-    assert!(!painted.iter().any(|text| text.contains("no querés ver")));
+    assert!(!painted.iter().any(|text| text.contains("no quieres ver")));
     host.click(&rune_components::blocked::id(said.id));
     assert!(host
         .painted()
         .iter()
-        .any(|text| text.contains("no querés ver")));
+        .any(|text| text.contains("no quieres ver")));
 }

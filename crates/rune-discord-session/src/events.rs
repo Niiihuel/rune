@@ -100,7 +100,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     );
     if writes && !permissions.intersects(Permissions::CREATE_EVENTS | Permissions::MANAGE_EVENTS) {
         return Err(LoginError::new(es(
-            "No tenés permiso para cambiar eventos en este servidor.",
+            "No tienes permiso para cambiar eventos en este servidor.",
         )));
     }
     let draft = match command {
@@ -118,7 +118,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     };
     if let Some((draft, starts)) = draft {
         if draft.problem(now(), starts).is_some() {
-            return Err(LoginError::new(es("El evento no está completo: revisalo.")));
+            return Err(LoginError::new(es("El evento no está completo: revísalo.")));
         }
         let wanted = match draft.place {
             EventPlace::Stage(_) => Some(ChannelKind::Stage),

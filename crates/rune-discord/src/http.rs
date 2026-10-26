@@ -361,7 +361,7 @@ impl Http {
             .map_err(|_| AuthError(es("No se pudo completar la conexión HTTPS con Discord.")))?;
         if !response.status().is_success() {
             return Err(AuthError(match response.status().as_u16() {
-                400 | 401 => es("Discord rechazó la autorización. Revisá Public Client, el ID y el redirect registrado; el canje público directo es experimental."),
+                400 | 401 => es("Discord rechazó la autorización. Revisa Public Client, el ID y el redirect registrado; el canje público directo es experimental."),
                 403 => es("Discord no autorizó esta operación."),
                 429 => es("Discord pidió esperar antes de volver a intentar."),
                 _ => es("Discord devolvió un error. No se reintentó automáticamente."),

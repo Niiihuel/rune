@@ -253,7 +253,7 @@ impl Http {
 fn unconfirmed(failure: Failure) -> Event {
     Event::Failed {
         failure,
-        reason: t("Se guardó, pero no se pudo confirmar cómo quedó. Abrí el perfil otra vez antes de volver a cambiarlo.").into(),
+        reason: t("Se guardó, pero no se pudo confirmar cómo quedó. Abre el perfil otra vez antes de volver a cambiarlo.").into(),
         ambiguous: true,
     }
 }

@@ -1303,7 +1303,7 @@ fn setting(ctx: &Ctx, key: &str) -> Option<Element> {
         "choose" => {
             crate::providers::choosable(ui).then_some(())?;
             stacked(
-                t("Elegí el proveedor"),
+                t("Elige el proveedor"),
                 Some(t("Cada uno dice de dónde vienen sus datos. Cambiar cierra la sesión de este.")),
                 Element::column(crate::providers::choices(ui, width, look)).gap(8.0),
             )
@@ -1836,7 +1836,7 @@ fn camera(ctx: &Ctx) -> Element {
             if video.testing {
                 t("Esperando la cámara…")
             } else {
-                t("Probá el video para verte acá.")
+                t("Prueba el video para verte aquí.")
             },
             14.0,
             look.muted,

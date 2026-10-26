@@ -5,7 +5,7 @@
 
 pub(super) const ENTRIES: super::Entries = &[
     // The model's checks.
-    ("Poné un nombre al evento.", "Give the event a name."),
+    ("Pon un nombre al evento.", "Give the event a name."),
     (
         "El nombre del evento es demasiado largo.",
         "The event's name is too long.",
@@ -14,7 +14,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "La descripción es demasiado larga.",
         "The description is too long.",
     ),
-    ("Escribí dónde es el evento.", "Write where the event is."),
+    ("Escribe dónde es el evento.", "Write where the event is."),
     ("El lugar es demasiado largo.", "The place is too long."),
     (
         "Un evento en otro lugar necesita una hora de fin.",
@@ -35,7 +35,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Cargando eventos…", "Loading events…"),
     ("No hay eventos programados", "No scheduled events"),
     (
-        "Cuando alguien planee uno, va a aparecer acá.",
+        "Cuando alguien planee uno, va a aparecer aquí.",
         "When someone plans one, it will show up here.",
     ),
     ("En curso", "Happening now"),
@@ -72,18 +72,18 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Nombre del evento", "Event name"),
     ("¿Qué van a hacer?", "What will you do?"),
     (
-        "Contá de qué se trata (opcional)",
+        "Cuenta de qué se trata (opcional)",
         "Say what it's about (optional)",
     ),
     ("Empieza", "Starts"),
     ("Termina", "Ends"),
     ("Con hora de fin", "With an end time"),
     (
-        "Escribí la fecha y la hora de inicio enteras.",
+        "Escribe la fecha y la hora de inicio enteras.",
         "Write the whole start date and time.",
     ),
     (
-        "Escribí la fecha y la hora de fin enteras.",
+        "Escribe la fecha y la hora de fin enteras.",
         "Write the whole end date and time.",
     ),
     (
@@ -112,11 +112,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "This provider doesn't allow creating events",
     ),
     (
-        "Todavía no sos miembro de {server}",
+        "Todavía no eres miembro de {server}",
         "You're not a member of {server} yet",
     ),
     (
-        "No tenés permiso para crear eventos en {server}",
+        "No tienes permiso para crear eventos en {server}",
         "You don't have permission to create events in {server}",
     ),
     ("El evento ya terminó", "The event has ended"),
@@ -156,11 +156,11 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     // The personal session.
     (
-        "No tenés permiso para cambiar eventos en este servidor.",
+        "No tienes permiso para cambiar eventos en este servidor.",
         "You don't have permission to change events in this server.",
     ),
     (
-        "El evento no está completo: revisalo.",
+        "El evento no está completo: revísalo.",
         "The event isn't complete: check it.",
     ),
     (

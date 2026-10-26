@@ -113,7 +113,7 @@ impl AppCommand {
         }
         let options = self
             .options_at(&used.path)
-            .ok_or_else(|| t("Elegí un subcomando de la lista"))?;
+            .ok_or_else(|| t("Elige un subcomando de la lista"))?;
         for (index, (name, value)) in used.values.iter().enumerate() {
             let option = options
                 .iter()
@@ -202,7 +202,7 @@ impl CommandOption {
         let text = text.trim();
         if text.is_empty() {
             return if self.required {
-                Err(t("Completá este campo").into())
+                Err(t("Completa este campo").into())
             } else {
                 Ok(None)
             };
@@ -215,7 +215,7 @@ impl CommandOption {
             return Ok(Some(choice.value.clone()));
         }
         if !self.choices.is_empty() && !self.autocomplete {
-            return Err(t("Elegí una de las opciones").into());
+            return Err(t("Elige una de las opciones").into());
         }
         let range = |number: f64| {
             if self.min.is_some_and(|min| number < min) || self.max.is_some_and(|max| number > max)
@@ -239,19 +239,19 @@ impl CommandOption {
                     .map_or(MAX_TEXT, |max| usize::from(max).min(MAX_TEXT));
                 if self.min_length.is_some_and(|min| length < usize::from(min)) {
                     return Err(tr!(
-                        "Escribí al menos {min} caracteres",
+                        "Escribe al menos {min} caracteres",
                         min = self.min_length.unwrap_or(0)
                     ));
                 }
                 if length > max {
-                    return Err(tr!("Escribí como mucho {max} caracteres", max));
+                    return Err(tr!("Escribe como mucho {max} caracteres", max));
                 }
                 OptionValue::Text(text.into())
             }
             OptionKind::Integer => {
                 let number: i64 = text
                     .parse()
-                    .map_err(|_| t("Escribí un número entero").to_owned())?;
+                    .map_err(|_| t("Escribe un número entero").to_owned())?;
                 range(number as f64)?;
                 OptionValue::Integer(number)
             }
@@ -261,30 +261,30 @@ impl CommandOption {
                     .parse()
                     .ok()
                     .filter(|number: &f64| number.is_finite())
-                    .ok_or_else(|| t("Escribí un número").to_owned())?;
+                    .ok_or_else(|| t("Escribe un número").to_owned())?;
                 range(number)?;
                 OptionValue::Number(number)
             }
             OptionKind::Boolean => match text {
                 "true" | "sí" | "si" => OptionValue::Boolean(true),
                 "false" | "no" => OptionValue::Boolean(false),
-                _ => return Err(t("Elegí sí o no").into()),
+                _ => return Err(t("Elige sí o no").into()),
             },
             OptionKind::User => {
-                OptionValue::User(UserId(id(text).ok_or_else(|| t("Elegí a alguien"))?))
+                OptionValue::User(UserId(id(text).ok_or_else(|| t("Elige a alguien"))?))
             }
             OptionKind::Role => {
-                OptionValue::Role(RoleId(id(text).ok_or_else(|| t("Elegí un rol"))?))
+                OptionValue::Role(RoleId(id(text).ok_or_else(|| t("Elige un rol"))?))
             }
             OptionKind::Channel => {
-                OptionValue::Channel(ChannelId(id(text).ok_or_else(|| t("Elegí un canal"))?))
+                OptionValue::Channel(ChannelId(id(text).ok_or_else(|| t("Elige un canal"))?))
             }
             OptionKind::Mentionable => match text.split_once(':') {
                 Some(("role", number)) => OptionValue::Role(RoleId(
-                    id(number).ok_or_else(|| t("Elegí a alguien o un rol"))?,
+                    id(number).ok_or_else(|| t("Elige a alguien o un rol"))?,
                 )),
                 _ => OptionValue::User(UserId(
-                    id(text).ok_or_else(|| t("Elegí a alguien o un rol"))?,
+                    id(text).ok_or_else(|| t("Elige a alguien o un rol"))?,
                 )),
             },
             OptionKind::Subcommand | OptionKind::Group | OptionKind::Attachment => {
@@ -533,21 +533,21 @@ impl ModalInput {
                 let length = text.chars().count();
                 let max = max_length.map_or(4000, |max| usize::from(max).min(4000));
                 if length == 0 {
-                    return required.then(|| t("Completá este campo").into());
+                    return required.then(|| t("Completa este campo").into());
                 }
                 if min_length.is_some_and(|min| length < usize::from(min)) {
                     return Some(tr!(
-                        "Escribí al menos {min} caracteres",
+                        "Escribe al menos {min} caracteres",
                         min = min_length.unwrap_or(0)
                     ));
                 }
-                (length > max).then(|| tr!("Escribí como mucho {max} caracteres", max))
+                (length > max).then(|| tr!("Escribe como mucho {max} caracteres", max))
             }
             (Self::Menu(menu), FieldValue::Values(values)) => {
                 if values.is_empty() {
-                    return (menu.required || menu.min > 0).then(|| t("Elegí una opción").into());
+                    return (menu.required || menu.min > 0).then(|| t("Elige una opción").into());
                 }
-                (!menu.accepts(values)).then(|| t("Elegí dentro de lo que se permite").into())
+                (!menu.accepts(values)).then(|| t("Elige dentro de lo que se permite").into())
             }
             (
                 Self::Radio {
@@ -555,9 +555,9 @@ impl ModalInput {
                 },
                 FieldValue::Values(values),
             ) => match values.as_slice() {
-                [] => required.then(|| t("Elegí una opción").into()),
+                [] => required.then(|| t("Elige una opción").into()),
                 [one] if options.iter().any(|option| option.value == *one) => None,
-                _ => Some(t("Elegí una opción").into()),
+                _ => Some(t("Elige una opción").into()),
             },
             (
                 Self::Checks {
@@ -573,7 +573,7 @@ impl ModalInput {
                 };
                 let none_needed = values.is_empty() && *min == 0;
                 (!none_needed && !menu.accepts(values))
-                    .then(|| t("Elegí dentro de lo que se permite").into())
+                    .then(|| t("Elige dentro de lo que se permite").into())
             }
             (Self::Check { .. }, FieldValue::Check(_)) => None,
             (
@@ -583,13 +583,13 @@ impl ModalInput {
                 FieldValue::Files(files),
             ) => {
                 if files.is_empty() {
-                    return (*required && *min > 0).then(|| t("Adjuntá un archivo").into());
+                    return (*required && *min > 0).then(|| t("Adjunta un archivo").into());
                 }
                 if files.len() < usize::from(*min) {
-                    return Some(tr!("Adjuntá al menos {min} archivos", min));
+                    return Some(tr!("Adjunta al menos {min} archivos", min));
                 }
                 (files.len() > usize::from(*max))
-                    .then(|| tr!("Adjuntá como mucho {max} archivos", max))
+                    .then(|| tr!("Adjunta como mucho {max} archivos", max))
             }
             (Self::Text(_), _) => None,
             (Self::Unsupported(_), _) => Some(t("RUNE no completa este campo").into()),
@@ -654,7 +654,7 @@ mod tests {
         let mut count = CommandOption::new(OptionKind::Integer, "caras", "Cuántas caras");
         count.min = Some(2.0);
         count.max = Some(100.0);
-        let mut sub = CommandOption::new(OptionKind::Subcommand, "tirar", "Tirá un dado");
+        let mut sub = CommandOption::new(OptionKind::Subcommand, "tirar", "Tira un dado");
         sub.options = vec![count];
         let mut group = CommandOption::new(OptionKind::Group, "dado", "Dados");
         group.options = vec![sub];

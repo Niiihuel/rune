@@ -4,7 +4,7 @@ use super::*;
 use limn::{DrawCommand, HitKind, Rect, Role};
 use rune_model::{PendingAttachment, UploadToken};
 
-const UNSUPPORTED: &str = "Todavía no podés adjuntar archivos arrastrándolos. Usá Adjuntar.";
+const UNSUPPORTED: &str = "Todavía no puedes adjuntar archivos arrastrándolos. Usa Adjuntar.";
 const DRAFT: &str = "Primera línea del borrador\nSegunda línea conservada\nTercera línea sin enviar\nÚltima línea de la respuesta";
 
 fn draft(files: u64) -> (Host, ChannelId, MessageId) {
@@ -164,7 +164,7 @@ fn three_wrapped_notices_scroll_completely_without_overflowing_into_the_draft() 
     let (mut host, channel, reply) = draft(8);
     let window = Size::new(980.0, 800.0);
     let titles: Vec<_> = (1..=3)
-        .map(|index| format!("Aviso {index}: conservá el borrador y revisá el detalle completo antes de volver a intentar la preparación de estos archivos"))
+        .map(|index| format!("Aviso {index}: conserva el borrador y revisa el detalle completo antes de volver a intentar la preparación de estos archivos"))
         .collect();
     let details: Vec<_> = (1..=3)
         .map(|index| {
@@ -376,7 +376,7 @@ fn notices_leave_the_live_draft_reachable_at_the_minimum_desktop_size() {
     let window = Size::new(720.0, 480.0);
     for index in 1..=3 {
         host.ui.notify(
-            format!("Aviso {index}: revisá la preparación de los archivos antes de continuar"),
+            format!("Aviso {index}: revisa la preparación de los archivos antes de continuar"),
             Some("Este detalle completo debe seguir accesible mediante scroll. ".repeat(30)),
             true,
             host.now,

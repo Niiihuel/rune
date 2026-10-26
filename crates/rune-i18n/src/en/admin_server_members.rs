@@ -31,7 +31,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The emoji each new post starts with, to react in one click; also “:name:” of one of the server's own.",
     ),
     (
-        "Elegí el canal de reglas y el de novedades de la comunidad.",
+        "Elige el canal de reglas y el de novedades de la comunidad.",
         "Choose the community's rules channel and updates channel.",
     ),
     ("Es una comunidad", "It is a community"),

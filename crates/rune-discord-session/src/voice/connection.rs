@@ -397,7 +397,7 @@ fn close_reason(code: u16) -> Ended {
         // Voice server crashed: the session survives.
         4015 => Ended::Dropped(es("El servidor de voz se reinició.")),
         4014 => Ended::Fatal(KICKED),
-        4006 | 4009 => Ended::Fatal(es("La sesión de voz terminó. Volvé a entrar.")),
+        4006 | 4009 => Ended::Fatal(es("La sesión de voz terminó. Vuelve a entrar.")),
         4011 | 4012 | 4016 => Ended::Fatal(es("El servidor de voz no aceptó el cifrado de RUNE.")),
         4017 => Ended::Fatal(es(
             "Discord exige cifrado de extremo a extremo que no se pudo negociar.",
@@ -1021,7 +1021,7 @@ impl Connection<'_> {
                 DISCOVERY_TIMEOUT.as_secs()
             );
             return Err(Ended::Fatal(es(
-                "El servidor de voz no respondió por UDP; revisá el cortafuegos.",
+                "El servidor de voz no respondió por UDP; revisa el cortafuegos.",
             )));
         }
         if self.discovering.is_some() && now >= self.next_probe {
@@ -1250,7 +1250,7 @@ impl Connection<'_> {
         } else {
             transport.seal(&header, payload)
         }
-        .ok_or(es("La llamada agotó sus claves. Volvé a entrar."))?;
+        .ok_or(es("La llamada agotó sus claves. Vuelve a entrar."))?;
         // A full send buffer drops this packet, as the network would.
         let _ = udp.try_send(&packet);
         Ok(())

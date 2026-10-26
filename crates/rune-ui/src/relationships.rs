@@ -255,7 +255,7 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) {
                 let name = account.shown_name();
                 ui.friends.note = Some((
                     match relationship.kind {
-                        RelationshipKind::Friend => tr!("Ahora sos amigo de {name}", name),
+                        RelationshipKind::Friend => tr!("Ahora eres amigo de {name}", name),
                         _ => tr!("Solicitud de amistad enviada a {name}", name),
                     },
                     false,
@@ -331,7 +331,7 @@ fn list(ui: &Ui, store: &Store, tab: FriendsTab, look: &Look) -> Element {
     if tab == FriendsTab::Online && !presence {
         return parts::empty(
             t("Sin estado en línea"),
-            t("Esta conexión no informa quién está en línea. Mirá «Todos»."),
+            t("Esta conexión no informa quién está en línea. Mira «Todos»."),
             look,
         );
     }
@@ -395,7 +395,7 @@ fn list(ui: &Ui, store: &Store, tab: FriendsTab, look: &Look) -> Element {
     ]);
     if sections.iter().all(|(_, people)| people.is_empty()) {
         let (title, detail) = if !query.is_empty() {
-            (t("Nadie coincide"), t("Probá con otro nombre."))
+            (t("Nadie coincide"), t("Prueba con otro nombre."))
         } else {
             match tab {
                 FriendsTab::Online => (
@@ -404,15 +404,15 @@ fn list(ui: &Ui, store: &Store, tab: FriendsTab, look: &Look) -> Element {
                 ),
                 FriendsTab::Pending => (
                     t("No hay solicitudes pendientes"),
-                    t("Las solicitudes que recibas o envíes aparecen acá."),
+                    t("Las solicitudes que recibas o envíes aparecen aquí."),
                 ),
                 FriendsTab::Blocked => (
                     t("No bloqueaste a nadie"),
-                    t("Las personas que bloquees aparecen acá."),
+                    t("Las personas que bloquees aparecen aquí."),
                 ),
                 _ => (
-                    t("Todavía no tenés amigos"),
-                    t("Añadí a alguien con su nombre de usuario."),
+                    t("Todavía no tienes amigos"),
+                    t("Añade a alguien con su nombre de usuario."),
                 ),
             }
         };
@@ -601,7 +601,7 @@ pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Ele
             root,
             &tr!("Eliminar a «{name}»", name = name(user)),
             &tr!(
-                "¿Seguro que querés eliminar a {name} de tus amigos? Vas a poder enviarle otra solicitud.",
+                "¿Seguro que quieres eliminar a {name} de tus amigos? Vas a poder enviarle otra solicitud.",
                 name = name(user)
             ),
             t("Eliminar amigo"),

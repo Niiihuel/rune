@@ -141,7 +141,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "proxy http https api rest network intermediary address no proxy",
     ),
     (
-        "Usá la dirección de un proxy HTTP o HTTPS, sin usuario ni contraseña, ruta, consulta ni fragmento: http://host:puerto.",
+        "Usa la dirección de un proxy HTTP o HTTPS, sin usuario ni contraseña, ruta, consulta ni fragmento: http://host:puerto.",
         "Use the address of an HTTP or HTTPS proxy, without user or password, path, query or fragment: http://host:port.",
     ),
     (

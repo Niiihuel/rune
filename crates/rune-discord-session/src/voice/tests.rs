@@ -3211,7 +3211,7 @@ async fn a_call_that_had_connected_rejoins_after_any_failure_but_being_removed()
     calls
         .join(&snapshot, ChannelId(CHANNEL), false, false)
         .unwrap();
-    let (phase, lose) = connect_ending(&mut calls, "La sesión de voz terminó. Volvé a entrar.");
+    let (phase, lose) = connect_ending(&mut calls, "La sesión de voz terminó. Vuelve a entrar.");
     phase.send_replace(CallPhase::Connected);
     calls.next().await;
     let _ = lose.send(());
@@ -3254,7 +3254,7 @@ async fn a_rejoin_identifies_again_with_the_same_session_and_server() {
     let (_first, session) = identified(&mut calls, &server).await;
     assert_eq!(session, "GATEWAY_SESSION");
     // It connected, then the voice server let it go for good.
-    let (phase, lose) = connect_ending(&mut calls, "La sesión de voz terminó. Volvé a entrar.");
+    let (phase, lose) = connect_ending(&mut calls, "La sesión de voz terminó. Vuelve a entrar.");
     phase.send_replace(CallPhase::Connected);
     // The first connection's privacy code goes with it, before or after,
     // and so does what it measured (voz-protocolo).

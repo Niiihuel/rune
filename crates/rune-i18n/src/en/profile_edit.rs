@@ -16,7 +16,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Zoom", "Zoom"),
     ("Zoom del encuadre", "Framing zoom"),
     (
-        "Arrastrá sobre la imagen para elegir qué parte se ve; el zoom la acerca.",
+        "Arrastra sobre la imagen para elegir qué parte se ve; el zoom la acerca.",
         "Drag over the image to choose which part shows; zoom brings it closer.",
     ),
     (
@@ -28,11 +28,11 @@ pub(super) const ENTRIES: super::Entries = &[
         "{reason}. Only the first frame is used.",
     ),
     (
-        "{reason}. Mové el encuadre para usar sólo el primer cuadro.",
+        "{reason}. Mueve el encuadre para usar sólo el primer cuadro.",
         "{reason}. Move the framing to use only the first frame.",
     ),
     // Moving pictures.
-    ("Elegí la imagen otra vez.", "Choose the image again."),
+    ("Elige la imagen otra vez.", "Choose the image again."),
     (
         "La animación es demasiado larga o pesada para un perfil.",
         "The animation is too long or too heavy for a profile.",

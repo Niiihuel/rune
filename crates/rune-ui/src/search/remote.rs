@@ -78,7 +78,7 @@ pub(super) fn query(search: &MessageSearch, store: &Store) -> Result<RemoteSearc
     }
     let bound = |text: &str, next| {
         rune_components::time::local_date_boundary(text, next)
-            .ok_or(t("Escribí las fechas como AAAA-MM-DD."))
+            .ok_or(t("Escribe las fechas como AAAA-MM-DD."))
     };
     if !search.from.is_empty() {
         query.after = filters::narrower(query.after, bound(&search.from, false)?, true);
@@ -172,7 +172,7 @@ pub(super) fn answered(
             }
         }
         Err(RemoteSearchError::Indexing { .. }) => Phase::Failed(
-            t("El índice de búsqueda sigue en preparación. Volvé a intentarlo más tarde con «Actualizar».").into(),
+            t("El índice de búsqueda sigue en preparación. Vuelve a intentarlo más tarde con «Actualizar».").into(),
         ),
         Err(RemoteSearchError::Failed(reason)) => Phase::Failed(reason.clone()),
     };

@@ -1375,7 +1375,7 @@ const SERVERS: [ServerPlan; 4] = [
                 &[
                     ("general", ChannelKind::Text, 900),
                     ("ayuda", ChannelKind::Text, 420),
-                    ("mostrá-tu-proyecto", ChannelKind::Text, 160),
+                    ("muestra-tu-proyecto", ChannelKind::Text, 160),
                 ],
             ),
             (
@@ -1475,8 +1475,8 @@ const PHRASES: [&str; 40] = [
     "¿Alguien probó la nueva versión? A mí me compila bastante más rápido.",
     "Buen día a todos ☕",
     "Me pasó lo mismo, al final era un problema de lifetimes.",
-    "Dejo esto por acá: https://doc.rust-lang.org/book/",
-    "**Ojo:** si usás `tokio::select!` dentro de un loop, cancelás el futuro que no gana.",
+    "Dejo esto por aquí: https://doc.rust-lang.org/book/",
+    "**Ojo:** si usas `tokio::select!` dentro de un loop, cancelas el futuro que no gana.",
     "¿Cuál es la diferencia entre `Arc<Mutex<T>>` y un canal? Siempre me confundo.",
     "Jajaja tremendo",
     "Lo subí a una rama, si alguien quiere revisarlo avisen.",
@@ -1511,7 +1511,7 @@ const PHRASES: [&str; 40] = [
     "Café número tres del día.",
     "Paso a saludar, hace mucho que no entraba 👋",
     "Esa librería tiene licencia MIT, así que no hay problema.",
-    "Mirá este artículo sobre listas virtualizadas: https://github.com/Niiihuel/limn",
+    "Mira este artículo sobre listas virtualizadas: https://github.com/Niiihuel/limn",
 ];
 
 /// What people answer to a message sent here.
@@ -1519,11 +1519,11 @@ const REPLIES: [&str; 10] = [
     "¡Buena pregunta! Yo lo resolví así: primero aislé el caso en un test.",
     "Coincido 👍",
     "Jaja sí, me pasó la semana pasada.",
-    "¿Podés pegar el error completo?",
+    "¿Puedes pegar el error completo?",
     "Lo miro en un rato y te digo.",
-    "¡Bienvenido/a! Cualquier cosa preguntá por acá.",
+    "¡Bienvenido/a! Cualquier cosa pregunta por aquí.",
     "Excelente, gracias por avisar 🙌",
-    "Eso está documentado en el README, fijate la sección de instalación.",
+    "Eso está documentado en el README, fíjate la sección de instalación.",
     "Yo probaría con `cargo clean` primero, por las dudas.",
     "Me encanta 😄",
 ];
@@ -2646,7 +2646,7 @@ impl World {
             found.server.is_some() && found.permissions.contains(Permissions::MANAGE_MESSAGES)
         });
         if message.author != ME && !manages {
-            return Err(t("solo podés borrar tus mensajes").into());
+            return Err(t("solo puedes borrar tus mensajes").into());
         }
         let sim = self.sims.get_mut(&channel).ok_or(t("el canal no existe"))?;
         sim.overlay.insert(id, None);
@@ -2795,7 +2795,7 @@ impl World {
                 .permissions
                 .contains(Permissions::PIN_MESSAGES | Permissions::READ_HISTORY)
         {
-            return Err(t("no tenés permiso para fijar mensajes").into());
+            return Err(t("no tienes permiso para fijar mensajes").into());
         }
         let mut message = self.message(channel, id).ok_or(t("el mensaje no existe"))?;
         if pinned && !message.pinned && self.pins(channel).len() >= PINS_MAX {
@@ -2894,7 +2894,7 @@ impl World {
                     channel,
                     owner: ME,
                     phase: StreamPhase::Ended(Some(
-                        t("Entrá a la llamada para compartir la pantalla.").into(),
+                        t("Entra a la llamada para compartir la pantalla.").into(),
                     )),
                 })
                 .into_iter()
@@ -2943,7 +2943,7 @@ impl World {
             return (on)
                 .then(|| Event::Failed {
                     failure: Failure::Camera { channel },
-                    reason: t("Entrá a la llamada para encender la cámara.").into(),
+                    reason: t("Entra a la llamada para encender la cámara.").into(),
                     ambiguous: false,
                 })
                 .into_iter()
@@ -3019,13 +3019,13 @@ fn topic(channel: &str) -> Option<String> {
     let topic = match channel {
         "general" => "Charla general del taller. Sé amable.",
         "ayuda" => {
-            "Preguntas de Rust <:engranaje:900002>: pegá el error completo y qué intentaste."
+            "Preguntas de Rust <:engranaje:900002>: pega el error completo y qué intentaste."
         }
         "anuncios" => "Solo lectura: novedades del taller.",
         "rendimiento" => {
             "Mediciones, perfiles y benchmarks. 5 000 mensajes para probar el timeline."
         }
-        "galería" => "Compartí tus fotos.",
+        "galería" => "Comparte tus fotos.",
         _ => return None,
     };
     Some(topic.into())

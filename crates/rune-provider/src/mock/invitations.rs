@@ -448,7 +448,7 @@ mod tests {
     #[test]
     fn links_in_text_are_marked_once_each() {
         let found = references(&format!(
-            "Vení {LINKS}club, o al grupo {LINKS}jueves. {LINKS}club https://otro.invalid/invite/x"
+            "Ven {LINKS}club, o al grupo {LINKS}jueves. {LINKS}club https://otro.invalid/invite/x"
         ));
         let sources: Vec<&str> = found.iter().map(|found| found.source.as_str()).collect();
         assert_eq!(

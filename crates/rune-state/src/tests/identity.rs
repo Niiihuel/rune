@@ -82,7 +82,7 @@ fn the_plan_decides_other_servers_and_animated_expressions_and_packs_go_anywhere
     assert!(store.emoji_perk(here, &emoji(2, true)).allowed());
     assert_eq!(
         store.sticker_perk(here, Some(ServerId(2))).reason(),
-        Some("Necesitás Plus para usar stickers de otros servidores acá")
+        Some("Necesitas Plus para usar stickers de otros servidores aquí")
     );
     assert!(store.sticker_perk(here, Some(ServerId(1))).allowed());
     assert!(store.sticker_perk(here, None).allowed(), "a pack's");
@@ -173,7 +173,7 @@ fn without_the_channels_permission_another_servers_expressions_say_why_first() {
     open.apply(Event::Perks(Perks::default()), Instant::now());
     assert_eq!(
         open.emoji_perk(here, &emoji(2)).reason(),
-        Some("Tu cuenta no puede usar emojis de otros servidores acá")
+        Some("Tu cuenta no puede usar emojis de otros servidores aquí")
     );
 }
 

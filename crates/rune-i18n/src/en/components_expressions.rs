@@ -18,19 +18,19 @@ pub(super) const ENTRIES: super::Entries = &[
     // Stickers and GIFs (`emoji/expressions.rs`, `emoji/gifs.rs`).
     ("No hay resultados.", "No results."),
     (
-        "Se muestran 72 resultados. Refiná la búsqueda para ver otros.",
+        "Se muestran 72 resultados. Refina la búsqueda para ver otros.",
         "Showing 72 results. Refine your search to see others.",
     ),
     ("Buscar stickers", "Search stickers"),
     ("Stickers del servidor", "Server stickers"),
     (
-        "Elegí un sticker y confirmá su envío en el composer.",
+        "Elige un sticker y confirma su envío en el composer.",
         "Choose a sticker and confirm sending it in the composer.",
     ),
     ("Añadir un GIF por enlace", "Add a GIF by link"),
     ("Añadir al borrador", "Add to draft"),
     (
-        "Pegá un enlace HTTPS. Búsqueda sin configurar.",
+        "Pega un enlace HTTPS. Búsqueda sin configurar.",
         "Paste an HTTPS link. Search isn't set up.",
     ),
     ("Enlaces usados en esta sesión", "Links used this session"),
@@ -38,7 +38,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Agregar a favoritos", "Add to favorites"),
     ("Favoritos", "Favorites"),
     (
-        "Tocá el corazón de un GIF para guardarlo acá.",
+        "Toca el corazón de un GIF para guardarlo aquí.",
         "Tap a GIF's heart to save it here.",
     ),
     ("Buscar GIF", "Search GIFs"),
@@ -48,7 +48,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Buscar {name}", "Search {name}"),
     ("Buscando GIF…", "Searching GIFs…"),
     (
-        "Buscá un GIF o explorá tendencias.",
+        "Busca un GIF o explora tendencias.",
         "Search for a GIF or explore what's trending.",
     ),
     ("Añadir {title} al borrador", "Add {title} to draft"),
@@ -74,11 +74,11 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Salir del comando", "Leave the command"),
     (
-        "Sin opciones: presioná Enter para enviarlo.",
+        "Sin opciones: presiona Enter para enviarlo.",
         "No options: press Enter to send it.",
     ),
     ("Enviar comando", "Send command"),
-    ("Elegí…", "Choose…"),
+    ("Elige…", "Choose…"),
     ("Un número entero", "A whole number"),
     ("Un número", "A number"),
     // Threads (`threads.rs`).
@@ -89,7 +89,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Crear hilo", "Create thread"),
     ("Seguidos", "Followed"),
     (
-        "No seguís ningún hilo de este canal.",
+        "No sigues ningún hilo de este canal.",
         "You don't follow any thread in this channel.",
     ),
     ("Activos", "Active"),
@@ -99,7 +99,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Archivados", "Archived"),
     (
-        "Los hilos archivados se cargan cuando los pedís.",
+        "Los hilos archivados se cargan cuando los pides.",
         "Archived threads load when you ask for them.",
     ),
     ("Hilos", "Threads"),
@@ -115,7 +115,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Etiquetas", "Tags"),
     ("Primer mensaje", "First message"),
     (
-        "Contá tu pregunta o tu idea.",
+        "Cuenta tu pregunta o tu idea.",
         "Share your question or idea.",
     ),
     ("Hilo privado", "Private thread"),
@@ -175,7 +175,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Gestionar grupo", "Manage group"),
     ("Dueño del grupo", "Group owner"),
     (
-        "Elegí a quiénes sumar: hasta {most} amigos. Con uno solo se abre su conversación.",
+        "Elige a quiénes sumar: hasta {most} amigos. Con uno solo se abre su conversación.",
         "Choose who to add: up to {most} friends. With just one, your DM with them opens.",
     ),
     ("Buscar amigos", "Search friends"),
@@ -198,7 +198,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Nombre de usuario", "Username"),
     ("Enviar solicitud", "Send friend request"),
     (
-        "Podés añadir amigos con su nombre de usuario.",
+        "Puedes añadir amigos con su nombre de usuario.",
         "You can add friends with their username.",
     ),
     (
@@ -214,7 +214,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Quitar apodo", "Remove nickname"),
     ("Cambiar apodo", "Change nickname"),
     (
-        "Un nombre para {name} que solo ves vos.",
+        "Un nombre para {name} que solo ves tú.",
         "A name for {name} that only you see.",
     ),
 ];

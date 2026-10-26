@@ -1033,7 +1033,7 @@ mod tests {
         store.apply(
             Event::Failed {
                 failure: Failure::of(&unban).unwrap(),
-                reason: "no tenés permiso".into(),
+                reason: "no tienes permiso".into(),
                 ambiguous: false,
             },
             now,

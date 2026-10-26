@@ -366,7 +366,7 @@ pub fn pins(
         .padding(8.0),
         PinsContent::Ready([]) => Empty::new(
             t("Todavía no hay mensajes fijados"),
-            t("Los mensajes que se fijen en esta conversación van a aparecer acá."),
+            t("Los mensajes que se fijen en esta conversación van a aparecer aquí."),
             palette,
         )
         .icon(Icon::Pin)
@@ -608,21 +608,21 @@ pub fn delete_dialog(root: Element, name: &str, doomed: Doomed, look: &Look) -> 
         Doomed::Text => (
             t("Eliminar canal"),
             tr!(
-                "¿Seguro que querés eliminar #{name}? No se puede deshacer.",
+                "¿Seguro que quieres eliminar #{name}? No se puede deshacer.",
                 name
             ),
         ),
         Doomed::Voice => (
             t("Eliminar canal"),
             tr!(
-                "¿Seguro que querés eliminar {name}? No se puede deshacer.",
+                "¿Seguro que quieres eliminar {name}? No se puede deshacer.",
                 name
             ),
         ),
         Doomed::Category => (
             t("Eliminar categoría"),
             tr!(
-                "¿Seguro que querés eliminar la categoría {name}? Sus canales quedan sin \
+                "¿Seguro que quieres eliminar la categoría {name}? Sus canales quedan sin \
                  categoría. No se puede deshacer.",
                 name
             ),
@@ -653,7 +653,7 @@ pub fn sync_dialog(root: Element, name: &str, category: &str, look: &Look) -> El
         true,
         t("¿Sincronizar permisos?"),
         tr!(
-            "{name} pasa a {category}. ¿Querés que tome los permisos de la categoría? Sus permisos propios se reemplazan.",
+            "{name} pasa a {category}. ¿Quieres que tome los permisos de la categoría? Sus permisos propios se reemplazan.",
             name,
             category
         ),
@@ -754,7 +754,7 @@ mod tests {
             Vec::new(),
             vec![
                 Item::new("b", "Editar canal")
-                    .denied(Some("No tenés permiso".into()))
+                    .denied(Some("No tienes permiso".into()))
                     .into(),
                 Item::new("c", "Eliminar canal").danger().into(),
             ],
@@ -764,7 +764,7 @@ mod tests {
         assert!(!ids.contains(&"b".to_owned()), "{ids:?}");
         let off = frame.access.iter().find(|node| node.id == "b").unwrap();
         assert!(off.disabled);
-        assert!(texts(&frame).contains(&"No tenés permiso".to_owned()));
+        assert!(texts(&frame).contains(&"No tienes permiso".to_owned()));
         let first = frame
             .regions
             .iter()

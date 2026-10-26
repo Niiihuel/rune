@@ -169,13 +169,13 @@ impl LocalReadError {
         match self {
             Self::Unavailable => t("El historial guardado no está disponible para esta cuenta."),
             Self::InvalidQuery => {
-                t("Revisá la consulta: hasta 256 caracteres y un intervalo de fechas válido.")
+                t("Revisa la consulta: hasta 256 caracteres y un intervalo de fechas válido.")
             }
             Self::NotFoundLocal => t("Ese mensaje ya no está guardado en este equipo."),
             Self::TooLarge => t("Los datos superan el límite de esta lectura local."),
-            Self::StaleCursor => t("El historial guardado cambió. Actualizá la búsqueda."),
+            Self::StaleCursor => t("El historial guardado cambió. Actualiza la búsqueda."),
             Self::Cancelled => t("La lectura local se canceló."),
-            Self::Failed => t("No se pudo leer el historial guardado. Volvé a intentarlo."),
+            Self::Failed => t("No se pudo leer el historial guardado. Vuelve a intentarlo."),
         }
     }
 }

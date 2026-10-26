@@ -1083,7 +1083,7 @@ pub fn details_tabbed(view: &Details, privacy: Option<(Element, bool)>, look: &L
     body.push(text(
         t(
             "Una latencia alta retrasa la voz y una pérdida alta la entrecorta. Si \
-         sigue así, desconectate y volvé a entrar.",
+         sigue así, desconéctate y vuelve a entrar.",
         ),
         12.0,
         look.faint,
@@ -1331,7 +1331,7 @@ fn marks(person: &Participant, prefix: &str, ink: Color, look: &Look) -> Vec<Ele
         );
     }
     if person.silenced {
-        mark(Icon::VolumeMuted, "silenced", t("Silenciado para vos"), ink);
+        mark(Icon::VolumeMuted, "silenced", t("Silenciado para ti"), ink);
     }
     marks
 }
@@ -1394,7 +1394,7 @@ pub fn participant(
         state.push(t("ensordecido"));
     }
     if person.silenced {
-        state.push(t("silenciado para vos"));
+        state.push(t("silenciado para ti"));
     }
     let label = if state.is_empty() {
         person.name.clone()
@@ -2997,7 +2997,7 @@ mod tests {
 
     #[test]
     fn previews_come_first_say_they_stay_here_and_can_be_stopped() {
-        let note = "Solo vos lo ves. La transmisión llega con las llamadas.";
+        let note = "Solo tú lo ves. La transmisión llega con las llamadas.";
         let view = Stage {
             channel: "General".into(),
             phase: Some(CallPhase::Connected),
@@ -3211,7 +3211,7 @@ mod tests {
         assert!(texts(&laid).iter().any(|text| text == "EN VIVO"));
         // Not allowed: shown, disabled, with why.
         let (_, laid) = frame(
-            stage(view(Err("Entrá a la llamada".into()), Vec::new()), &look),
+            stage(view(Err("Entra a la llamada".into()), Vec::new()), &look),
             Size::new(980.0, 762.0),
         );
         assert!(!controls(&laid).contains(&ids::watch(2)));
@@ -4001,7 +4001,7 @@ mod tests {
         // Not allowed: disabled, with why; no picture yet: said so.
         let denied = LiveCard {
             picture: Err("Cargando la vista previa…".into()),
-            watch: Err("Entrá al canal de voz para ver la transmisión".into()),
+            watch: Err("Entra al canal de voz para ver la transmisión".into()),
             activity: None,
             ..card
         };
@@ -4078,7 +4078,7 @@ mod tests {
             frame: Some((1280, 720)),
             waiting: "Esperando al sistema…".into(),
             stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
-            note: "Solo vos lo ves".into(),
+            note: "Solo tú lo ves".into(),
             actions: vec![(ids::PAUSE.into(), "Pausar")],
             stream: None,
             focused: false,

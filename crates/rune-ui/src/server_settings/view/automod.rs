@@ -134,7 +134,7 @@ impl View<'_> {
             children.push(
                 Empty::new(
                     t("No hay reglas"),
-                    t("Creá una abajo para que AutoMod empiece a cuidar el servidor."),
+                    t("Crea una abajo para que AutoMod empiece a cuidar el servidor."),
                     look.palette(),
                 )
                 .icon(Icon::Bolt)
@@ -570,7 +570,7 @@ impl View<'_> {
             true,
             t("Eliminar la regla"),
             tr!(
-                "¿Seguro que querés eliminar la regla «{name}»? No se puede deshacer.",
+                "¿Seguro que quieres eliminar la regla «{name}»? No se puede deshacer.",
                 name
             ),
             "ss:am:delete:confirm",

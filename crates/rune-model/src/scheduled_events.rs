@@ -102,7 +102,7 @@ impl EventDraft {
     pub fn problem(&self, now: Timestamp, starts: bool) -> Option<&'static str> {
         let name = self.name.trim();
         if name.is_empty() {
-            return Some(t("Poné un nombre al evento."));
+            return Some(t("Pon un nombre al evento."));
         }
         if name.chars().count() > MAX_EVENT_NAME {
             return Some(t("El nombre del evento es demasiado largo."));
@@ -116,7 +116,7 @@ impl EventDraft {
         }
         if let EventPlace::External(location) = &self.place {
             if location.trim().is_empty() {
-                return Some(t("Escribí dónde es el evento."));
+                return Some(t("Escribe dónde es el evento."));
             }
             if location.chars().count() > MAX_EVENT_LOCATION {
                 return Some(t("El lugar es demasiado largo."));

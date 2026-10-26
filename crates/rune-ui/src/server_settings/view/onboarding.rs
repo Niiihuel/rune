@@ -64,7 +64,7 @@ impl View<'_> {
             look,
         ));
         children.push(text(
-            t("El servicio pide canales donde todos puedan escribir; elegí si cuentan sólo los canales por defecto o también los que abren las preguntas."),
+            t("El servicio pide canales donde todos puedan escribir; elige si cuentan sólo los canales por defecto o también los que abren las preguntas."),
             14.0,
             look.muted,
         ));
@@ -165,7 +165,7 @@ impl View<'_> {
                 TextField::new(
                     format!("ss:onb:prompt:{id}:title"),
                     prompt.title.clone(),
-                    t("Por ejemplo: ¿Qué te trae por acá?"),
+                    t("Por ejemplo: ¿Qué te trae por aquí?"),
                     look.palette(),
                 )
                 .accessibility_label(t("Título de la pregunta"))

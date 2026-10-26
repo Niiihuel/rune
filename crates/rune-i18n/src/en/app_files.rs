@@ -3,13 +3,13 @@
 
 pub(super) const ENTRIES: super::Entries = &[
     // rune-model/src/interactions.rs
-    ("Adjuntá un archivo", "Attach a file"),
+    ("Adjunta un archivo", "Attach a file"),
     (
-        "Adjuntá al menos {min} archivos",
+        "Adjunta al menos {min} archivos",
         "Attach at least {min} files",
     ),
     (
-        "Adjuntá como mucho {max} archivos",
+        "Adjunta como mucho {max} archivos",
         "Attach at most {max} files",
     ),
     // rune-components/src/interactions.rs
@@ -26,7 +26,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The files don't match the form: nothing was sent.",
     ),
     (
-        "No tenés permiso para adjuntar archivos en el canal.",
+        "No tienes permiso para adjuntar archivos en el canal.",
         "You don't have permission to attach files in the channel.",
     ),
     (
@@ -43,12 +43,12 @@ pub(super) const ENTRIES: super::Entries = &[
         "The files don't match the form (simulated).",
     ),
     (
-        "No tenés permiso para adjuntar archivos (simulado).",
+        "No tienes permiso para adjuntar archivos (simulado).",
         "You don't have permission to attach files (simulated).",
     ),
     // rune-state/src/interactions.rs
     (
-        "No tenés permiso para adjuntar archivos aquí",
+        "No tienes permiso para adjuntar archivos aquí",
         "You don't have permission to attach files here",
     ),
     // rune-ui/src/interactions.rs
@@ -61,7 +61,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "The files are already being sent",
     ),
     (
-        "Esperá la respuesta de la aplicación.",
+        "Espera la respuesta de la aplicación.",
         "Wait for the app's answer.",
     ),
 ];

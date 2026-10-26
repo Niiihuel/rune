@@ -153,7 +153,7 @@ impl World {
             let channels = self.searched(search);
             if channels.is_empty() {
                 return Err(RemoteSearchError::Failed(
-                    t("No podés leer el historial de esa conversación.").into(),
+                    t("No puedes leer el historial de esa conversación.").into(),
                 ));
             }
             if let Some(late) = channels.iter().copied().find(|channel| {

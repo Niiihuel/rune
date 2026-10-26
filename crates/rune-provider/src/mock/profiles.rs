@@ -142,7 +142,7 @@ impl World {
             .members
             .iter()
             .find(|m| m.server == server && m.user == ME)
-            .ok_or(t("no sos miembro de ese servidor"))?
+            .ok_or(t("no eres miembro de ese servidor"))?
             .restrictions
             .at(self.now);
         if restricted.is_some() {
@@ -185,7 +185,7 @@ impl World {
             .members
             .iter_mut()
             .find(|m| m.server == server && m.user == ME)
-            .ok_or(t("no sos miembro de ese servidor"))?;
+            .ok_or(t("no eres miembro de ese servidor"))?;
         if let Some(nick) = nick {
             member.nick = nick;
         }
@@ -364,7 +364,7 @@ mod edit_tests {
             server,
             edit: ServerProfileEdit {
                 nick: Some(Some("  Laboratorio  ".into())),
-                about: Some(Some("Acá pruebo cosas".into())),
+                about: Some(Some("Aquí pruebo cosas".into())),
                 avatar: Some(Some(png())),
                 banner: Some(None),
             },
@@ -375,7 +375,7 @@ mod edit_tests {
         assert_eq!(member.nick.as_deref(), Some("Laboratorio"));
         assert!(member.avatar.is_some());
         assert_eq!(profile.server, Some(server));
-        assert_eq!(profile.server_about.as_deref(), Some("Acá pruebo cosas"));
+        assert_eq!(profile.server_about.as_deref(), Some("Aquí pruebo cosas"));
         assert_eq!(profile.server_banner, ProfileBanner::Absent);
         // A later read of that profile reports what was saved there.
         let read = provider.manage(Command::LoadProfile {
@@ -385,7 +385,7 @@ mod edit_tests {
             effect: true,
         });
         assert!(matches!(&read[..], [Event::ProfileLoaded { profile, .. }]
-            if profile.server_about.as_deref() == Some("Acá pruebo cosas")));
+            if profile.server_about.as_deref() == Some("Aquí pruebo cosas")));
         // Too long, or where the account is timed out, is refused with why.
         let long = provider.manage(Command::EditServerProfile {
             server,

@@ -156,7 +156,7 @@ fn refused(ui: &Ui, store: &Store, new: &NewThread) -> Option<String> {
     }
     let files = crate::uploads::post_files(ui, new.parent);
     if crate::uploads::post_picking(ui, new.parent).is_some() {
-        return Some(t("Esperá a que se preparen los archivos").into());
+        return Some(t("Espera a que se preparen los archivos").into());
     }
     let post = is_forum(store, new.parent);
     let permit = if post {
@@ -171,9 +171,9 @@ fn refused(ui: &Ui, store: &Store, new: &NewThread) -> Option<String> {
     if name.is_empty() {
         return Some(
             if post {
-                t("Escribí un título")
+                t("Escribe un título")
             } else {
-                t("Escribí un nombre")
+                t("Escribe un nombre")
             }
             .into(),
         );
@@ -187,7 +187,7 @@ fn refused(ui: &Ui, store: &Store, new: &NewThread) -> Option<String> {
     if post {
         let content = new.content.trim();
         if content.is_empty() && files.is_empty() {
-            return Some(t("Escribí el primer mensaje o adjuntá un archivo").into());
+            return Some(t("Escribe el primer mensaje o adjunta un archivo").into());
         }
         if !files.is_empty() {
             if let Permit::Denied(reason) = store.post_files(new.parent) {
@@ -985,7 +985,7 @@ fn edit_form(store: &Store, edit: &EditThread) -> Option<EditThreadForm> {
         denied: if !can.edit.allowed() {
             can.edit.reason().map(str::to_owned)
         } else if name.is_empty() {
-            Some(t("Escribí un nombre").into())
+            Some(t("Escribe un nombre").into())
         } else {
             forum.filter(|_| edit.tags != before).and_then(|forum| {
                 store

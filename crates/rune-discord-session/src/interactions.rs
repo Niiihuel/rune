@@ -118,7 +118,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     };
     if !found.permissions.contains(needs) {
         return Err(LoginError::new(es(
-            "No tenés permiso para usar aplicaciones en el canal.",
+            "No tienes permiso para usar aplicaciones en el canal.",
         )));
     }
     // Files are staged in the channel, as a message's are, within the same
@@ -126,7 +126,7 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
     if let Command::Interact { files, .. } = command {
         if !files.is_empty() && !found.permissions.contains(Permissions::ATTACH) {
             return Err(LoginError::new(es(
-                "No tenés permiso para adjuntar archivos en el canal.",
+                "No tienes permiso para adjuntar archivos en el canal.",
             )));
         }
         let ceiling = crate::uploads::CEILING;
@@ -296,7 +296,7 @@ impl Apps {
                 values,
             } => {
                 let found = messages.get(channel, *message).ok_or_else(|| {
-                    LoginError::new(es("Cargá el mensaje otra vez antes de usarlo."))
+                    LoginError::new(es("Carga el mensaje otra vez antes de usarlo."))
                 })?;
                 let app = found
                     .components
@@ -397,7 +397,7 @@ impl Apps {
                 wire::id(&definition["version"]).ok() == Some(used.version)
                     && wire::id(&definition["application_id"]).ok() == Some(used.app.0)
             })
-            .ok_or_else(|| LoginError::new(es("Volvé a cargar los comandos: este cambió.")))?;
+            .ok_or_else(|| LoginError::new(es("Vuelve a cargar los comandos: este cambió.")))?;
         let kinds = option_kinds(&definition, &used.path)
             .ok_or_else(|| LoginError::new(es("Ese subcomando ya no existe.")))?;
         let mut leaf: Vec<Value> = Vec::new();

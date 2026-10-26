@@ -28,7 +28,7 @@ impl DocumentError {
             Self::Unavailable => t("La vista previa de PDF no está disponible en este equipo."),
             Self::Invalid => t("Este archivo no tiene un PDF válido para mostrar."),
             Self::TooLarge => t("La vista previa admite PDF de hasta 16 MiB."),
-            Self::Failed => t("No se pudo mostrar este PDF. Podés guardarlo en Descargas."),
+            Self::Failed => t("No se pudo mostrar este PDF. Puedes guardarlo en Descargas."),
         }
     }
 }

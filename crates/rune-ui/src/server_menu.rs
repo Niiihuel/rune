@@ -221,7 +221,7 @@ pub(crate) fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) ->
         let permit = store.server_abilities(server).map(|found| found.leave);
         if let Some(reason) = permit.as_ref().and_then(Permit::reason) {
             ui.notify(
-                t("No podés abandonar el servidor"),
+                t("No puedes abandonar el servidor"),
                 Some(reason.into()),
                 true,
                 now,

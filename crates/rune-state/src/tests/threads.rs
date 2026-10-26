@@ -74,7 +74,7 @@ fn the_store_says_why_a_thread_takes_no_reply() {
     store.apply(Event::ChannelChanged(thread.clone()), Instant::now());
     assert_eq!(
         store.abilities(thread.id).unwrap().write.reason(),
-        Some("No tenés permiso para escribir en #Salida fotográfica del sábado")
+        Some("No tienes permiso para escribir en #Salida fotográfica del sábado")
     );
     thread.permissions = thread.permissions | Permissions::SEND_IN_THREADS;
 
@@ -101,7 +101,7 @@ fn the_store_says_why_a_thread_takes_no_reply() {
     assert_eq!(write, None);
     assert_eq!(
         typing.as_deref(),
-        Some("Este hilo está archivado: respondé para abrirlo otra vez")
+        Some("Este hilo está archivado: responde para abrirlo otra vez")
     );
     assert!(!react && !attach);
     let closed_and_locked = Thread {
@@ -304,7 +304,7 @@ fn starting_and_changing_threads_follows_the_permissions() {
     store.apply(Event::ChannelChanged(closed), Instant::now());
     assert_eq!(
         store.create_thread(gallery.id, true, false).reason(),
-        Some("No tenés permiso para crear hilos privados en #galería")
+        Some("No tienes permiso para crear hilos privados en #galería")
     );
     assert!(store.create_thread(gallery.id, false, false).allowed());
     let forum = named(&store, "consultas");

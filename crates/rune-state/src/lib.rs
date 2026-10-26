@@ -1885,12 +1885,12 @@ impl Store {
                 || self.connection != ConnectionState::Connected)
         {
             abilities.attach = Permit::Denied(
-                t("Esperá a que la cuenta esté conectada para adjuntar archivos").into(),
+                t("Espera a que la cuenta esté conectada para adjuntar archivos").into(),
             );
         }
         if let Some(user) = self.blocked_recipient(channel) {
             let blocked = Permit::Denied(tr!(
-                "Bloqueaste a {name}: desbloqueala para escribirle",
+                "Bloqueaste a {name}: desbloquéala para escribirle",
                 name = user.shown_name()
             ));
             for permit in [
@@ -1909,7 +1909,7 @@ impl Store {
         // Private calls: nobody blocked is called.
         if let Some(user) = self.blocked_recipient(channel) {
             let blocked = Permit::Denied(tr!(
-                "Bloqueaste a {name}: desbloqueala para llamarle",
+                "Bloqueaste a {name}: desbloquéala para llamarle",
                 name = user.shown_name()
             ));
             for permit in [&mut abilities.ring, &mut abilities.join_voice] {
@@ -1924,11 +1924,11 @@ impl Store {
         });
         if abilities.watch_stream.allowed() && !here {
             abilities.watch_stream =
-                Permit::Denied(t("Entrá a la llamada para ver la transmisión").into());
+                Permit::Denied(t("Entra a la llamada para ver la transmisión").into());
         }
         if abilities.watch_camera.allowed() && !here {
             abilities.watch_camera =
-                Permit::Denied(t("Entrá a la llamada para ver las cámaras").into());
+                Permit::Denied(t("Entra a la llamada para ver las cámaras").into());
         }
         Some(abilities)
     }

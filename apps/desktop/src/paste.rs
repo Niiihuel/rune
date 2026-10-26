@@ -174,7 +174,7 @@ mod tests {
         for text in [
             "",
             "hola",
-            "mirá /etc/hosts",
+            "mira /etc/hosts",
             "https://example.com/a.png",
             "file://host/a.png",
             "relativo/a.png",

@@ -156,7 +156,7 @@ impl World {
         if recipients.is_empty() || !self.in_call(ME, channel) {
             let failed = Event::Failed {
                 failure: Failure::Ring { channel },
-                reason: t("Entrá a la llamada para hacerla sonar.").into(),
+                reason: t("Entra a la llamada para hacerla sonar.").into(),
                 ambiguous: false,
             };
             return (vec![failed], Vec::new());

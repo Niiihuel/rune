@@ -78,7 +78,7 @@ impl Client {
                 };
                 if scope.dirty {
                     self.fail_context(t(
-                        "Los mensajes cambiaron durante la carga del contexto. Volvé a intentarlo.",
+                        "Los mensajes cambiaron durante la carga del contexto. Vuelve a intentarlo.",
                     ));
                     return false;
                 }

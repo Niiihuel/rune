@@ -702,7 +702,7 @@ fn poll_result(message: &Message) -> Option<&rune_model::Embed> {
 fn ephemeral(message: &Message, scale: f32, look: &Look) -> Element {
     Element::row(vec![
         icon(Icon::Lock, look.muted).centered_y(),
-        line(t("Sólo vos podés ver esto ·"), 12.0 * scale, look.muted).centered_y(),
+        line(t("Sólo tú puedes ver esto ·"), 12.0 * scale, look.muted).centered_y(),
         Link::new(
             components::app_ids::dismiss(message.id),
             t("Descartar"),
@@ -1135,7 +1135,7 @@ fn invitation_card(
 ) -> Element {
     let mut parts = vec![
         strong_line(t("Enlace de invitación"), 15.0, look.text),
-        line(t("Revisá el destino."), 13.0, look.muted),
+        line(t("Revisa el destino."), 13.0, look.muted),
     ];
     if let Some(reason) = denied {
         parts.push(line(reason, 12.0, look.muted));
@@ -1246,7 +1246,7 @@ fn invited_card(
             }
             let (eyebrow, open, join) = match (server.kind, server.member) {
                 (InvitedKind::Server | InvitedKind::Guest, true) => {
-                    (t("Ya sos miembro de"), t("Ir al servidor"), t("Unirse"))
+                    (t("Ya eres miembro de"), t("Ir al servidor"), t("Unirse"))
                 }
                 (InvitedKind::Server, false) => (
                     t("Te invitaron a unirte a un servidor"),
@@ -1497,9 +1497,9 @@ fn editor(message: &Message, draft: &str, width: f32, look: &Look) -> Element {
     let span = |said: &str, ink| TextSpan::new(said, ink, 12.0, FontFamily::Sans);
     // One paragraph, so it wraps where the editor is narrow.
     let help = Element::formatted_text(vec![
-        span(t("Presioná Escape para "), look.text),
+        span(t("Presiona Escape para "), look.text),
         span(t("cancelar"), link).action(action(message, "edit-cancel")),
-        span(t(" • Presioná Enter para "), look.text),
+        span(t(" • Presiona Enter para "), look.text),
         span(t("guardar"), link).action(action(message, "edit-save")),
     ])
     .size(Some(width), None);
@@ -1674,9 +1674,9 @@ pub fn reacted_with(reaction: &rune_model::Reaction) -> String {
     let code = emoji::code(&reaction.emoji);
     match (reaction.me, reaction.count) {
         (true, 1) => tr!("Reaccionaste con {code}", code),
-        (true, 2) => tr!("Vos y 1 persona más reaccionaron con {code}", code),
+        (true, 2) => tr!("Tú y 1 persona más reaccionaron con {code}", code),
         (true, count) => tr!(
-            "Vos y {others} personas más reaccionaron con {code}",
+            "Tú y {others} personas más reaccionaron con {code}",
             others = count - 1,
             code
         ),
@@ -1691,11 +1691,11 @@ pub fn super_reacted_with(reaction: &rune_model::Reaction) -> String {
     match (reaction.me_burst, reaction.burst) {
         (true, 1) => tr!("Hiciste una súper reacción con {code}", code),
         (true, 2) => tr!(
-            "Vos y 1 persona más hicieron súper reacciones con {code}",
+            "Tú y 1 persona más hicieron súper reacciones con {code}",
             code
         ),
         (true, count) => tr!(
-            "Vos y {others} personas más hicieron súper reacciones con {code}",
+            "Tú y {others} personas más hicieron súper reacciones con {code}",
             others = count - 1,
             code
         ),
@@ -1906,7 +1906,7 @@ fn actions(view: &MessageView<'_>, live: &Live<'_>, look: &Look) -> Element {
                 base: react_ids::BASE,
                 query: live.query,
                 recent: live.recent,
-                placeholder: t("Encontrá la reacción perfecta"),
+                placeholder: t("Encuentra la reacción perfecta"),
                 tabs: false,
                 expressions: None,
             },
@@ -1953,7 +1953,7 @@ fn quick_reaction(message: &Message, what: &str, glyph: &str, side: f32, look: &
     .hover_background(look.selected)
     .accessibility_label(tr!("Reaccionar con {code}", code = emoji::code(glyph)));
     Tooltip::new(button, id, emoji::code(glyph), look.menu_palette())
-        .description(t("Hacé clic para reaccionar"))
+        .description(t("Haz clic para reaccionar"))
         .render()
 }
 
@@ -2534,7 +2534,7 @@ mod tests {
         let mut shown = view(&said, ALL);
         shown.reply = Some(Reply {
             author: Some(shown.author.clone()),
-            snippet: "mirá <:wave:1> esto".into(),
+            snippet: "mira <:wave:1> esto".into(),
             emoji: vec![crate::identity::TextPicture {
                 token: "<:wave:1>".into(),
                 name: "wave".into(),
@@ -2668,12 +2668,12 @@ mod tests {
         let denied = self::laid(live_row(
             view(&said, ALL),
             Live {
-                invitation_denied: Some("Conectá una cuenta para consultar esta invitación"),
+                invitation_denied: Some("Conecta una cuenta para consultar esta invitación"),
                 ..Live::default()
             },
             &Look::DARK,
         ));
-        assert!(texts(&denied).join(" ").contains("Conectá una cuenta"));
+        assert!(texts(&denied).join(" ").contains("Conecta una cuenta"));
         assert!(!controls(&denied).contains(&invitation_action(&said, 0, "review")));
         let edited = self::laid(live_row(
             view(&said, ALL),
@@ -2918,7 +2918,7 @@ mod tests {
         use rune_model::{Embed, EmbedImage, Forwarded, RemoteImage, TextReference, TextTarget};
         let mut said = (*message(1, 1, 0)).clone();
         said.forwarded = Some(Forwarded {
-            content: "mirá <@7>".into(),
+            content: "mira <@7>".into(),
             timestamp: said.timestamp,
             text_references: vec![TextReference {
                 source: "<@7>".into(),
@@ -3094,7 +3094,7 @@ mod tests {
             "1 voto · 25 %",
             "4 votos",
             "Quedan 5 h",
-            "Elegí una respuesta",
+            "Elige una respuesta",
         ] {
             assert!(painted.contains(part), "{part} in {painted}");
         }
@@ -3143,11 +3143,11 @@ mod tests {
                 .contains(link),
             "without previews the link reads as text"
         );
-        said.content = format!("mirá {link}");
+        said.content = format!("mira {link}");
         assert!(
             texts(&self::laid(message_row(view(&said, ALL), &Look::DARK)))
                 .join(" ")
-                .contains("mirá")
+                .contains("mira")
         );
 
         said.content.clear();
@@ -3363,7 +3363,7 @@ mod tests {
         said.components = Components {
             parts: vec![Component::Row(vec![Component::Select(Select {
                 custom_id: Some("color".into()),
-                placeholder: Some("Elegí".into()),
+                placeholder: Some("Elige".into()),
                 options: vec![MenuOption {
                     label: "Fiesta".into(),
                     value: "f".into(),
@@ -3603,7 +3603,7 @@ mod tests {
                         button("Agenda", ButtonStyle::Link, Some("https://example.test/a")),
                     ]),
                     Component::Row(vec![Component::Select(rune_model::components::Select {
-                        placeholder: Some("Elegí un horario".into()),
+                        placeholder: Some("Elige un horario".into()),
                         ..Default::default()
                     })]),
                     // What its app left picked shows in place of the placeholder.
@@ -3630,7 +3630,7 @@ mod tests {
             "Hola",
             "Confirmar",
             "Agenda",
-            "Elegí un horario",
+            "Elige un horario",
             ":Rojo: Rojo",
             ":Azul: Azul",
             "notas.txt",
@@ -4185,7 +4185,7 @@ mod tests {
         );
         assert_eq!(
             reacted_with(&said.reactions[0]),
-            "Vos y 2 personas más reaccionaron con :heart:"
+            "Tú y 2 personas más reaccionaron con :heart:"
         );
         assert_eq!(
             reacted_with(&said.reactions[1]),
@@ -4238,7 +4238,7 @@ mod tests {
         );
         assert_eq!(
             super_reacted_with(&said.reactions[0]),
-            "Vos y 1 persona más hicieron súper reacciones con :fire:"
+            "Tú y 1 persona más hicieron súper reacciones con :fire:"
         );
         assert_eq!(
             super_reacted_with(&said.reactions[1]),

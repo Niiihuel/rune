@@ -158,7 +158,7 @@ impl Form {
     /// What it says, as a draft; or why it does not say it whole yet.
     fn draft(&self, store: &Store, server: ServerId) -> Result<EventDraft, &'static str> {
         let start = parts::picker_instant(&self.start_date, &self.start_time)
-            .ok_or(t("Escribí la fecha y la hora de inicio enteras."))?;
+            .ok_or(t("Escribe la fecha y la hora de inicio enteras."))?;
         let place = match self.channel {
             None => EventPlace::External(self.location.trim().to_owned()),
             Some(channel) => match places(store, server)
@@ -173,7 +173,7 @@ impl Form {
         let end = if self.has_end || self.channel.is_none() {
             Some(
                 parts::picker_instant(&self.end_date, &self.end_time)
-                    .ok_or(t("Escribí la fecha y la hora de fin enteras."))?,
+                    .ok_or(t("Escribe la fecha y la hora de fin enteras."))?,
             )
         } else {
             None
@@ -674,7 +674,7 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<I
         // a change on its way says it did not arrive.
         Applied::Ready => {
             if dialog.busy.take().is_some() {
-                dialog.problem = Some(t("Se perdió la conexión: volvé a intentarlo.").into());
+                dialog.problem = Some(t("Se perdió la conexión: vuelve a intentarlo.").into());
             }
             dialog.people = None;
             let request = ui.fresh_request();

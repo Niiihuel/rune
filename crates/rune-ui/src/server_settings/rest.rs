@@ -177,7 +177,7 @@ pub(super) fn community_problem(settings: &ServerSettings, store: &Store) -> Opt
     let options = shown_options(server, &settings.profile);
     (touched && options.community && !options.community_ready()).then(|| {
         if options.rules_channel.is_none() || options.updates_channel.is_none() {
-            t("Elegí el canal de reglas y el de novedades de la comunidad.")
+            t("Elige el canal de reglas y el de novedades de la comunidad.")
         } else {
             t("Una comunidad necesita al menos verificación baja y revisar el contenido de todos.")
         }

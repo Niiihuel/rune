@@ -36,7 +36,7 @@ fn only_mentions_and_direct_messages_alert_with_what_the_settings_allow() {
     let me = host.store.me().unwrap();
     let plain = incoming(&host, general, "hola a todos");
     assert_eq!(alert(&host, &plain), None, "a plain server message");
-    let mut mention = incoming(&host, general, "<@1> mirá esto");
+    let mut mention = incoming(&host, general, "<@1> mira esto");
     mention.mentions.push(me);
     // Sounds are on and notifications asked for: off until turned on.
     let found = alert(&host, &mention).unwrap();
@@ -45,7 +45,7 @@ fn only_mentions_and_direct_messages_alert_with_what_the_settings_allow() {
     host.ui.prefs.desktop_notifications = true;
     let found = alert(&host, &mention).unwrap();
     assert!(found.notify);
-    assert_eq!(found.body, "<@1> mirá esto");
+    assert_eq!(found.body, "<@1> mira esto");
     assert_eq!((found.account, found.channel), (me, general));
     host.ui.prefs.notification_content = false;
     assert_eq!(alert(&host, &mention).unwrap().body, "Nuevo mensaje");

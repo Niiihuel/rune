@@ -273,7 +273,7 @@ fn a_thread_starts_from_the_channel_and_opens_once_the_provider_names_it() {
     host.click(&format!("th:start:{gallery}"));
     let painted = host.painted();
     assert!(
-        painted.iter().any(|t| t == "Escribí un nombre"),
+        painted.iter().any(|t| t == "Escribe un nombre"),
         "{painted:?}"
     );
     host.th_type("th:new:name", "Paseo nocturno");
@@ -624,7 +624,7 @@ fn a_followed_thread_is_silenced_from_its_menu_and_marks_only_its_mentions() {
     // Its mentions alert nobody, as a muted channel's.
     let me = host.store.me().unwrap();
     let mut mention = host.provider.history(saturday, None, 1).0.pop().unwrap();
-    mention.content = "<@1> mirá".into();
+    mention.content = "<@1> mira".into();
     mention.mentions = vec![me];
     mention.author = channel.thread.as_ref().unwrap().owner.unwrap();
     host.ui.prefs.message_sounds = true;
@@ -653,7 +653,7 @@ fn a_followed_thread_is_silenced_from_its_menu_and_marks_only_its_mentions() {
     host.th_answer(sent);
     assert_eq!(
         host.store.thread_abilities(saturday).unwrap().mute.reason(),
-        Some("Seguí el hilo para silenciarlo")
+        Some("Sigue el hilo para silenciarlo")
     );
     let sent = host.sent.len();
     host.th_choose(&format!("th:{saturday}:mute:15m"));

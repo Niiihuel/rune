@@ -168,7 +168,7 @@ fn visible_invitation_cards_look_up_their_server_bounded_cached_and_never_join()
         "12 en línea",
         "45 miembros",
         "Unirse",
-        "Ya sos miembro de",
+        "Ya eres miembro de",
         "Taller",
         "Ir al servidor",
         "Invitación no disponible",
@@ -258,7 +258,7 @@ fn every_invitation_of_a_message_has_its_card_and_each_kind_its_way_in() {
         .clone();
     message.id = MessageId(message.id.0 + 1);
     message.content =
-        format!("Al grupo {BASE}grupo, sumate como amigo {BASE}amigo y también {BASE}otro.");
+        format!("Al grupo {BASE}grupo, súmate como amigo {BASE}amigo y también {BASE}otro.");
     message.text_references = ["grupo", "amigo", "otro"]
         .iter()
         .map(|key| TextReference {

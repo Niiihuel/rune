@@ -35,7 +35,7 @@ impl Http {
                 let username = username.trim().trim_start_matches('@').to_lowercase();
                 if !valid_username(&username) {
                     return Err(RestError::rejected(
-                        es("Escribí un nombre de usuario válido: de 2 a 32 letras minúsculas, números, «_» o «.»."),
+                        es("Escribe un nombre de usuario válido: de 2 a 32 letras minúsculas, números, «_» o «.»."),
                     ));
                 }
                 self.write(
@@ -156,7 +156,7 @@ impl Http {
                 let name = name.trim();
                 if name.is_empty() {
                     return Err(RestError::rejected(es(
-                        "Esta conexión no deja un grupo sin nombre: escribí uno.",
+                        "Esta conexión no deja un grupo sin nombre: escribe uno.",
                     )));
                 }
                 if name.chars().count() > 100 || name.chars().any(char::is_control) {

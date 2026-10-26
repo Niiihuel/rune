@@ -388,7 +388,7 @@ fn the_picker_offers_other_servers_and_packs_with_the_plans_reasons() {
         .expect("the owned server's sticker");
     assert_eq!(
         other.unavailable.as_deref(),
-        Some("Necesitás Plus para usar stickers de otros servidores acá")
+        Some("Necesitas Plus para usar stickers de otros servidores aquí")
     );
     let pack = stickers.iter().find(|item| item.id == 9_301).unwrap();
     assert_eq!(pack.section.as_deref(), Some("Saludos"));

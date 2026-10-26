@@ -182,12 +182,12 @@ pub const STATUSES: [(Status, &str, Option<&str>); 4] = [
     (
         Status::DoNotDisturb,
         "dnd",
-        Some(es("Los demás ven que no querés interrupciones.")),
+        Some(es("Los demás ven que no quieres interrupciones.")),
     ),
     (
         Status::Invisible,
         "invisible",
-        Some(es("Aparecés sin conexión.")),
+        Some(es("Apareces sin conexión.")),
     ),
 ];
 
@@ -409,7 +409,7 @@ fn note_section(note: &NoteField, look: &Look) -> Element {
     let placeholder = if note.loading {
         t("Cargando la nota…")
     } else {
-        t("Hacé clic para agregar una nota")
+        t("Haz clic para agregar una nota")
     };
     let field = TextField::new(
         note.id.clone(),
@@ -426,7 +426,7 @@ fn note_section(note: &NoteField, look: &Look) -> Element {
     let hint = note
         .denied
         .clone()
-        .unwrap_or_else(|| t("Solo la ves vos. Enter la guarda.").into());
+        .unwrap_or_else(|| t("Solo la ves tú. Enter la guarda.").into());
     section(
         t("Nota"),
         Element::column(vec![field.render(), text(hint, 12.0, look.faint)]).gap(4.0),
@@ -1957,9 +1957,9 @@ fn editor_pictures(view: &Editor, width: f32, look: &Look) -> Element {
     );
     let mut parts = vec![avatar, banner];
     let hint = if view.scope.is_some() {
-        t("Se muestran en este servidor en lugar de los de tu cuenta. PNG, JPEG, GIF o WebP de hasta 8 MB; después de elegirla, la encuadrás.")
+        t("Se muestran en este servidor en lugar de los de tu cuenta. PNG, JPEG, GIF o WebP de hasta 8 MB; después de elegirla, la encuadras.")
     } else {
-        t("PNG, JPEG, GIF o WebP de hasta 8 MB: el avatar cuadrado, el banner en 5:2. Después de elegirla, la encuadrás.")
+        t("PNG, JPEG, GIF o WebP de hasta 8 MB: el avatar cuadrado, el banner en 5:2. Después de elegirla, la encuadras.")
     };
     parts.push(text(hint, 12.0, look.muted).size(Some(inner), None));
     for line in [&pictures.denied, &pictures.banner_denied, &pictures.note]
@@ -2041,7 +2041,7 @@ fn editor_framing(view: &EditorFraming, width: f32, look: &Look) -> Element {
         ])
         .gap(12.0),
         text(
-            t("Arrastrá sobre la imagen para elegir qué parte se ve; el zoom la acerca."),
+            t("Arrastra sobre la imagen para elegir qué parte se ve; el zoom la acerca."),
             12.0,
             look.muted,
         )
@@ -2075,7 +2075,7 @@ fn scoped_fields(view: &Editor, scope: &EditorScope, look: &Look) -> Vec<Element
         TextArea::new(
             ids::ABOUT,
             view.about.clone(),
-            t("Contá algo para este servidor."),
+            t("Cuenta algo para este servidor."),
             palette,
         )
         .accessibility_label(t("Sobre mí en este servidor"))
@@ -2155,7 +2155,7 @@ fn editor_fields(view: &Editor, width: f32, look: &Look) -> Vec<Element> {
             TextField::new(
                 ids::PRONOUNS,
                 view.pronouns.clone(),
-                t("Agregá tus pronombres"),
+                t("Agrega tus pronombres"),
                 palette,
             )
             .height(40.0)
@@ -2170,7 +2170,7 @@ fn editor_fields(view: &Editor, width: f32, look: &Look) -> Vec<Element> {
         TextArea::new(
             ids::ABOUT,
             view.about.clone(),
-            t("Contá algo sobre vos."),
+            t("Cuenta algo sobre ti."),
             palette,
         )
         .accessibility_label(t("Sobre mí"))
@@ -2225,7 +2225,7 @@ fn editor_fields(view: &Editor, width: f32, look: &Look) -> Vec<Element> {
 /// lines instead of forcing a long warning and two buttons into the same row.
 fn editor_footer(bar: UnsavedBar, width: f32, look: &Look) -> Element {
     let message = if bar.nudged {
-        t("Guardá o restablecé los cambios antes de salir")
+        t("Guarda o restablece los cambios antes de salir")
     } else {
         t("Cambios sin guardar")
     };
@@ -3030,7 +3030,7 @@ mod tests {
             assert!(ids.contains(&ids::SAVE.to_owned()) && ids.contains(&ids::RESET.to_owned()));
             let painted = texts(&laid);
             let message = if wide {
-                "¡Cuidado! Tenés cambios sin guardar"
+                "¡Cuidado! Tienes cambios sin guardar"
             } else {
                 "Cambios sin guardar"
             };
@@ -3116,7 +3116,7 @@ mod tests {
         let mut view = editing(None);
         view.pictures = EditorPictures {
             has_banner: true,
-            banner_denied: Some("Necesitás Nitro para usar un banner".into()),
+            banner_denied: Some("Necesitas Nitro para usar un banner".into()),
             ..EditorPictures::default()
         };
         let window = Size::new(1280.0, 2400.0);
@@ -3127,6 +3127,6 @@ mod tests {
         assert!(!ids.contains(&ids::BANNER_PICK.to_owned()));
         assert!(texts(&laid)
             .iter()
-            .any(|text| text == "Necesitás Nitro para usar un banner"));
+            .any(|text| text == "Necesitas Nitro para usar un banner"));
     }
 }

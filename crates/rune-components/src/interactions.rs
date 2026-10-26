@@ -571,7 +571,7 @@ pub fn command_form(form: &CommandForm<'_>, width: f32, look: &Look) -> Element 
     }
     if form.fields.is_empty() {
         rows.push(line(
-            t("Sin opciones: presioná Enter para enviarlo."),
+            t("Sin opciones: presiona Enter para enviarlo."),
             12.0,
             look.faint,
         ));
@@ -638,7 +638,7 @@ fn option_field(field: &OptionField<'_>, width: f32, look: &Look) -> Element {
             .collect();
         let mut select = Select::new(
             command_ids::menu(field.name),
-            field.shown.clone().unwrap_or_else(|| t("Elegí…").into()),
+            field.shown.clone().unwrap_or_else(|| t("Elige…").into()),
             options,
             field.open.is_some(),
             command_ids::menu_close(field.name),
@@ -742,7 +742,7 @@ mod tests {
                 },
                 ModalField {
                     label: Some("Nivel".into()),
-                    description: Some("Elegí uno".into()),
+                    description: Some("Elige uno".into()),
                     input: ModalInput::Radio {
                         custom_id: "nivel".into(),
                         required: false,
@@ -827,7 +827,7 @@ mod tests {
             modal_dialog(Element::spacer(), &view(true), 480.0, &Look::DARK),
             Size::new(900.0, 800.0),
         );
-        assert!(texts(&tried).join(" ").contains("Completá este campo"));
+        assert!(texts(&tried).join(" ").contains("Completa este campo"));
     }
 
     #[test]
@@ -836,7 +836,7 @@ mod tests {
         let form = |waiting| CommandForm {
             name: "/recordatorio",
             app: "RuneBot",
-            description: "Pedile un recordatorio",
+            description: "Pídele un recordatorio",
             fields: vec![
                 OptionField {
                     name: "texto",
@@ -845,7 +845,7 @@ mod tests {
                     required: true,
                     written: "",
                     shown: None,
-                    problem: Some("Completá este campo".into()),
+                    problem: Some("Completa este campo".into()),
                     menu: false,
                     open: None,
                     query: "",
@@ -886,7 +886,7 @@ mod tests {
         ] {
             assert!(ids.contains(&id), "{id} in {ids:?}");
         }
-        assert!(texts(&shown).join(" ").contains("Completá este campo"));
+        assert!(texts(&shown).join(" ").contains("Completa este campo"));
         let (_, waiting) = frame(
             command_form(&form(Some("RuneBot está pensando…")), 600.0, &Look::DARK),
             Size::new(700.0, 700.0),

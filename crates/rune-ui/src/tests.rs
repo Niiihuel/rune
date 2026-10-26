@@ -779,7 +779,7 @@ fn a_read_only_channel_says_why_nothing_can_be_written() {
     assert!(host
         .painted()
         .iter()
-        .any(|text| text.contains("No tenés permiso")));
+        .any(|text| text.contains("No tienes permiso")));
 }
 
 #[test]

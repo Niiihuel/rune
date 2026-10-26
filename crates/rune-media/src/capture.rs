@@ -992,7 +992,7 @@ impl<S> Active<S> {
     ) -> Result<bool, MediaError> {
         if self.opened.signals.failed.load(Ordering::Acquire) {
             return Err(MediaError(
-                t("El micrófono dejó de responder. Volvé a probar.").into(),
+                t("El micrófono dejó de responder. Vuelve a probar.").into(),
             ));
         }
         let mut changed = false;

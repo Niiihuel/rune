@@ -21,7 +21,7 @@ fn view(width: f32, draft: &str) -> ComposerView<'static> {
     ComposerView {
         editor: "composer:fixture".into(),
         draft: draft.into(),
-        placeholder: "Escribí un mensaje".into(),
+        placeholder: "Escribe un mensaje".into(),
         width,
         reply: None,
         disabled: None,
@@ -150,7 +150,7 @@ fn one_line_draft_and_placeholder_share_the_action_center_in_a_compact_card() {
                         view.reply = reply.then(|| ("Ada".into(), look.text));
                         let frame = laid(view, look, metrics);
                         let text = if draft.is_empty() {
-                            "Escribí un mensaje"
+                            "Escribe un mensaje"
                         } else {
                             draft
                         };

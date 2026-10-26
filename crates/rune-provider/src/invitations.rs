@@ -88,7 +88,7 @@ impl InvitationError {
             Self::Unsupported => t("Esta conexión no permite consultar invitaciones."),
             Self::Invalid => t("La invitación no es válida o esta conexión no la entiende."),
             Self::Unavailable => {
-                t("No se pudo consultar la invitación. Podés volver a intentarlo.")
+                t("No se pudo consultar la invitación. Puedes volver a intentarlo.")
             }
             Self::RateLimited { .. } => t("Hay que esperar antes de consultar otra invitación."),
         }
@@ -151,16 +151,16 @@ impl InvitationJoinError {
         match self {
             Self::Unsupported => t("Esta conexión no permite aceptar invitaciones."),
             Self::Invalid => t("La invitación ya no es válida."),
-            Self::Denied => t("No podés aceptar esta invitación con esta cuenta."),
+            Self::Denied => t("No puedes aceptar esta invitación con esta cuenta."),
             Self::VerificationRequired => t("El servicio requiere una verificación para entrar."),
             Self::ChallengeRequired => t("El servicio pide una verificación para entrar."),
-            Self::RateLimited { .. } => t("Esperá antes de volver a aceptar la invitación."),
-            Self::Unavailable => t("No se pudo enviar la solicitud. Podés volver a intentarlo."),
+            Self::RateLimited { .. } => t("Espera antes de volver a aceptar la invitación."),
+            Self::Unavailable => t("No se pudo enviar la solicitud. Puedes volver a intentarlo."),
             Self::Ambiguous => {
-                t("No se pudo confirmar el ingreso. Comprobá si el servidor aparece.")
+                t("No se pudo confirmar el ingreso. Comprueba si el servidor aparece.")
             }
             Self::AlreadyJoined => t("Esta cuenta ya tiene lo que da la invitación."),
-            Self::ServerLimit => t("Llegaste al máximo de servidores: salí de uno para entrar."),
+            Self::ServerLimit => t("Llegaste al máximo de servidores: sal de uno para entrar."),
             Self::Banned => t("Te banearon de este servidor."),
             Self::ServerFull => t("El servidor está lleno."),
             Self::InvitesPaused => t("El servidor pausó sus invitaciones."),

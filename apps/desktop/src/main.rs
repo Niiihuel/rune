@@ -166,7 +166,7 @@ impl ProviderChoice {
         match self {
             Self::Mock => None,
             Self::Discord if discord_client_id.is_none_or(|id| id.trim().is_empty()) => Some(es(
-                "Falta el ID público de tu aplicación: abrí RUNE con --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID.",
+                "Falta el ID público de tu aplicación: abre RUNE con --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID.",
             )),
             Self::Discord => None,
             Self::DiscordSession if cfg!(all(feature = "session-login", any(target_os = "linux", windows))) => {
@@ -378,7 +378,7 @@ fn parse_arguments(
         return Err(t("Las opciones --capture-* requieren --provider mock y --screenshot").into());
     }
     if parsed.capture_search.is_some() && parsed.capture_context {
-        return Err(t("Capturá búsqueda y contexto en ejecuciones separadas").into());
+        return Err(t("Captura búsqueda y contexto en ejecuciones separadas").into());
     }
     if parsed.provider == ProviderChoice::Discord
         && parsed
@@ -386,7 +386,7 @@ fn parse_arguments(
             .as_ref()
             .is_none_or(|id| id.trim().is_empty())
     {
-        return Err(t("Discord requiere el ID público de tu aplicación: --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID. Registrá el redirect http://127.0.0.1:48731/oauth/callback en el Developer Portal. No ingreses contraseñas ni tokens.").into());
+        return Err(t("Discord requiere el ID público de tu aplicación: --discord-client-id <id> o RUNE_DISCORD_CLIENT_ID. Registra el redirect http://127.0.0.1:48731/oauth/callback en el Developer Portal. No ingreses contraseñas ni tokens.").into());
     }
     Ok(parsed)
 }
@@ -478,7 +478,7 @@ fn provider_for(
             #[cfg(not(all(feature = "session-login", any(target_os = "linux", windows))))]
             {
                 let _ = (first_login, proxy);
-                Err(t("El login no oficial requiere Linux o Windows y compilar con --features session-login. En NixOS, usá nix-shell --arg withLogin true; la interfaz principal sigue siendo limn.").into())
+                Err(t("El login no oficial requiere Linux o Windows y compilar con --features session-login. En NixOS, usa nix-shell --arg withLogin true; la interfaz principal sigue siendo limn.").into())
             }
         }
     }
@@ -4824,7 +4824,7 @@ mod tests {
             "denial must end the matching Loading phase"
         );
         assert!(frame.commands.iter().any(|command| matches!(command,
-            limn::DrawCommand::Text { text, .. } if text.contains("Esperá a que la sesión esté disponible"))));
+            limn::DrawCommand::Text { text, .. } if text.contains("Espera a que la sesión esté disponible"))));
         assert!(
             app.ui.notices.is_empty(),
             "the popout owns the exact request failure"

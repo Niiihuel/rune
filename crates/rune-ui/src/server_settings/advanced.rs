@@ -449,7 +449,7 @@ pub(super) fn clicked(
                 (None, None) => refused(
                     ui,
                     t("No se creó la invitación"),
-                    Some(t("No podés invitar a ningún canal de este servidor.").into()),
+                    Some(t("No puedes invitar a ningún canal de este servidor.").into()),
                     now,
                 ),
                 (reason, _) => {
@@ -684,7 +684,7 @@ pub(super) fn clicked(
                 (None, None) => refused(
                     ui,
                     t("No se guardó el webhook"),
-                    Some(t("Elegí un canal de texto.").into()),
+                    Some(t("Elige un canal de texto.").into()),
                     now,
                 ),
                 (reason, _) => {

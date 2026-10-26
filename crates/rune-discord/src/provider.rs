@@ -68,7 +68,7 @@ impl DiscordProvider {
 
     async fn begin(&self) -> Result<(String, Operation), AuthError> {
         let listener = TcpListener::bind(("127.0.0.1", self.redirect.port_or_known_default().unwrap_or(80))).await
-            .map_err(|_| AuthError(es("El puerto local de autorización está ocupado. Cerrá el otro intento y volvé a intentar.")))?;
+            .map_err(|_| AuthError(es("El puerto local de autorización está ocupado. Cierra el otro intento y vuelve a intentar.")))?;
         let attempt = Attempt::new(self.redirect.clone())?;
         let url = attempt.authorize_url(&self.http.authorize, &self.client_id);
         Ok((
@@ -150,14 +150,14 @@ impl DiscordProvider {
                             emit(events, Event::Authentication(AuthenticationState::SignedIn { scopes: signed_in.scopes.clone() })).await?;
                             session = Some(signed_in);
                         }
-                        Ok(Step::Revoked(false)) => emit(events, Event::Failed { failure: Failure::Other, reason: t("La sesión local ya está cerrada. No se confirmó la revocación remota; podés quitar RUNE en Discord → Ajustes → Aplicaciones autorizadas.").into(), ambiguous: false }).await?,
+                        Ok(Step::Revoked(false)) => emit(events, Event::Failed { failure: Failure::Other, reason: t("La sesión local ya está cerrada. No se confirmó la revocación remota; puedes quitar RUNE en Discord → Ajustes → Aplicaciones autorizadas.").into(), ambiguous: false }).await?,
                         Ok(Step::Revoked(true)) => {}
                         Err(error) => emit(events, Event::Authentication(AuthenticationState::Failed { reason: error.to_string() })).await?,
                     }
                 }
                 _ = tokio::time::sleep_until(expires), if session.is_some() => {
                     session = None;
-                    clear(events, t("La autorización caducó. Volvé a iniciar sesión.")).await?;
+                    clear(events, t("La autorización caducó. Vuelve a iniciar sesión.")).await?;
                 }
             }
         }

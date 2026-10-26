@@ -252,7 +252,7 @@ pub(crate) fn on_applied(
             calls.befriended = None;
             let name = account.shown_name();
             let said = match known.kind {
-                RelationshipKind::Friend => tr!("Ahora sos amigo de {name}", name),
+                RelationshipKind::Friend => tr!("Ahora eres amigo de {name}", name),
                 _ => tr!("Solicitud de amistad enviada a {name}", name),
             };
             ui.notify(said, None, false, now);
@@ -296,7 +296,7 @@ fn befriending(store: &Store, user: UserId) -> Option<(String, Result<(), String
             let name = store.display_name(user, None);
             Some((
                 send.into(),
-                Err(tr!("Bloqueaste a {name}: desbloqueala para llamarle", name)),
+                Err(tr!("Bloqueaste a {name}: desbloquéala para llamarle", name)),
             ))
         }
         None => Some((send.into(), permit(store.add_friend()))),
@@ -508,7 +508,7 @@ pub(crate) fn private_stage(
         CallStatus::InProgress => Some((who(store, channel), t("Unirse a la llamada").to_owned())),
         CallStatus::Elsewhere => Some((
             t("Estás en esta llamada desde otro dispositivo").to_owned(),
-            t("Unirse desde acá").to_owned(),
+            t("Unirse desde aquí").to_owned(),
         )),
         _ => None,
     };

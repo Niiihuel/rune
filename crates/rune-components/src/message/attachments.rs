@@ -173,7 +173,7 @@ pub(super) fn file(
                 13.0,
                 look.text,
             ),
-            line(t("Hacé clic para mostrar"), 11.0, look.muted),
+            line(t("Haz clic para mostrar"), 11.0, look.muted),
         ])
         .gap(2.0);
         let card = Element::panel(crate::centered(label))

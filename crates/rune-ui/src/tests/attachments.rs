@@ -608,7 +608,7 @@ fn a_file_at_the_chosen_name_is_replaced_only_once_the_person_says_so() {
 
 /// What Core says of a name already taken (the UI does not depend on Core).
 fn rune_core_exists() -> &'static str {
-    "Ese archivo ya existe. Elegí un nombre diferente."
+    "Ese archivo ya existe. Elige un nombre diferente."
 }
 
 #[test]

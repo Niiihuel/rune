@@ -74,7 +74,7 @@ impl Store {
         let view = if !capabilities.scheduled_events {
             Permit::Denied(t("Este proveedor no muestra eventos").into())
         } else if self.me.and_then(|me| self.member(server, me)).is_none() {
-            Permit::Denied(tr!("Todavía no sos miembro de {server}", server = name))
+            Permit::Denied(tr!("Todavía no eres miembro de {server}", server = name))
         } else {
             Permit::Allowed
         };
@@ -87,7 +87,7 @@ impl Store {
             .intersects(Permissions::CREATE_EVENTS | Permissions::MANAGE_EVENTS)
         {
             Permit::Denied(tr!(
-                "No tenés permiso para crear eventos en {server}",
+                "No tienes permiso para crear eventos en {server}",
                 server = name
             ))
         } else if let Some(restriction) = self.restriction(server) {

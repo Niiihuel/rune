@@ -15,7 +15,7 @@ impl NativeDropRejection {
         match self {
             Self::Invalid(error) => error.label(),
             Self::Unpositioned => {
-                t("Todavía no podés adjuntar archivos arrastrándolos. Usá Adjuntar.")
+                t("Todavía no puedes adjuntar archivos arrastrándolos. Usa Adjuntar.")
             }
         }
     }

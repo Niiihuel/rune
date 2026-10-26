@@ -397,7 +397,7 @@ pub fn events_dialog(root: Element, view: &EventsView<'_>, width: f32, look: &Lo
                     Element::column(vec![
                         strong_line(t("No hay eventos programados"), 15.0, look.text),
                         text(
-                            t("Cuando alguien planee uno, va a aparecer acá."),
+                            t("Cuando alguien planee uno, va a aparecer aquí."),
                             13.0,
                             look.muted,
                         )
@@ -636,7 +636,7 @@ fn form_body(form: &FormView, busy: bool, inner: f32, look: &Look) -> Vec<Elemen
             Element::text_area(
                 ids::DESCRIPTION,
                 form.description,
-                t("Contá de qué se trata (opcional)"),
+                t("Cuenta de qué se trata (opcional)"),
             )
             .text_area_auto_grow(66.0, 180.0)
             .foreground(look.text)
@@ -752,7 +752,7 @@ mod tests {
             id: ScheduledEventId(7),
             server: ServerId(1),
             name: "Noche de juegos".into(),
-            description: Some("Traé tu joystick".into()),
+            description: Some("Trae tu joystick".into()),
             start: Timestamp(1_893_607_200_000),
             end: None,
             place: EventPlace::Voice(ChannelId(4)),

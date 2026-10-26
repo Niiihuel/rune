@@ -530,7 +530,7 @@ pub fn rich(store: &mut Store, ui: &mut Ui) -> Option<(RemoteImage, limn::Raster
         author: Some("Panel de estado".into()),
         title: Some("Compilación de RUNE".into()),
         url: Some("https://example.invalid/build".into()),
-        description: Some("Todo **en verde**. Revisá los detalles abajo.".into()),
+        description: Some("Todo **en verde**. Revisa los detalles abajo.".into()),
         fields: vec![
             EmbedField {
                 name: "Pruebas".into(),
@@ -556,7 +556,7 @@ pub fn rich(store: &mut Store, ui: &mut Ui) -> Option<(RemoteImage, limn::Raster
     card.embeds.push(Embed {
         kind: rune_model::EmbedKind::SystemNotice,
         title: Some("Mensaje importante acerca de tu cuenta (simulado)".into()),
-        description: Some("Revisá la actividad reciente de tu cuenta.".into()),
+        description: Some("Revisa la actividad reciente de tu cuenta.".into()),
         url: Some("https://example.invalid/notice".into()),
         timestamp: Some(now),
         ..Embed::default()
@@ -764,7 +764,7 @@ pub fn media(
             ..Embed::default()
         })
         .collect();
-    let mut spoiled = blank(3, "Mirá el final ||https://example.invalid/final.png||");
+    let mut spoiled = blank(3, "Mira el final ||https://example.invalid/final.png||");
     spoiled.embeds = vec![
         Embed {
             kind: EmbedKind::Image,
@@ -921,7 +921,7 @@ fn app_parts(source: &RemoteImage) -> rune_model::Components {
                 // A picked option with a server emoji: the local picture
                 // stands for its artwork.
                 Component::Row(vec![Component::Select(rune_model::components::Select {
-                    placeholder: Some("Elegí un horario".into()),
+                    placeholder: Some("Elige un horario".into()),
                     chosen: vec![rune_model::components::Choice {
                         label: "Jueves 18 h (simulado)".into(),
                         emoji: Some(":taller:".into()),

@@ -111,7 +111,7 @@ impl Store {
         // A plan's name may be a provider's text kept in Spanish.
         let unlock = |what: &str| match &perks.upgrade {
             Some(upgrade) => Permit::Denied(tr!(
-                "Necesitás {upgrade} para usar {what}",
+                "Necesitas {upgrade} para usar {what}",
                 upgrade = t(upgrade),
                 what
             )),
@@ -120,7 +120,7 @@ impl Store {
         if emoji.animated && !perks.animated_emoji {
             unlock(t("emojis animados"))
         } else if here != Some(emoji.server) && !perks.emoji_anywhere {
-            unlock(t("emojis de otros servidores acá"))
+            unlock(t("emojis de otros servidores aquí"))
         } else {
             Permit::Allowed
         }
@@ -145,7 +145,7 @@ impl Store {
         }
         match self.perks().and_then(|perks| perks.upgrade.as_ref()) {
             Some(upgrade) => Permit::Denied(tr!(
-                "Necesitás {upgrade} para usar stickers de otros servidores acá",
+                "Necesitas {upgrade} para usar stickers de otros servidores aquí",
                 upgrade = t(upgrade)
             )),
             None => Permit::Denied(t("Usalo dentro de su servidor").into()),

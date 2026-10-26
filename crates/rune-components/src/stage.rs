@@ -114,7 +114,7 @@ mod tests {
     fn the_strip_says_where_the_account_sits_and_offers_its_actions() {
         let view = StageStrip {
             seat: "Te invitaron a hablar".into(),
-            detail: Some("Aceptá para que te escuchen".into()),
+            detail: Some("Acepta para que te escuchen".into()),
             actions: vec![
                 StageAction {
                     id: ids::speak(30),

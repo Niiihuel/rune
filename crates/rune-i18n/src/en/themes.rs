@@ -29,8 +29,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("avisos", "announcements"),
     ("Así se ve tu tema.", "This is how your theme looks."),
     ("Y así, lo secundario.", "And this, what is secondary."),
-    ("@vos, ¿lo probaste?", "@you, did you try it?"),
-    ("Escribí un mensaje", "Write a message"),
+    ("tú, ¿lo probaste?", "@you, did you try it?"),
+    ("Escribe un mensaje", "Write a message"),
     ("Menú", "Menu"),
     ("Cambiar {name}", "Change {name}"),
     // Theme files.
@@ -63,7 +63,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No se eligió ningún archivo.", "No file was chosen."),
     ("No se pudo leer el archivo.", "The file could not be read."),
     (
-        "Ya hay un archivo con ese nombre. Elegí otro.",
+        "Ya hay un archivo con ese nombre. Elige otro.",
         "There is a file with that name already. Choose another.",
     ),
     // The settings.
@@ -120,10 +120,10 @@ pub(super) const ENTRIES: super::Entries = &[
     // What is done with them.
     ("Mi tema", "My theme"),
     ("{name} (copia)", "{name} (copy)"),
-    ("Escribí un nombre de hasta {max} caracteres.", "Write a name of up to {max} characters."),
-    ("Ya tenés un tema con ese nombre.", "You have a theme with that name already."),
+    ("Escribe un nombre de hasta {max} caracteres.", "Write a name of up to {max} characters."),
+    ("Ya tienes un tema con ese nombre.", "You have a theme with that name already."),
     (
-        "Podés guardar hasta {max} temas: borrá uno antes.",
+        "Puedes guardar hasta {max} temas: borra uno antes.",
         "You can keep up to {max} themes: delete one first.",
     ),
     ("Tema guardado", "Theme saved"),

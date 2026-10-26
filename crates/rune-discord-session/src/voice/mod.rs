@@ -162,7 +162,7 @@ fn stream_ended(reason: Option<&str>, own: bool) -> Option<String> {
             "user_requested" => return None,
             "stream_full" => t("La transmisión está llena."),
             "unauthorized" if own => t("Discord no te dejó transmitir en este canal."),
-            "unauthorized" => t("No tenés permiso para ver esta transmisión."),
+            "unauthorized" => t("No tienes permiso para ver esta transmisión."),
             "safety_guild_rate_limited" => t("Discord limitó las transmisiones de este servidor."),
             _ => t("La transmisión terminó."),
         }
@@ -692,7 +692,7 @@ impl Calls {
                 return Ok(());
             }
             return Err(LoginError::new(es(
-                "Entrá a la llamada para encender la cámara.",
+                "Entra a la llamada para encender la cámara.",
             )));
         };
         if on && self.video.is_none() {
@@ -757,7 +757,7 @@ impl Calls {
     ) -> Result<Vec<Event>, LoginError> {
         let Some(call) = self.call.as_mut().filter(|call| call.channel == channel) else {
             return Err(LoginError::new(es(
-                "Entrá a la llamada para ver la transmisión.",
+                "Entra a la llamada para ver la transmisión.",
             )));
         };
         if self.video.is_none() {
@@ -811,7 +811,7 @@ impl Calls {
             self.me,
         ) else {
             return Err(LoginError::new(es(
-                "Entrá a la llamada para compartir la pantalla.",
+                "Entra a la llamada para compartir la pantalla.",
             )));
         };
         if self.video.is_none() {

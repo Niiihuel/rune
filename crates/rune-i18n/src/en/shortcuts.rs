@@ -30,7 +30,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "Record another shortcut for {action}",
     ),
     (
-        "La usa la edición de texto: elegí otra.",
+        "La usa la edición de texto: elige otra.",
         "Text editing uses it: choose another.",
     ),
     (
@@ -39,7 +39,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Mostrar esta lista de atajos", "Show this list of shortcuts"),
     ("Negrita", "Bold"),
-    ("Pulsá las teclas…", "Press the keys…"),
+    ("Pulsa las teclas…", "Press the keys…"),
     ("RePág", "PgUp"),
     (
         "Región anterior de la ventana",
@@ -47,7 +47,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Región siguiente de la ventana", "Next region of the window"),
     (
-        "Shift+F10 abre el menú contextual: elegí otra.",
+        "Shift+F10 abre el menú contextual: elige otra.",
         "Shift+F10 opens the context menu: choose another.",
     ),
     (
@@ -55,13 +55,13 @@ pub(super) const ENTRIES: super::Entries = &[
         "If Send is no longer Enter, Enter starts a new line.",
     ),
     (
-        "Sola escribe o mueve el cursor: sumale Ctrl o Alt.",
+        "Sola escribe o mueve el cursor: súmale Ctrl o Alt.",
         "Alone it types or moves the caret: add Ctrl or Alt.",
     ),
     ("Spoiler", "Spoiler"),
     ("Subrayado", "Underline"),
     (
-        "Tab mueve el foco entre los controles: elegí otra.",
+        "Tab mueve el foco entre los controles: elige otra.",
         "Tab moves the focus between controls: choose another.",
     ),
     ("Tachado", "Strikethrough"),

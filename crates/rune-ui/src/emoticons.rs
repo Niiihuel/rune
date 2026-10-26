@@ -116,7 +116,7 @@ mod tests {
         // Whitespace of any kind stays as it was.
         assert_eq!(convert("  :D\t;)\r\n:o "), "  😃\t😉\r\n😮 ");
         assert_eq!(convert(""), "");
-        assert_eq!(convert("ningún emoticón acá"), "ningún emoticón acá");
+        assert_eq!(convert("ningún emoticón aquí"), "ningún emoticón aquí");
     }
 
     #[test]

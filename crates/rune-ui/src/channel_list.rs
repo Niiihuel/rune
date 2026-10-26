@@ -1486,7 +1486,7 @@ fn move_item(store: &Store, channel: &Channel) -> Item {
     } else {
         let mut entries = vec![Entry::Heading(t("Categoría").into())];
         let here = |category: Option<ChannelId>| {
-            (channel.parent == category).then(|| t("Ya está acá").to_owned())
+            (channel.parent == category).then(|| t("Ya está aquí").to_owned())
         };
         entries.push(
             Item::new(format!("cl:move:{id}:to:none"), t("Sin categoría"))

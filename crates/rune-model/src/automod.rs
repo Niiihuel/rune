@@ -220,7 +220,7 @@ impl AutoModRule {
         };
         let name = self.name.trim();
         if name.is_empty() {
-            return Some(t("Poné un nombre a la regla").into());
+            return Some(t("Pon un nombre a la regla").into());
         }
         if name.chars().count() > MAX_NAME {
             return Some(tr!(
@@ -233,7 +233,7 @@ impl AutoModRule {
                 filter_problem(filter)
             }
             AutoModTrigger::Presets { lists, .. } if lists.is_empty() => {
-                Some(t("Elegí al menos una lista").into())
+                Some(t("Elige al menos una lista").into())
             }
             AutoModTrigger::Presets { allowed, .. } => {
                 words_problem(allowed, MAX_ALLOWED_PRESETS, true)
@@ -246,7 +246,7 @@ impl AutoModRule {
             return problem;
         }
         if self.actions.is_empty() {
-            return Some(t("Elegí al menos una acción").into());
+            return Some(t("Elige al menos una acción").into());
         }
         for action in &self.actions {
             let problem = match action {
@@ -262,7 +262,7 @@ impl AutoModRule {
                     ))
                 }
                 AutoModAction::Alert { channel } if channel.0 == 0 => {
-                    Some(t("Elegí el canal de la alerta"))
+                    Some(t("Elige el canal de la alerta"))
                 }
                 AutoModAction::Timeout { .. }
                     if !matches!(kind, AutoModKind::Keywords | AutoModKind::Mentions) =>
@@ -297,7 +297,7 @@ impl AutoModRule {
 /// Why `filter` cannot be saved, if it cannot.
 fn filter_problem(filter: &WordFilter) -> Option<String> {
     if filter.keywords.is_empty() && filter.patterns.is_empty() {
-        return Some(t("Agregá al menos una palabra o una expresión regular").into());
+        return Some(t("Agrega al menos una palabra o una expresión regular").into());
     }
     if let Some(problem) = words_problem(&filter.keywords, MAX_KEYWORDS, false) {
         return Some(problem);

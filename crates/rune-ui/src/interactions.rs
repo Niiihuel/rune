@@ -602,7 +602,7 @@ fn modal_clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Opti
         if uploading {
             ui.notify(
                 t("Los archivos ya se están enviando"),
-                Some(t("Esperá la respuesta de la aplicación.").into()),
+                Some(t("Espera la respuesta de la aplicación.").into()),
                 true,
                 now,
             );

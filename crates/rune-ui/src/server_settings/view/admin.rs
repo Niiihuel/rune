@@ -30,7 +30,7 @@ impl View<'_> {
         channel
             .and_then(|channel| self.store.channel(channel))
             .map_or_else(
-                || t("Elegí un canal").to_owned(),
+                || t("Elige un canal").to_owned(),
                 |found| format!("#{}", found.name),
             )
     }
@@ -166,7 +166,7 @@ impl View<'_> {
             .is_some_and(|info| info.capabilities.upload_expressions);
         if !supported {
             return text(
-                t("Este proveedor no permite agregar nuevos: acá se renombran y eliminan."),
+                t("Este proveedor no permite agregar nuevos: aquí se renombran y eliminan."),
                 13.0,
                 look.muted,
             );
@@ -230,7 +230,7 @@ impl View<'_> {
             (None, Some([])) => children.push(
                 Empty::new(
                     t("No hay webhooks"),
-                    t("Creá uno para que otra aplicación publique en un canal."),
+                    t("Crea uno para que otra aplicación publique en un canal."),
                     look.palette(),
                 )
                 .icon(Icon::Bolt)
@@ -417,7 +417,7 @@ impl View<'_> {
                         root,
                         true,
                         t("Invitación creada"),
-                        t("Compartí el enlace con quien quieras que entre."),
+                        t("Comparte el enlace con quien quieras que entre."),
                         "ss:invite:done",
                         palette,
                     )
@@ -458,7 +458,7 @@ impl View<'_> {
                         root,
                         true,
                         t("Crear invitación"),
-                        t("Elegí adónde lleva, cuánto dura y cuántas veces se puede usar."),
+                        t("Elige adónde lleva, cuánto dura y cuántas veces se puede usar."),
                         "ss:invite:cancel",
                         palette,
                     )
@@ -599,7 +599,7 @@ impl View<'_> {
                 root,
                 true,
                 title,
-                t("Elegí cómo se llama. Se agrega al servidor para todos."),
+                t("Elige cómo se llama. Se agrega al servidor para todos."),
                 "ss:upload:cancel",
                 palette,
             )
@@ -761,7 +761,7 @@ impl View<'_> {
                 root,
                 true,
                 t("Eliminar webhook"),
-                tr!("¿Seguro que querés eliminar «{name}»? Lo que lo use deja de poder publicar. No se puede deshacer.", name),
+                tr!("¿Seguro que quieres eliminar «{name}»? Lo que lo use deja de poder publicar. No se puede deshacer.", name),
                 "ss:webhook-delete:confirm",
                 "ss:webhook-delete:cancel",
                 palette,
@@ -785,12 +785,12 @@ impl View<'_> {
                 t("Quitar integración"),
                 if bot {
                     tr!(
-                        "¿Seguro que querés quitar «{name}»? Su bot también sale del servidor.",
+                        "¿Seguro que quieres quitar «{name}»? Su bot también sale del servidor.",
                         name
                     )
                 } else {
                     tr!(
-                        "¿Seguro que querés quitar «{name}»? Deja de estar conectada al servidor.",
+                        "¿Seguro que quieres quitar «{name}»? Deja de estar conectada al servidor.",
                         name
                     )
                 },

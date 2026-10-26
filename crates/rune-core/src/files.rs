@@ -72,7 +72,7 @@ pub enum SaveUpdate {
     },
 }
 
-pub const SAVE_EXISTS: &str = es("Ese archivo ya existe. Elegí un nombre diferente.");
+pub const SAVE_EXISTS: &str = es("Ese archivo ya existe. Elige un nombre diferente.");
 
 /// A «Save as» while it runs. Dropping it closes its dialog.
 struct Save {
@@ -151,7 +151,7 @@ impl Downloads {
             return Err(t("El archivo supera el límite de descarga de 128 MiB."));
         }
         if self.active.len() + self.saves.len() >= CONCURRENT {
-            return Err(t("Esperá a que termine una de las dos descargas activas."));
+            return Err(t("Espera a que termine una de las dos descargas activas."));
         }
         Ok(url)
     }
@@ -493,7 +493,7 @@ async fn save_to(
         Ok(Err(UploadError::Cancelled)) | Err(_) => return Err(None),
         Ok(Err(UploadError::Busy)) => {
             return Err(Some(t(
-                "Esperá a que se cierre el otro diálogo de archivos.",
+                "Espera a que se cierre el otro diálogo de archivos.",
             )))
         }
         Ok(Err(_)) => return Err(Some(t("No se pudo abrir el selector de archivos."))),
@@ -502,7 +502,7 @@ async fn save_to(
         path.parent(),
         path.file_name().and_then(|name| name.to_str()),
     ) else {
-        return Err(Some(t("Elegí un nombre de archivo válido.")));
+        return Err(Some(t("Elige un nombre de archivo válido.")));
     };
     // Asked before downloading (08.3). Without a file there, the hard link
     // below still refuses one created meanwhile, which stays as it was.
@@ -544,7 +544,7 @@ async fn save_to(
             // One that cannot be named is not the one asked about either.
             Ok(_) if identity(&path).await.ok() != Some(seen) => {
                 return Err(Some(t(
-                    "El archivo cambió mientras se descargaba. Volvé a guardarlo.",
+                    "El archivo cambió mientras se descargaba. Vuelve a guardarlo.",
                 )))
             }
             _ => {}
@@ -624,7 +624,7 @@ async fn fetch(
         .map_err(|_| t("No se pudo conectar para descargar el archivo."))?;
     if response.status() != reqwest::StatusCode::OK {
         return Err(if response.status() == reqwest::StatusCode::FORBIDDEN {
-            t("El enlace venció o ya no está disponible. Volvé a abrir la conversación.")
+            t("El enlace venció o ya no está disponible. Vuelve a abrir la conversación.")
         } else {
             t("El servidor no pudo entregar el archivo.")
         });

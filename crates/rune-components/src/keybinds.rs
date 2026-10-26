@@ -95,7 +95,7 @@ fn line(row: &Row, look: &Look) -> Element {
 /// recording, outlined in the accent.
 fn keys(row: &Row, look: &Look) -> Element {
     let inside = match (&row.keys, row.recording) {
-        (_, true) => text(t("Pulsá las teclas…"), 14.0, look.text)
+        (_, true) => text(t("Pulsa las teclas…"), 14.0, look.text)
             .font_family(FontFamily::SansMedium)
             .centered_y(),
         (Some(keys), false) => Element::row(
@@ -182,7 +182,7 @@ mod tests {
         }
         assert!(!ids.contains(&"us:key-reset=bold".to_owned()));
         let shown = texts(&frame);
-        for text in ["CTRL", "B", "Ya lo usa «Cursiva».", "Pulsá las teclas…"] {
+        for text in ["CTRL", "B", "Ya lo usa «Cursiva».", "Pulsa las teclas…"] {
             assert!(
                 shown.iter().any(|shown| shown == text),
                 "{text} in {shown:?}"

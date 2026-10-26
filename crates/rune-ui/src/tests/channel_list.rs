@@ -278,19 +278,19 @@ fn a_channel_menu_offers_what_the_owner_may_and_says_why_not_elsewhere() {
     for (id, why) in [
         (
             format!("cs:open:{general}"),
-            "No tenés permiso para gestionar el canal en #general",
+            "No tienes permiso para gestionar el canal en #general",
         ),
         (
             format!("cl:duplicate:{general}"),
-            "No tenés permiso para gestionar canales en Taller de Rust",
+            "No tienes permiso para gestionar canales en Taller de Rust",
         ),
         (
             format!("cl:delete:{general}"),
-            "No tenés permiso para gestionar el canal en #general",
+            "No tienes permiso para gestionar el canal en #general",
         ),
         (
             format!("{}move:{general}", ids::SUBMENU),
-            "No tenés permiso para ordenar los canales en Taller de Rust",
+            "No tienes permiso para ordenar los canales en Taller de Rust",
         ),
     ] {
         assert!(!buttons.contains(&id), "{id} is off");
@@ -574,7 +574,7 @@ fn deleting_asks_first_and_enter_does_not_delete() {
     assert_eq!(host.ui.channel_list.dialog, Some(ListDialog::Delete(parts)));
     assert!(host
         .cl_said()
-        .contains("¿Seguro que querés eliminar #componentes?"));
+        .contains("¿Seguro que quieres eliminar #componentes?"));
     let from = host.sent.len();
     host.key(Key::Enter, false, false);
     assert_eq!(
@@ -1035,7 +1035,7 @@ fn moving_from_the_menu_is_the_way_without_a_pointer() {
         trigger.y + trigger.height / 2.0,
     )));
     let here = host.cl_access(&format!("cl:move:{parts}:to:{voice}"));
-    assert!(here.disabled && here.description.as_deref() == Some("Ya está acá"));
+    assert!(here.disabled && here.description.as_deref() == Some("Ya está aquí"));
     let first = host.cl_access(&format!("cl:move:{parts}:first"));
     assert!(first.disabled, "it is the first already");
     let buttons = host.cl_buttons();
@@ -1339,7 +1339,7 @@ fn opening_a_channel_without_history_permission_shows_why_instead_of_loading() {
     assert!(!timeline.is_some_and(|timeline| timeline.latest));
     let said = host.cl_said();
     assert!(
-        said.contains("No podés leer el historial de esa conversación."),
+        said.contains("No puedes leer el historial de esa conversación."),
         "{said}"
     );
     assert!(!said.contains("Cargando mensajes"), "{said}");
@@ -1369,7 +1369,7 @@ fn failed_history_is_shown_inline_without_a_persistent_toast() {
             request: 7,
             channel,
         },
-        reason: "No tenés permiso para leer el historial de #general".into(),
+        reason: "No tienes permiso para leer el historial de #general".into(),
         ambiguous: false,
     });
 
@@ -1377,7 +1377,7 @@ fn failed_history_is_shown_inline_without_a_persistent_toast() {
     let said = host.cl_said();
     assert!(said.contains("No se pudo cargar el historial."), "{said}");
     assert!(
-        said.contains("No tenés permiso para leer el historial de #general"),
+        said.contains("No tienes permiso para leer el historial de #general"),
         "{said}"
     );
     assert!(!said.contains("Cargando mensajes"), "{said}");
@@ -1679,7 +1679,7 @@ fn a_folded_category_keeps_the_open_channel_and_those_with_news() {
     assert!(host.cl_saved(&intents, list::COLLAPSED_SETTING));
     let buttons = host.cl_buttons();
     let ayuda = host.cl_named(taller, "ayuda");
-    let show = host.cl_named(taller, "mostrá-tu-proyecto");
+    let show = host.cl_named(taller, "muestra-tu-proyecto");
     assert!(buttons.contains(&format!("channel:{general}")), "unread");
     assert!(buttons.contains(&format!("channel:{ayuda}")), "unread");
     assert!(

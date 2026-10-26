@@ -188,7 +188,7 @@ impl World {
             server: Some(server),
             kind: ChannelKind::Forum,
             name: "consultas".into(),
-            topic: Some("Una publicación por pregunta. Usá etiquetas.".into()),
+            topic: Some("Una publicación por pregunta. Usa etiquetas.".into()),
             topic_pictures: Vec::new(),
             parent: Some(category),
             // After the category's two text channels.
@@ -406,7 +406,7 @@ impl World {
         let info = found.thread.clone().unwrap_or_default();
         let moderates = found.permissions.contains(Permissions::MANAGE_THREADS);
         if !found.permissions.contains(Permissions::SEND_IN_THREADS) {
-            return Err(t("no tenés permiso para escribir en este hilo").into());
+            return Err(t("no tienes permiso para escribir en este hilo").into());
         }
         if info.locked && !moderates {
             return Err(t("el hilo está bloqueado").into());
@@ -524,7 +524,7 @@ impl World {
             Permissions::CREATE_THREADS
         };
         if !parent.permissions.contains(needed) {
-            return Err(t("no tenés permiso para abrir hilos acá").into());
+            return Err(t("no tienes permiso para abrir hilos aquí").into());
         }
         let name = thread_name(&name)?;
         if let Some(message) = message {
@@ -564,7 +564,7 @@ impl World {
             .cloned()
             .ok_or(t("el foro no existe"))?;
         if !parent.permissions.contains(Permissions::SEND) {
-            return Err(t("no tenés permiso para publicar en este foro").into());
+            return Err(t("no tienes permiso para publicar en este foro").into());
         }
         let title = thread_name(&title)?;
         let tags = post_tags(&parent, tags)?;
@@ -685,7 +685,7 @@ impl World {
         let found = self.seen_thread(id)?;
         let info = found.thread.clone().unwrap_or_default();
         if info.archived {
-            return Err(t("reabrí el hilo antes de seguirlo o dejarlo").into());
+            return Err(t("reabre el hilo antes de seguirlo o dejarlo").into());
         }
         let moderates = found.permissions.contains(Permissions::MANAGE_THREADS);
         if info.joined == follow {
@@ -714,7 +714,7 @@ impl World {
     fn mute_thread(&mut self, id: ChannelId, until: Option<Timestamp>) -> Outcome {
         let found = self.seen_thread(id)?;
         if !found.thread.as_ref().is_some_and(|thread| thread.joined) {
-            return Err(t("seguí el hilo para silenciarlo").into());
+            return Err(t("sigue el hilo para silenciarlo").into());
         }
         let now = self.now;
         let thread = self.thread_mut(id).ok_or(t("el hilo no existe"))?;

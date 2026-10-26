@@ -445,7 +445,7 @@ impl Store {
                 read.failed = true;
                 return Applied::Failed {
                     failure: Failure::ReadState { request, channel },
-                    reason: t("La confirmación de lectura llegó con una versión incompatible. Podés reintentar.").into(),
+                    reason: t("La confirmación de lectura llegó con una versión incompatible. Puedes reintentar.").into(),
                     ambiguous: true,
                 };
             }

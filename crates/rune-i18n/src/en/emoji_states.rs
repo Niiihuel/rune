@@ -25,7 +25,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "use stickers from other servers",
     ),
     (
-        "no tenés permiso para usar stickers de otros servidores acá",
+        "no tienes permiso para usar stickers de otros servidores aquí",
         "you are not allowed to use stickers from other servers here",
     ),
     (

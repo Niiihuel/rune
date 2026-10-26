@@ -318,7 +318,7 @@ pub fn audience_picker(query_id: &str, audience: &Audience, look: &Look) -> Elem
         .accessibility_label(t("Buscar roles o miembros"))
         .render(),
         line(
-            t("Escribí @ para buscar miembros, o el nombre de un rol."),
+            t("Escribe @ para buscar miembros, o el nombre de un rol."),
             12.0,
             look.muted,
         ),
@@ -647,7 +647,7 @@ pub fn server_dialog(
             root,
             true,
             t("Añadir un servidor"),
-            t("Creá uno o revisá un enlace de invitación."),
+            t("Crea uno o revisa un enlace de invitación."),
             ids::SERVER_CLOSE,
             palette,
         )
@@ -660,7 +660,7 @@ pub fn server_dialog(
                         actions
                             .create_denied
                             .as_deref()
-                            .unwrap_or(t("Elegí un nombre y un color")),
+                            .unwrap_or(t("Elige un nombre y un color")),
                     )
                     .enabled(actions.create_denied.is_none())
                     .trailing_icon(Icon::ChevronRight)
@@ -676,7 +676,7 @@ pub fn server_dialog(
                     actions
                         .invitation_denied
                         .as_deref()
-                        .unwrap_or(t("Pegá un enlace para ver el destino")),
+                        .unwrap_or(t("Pega un enlace para ver el destino")),
                 )
                 .enabled(actions.invitation_denied.is_none())
                 .trailing_icon(Icon::ChevronRight)
@@ -752,8 +752,8 @@ pub fn server_dialog(
     Modal::new(
         root,
         true,
-        t("Personalizá tu servidor"),
-        t("Dale un nombre y un color. Podés cambiarlos después."),
+        t("Personaliza tu servidor"),
+        t("Dale un nombre y un color. Puedes cambiarlos después."),
         ids::SERVER_CLOSE,
         palette,
     )
@@ -852,7 +852,7 @@ mod tests {
         let menu = menu(
             anchor,
             grouped(vec![
-                [item("a", None), item("b", Some("No tenés permiso"))].concat(),
+                [item("a", None), item("b", Some("No tienes permiso"))].concat(),
                 item("c", None),
             ]),
             true,
@@ -871,9 +871,9 @@ mod tests {
         let ids = controls(&frame);
         assert!(ids.contains(&"a".to_owned()) && ids.contains(&"c".to_owned()));
         assert!(!ids.contains(&"b".to_owned()), "{ids:?}");
-        assert!(texts(&frame).contains(&"No tenés permiso".to_owned()));
+        assert!(texts(&frame).contains(&"No tienes permiso".to_owned()));
         let denied = frame.access.iter().find(|node| node.id == "b").unwrap();
-        assert!(denied.disabled && denied.description.as_deref() == Some("No tenés permiso"));
+        assert!(denied.disabled && denied.description.as_deref() == Some("No tienes permiso"));
     }
 
     fn form(name: &str, private: bool) -> ChannelForm {
@@ -975,7 +975,7 @@ mod tests {
             handle: "invitado".into(),
             accent: Color::rgb(1, 2, 3),
             ink: Color::rgb(200, 200, 200),
-            denied: Some("No tenés permiso para cambiar tu apodo en Taller".into()),
+            denied: Some("No tienes permiso para cambiar tu apodo en Taller".into()),
             can_save: false,
         };
         let (_, frame) = frame(
@@ -985,7 +985,7 @@ mod tests {
         let ids = controls(&frame);
         assert!(!ids.contains(&ids::NICK.to_owned()) && !ids.contains(&ids::NICK_SAVE.to_owned()));
         let painted = texts(&frame);
-        assert!(painted.contains(&"No tenés permiso para cambiar tu apodo en Taller".to_owned()));
+        assert!(painted.contains(&"No tienes permiso para cambiar tu apodo en Taller".to_owned()));
         assert!(
             painted.contains(&"Invitado".to_owned()),
             "the preview shows the own name"

@@ -56,7 +56,7 @@ impl Store {
     /// Why nothing can be changed now, whatever the permissions say.
     pub(crate) fn offline(&self) -> Option<Permit> {
         (self.from_cache || self.connection != ConnectionState::Connected)
-            .then(|| Permit::Denied(t("Esperá a que la conexión esté disponible").into()))
+            .then(|| Permit::Denied(t("Espera a que la conexión esté disponible").into()))
     }
 
     /// Why the account takes no part in `server` now, if it does not.
@@ -102,12 +102,12 @@ impl Store {
         } else if !parent.permissions.contains(Permissions::VIEW | needed) {
             Permit::Denied(if private {
                 tr!(
-                    "No tenés permiso para crear hilos privados en #{channel}",
+                    "No tienes permiso para crear hilos privados en #{channel}",
                     channel = parent.name
                 )
             } else {
                 tr!(
-                    "No tenés permiso para crear hilos en #{channel}",
+                    "No tienes permiso para crear hilos en #{channel}",
                     channel = parent.name
                 )
             })
@@ -132,7 +132,7 @@ impl Store {
             .contains(Permissions::VIEW | Permissions::SEND)
         {
             Permit::Denied(tr!(
-                "No tenés permiso para publicar en #{channel}",
+                "No tienes permiso para publicar en #{channel}",
                 channel = parent.name
             ))
         } else if let Some(denied) = self.offline().or_else(|| self.held(parent.server)) {
@@ -153,7 +153,7 @@ impl Store {
                     .channel(forum)
                     .is_some_and(|found| found.permissions.contains(Permissions::ATTACH)) =>
             {
-                Permit::Denied(t("No tenés permiso para adjuntar archivos en este foro").into())
+                Permit::Denied(t("No tienes permiso para adjuntar archivos en este foro").into())
             }
             permit => permit,
         }
@@ -219,7 +219,7 @@ impl Store {
             follow: if !capabilities.follow_threads {
                 Permit::Denied(t("Este proveedor no permite seguir hilos").into())
             } else if info.archived {
-                Permit::Denied(t("Abrí el hilo otra vez para seguirlo o dejar de seguirlo").into())
+                Permit::Denied(t("Abre el hilo otra vez para seguirlo o dejar de seguirlo").into())
             } else {
                 // Seeing it is enough, even while timed out.
                 self.offline().unwrap_or(Permit::Allowed)
@@ -264,7 +264,7 @@ impl Store {
             mute: if !capabilities.mute_threads {
                 Permit::Denied(t("Este proveedor no permite silenciar hilos").into())
             } else if !info.joined {
-                Permit::Denied(t("Seguí el hilo para silenciarlo").into())
+                Permit::Denied(t("Sigue el hilo para silenciarlo").into())
             } else {
                 // Seeing it is enough, as with following it.
                 self.offline().unwrap_or(Permit::Allowed)
@@ -300,7 +300,7 @@ impl Store {
         }
         if !found.permissions.contains(Permissions::READ_HISTORY) {
             return Permit::Denied(tr!(
-                "No tenés permiso para leer el historial de #{channel}",
+                "No tienes permiso para leer el historial de #{channel}",
                 channel = found.name
             ));
         }

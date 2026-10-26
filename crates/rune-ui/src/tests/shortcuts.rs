@@ -122,12 +122,12 @@ fn keys_that_type_or_edit_are_refused_and_recording_again_clears_why() {
     host.record(Action::Switcher, "K");
     assert_eq!(
         host.notice(Action::Switcher),
-        Some("Sola escribe o mueve el cursor: sumale Ctrl o Alt.")
+        Some("Sola escribe o mueve el cursor: súmale Ctrl o Alt.")
     );
     host.record(Action::Switcher, "Ctrl+V");
     assert_eq!(
         host.notice(Action::Switcher),
-        Some("La usa la edición de texto: elegí otra.")
+        Some("La usa la edición de texto: elige otra.")
     );
     host.record(Action::Switcher, "Ctrl+J");
     assert_eq!(host.notice(Action::Switcher), None);

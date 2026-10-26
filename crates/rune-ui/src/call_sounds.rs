@@ -287,7 +287,7 @@ pub(crate) fn use_folder(ui: &mut Ui) -> Vec<Intent> {
     if !valid_folder(folder) {
         ui.call_sounds.found = Some(FolderReport {
             folder: folder.to_owned(),
-            error: Some(t("Escribí la ruta completa de la carpeta, desde / o ~/.").into()),
+            error: Some(t("Escribe la ruta completa de la carpeta, desde / o ~/.").into()),
             ..FolderReport::default()
         });
         ui.call_sounds.typed = Some(typed);
