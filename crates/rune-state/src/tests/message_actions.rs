@@ -202,18 +202,14 @@ fn voice_moderation_needs_the_permission_and_a_higher_rank() {
     let can = store.voice_moderation(ServerId(1), ADA).unwrap();
     assert!(can.mute.allowed());
     assert!(!can.deafen.allowed() && !can.move_to.allowed() && !can.disconnect.allowed());
+    // As in Discord, a role at or above the account's does not stop voice moderation.
     store.apply(
         Event::MemberChanged(role(ADA, vec![rune_model::RoleId(5)])),
         Instant::now(),
     );
-    assert_eq!(
-        store
-            .voice_moderation(ServerId(1), ADA)
-            .unwrap()
-            .mute
-            .reason(),
-        Some("Su rol está a la altura del tuyo o por encima")
-    );
+    let can = store.voice_moderation(ServerId(1), ADA).unwrap();
+    assert!(can.mute.allowed());
+    assert!(!can.deafen.allowed() && !can.move_to.allowed());
 }
 
 #[test]

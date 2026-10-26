@@ -16,8 +16,8 @@ use crate::{Intent, Ui};
 const PREFIX: &str = "vz:mod:";
 
 /// The moderation items of `user`'s menu in the voice channel `channel`:
-/// only those the account has the permission for. Where the rank or the
-/// connection blocks one, it is there off, with why.
+/// only those the account may do now. As in Discord, an action it cannot
+/// take (offline, no other room) is absent, not greyed out.
 pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec<MenuEntry> {
     let Some(server) = store.channel(channel).and_then(|found| found.server) else {
         return Vec::new();
@@ -33,58 +33,43 @@ pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec
         .into_iter()
         .find(|state| state.user == user);
     let mut items = Vec::new();
-    if granted.mute_members.allowed() {
+    if granted.mute_members.allowed() && can.mute.allowed() {
         let id = format!("{PREFIX}mute:{user}");
         let label = t("Silenciar en el servidor");
-        items.push(match can.mute.reason() {
-            Some(reason) => MenuEntry::Disabled(id, label.into(), reason.into()),
-            None => MenuEntry::Item(
-                id,
-                label.into(),
-                Some(state.is_some_and(|state| state.server_muted)),
-            ),
-        });
+        items.push(MenuEntry::Item(
+            id,
+            label.into(),
+            Some(state.is_some_and(|state| state.server_muted)),
+        ));
     }
-    if granted.deafen_members.allowed() {
+    if granted.deafen_members.allowed() && can.deafen.allowed() {
         let id = format!("{PREFIX}deafen:{user}");
         let label = t("Ensordecer en el servidor");
-        items.push(match can.deafen.reason() {
-            Some(reason) => MenuEntry::Disabled(id, label.into(), reason.into()),
-            None => MenuEntry::Item(
-                id,
-                label.into(),
-                Some(state.is_some_and(|state| state.server_deafened)),
-            ),
-        });
+        items.push(MenuEntry::Item(
+            id,
+            label.into(),
+            Some(state.is_some_and(|state| state.server_deafened)),
+        ));
     }
-    if granted.move_members.allowed() {
-        let id = format!("{PREFIX}move:{user}");
-        let label = t("Mover a");
-        items.push(match can.move_to.reason() {
-            Some(reason) => MenuEntry::Disabled(id, label.into(), reason.into()),
-            None => MenuEntry::Submenu(
-                label.into(),
-                can.rooms
-                    .iter()
-                    .map(|room| {
-                        MenuEntry::Item(
-                            format!("{PREFIX}move:{user}:{room}"),
-                            store.channel_title(*room),
-                            None,
-                        )
-                    })
-                    .collect(),
-            ),
-        });
+    if granted.move_members.allowed() && can.move_to.allowed() {
+        items.push(MenuEntry::Submenu(
+            t("Mover a").into(),
+            can.rooms
+                .iter()
+                .map(|room| {
+                    MenuEntry::Item(
+                        format!("{PREFIX}move:{user}:{room}"),
+                        store.channel_title(*room),
+                        None,
+                    )
+                })
+                .collect(),
+        ));
     }
     // Disconnecting takes the move permission, as `voice_moderation` has it.
-    if granted.move_members.allowed() {
+    if granted.move_members.allowed() && can.disconnect.allowed() {
         let id = format!("{PREFIX}disconnect:{user}");
-        let label = t("Desconectar");
-        items.push(match can.disconnect.reason() {
-            Some(reason) => MenuEntry::Disabled(id, label.into(), reason.into()),
-            None => MenuEntry::Danger(id, label.into()),
-        });
+        items.push(MenuEntry::Danger(id, t("Desconectar").into()));
     }
     items
 }

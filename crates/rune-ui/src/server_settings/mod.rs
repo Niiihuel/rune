@@ -466,17 +466,14 @@ pub(crate) fn member_menu_group(
     let id = |what: &str| format!("ss:member-of:{server}:{user}:{what}");
     let name = store.display_name(user, Some(server));
     let mut items = Vec::new();
-    // Hidden without the permission; off with the reason where the rank blocks it.
+    // Only what the account may do now: no permission or a higher rank hides it.
     let nick_permit = if Some(user) == store.me() {
         &abilities.change_nick
     } else {
         &abilities.manage_nicks
     };
-    if nick_permit.allowed() {
-        items.push(match nick_lock(store, server, user) {
-            Some(reason) => MenuEntry::Disabled(id("nick"), t("Cambiar apodo").into(), reason),
-            None => MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None),
-        });
+    if nick_permit.allowed() && nick_lock(store, server, user).is_none() {
+        items.push(MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None));
     }
     if abilities.manage_roles.allowed() {
         let mut roles: Vec<&Role> = found
@@ -500,32 +497,28 @@ pub(crate) fn member_menu_group(
         }
     }
     if Some(user) != store.me() {
-        if abilities.timeout.allowed() {
+        if abilities.timeout.allowed()
+            && member_lock(store, server, user, &abilities.timeout).is_none()
+        {
             let timed_out = advanced::timed_out(store, server, user);
             let (action, label) = if timed_out {
                 ("untimeout", tr!("Quitar el aislamiento a {name}", name))
             } else {
                 ("timeout", tr!("Aislar a {name}", name))
             };
-            items.push(match member_lock(store, server, user, &abilities.timeout) {
-                Some(reason) => MenuEntry::Disabled(id(action), label, reason),
-                None if timed_out => MenuEntry::Item(id(action), label, None),
-                None => MenuEntry::Danger(id(action), label),
+            items.push(if timed_out {
+                MenuEntry::Item(id(action), label, None)
+            } else {
+                MenuEntry::Danger(id(action), label)
             });
         }
-        if abilities.kick.allowed() {
+        if abilities.kick.allowed() && member_lock(store, server, user, &abilities.kick).is_none() {
             let label = tr!("Expulsar a {name}", name);
-            items.push(match member_lock(store, server, user, &abilities.kick) {
-                Some(reason) => MenuEntry::Disabled(id("kick"), label, reason),
-                None => MenuEntry::Danger(id("kick"), label),
-            });
+            items.push(MenuEntry::Danger(id("kick"), label));
         }
-        if abilities.ban.allowed() {
+        if abilities.ban.allowed() && member_lock(store, server, user, &abilities.ban).is_none() {
             let label = tr!("Vetar a {name}", name);
-            items.push(match member_lock(store, server, user, &abilities.ban) {
-                Some(reason) => MenuEntry::Disabled(id("ban"), label, reason),
-                None => MenuEntry::Danger(id("ban"), label),
-            });
+            items.push(MenuEntry::Danger(id("ban"), label));
         }
     }
     items

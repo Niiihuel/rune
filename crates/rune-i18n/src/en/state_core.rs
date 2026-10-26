@@ -209,8 +209,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Este proveedor no permite terminar encuestas", "This provider doesn't let you end polls"),
     ("Solo quien creó la encuesta la termina", "Only the poll's creator can end it"),
     ("La encuesta ya terminó", "The poll has already ended"),
-    ("Nadie puede moderar a quien es dueño del servidor", "Nobody can moderate the server's owner"),
-    ("Su rol está a la altura del tuyo o por encima", "Their role is as high as yours or higher"),
     ("No hay otro canal de voz al que puedas moverlo", "There's no other voice channel you can move them to"),
     ("Esta solicitud de mensajes fijados ya venció", "This pinned messages request has expired"),
     (

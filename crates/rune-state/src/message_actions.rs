@@ -101,8 +101,9 @@ impl Store {
 
     /// What the account may do to `user`'s voice in `server`, while they
     /// are in one of its voice channels; `None` otherwise or for the
-    /// account itself. Like the rest of the administration, nobody at or
-    /// above the account's highest role, nor the owner, is within reach.
+    /// account itself. As in Discord, voice moderation has no role
+    /// hierarchy: the permission alone decides, and the connection or the
+    /// lack of another room are the only reasons it is denied.
     pub fn voice_moderation(
         &self,
         server: ServerId,
@@ -117,23 +118,12 @@ impl Store {
             .find(|state| state.user == user)?
             .channel;
         let mut abilities = self.server_abilities(server)?;
-        let found = self.server(server)?;
-        let out_of_reach = if found.owner == Some(user) {
-            Some(t("Nadie puede moderar a quien es dueño del servidor"))
-        } else if !self.owns(server) && self.rank_of(server, user) >= self.my_rank(server) {
-            Some(t("Su rol está a la altura del tuyo o por encima"))
-        } else {
-            None
-        };
         let unavailable = self.offline();
         for permit in [
             &mut abilities.mute_members,
             &mut abilities.deafen_members,
             &mut abilities.move_members,
         ] {
-            if let (true, Some(reason)) = (permit.allowed(), out_of_reach) {
-                *permit = Permit::Denied(reason.into());
-            }
             if let (true, Some(denied)) = (permit.allowed(), &unavailable) {
                 *permit = denied.clone();
             }

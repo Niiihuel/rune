@@ -22,16 +22,6 @@ fn labels(menu: &[MenuEntry]) -> Vec<String> {
         .collect()
 }
 
-/// What is off in `menu`: each label with the reason it cannot be chosen.
-fn off(menu: &[MenuEntry]) -> Vec<(String, String)> {
-    menu.iter()
-        .filter_map(|entry| match entry {
-            MenuEntry::Disabled(_, label, reason) => Some((label.clone(), reason.clone())),
-            _ => None,
-        })
-        .collect()
-}
-
 impl Host {
     /// A press of `id`, as the tree reports a click on it.
     fn tap(&mut self, id: &str) {
@@ -184,7 +174,7 @@ fn moderation_is_offered_only_where_the_account_may_use_it() {
 }
 
 #[test]
-fn what_the_rank_or_the_owner_blocks_is_off_with_its_reason() {
+fn what_the_rank_or_the_owner_blocks_is_not_offered() {
     let mut host = Host::new();
     let me = host.store.me().unwrap();
     let (_, server) = owned_and_plain(&host);
@@ -225,23 +215,21 @@ fn what_the_rank_or_the_owner_blocks_is_off_with_its_reason() {
         .server_abilities(server)
         .is_some_and(|abilities| abilities.kick.allowed()));
 
+    // As in Discord, what they outrank or own is not offered at all.
     let place = Place::MemberList { server };
-    let owner_off = off(&entries(&host.ui, &host.store, owner, place));
-    assert!(
-        owner_off
-            .iter()
-            .any(|(label, reason)| label.starts_with("Expulsar a ") && reason.contains("dueño")),
-        "{owner_off:?}"
-    );
-    let peer_off = off(&entries(&host.ui, &host.store, peer, place));
-    assert!(
-        peer_off
-            .iter()
-            .any(|(label, reason)| label.starts_with("Expulsar a ") && reason.contains("altura")),
-        "{peer_off:?}"
-    );
-    // Nothing is off for the account itself.
-    assert!(off(&entries(&host.ui, &host.store, me, place)).is_empty());
+    for user in [owner, peer] {
+        let shown = labels(&entries(&host.ui, &host.store, user, place));
+        for prefix in ["Expulsar a ", "Vetar a ", "Aislar a ", "Cambiar apodo"] {
+            assert!(
+                !shown.iter().any(|label| label.starts_with(prefix)),
+                "{user}: {shown:?}"
+            );
+        }
+    }
+    // Nothing is hidden or off for the account itself.
+    assert!(entries(&host.ui, &host.store, me, place)
+        .iter()
+        .all(|entry| !matches!(entry, MenuEntry::Disabled(..))));
 }
 
 #[test]
