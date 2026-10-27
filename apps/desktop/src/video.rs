@@ -139,6 +139,44 @@ impl Router {
     }
 }
 
+/// The frames a watched stream's pictures were taken at, for its rate: the
+/// last second's count, `None` until a second of them.
+#[cfg(any(target_os = "linux", windows))]
+#[derive(Default)]
+struct RateMeter {
+    first: Option<Instant>,
+    taken: VecDeque<Instant>,
+}
+
+#[cfg(any(target_os = "linux", windows))]
+impl RateMeter {
+    /// Enough for 60 frames a second, and more than a second of them.
+    const KEEP: usize = 120;
+
+    fn tick(&mut self, now: Instant) {
+        self.first.get_or_insert(now);
+        self.taken.push_back(now);
+        if self.taken.len() > Self::KEEP {
+            self.taken.pop_front();
+        }
+    }
+
+    fn fps(&mut self, now: Instant) -> Option<u32> {
+        let first = self.first?;
+        if now.saturating_duration_since(first) < Duration::from_secs(1) {
+            return None;
+        }
+        while self
+            .taken
+            .front()
+            .is_some_and(|at| now.saturating_duration_since(*at) >= Duration::from_secs(1))
+        {
+            self.taken.pop_front();
+        }
+        u32::try_from(self.taken.len()).ok()
+    }
+}
+
 /// Where a watched stream's pictures come from.
 #[cfg(any(target_os = "linux", windows))]
 enum Pictures {
@@ -154,6 +192,8 @@ struct Watched {
     pictures: Pictures,
     last: Option<Frame>,
     shown: Option<f32>,
+    /// The frames taken of it, for what its stage says of its rate.
+    rate: RateMeter,
     /// The density it was presented at in its own window.
     window: Option<f32>,
     /// Who decoded its last picture, as the log was told, and whether the
@@ -187,6 +227,7 @@ impl Watched {
             pictures,
             last: None,
             shown: None,
+            rate: RateMeter::default(),
             window: None,
             decoder: None,
             hardware: !engines.is_empty(),
@@ -229,14 +270,16 @@ impl Watched {
         }
         if let Some(frame) = fresh {
             self.last = Some(frame);
+            self.rate.tick(now);
             self.shown = None;
             self.window = None;
         }
+        let fps = self.rate.fps(now);
         let Some(frame) = &self.last else {
             return Live::Waiting;
         };
         if present(ctx, id, frame, laid_out, &mut self.shown) {
-            Live::Showing(frame.width, frame.height)
+            Live::Showing(frame.width, frame.height, fps)
         } else {
             Live::Waiting
         }
@@ -1167,7 +1210,8 @@ fn step_one(
         return Ok((Live::Waiting, cameras));
     };
     let live = if present(ctx, id, frame, laid_out, &mut held.shown) {
-        Live::Showing(frame.width, frame.height)
+        // The own share's rate is what it sends, as its note says.
+        Live::Showing(frame.width, frame.height, None)
     } else {
         Live::Waiting
     };
@@ -1590,5 +1634,27 @@ mod tests {
         );
         assert!(!video.active());
         assert_eq!(ui.video.screen.live, Live::Off);
+    }
+
+    #[test]
+    fn the_rate_is_frames_of_the_last_second_and_none_before_one_second() {
+        let start = Instant::now();
+        let at = |ms: u64| start + Duration::from_millis(ms);
+        let mut meter = RateMeter::default();
+        assert_eq!(meter.fps(at(0)), None);
+        // Fifteen frames in the first half second: still no second of them.
+        for ms in (0..500).step_by(33) {
+            meter.tick(at(ms));
+        }
+        assert_eq!(meter.fps(at(500)), None);
+        // One every 33 ms from 0 to 990: the frame at 0 is a second old by
+        // 1000 ms and leaves the count, so 30 are left.
+        let mut meter = RateMeter::default();
+        for ms in (0..=1000u64).step_by(33) {
+            meter.tick(at(ms));
+        }
+        assert_eq!(meter.fps(at(1000)), Some(30));
+        // A second later with no frames the rate has fallen to nothing.
+        assert_eq!(meter.fps(at(2100)), Some(0));
     }
 }

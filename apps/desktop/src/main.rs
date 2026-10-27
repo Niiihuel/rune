@@ -102,6 +102,8 @@ struct Arguments {
     capture_onboarding: bool,
     /// Join the open voice channel and watch someone who is not streaming: the stage shows the stream over.
     capture_stream_ended: bool,
+    /// Like `--capture-stream-ended`, but watches someone streaming: the stage shows it live.
+    capture_stream_live: bool,
     capture_rich: bool,
     /// Cards with pictures after the latest message.
     capture_media: bool,
@@ -315,6 +317,7 @@ fn parse_arguments(
             }
             "--capture-context" => parsed.capture_context = true,
             "--capture-stream-ended" => parsed.capture_stream_ended = true,
+            "--capture-stream-live" => parsed.capture_stream_live = true,
             "--capture-connection" => {
                 parsed.capture_connection = Some(match arguments.next().as_deref() {
                     Some("connecting") => rune_provider::ConnectionState::Connecting,
@@ -395,6 +398,7 @@ fn parse_arguments(
         || parsed.capture_search.is_some()
         || parsed.capture_context
         || parsed.capture_stream_ended
+        || parsed.capture_stream_live
         || parsed.capture_connection.is_some()
         || parsed.capture_splash.is_some())
         && (parsed.provider != ProviderChoice::Mock || parsed.screenshot.is_none())
@@ -942,6 +946,8 @@ struct Capture {
     onboarding: Option<bool>,
     /// `--capture-stream-ended`: where the steps that show a stream over stand.
     stream_ended: Option<StreamEnded>,
+    /// `--capture-stream-live`: the steps watch someone streaming, not someone quiet.
+    stream_live: bool,
 }
 
 /// Whether the provider's own login window just closed: completed (on to
@@ -1368,7 +1374,9 @@ impl App {
                 splash_at: arguments.capture_splash.map(|after| started + after),
                 connection: arguments.capture_connection,
                 onboarding: arguments.capture_onboarding.then_some(false),
-                stream_ended: arguments.capture_stream_ended.then_some(StreamEnded::Join),
+                stream_ended: (arguments.capture_stream_ended || arguments.capture_stream_live)
+                    .then_some(StreamEnded::Join),
+                stream_live: arguments.capture_stream_live,
             }),
             parent: window::Parent::default(),
             updates,
@@ -3503,11 +3511,16 @@ impl App {
             return;
         };
         let me = self.store.me();
+        // Someone not streaming, or with `--capture-stream-live`, someone who is.
+        let live = self
+            .capture
+            .as_ref()
+            .is_some_and(|capture| capture.stream_live);
         let quiet = self
             .store
             .voice_in(channel)
             .iter()
-            .find(|state| Some(state.user) != me && !state.streaming)
+            .find(|state| Some(state.user) != me && state.streaming == live)
             .map(|state| state.user);
         let next;
         let intents = match step {
@@ -3559,7 +3572,14 @@ impl App {
                 if !answered {
                     return;
                 }
+                // Live: the pointer rests over the stream, so its info shows.
+                let owner = self.store.watching().first().map(|watching| watching.owner);
                 let capture = self.capture.as_mut().expect("checked above");
+                if capture.stream_live {
+                    if let (Some(owner), None) = (owner, &capture.hover_id) {
+                        capture.hover_id = Some(rune_components::voice::ids::stream_tile(owner.0));
+                    }
+                }
                 capture.stream_ended = None;
                 capture.ready = Some(now);
                 ctx.request_repaint();

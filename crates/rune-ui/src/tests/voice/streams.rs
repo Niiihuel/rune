@@ -46,7 +46,7 @@ impl Host {
         self.ui
             .video
             .streams
-            .push((owner, crate::Live::Showing(1280, 720)));
+            .push((owner, crate::Live::Showing(1280, 720, None)));
     }
 
     /// Where `owner`'s stream is drawn.
@@ -389,7 +389,7 @@ fn the_accounts_own_streams_picture_goes_up_as_the_official_client_sends_it() {
         None
     );
     host.ui.video.screen.on = true;
-    host.ui.video.screen.live = crate::Live::Showing(1920, 1080);
+    host.ui.video.screen.live = crate::Live::Showing(1920, 1080, None);
     let due =
         |host: &mut Host, millis| crate::video_own_preview(&mut host.ui, &host.store, at(millis));
     // Half a second after it shows, then every five minutes.
@@ -475,7 +475,7 @@ fn a_secondary_click_on_a_stream_or_its_streamer_offers_to_stop_watching() {
     host.ui
         .video
         .streams
-        .push((second, crate::Live::Showing(1280, 720)));
+        .push((second, crate::Live::Showing(1280, 720, None)));
     assert_eq!(host.ui.video.spotlight, Some(first), "still focused");
 
     // The thumbnail in the strip, under the one focused.

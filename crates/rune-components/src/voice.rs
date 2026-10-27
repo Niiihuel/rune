@@ -331,6 +331,11 @@ pub struct Preview {
     /// The size of the frame on the surface; `None` while the system asks
     /// or the first frame is on its way.
     pub frame: Option<(u32, u32)>,
+    /// The frames a second it comes at, once a second of them was counted;
+    /// for the account's own share, what it sends.
+    pub fps: Option<u32>,
+    /// The kilobits a second the account's own share sends, while it goes.
+    pub kbit: Option<u32>,
     /// What shows until then: «Esperando al sistema…».
     pub waiting: String,
     /// What stops it, and how it reads.
@@ -385,6 +390,8 @@ const POP_OUT: &str = crate::glyphs::glyph!("pop-out");
 /// 60 %, 80 % under the pointer, with white on it whatever the theme (REA).
 const OVER: Color = Color::rgba(0, 0, 0, 153);
 const OVER_HOVER: Color = Color::rgba(0, 0, 0, 204);
+/// The stream info's panel: black at half, as Discord's.
+const OVER_INFO: Color = Color::rgba(0, 0, 0, 128);
 const OVER_INK: Color = Color::rgb(255, 255, 255);
 /// The round buttons over a picture, 32 across.
 const OVER_BUTTON: f32 = 32.0;
@@ -490,6 +497,13 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         },
     };
     let title = name_pill(view);
+    // The stage's stream info, revealed while the pointer rests over the picture.
+    let info = match view.frame {
+        Some(frame) if view.focused && !compact => {
+            Some(stream_info(view, frame).reveal_on_hover(format!("{}:info", view.surface)))
+        }
+        _ => None,
+    };
     let over = match &view.stream {
         // In the strip, a stream watched says it is live at its top right.
         Some(_) if compact => Element::column(vec![
@@ -504,7 +518,7 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
         ])
         .padding(8.0),
         // A stream watched: its ways out are in its menu and the bar.
-        Some(stream) => stream_over(view, stream, title, look),
+        Some(stream) => stream_over(view, stream, title, info, look),
         // The account's own: pausing it and stopping it, as icons.
         None => {
             let mut buttons: Vec<Element> = view
@@ -531,7 +545,7 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                 look,
             ));
             Element::column(vec![
-                Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]),
+                top_left(view, info),
                 Element::spacer().flex(1.0),
                 Element::row(vec![
                     title,
@@ -565,7 +579,8 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                 tile
             }
         }
-        None => shown,
+        // The account's own picture: its region is the picture, for the info.
+        None => shown.hover_region(),
     }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
@@ -643,7 +658,13 @@ fn stream_text_button(id: &str, label: &str, variant: ButtonVariant, look: &Look
 /// its name at the bottom left and its controls at the bottom right. In
 /// the grid the controls show under the pointer; while it takes the stage
 /// or the window all of it shows until the pointer rests, then fades.
-fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look) -> Element {
+fn stream_over(
+    view: &Preview,
+    stream: &StreamTile,
+    title: Element,
+    info: Option<Element>,
+    look: &Look,
+) -> Element {
     // Over: no note and no controls, only its name.
     if stream.over {
         return Element::column(vec![
@@ -657,7 +678,7 @@ fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look)
         return Element::spacer();
     }
     let over = Element::column(vec![
-        Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]),
+        top_left(view, info),
         Element::spacer().flex(1.0),
         Element::row(vec![
             title,
@@ -672,6 +693,42 @@ fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look)
     } else {
         over
     }
+}
+
+/// The note's badge at the top left, and under it the stream info when the
+/// stage has it (see [`stream_info`]).
+fn top_left(view: &Preview, info: Option<Element>) -> Element {
+    let note = Element::row(vec![badge(&view.note), Element::spacer().flex(1.0)]);
+    match info {
+        Some(info) => Element::column(vec![
+            note,
+            Element::row(vec![info, Element::spacer().flex(1.0)]),
+        ])
+        .gap(8.0),
+        None => note,
+    }
+}
+
+/// The stage's stream info, as Discord's: the picture's size, its frame rate
+/// and, for the account's own share, its bitrate. Passive, so it takes no
+/// clicks; it shows while the pointer rests over the stage.
+fn stream_info(view: &Preview, (width, height): (u32, u32)) -> Element {
+    let mut lines = vec![tr!("Resolución {width}×{height}", width, height)];
+    if let Some(fps) = view.fps {
+        lines.push(tr!("Fotogramas {fps} FPS", fps));
+    }
+    if let (None, Some(kbit)) = (&view.stream, view.kbit) {
+        lines.push(tr!("Bitrate {kbit} kbit/s", kbit));
+    }
+    let lines = lines
+        .into_iter()
+        .map(|text| line(text, 14.0, OVER_INK))
+        .collect();
+    Element::panel(Element::column(lines).gap(2.0))
+        .padding(8.0)
+        .radius(8.0)
+        .background(OVER_INFO)
+        .shrink_to_fit()
 }
 
 /// A stream's controls at its tile's bottom right, as the official
@@ -1877,10 +1934,15 @@ pub fn stage(view: Stage, look: &Look) -> Element {
         header.push(Element::spacer().flex(1.0));
         let mut badge = Vec::new();
         if let Some((_, height)) = shown.frame {
+            // «720p · 30 FPS», as Discord's header; «720p» until the rate is known.
+            let quality = match shown.fps {
+                Some(fps) => format!("{height}p · {fps} FPS"),
+                None => format!("{height}p"),
+            };
             badge.push(
                 Element::panel(Element::row(vec![
                     gap(6.0, 0.0),
-                    Element::text(format!("{height}p"))
+                    Element::text(quality)
                         .font_family(FontFamily::SansBold)
                         .font_size(13.0)
                         .foreground(look.text)
@@ -3189,6 +3251,8 @@ mod tests {
                     title: "Tu pantalla".into(),
                     waiting: "Esperando al sistema…".into(),
                     frame: Some((1920, 1080)),
+                    fps: None,
+                    kbit: None,
                     stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
                     note: note.into(),
                     actions: vec![(ids::PAUSE.into(), "Pausar")],
@@ -3200,6 +3264,8 @@ mod tests {
                     title: "Tu cámara".into(),
                     waiting: "Esperando al sistema…".into(),
                     frame: None,
+                    fps: None,
+                    kbit: None,
                     stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                     note: note.into(),
                     actions: Vec::new(),
@@ -3245,6 +3311,8 @@ mod tests {
                 title: "Vista previa".into(),
                 waiting: "Esperando al sistema…".into(),
                 frame: Some((1280, 720)),
+                fps: None,
+                kbit: None,
                 stop: (ids::STOP_CAMERA.into(), "Apagar la cámara"),
                 note: "Sólo en esta computadora".into(),
                 actions: Vec::new(),
@@ -3381,6 +3449,8 @@ mod tests {
             surface: ids::stream_surface(2),
             title: "Pantalla de Persona 2".into(),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo · simulado".into(),
@@ -3413,6 +3483,8 @@ mod tests {
             surface: ids::window_surface(2),
             title: "Pantalla de Persona 2".into(),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo".into(),
@@ -3456,6 +3528,8 @@ mod tests {
             surface: ids::stream_surface(user),
             title: format!("Pantalla de Persona {user}"),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(user), "Dejar de ver"),
             note: "En vivo".into(),
@@ -4266,6 +4340,8 @@ mod tests {
             surface: ids::stream_surface(user),
             title: format!("Pantalla de Persona {user}"),
             frame: None,
+            fps: None,
+            kbit: None,
             waiting: "Esta transmisión ha finalizado.".into(),
             stop: (ids::close_stream(user), "Cerrar transmisión"),
             note: "Terminó".into(),
@@ -4284,6 +4360,8 @@ mod tests {
         };
         let live = |user: u64, focused| Preview {
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stream: Some(StreamTile {
                 over: false,
@@ -4405,6 +4483,8 @@ mod tests {
             surface: ids::stream_surface(2),
             title: "Pantalla de Persona 2".into(),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo · simulada".into(),
@@ -4441,10 +4521,17 @@ mod tests {
             assert!(!node.name.is_empty(), "{id} is named");
         }
         // No words to press: what is written is its name and the badge that
-        // says it is simulated.
+        // says it is simulated, and the stream info that shows on hover.
         let mut said = texts(&laid);
         said.sort();
-        assert_eq!(said, ["En vivo · simulada", "Pantalla de Persona 2"]);
+        assert_eq!(
+            said,
+            [
+                "En vivo · simulada",
+                "Pantalla de Persona 2",
+                "Resolución 1280×720"
+            ]
+        );
         // Full screen: the way back in place of full screen, an icon too.
         let (_, laid) = frame(preview(&stream(false, true), size, &look), size);
         let shown = controls(&laid);
@@ -4462,6 +4549,8 @@ mod tests {
             surface: ids::SCREEN_SURFACE.into(),
             title: "Tu pantalla".into(),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando al sistema…".into(),
             stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
             note: "Solo tú lo ves".into(),
@@ -4487,6 +4576,8 @@ mod tests {
             surface: ids::stream_surface(2),
             title: "Pantalla de Persona 2".into(),
             frame: Some((1280, 720)),
+            fps: None,
+            kbit: None,
             waiting: "Esperando video…".into(),
             stop: (ids::stop_watching(2), "Dejar de ver"),
             note: "En vivo".into(),
@@ -4540,5 +4631,98 @@ mod tests {
         // In the grid nothing rests: the bar is there however long it stays.
         let (_, grid) = frame(stage(view(vec![stream(false, true)]), &look), size);
         assert!(controls(&grid).contains(&ids::MUTE.to_owned()));
+    }
+
+    #[test]
+    fn the_rate_shows_in_the_badge_and_the_info_only_over_a_live_stage_picture() {
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        let stream = |fps: Option<u32>, focused: bool| Preview {
+            surface: ids::stream_surface(2),
+            title: "Pantalla de Persona 2".into(),
+            frame: Some((1280, 720)),
+            fps,
+            kbit: None,
+            waiting: "Esperando video…".into(),
+            stop: (ids::stop_watching(2), "Dejar de ver"),
+            note: "En vivo".into(),
+            actions: Vec::new(),
+            stream: Some(StreamTile {
+                owner: 2,
+                sound: 1_002,
+                silenced: false,
+                windowed: false,
+                menu: None,
+                fullscreen: false,
+                over: false,
+                idle: false,
+            }),
+            focused,
+        };
+        let stage_with = |watching: Vec<Preview>| Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![person(1, false, false, false)],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size,
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching,
+            tiles_hidden: false,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        // Focused with its rate: the header says «720p · 30 FPS» and the stage
+        // carries the info; without a rate yet, «720p» and no frame rate line.
+        let (_, laid) = frame(stage(stage_with(vec![stream(Some(30), true)]), &look), size);
+        let said = texts(&laid);
+        assert!(said.iter().any(|text| text == "720p · 30 FPS"), "{said:?}");
+        assert!(said.iter().any(|text| text == "Resolución 1280×720"));
+        assert!(said.iter().any(|text| text == "Fotogramas 30 FPS"));
+        let (_, laid) = frame(stage(stage_with(vec![stream(None, true)]), &look), size);
+        let said = texts(&laid);
+        assert!(said.iter().any(|text| text == "720p"), "{said:?}");
+        assert!(!said.iter().any(|text| text.starts_with("Fotogramas")));
+        // In the grid, and without a picture yet, no info at all.
+        let (_, laid) = frame(preview(&stream(Some(30), false), size, &look), size);
+        assert!(!texts(&laid)
+            .iter()
+            .any(|text| text.starts_with("Resolución")));
+        let no_picture = Preview {
+            frame: None,
+            ..stream(Some(30), true)
+        };
+        let (_, laid) = frame(preview(&no_picture, size, &look), size);
+        assert!(!texts(&laid)
+            .iter()
+            .any(|text| text.starts_with("Resolución")));
+        // The account's own share: what it sends, its rate and bitrate.
+        let own = Preview {
+            surface: ids::SCREEN_SURFACE.into(),
+            title: "Tu pantalla".into(),
+            frame: Some((1280, 720)),
+            fps: Some(30),
+            kbit: Some(2500),
+            waiting: "Esperando al sistema…".into(),
+            stop: (ids::STOP_SCREEN.into(), "Dejar de compartir"),
+            note: "En vivo · 720p · 30 fps · 2500 kbit/s".into(),
+            actions: Vec::new(),
+            stream: None,
+            focused: true,
+        };
+        let (_, laid) = frame(stage(stage_with(vec![own]), &look), size);
+        let said = texts(&laid);
+        assert!(said.iter().any(|text| text == "720p · 30 FPS"), "{said:?}");
+        assert!(said.iter().any(|text| text == "Bitrate 2500 kbit/s"));
     }
 }

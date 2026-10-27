@@ -117,14 +117,22 @@ pub enum Live {
     Off,
     /// The system's dialog is open, or the first frame is on its way.
     Waiting,
-    /// A frame of this size, in pixels, is on its surface.
-    Showing(u32, u32),
+    /// A frame of this size, in pixels, is on its surface, and the frames a
+    /// second it came at, once a second of them was counted.
+    Showing(u32, u32, Option<u32>),
 }
 
 impl Live {
     pub fn frame(self) -> Option<(u32, u32)> {
         match self {
-            Self::Showing(width, height) => Some((width, height)),
+            Self::Showing(width, height, _) => Some((width, height)),
+            _ => None,
+        }
+    }
+
+    pub fn fps(self) -> Option<u32> {
+        match self {
+            Self::Showing(_, _, fps) => fps,
             _ => None,
         }
     }
@@ -627,6 +635,9 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             title: t("Tu pantalla").into(),
             waiting: t("Esperando al sistema…").into(),
             frame: ui.video.screen.live.frame(),
+            // What the share sends, as its note says.
+            fps: ui.video.screen.sent.map(|(fps, _)| fps),
+            kbit: ui.video.screen.sent.map(|(_, kbit)| kbit),
             stop: (ids::STOP_SCREEN.into(), t("Dejar de compartir")),
             note: screen_note(ui, store),
             actions: pause_action(store).into_iter().collect(),
@@ -640,6 +651,8 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             title: t("Tu cámara").into(),
             waiting: t("Esperando al sistema…").into(),
             frame: ui.video.camera.live.frame(),
+            fps: None,
+            kbit: None,
             stop: (ids::STOP_CAMERA.into(), t("Apagar la cámara")),
             note: camera_note(ui, store),
             actions: Vec::new(),
@@ -747,19 +760,21 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         idle: idle(ui, store, now),
         over: ended,
     };
-    let shown = ui
+    let live = ui
         .video
         .streams
         .iter()
         .find(|(owner, _)| *owner == watching.owner)
-        .and_then(|(_, live)| live.frame());
+        .map(|(_, live)| *live);
     Preview {
         surface: ids::stream_surface(watching.owner.0),
         title: tr!(
             "Pantalla de {name}",
             name = store.display_name(watching.owner, server)
         ),
-        frame: shown.filter(|_| !ended),
+        frame: live.and_then(Live::frame).filter(|_| !ended),
+        fps: live.and_then(Live::fps).filter(|_| !ended),
+        kbit: None,
         waiting,
         stop: (
             if ended {

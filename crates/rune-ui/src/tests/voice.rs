@@ -1580,7 +1580,7 @@ fn the_cameras_on_the_stage_are_asked_for_at_most_four_and_show_on_their_tiles()
         )
     };
     assert!(!drawn(&mut host));
-    host.ui.video.watched = vec![(wanted[0], crate::Live::Showing(640, 360))];
+    host.ui.video.watched = vec![(wanted[0], crate::Live::Showing(640, 360, None))];
     assert!(drawn(&mut host));
     // A stream on the stage, or no stage, asks for none.
     host.store.begin_watch(room, wanted[1]);
@@ -1733,7 +1733,7 @@ fn the_bars_camera_arrow_tries_the_camera_without_sending_it() {
         })
     };
     assert!(!drawn(&mut host));
-    host.ui.video.camera.live = crate::Live::Showing(640, 480);
+    host.ui.video.camera.live = crate::Live::Showing(640, 480, None);
     assert!(drawn(&mut host));
     assert!(host.vz_texts().iter().any(|it| it == "Detener video"));
     // Its arrow closes it, and the test with it.
