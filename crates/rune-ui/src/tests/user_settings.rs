@@ -929,7 +929,7 @@ fn the_rail_marks_follow_the_notification_settings() {
             .commands
             .iter()
             .filter(|command| {
-                matches!(command, limn::DrawCommand::FillCornerRect { rect, .. }
+                matches!(command, limn::DrawCommand::FillRect { rect, .. }
                     if rect.height == rune_components::rail::PILL_UNREAD
                         && rect.x < rune_components::rail::WIDTH)
             })

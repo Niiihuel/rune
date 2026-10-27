@@ -97,9 +97,9 @@ fn the_columns_and_bands_are_where_the_reference_has_them() {
     let mark = region(&frame, &format!("server:{chosen}"));
     assert!(
         frame.commands.iter().any(|command| matches!(command,
-            DrawCommand::FillCornerRect { rect, .. }
-                if rect.x == 0.0
-                    && rect.width == rune_components::rail::PILL_WIDTH
+            DrawCommand::FillRect { rect, .. }
+                if rect.x == -rune_components::rail::PILL_WIDTH
+                    && rect.width == rune_components::rail::PILL_WIDTH * 2.0
                     && rect.height == rune_components::rail::PILL_SELECTED
                     && (rect.y + rect.height / 2.0 - (mark.y + mark.height / 2.0)).abs() <= 1.0)),
         "no pill on {mark:?}"

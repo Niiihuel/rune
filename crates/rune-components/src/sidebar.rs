@@ -1,10 +1,7 @@
 //! The column of channels: a server's categories and channels, the people
 //! in its voice channels, or the list of direct conversations.
 
-use limn::{
-    ButtonVariant, Color, Component, ControlSize, CornerRadii, Element, FontFamily, Icon,
-    IconButton,
-};
+use limn::{ButtonVariant, Color, Component, ControlSize, Element, FontFamily, Icon, IconButton};
 use rune_i18n::{t, tr};
 
 use crate::{centered, gap, icon, line, strong_line, with_status, Look};
@@ -474,15 +471,7 @@ fn unread_edge(body: Element, unread: bool, look: &Look) -> Element {
     let pill = if unread {
         Element::column(vec![
             Element::spacer().flex(1.0),
-            Element::panel(Element::spacer())
-                .size(Some(4.0), Some(8.0))
-                .corner_radii(CornerRadii {
-                    top_left: 0.0,
-                    top_right: 4.0,
-                    bottom_right: 4.0,
-                    bottom_left: 0.0,
-                })
-                .background(look.text),
+            crate::rail::edge_pill(4.0, 8.0, look.text),
             Element::spacer().flex(1.0),
         ])
     } else {

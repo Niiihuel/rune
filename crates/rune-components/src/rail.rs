@@ -3,8 +3,8 @@
 //! folders the account groups them in.
 
 use limn::{
-    Badge, BadgePlacement, Color, Component, CornerRadii, Element, FontFamily, Icon, ScrollArea,
-    Tooltip, TooltipFace, TooltipItem, TooltipPlacement,
+    Badge, BadgePlacement, Color, Component, Element, FontFamily, Icon, Point, ScrollArea, Tooltip,
+    TooltipFace, TooltipItem, TooltipPlacement,
 };
 
 use rune_i18n::{t, tr};
@@ -322,23 +322,28 @@ fn landing(
 
 /// The pill against the rail's edge, rounded on the side that shows.
 fn pill(height: f32, look: &Look) -> Element {
-    let round = (height / 2.0).min(4.0);
     Element::column(vec![
         Element::spacer().flex(1.0),
         Element::row(vec![
-            Element::panel(Element::spacer())
-                .size(Some(PILL_WIDTH), Some(height))
-                .corner_radii(CornerRadii {
-                    top_left: 0.0,
-                    top_right: round,
-                    bottom_right: round,
-                    bottom_left: 0.0,
-                })
-                .background(look.text),
+            edge_pill(PILL_WIDTH, height, look.text),
             Element::spacer().flex(1.0),
         ]),
         Element::spacer().flex(1.0),
     ])
+}
+
+/// A pill showing `width` of itself past a column's left edge, as the
+/// official client's: twice as wide, rounded all round, its left half moved
+/// out and cut. A rectangle `width` across cannot take the rounding itself,
+/// which is clamped to half its narrow side.
+pub(crate) fn edge_pill(width: f32, height: f32, ink: Color) -> Element {
+    Element::row(vec![Element::panel(Element::spacer())
+        .size(Some(width * 2.0), Some(height))
+        .radius(width.min(height / 2.0))
+        .background(ink)
+        .translate(Point::new(-width, 0.0))])
+    .size(Some(width), Some(height))
+    .clip_children()
 }
 
 /// One mark: a rounded square that lights in the accent when chosen or
