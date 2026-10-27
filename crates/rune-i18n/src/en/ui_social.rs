@@ -398,7 +398,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("En la llamada", "In the call"),
     ("{phase} · simulada", "{phase} · simulated"),
     ("Se comparte sin sonido", "Sharing without sound"),
-    ("En vivo · {fps} fps · {kilobits} kbit/s", "Live · {fps} fps · {kilobits} kbit/s"),
+    ("En vivo · {height}p · {fps} fps · {kilobits} kbit/s", "Live · {height}p · {fps} fps · {kilobits} kbit/s"),
     ("En vivo", "Live"),
     ("En pausa", "Paused"),
     ("Reconectando…", "Reconnecting…"),

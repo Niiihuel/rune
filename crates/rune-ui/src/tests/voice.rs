@@ -1001,16 +1001,17 @@ fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
         phase: StreamPhase::Live,
     });
     host.ui.video.screen.sent = Some((58, 2_400));
-    assert!(host
-        .vz_texts()
-        .contains(&"En vivo · 58 fps · 2400 kbit/s · simulada".to_owned()));
+    let height = host.ui.video.quality.height;
+    assert!(host.vz_texts().contains(&format!(
+        "En vivo · {height}p · 58 fps · 2400 kbit/s · simulada"
+    )));
     // And who encodes it, as the host says (the preview cuts what is past it).
     host.ui.video.screen.encoder = Some("VA-API");
     let texts = host.vz_texts();
     assert!(
-        texts
-            .iter()
-            .any(|text| text.starts_with("En vivo · 58 fps · 2400 kbit/s · VA-API")),
+        texts.iter().any(|text| text.starts_with(&format!(
+            "En vivo · {height}p · 58 fps · 2400 kbit/s · VA-API"
+        ))),
         "{texts:?}"
     );
     assert!(host

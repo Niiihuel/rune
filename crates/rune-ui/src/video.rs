@@ -545,8 +545,15 @@ fn screen_note(ui: &Ui, store: &Store) -> String {
     };
     let phase = match (&sharing.phase, ui.video.screen.sent) {
         (StreamPhase::Connecting, _) => t("Conectando…").to_owned(),
+        // Resolution and rate sent, as Discord's stream info shows them.
         (StreamPhase::Live, Some((fps, kilobits))) => {
-            tr!("En vivo · {fps} fps · {kilobits} kbit/s", fps, kilobits)
+            let height = ui.video.quality.height;
+            tr!(
+                "En vivo · {height}p · {fps} fps · {kilobits} kbit/s",
+                height,
+                fps,
+                kilobits
+            )
         }
         (StreamPhase::Live, None) => t("En vivo").to_owned(),
         (StreamPhase::Paused, _) => t("En pausa").to_owned(),

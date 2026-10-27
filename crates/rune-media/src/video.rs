@@ -13,7 +13,7 @@
 //! A screen shared in a call ([`Video::share`]), or a camera sent to one
 //! ([`Video::send_camera`]), is kept at the size and rate it is sent at
 //! instead, for [`encode`]: one frame waits at most, the newest; the preview
-//! still gets one at most 15 times a second.
+//! gets them at the rate sent, at most 30 a second, scaled to 1280×720.
 //!
 //! Windows has no portal (windows-medios): RUNE's own picker lists the
 //! screens and windows ([`sources`]), Windows.Graphics.Capture reads the one
@@ -25,7 +25,7 @@ use std::future::Future;
 #[cfg(target_os = "linux")]
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Duration, Instant};
 
 #[cfg(target_os = "linux")]
@@ -62,6 +62,9 @@ pub use self::windows::sources;
 pub const PREVIEW_MAX: (u32, u32) = (1280, 720);
 /// The shortest time between two preview frames: at most 15 a second.
 pub const PREVIEW_INTERVAL: Duration = Duration::from_millis(66);
+/// The shortest time between two preview frames of a shared screen or camera,
+/// at most: 30 a second, or the rate sent when that is lower.
+pub const SHARE_PREVIEW_INTERVAL: Duration = Duration::from_micros(33_333);
 /// Frames waiting for the interface; older ones are dropped.
 pub const QUEUE_FRAMES: usize = 2;
 /// The largest source side accepted, in pixels.
@@ -185,6 +188,8 @@ struct Shared {
     restore: Mutex<Option<String>>,
     /// What the source delivers, for the share's diagnostic line.
     stats: Mutex<CaptureStats>,
+    /// Woken with each preview frame, so the interface paints it then.
+    wake: OnceLock<Box<dyn Fn() + Send + Sync>>,
 }
 
 /// What a source delivered, counted since it started: for the shared
@@ -246,6 +251,7 @@ impl Shared {
             raw: Mutex::new(None),
             restore: Mutex::new(None),
             stats: Mutex::new(CaptureStats::default()),
+            wake: OnceLock::new(),
         }
     }
 
@@ -291,20 +297,29 @@ impl Shared {
         }
         drop(state);
         self.queue.push(frame);
+        if let Some(wake) = self.wake.get() {
+            wake();
+        }
     }
 
     fn running(&self) -> bool {
         *lock(&self.state) == VideoState::Running
     }
 
+    /// Registers the wake of the preview: see [`Video::on_frame`].
+    fn on_frame(&self, wake: impl Fn() + Send + Sync + 'static) {
+        let _ = self.wake.set(Box::new(wake));
+    }
+
     /// A frame delivered at `now`: counted and, if `keeper` keeps it,
     /// converted by `make` within the size kept and handed to the preview
-    /// and, while sending, to the encoder.
+    /// and, while sending, to the encoder. A preview while sending follows
+    /// the rate sent, at most 30 a second, and is scaled to [`PREVIEW_MAX`].
     pub(crate) fn deliver(
         &self,
         keeper: &mut Keeper,
         now: Instant,
-        make: impl FnOnce((u32, u32)) -> Option<Frame>,
+        mut make: impl FnMut((u32, u32)) -> Option<Frame>,
     ) {
         lock(&self.stats).delivered += 1;
         let (max, interval) = self.capture();
@@ -319,24 +334,33 @@ impl Shared {
             stats.kept += 1;
             stats.converting_micros += now.elapsed().as_micros() as u64;
         }
-        if self.sending.is_none() {
+        let Some((_, sending)) = self.sending else {
             return self.push(frame);
-        }
-        let since = keeper.previewed.map(|at| now.saturating_duration_since(at));
-        if since.is_none_or(|since| since >= PREVIEW_INTERVAL) {
-            keeper.previewed = Some(now);
-            self.push(frame.clone());
+        };
+        if keeper
+            .preview
+            .keep(now, sending.max(SHARE_PREVIEW_INTERVAL))
+        {
+            let fits = frame.width <= PREVIEW_MAX.0 && frame.height <= PREVIEW_MAX.1;
+            let preview = if fits {
+                Some(frame.clone())
+            } else {
+                make(PREVIEW_MAX)
+            };
+            if let Some(preview) = preview {
+                self.push(preview);
+            }
         }
         self.keep(frame);
     }
 }
 
 /// What a source's reader keeps from frame to frame: which frames to keep,
-/// and when one last went to the preview while sending.
+/// and which ones went to the preview while sending.
 #[derive(Default)]
 pub(crate) struct Keeper {
     pace: Pace,
-    previewed: Option<Instant>,
+    preview: Pace,
 }
 
 /// A portal session that outlives the request: the system can end it.
@@ -475,6 +499,12 @@ impl Video {
             dropped: self.shared.queue.dropped.load(Ordering::Relaxed),
             restore_token: lock(&self.shared.restore).clone(),
         }
+    }
+
+    /// Calls `wake` from the source's thread with each preview frame queued;
+    /// set once, the first call wins. The host repaints then, not by polling.
+    pub fn on_frame(&self, wake: impl Fn() + Send + Sync + 'static) {
+        self.shared.on_frame(wake);
     }
 
     /// The newest frame since the last call, if any.

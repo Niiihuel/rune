@@ -371,8 +371,8 @@ impl Video {
     }
 
     /// When to look for the next frame, while a source is held. Decoded
-    /// streams repaint by themselves; made-up pictures and the own preview
-    /// keep their pace.
+    /// streams and the previews of sources repaint by themselves; made-up
+    /// pictures keep their pace.
     pub fn next_poll(&self) -> Option<std::time::Duration> {
         #[cfg(any(target_os = "linux", windows))]
         {
@@ -384,16 +384,13 @@ impl Video {
                 .iter()
                 .chain(&self.cameras)
                 .any(|held| matches!(held.pictures, Pictures::Simulated(..)));
-            let watched = if made_up {
+            if made_up {
                 Some(SIMULATED_PACE)
             } else if !self.streams.is_empty() || !self.cameras.is_empty() {
                 Some(WATCH_POLL)
             } else {
                 None
-            };
-            let preview = (self.screen.is_some() || self.camera.is_some())
-                .then_some(rune_media::video::PREVIEW_INTERVAL);
-            [watched, preview].into_iter().flatten().min()
+            }
         }
         #[cfg(not(any(target_os = "linux", windows)))]
         None
@@ -1127,21 +1124,27 @@ fn step_one(
     let Some(device) = wanted else {
         return Ok((Live::Off, None));
     };
-    let held = slot.get_or_insert_with(|| Held {
-        source: match (camera, sending) {
+    let held = slot.get_or_insert_with(|| {
+        let source = match (camera, sending) {
             (true, Some(quality)) => {
                 Source::send_camera(device.clone(), quality.size(), quality.fps)
             }
             (true, None) => Source::camera(device.clone()),
             (false, Some(quality)) => Source::share(parent(), restore, quality.size(), quality.fps),
             (false, None) => Source::screen(parent(), restore),
-        },
-        account,
-        device,
-        quality: sending,
-        encoding: None,
-        last: None,
-        shown: None,
+        };
+        // Each preview frame repaints the interface: no polling for it.
+        let wake = ctx.clone();
+        source.on_frame(move || wake.request_repaint());
+        Held {
+            source,
+            account,
+            device,
+            quality: sending,
+            encoding: None,
+            last: None,
+            shown: None,
+        }
     });
     let snapshot = held.source.snapshot();
     let cameras = camera.then(|| {

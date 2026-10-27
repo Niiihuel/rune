@@ -367,8 +367,8 @@ fn a_delivered_frame_is_kept_at_the_pace_and_previewed_while_sent() {
         "the second came too soon"
     );
     assert!(shared.queue.newest().is_some() && lock(&shared.raw).is_none());
-    // Sending at 30 a second: each kept frame waits for the encoder, the
-    // preview gets one at most every 66 ms.
+    // Sending at 30 a second: each kept frame waits for the encoder, and the
+    // preview, at the same rate, gets every one of them.
     let shared = Shared {
         sending: Some(((1280, 720), Duration::from_secs(1) / 30)),
         ..Shared::new()
@@ -379,15 +379,46 @@ fn a_delivered_frame_is_kept_at_the_pace_and_previewed_while_sent() {
     }
     assert_eq!(lock(&shared.stats).kept, 4);
     assert!(lock(&shared.raw).is_some());
-    assert_eq!(
-        shared.queue.queued.load(Ordering::Relaxed),
-        2,
-        "at 0 and 67 ms"
-    );
+    assert_eq!(shared.queue.queued.load(Ordering::Relaxed), 4);
     // A frame that cannot be read is counted, never kept.
     shared.deliver(&mut keeper, start + Duration::from_secs(2), |_| None);
     assert_eq!(lock(&shared.stats).delivered, 5);
     assert_eq!(lock(&shared.stats).kept, 4);
+}
+
+#[test]
+fn a_shared_screen_previews_at_its_rate_up_to_30_a_second_and_scaled_to_720p() {
+    // What the source delivers: a 1080p picture at `fps` (its max is the
+    // size sent); the preview asks for at most PREVIEW_MAX.
+    let run = |fps: u32| {
+        let shared = Shared {
+            sending: Some(((1920, 1080), Duration::from_secs(1) / fps)),
+            ..Shared::new()
+        };
+        let mut keeper = Keeper::default();
+        let start = Instant::now();
+        for n in 0..fps {
+            let at = start + Duration::from_micros(1_000_000 / u64::from(fps) * u64::from(n));
+            shared.deliver(&mut keeper, at, |max| {
+                let (width, height) = (max.0.min(1920), max.1.min(1080));
+                Some(Frame {
+                    width,
+                    height,
+                    rgba: vec![9; width as usize * height as usize * 4],
+                })
+            });
+        }
+        shared
+    };
+    let at_60 = run(60);
+    let queued = at_60.queue.queued.load(Ordering::Relaxed);
+    assert!((29..=31).contains(&queued), "{queued} previews for 60 sent");
+    let newest = at_60.queue.newest().unwrap();
+    assert_eq!((newest.width, newest.height), PREVIEW_MAX, "scaled to 720p");
+    assert!(lock(&at_60.raw).is_some(), "the encoder still gets 1080p");
+    let at_15 = run(15);
+    let queued = at_15.queue.queued.load(Ordering::Relaxed);
+    assert!((14..=15).contains(&queued), "{queued} previews for 15 sent");
 }
 
 /// What scaling a laptop's screen to what is sent costs, per frame. In
