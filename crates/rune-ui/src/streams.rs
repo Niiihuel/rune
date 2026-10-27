@@ -57,6 +57,9 @@ pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Ve
     let owner = UserId(owner);
     ui.video.spotlight =
         (watched(store, owner) && ui.video.spotlight != Some(owner)).then_some(owner);
+    if ui.video.spotlight.is_some() {
+        ui.video.own_focus = false;
+    }
     Some(Vec::new())
 }
 
@@ -116,6 +119,7 @@ pub(crate) fn double_click(
     }
     ui.video.menu = None;
     ui.video.spotlight = Some(owner);
+    ui.video.own_focus = false;
     ui.video.focus = Some(owner);
     Some(Vec::new())
 }

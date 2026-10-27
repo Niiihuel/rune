@@ -991,7 +991,9 @@ fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
     assert_eq!(host.ui.video.screen.live, rune_ui_live_waiting());
     // Their previews come up on the stage, each with its way to stop; the
     // screen's says how far its stream got, and that it is simulated.
-    for id in [ids::STOP_SCREEN, ids::STOP_CAMERA] {
+    // The screen's is a card in the grid, its picture on the stage once
+    // clicked; the camera's is its preview.
+    for id in [ids::OWN_STREAM_STOP, ids::STOP_CAMERA] {
         assert!(host.vz_shows(id) && host.vz_usable(id), "{id}");
     }
     let me = host.store.me().unwrap();
@@ -1000,6 +1002,7 @@ fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
         owner: me,
         phase: StreamPhase::Live,
     });
+    host.click(ids::OWN_STREAM);
     host.ui.video.screen.sent = Some((58, 2_400));
     let height = host.ui.video.quality.height;
     assert!(host.vz_texts().contains(&format!(
@@ -1054,6 +1057,14 @@ fn the_screen_and_camera_show_while_wanted_and_stop_with_the_call() {
         owner: me,
         phase: StreamPhase::Live,
     });
+
+    // Off the stage, the panel says it is live.
+    host.ui.voice.stage = None;
+    assert!(host
+        .vz_texts()
+        .iter()
+        .any(|text| text.starts_with("Estás en directo · ")));
+    host.ui.voice.stage = Some(room);
 
     let from = host.sent.len();
     host.click(ids::STOP_SCREEN);

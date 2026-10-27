@@ -45,6 +45,12 @@ pub mod ids {
     pub const SCREEN: &str = "vz:screen";
     /// «Dejar de compartir» and «Apagar la cámara» on their previews.
     pub const STOP_SCREEN: &str = "vz:stop-screen";
+    /// The account's own stream as a card in the grid (Discord's «¡Estás en
+    /// directo!»): a click focuses it on the stage, its button stops the share.
+    pub const OWN_STREAM: &str = "vz:own-stream";
+    pub const OWN_STREAM_STOP: &str = "vz:own-stream:stop";
+    /// The surface the still of the account's own stream goes on, on its card.
+    pub const OWN_THUMB_SURFACE: &str = "video:own-thumb";
     /// The quality picker that opens before sharing the screen: its
     /// sizes (`vz:quality:720`), rates (`vz:fps:30`), and going live.
     pub const QUALITY: &str = "vz:quality:";
@@ -351,6 +357,9 @@ pub struct Preview {
     pub stream: Option<StreamTile>,
     /// It takes the stage, the rest in a strip under it.
     pub focused: bool,
+    /// The account's own stream as a card in the grid: its still, and a
+    /// click focuses it ([`ids::OWN_STREAM`]).
+    pub card: bool,
 }
 
 /// A stream watched, as its tile offers it (transmisiones), as in the
@@ -493,6 +502,10 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                 let picture = (size.height >= OVER_PICTURE_HEIGHT && !compact).then_some(wide);
                 over_picture(view, picture, look)
             }
+            // The account's own stream before its first frame: the screen's glyph.
+            None if view.card => {
+                centered(icon(Icon::Screen, look.faint).size(Some(48.0), Some(48.0)))
+            }
             _ => centered(line(&view.waiting, 14.0, look.muted)),
         },
     };
@@ -517,6 +530,7 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
             Element::row(vec![title, Element::spacer().flex(1.0)]),
         ])
         .padding(8.0),
+        None if view.card => own_over(view, title, look),
         // A stream watched: its ways out are in its menu and the bar.
         Some(stream) => stream_over(view, stream, title, info, look),
         // The account's own: pausing it and stopping it, as icons.
@@ -579,11 +593,51 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
                 tile
             }
         }
+        None if view.card => Element::clickable(ids::OWN_STREAM, shown)
+            .radius(TILE_RADIUS)
+            .hover_region(),
         // The account's own picture: its region is the picture, for the info.
         None => shown.hover_region(),
     }
     .size(Some(size.width), Some(size.height))
     .accessibility_label(view.title.clone())
+}
+
+/// The account's own stream's card over its still: «EN VIVO», its title, who
+/// sees it and a red button to stop (Discord's card of the same).
+fn own_over(view: &Preview, title: Element, look: &Look) -> Element {
+    let stop = Button::new(
+        view.stop.0.as_str(),
+        view.stop.1,
+        filled(look.danger, lighter(look.danger, 18), look),
+    )
+    .variant(ButtonVariant::Raised)
+    .sizing(ButtonSizing {
+        height: OVER_BUTTON,
+        font_size: 14.0,
+        icon_size: 18.0,
+        horizontal_padding: 12.0,
+        inner_spacing: 6.0,
+    })
+    .radius(RadiusRole::Card)
+    .ink(OVER_INK)
+    .hover_ink(OVER_INK)
+    .render();
+    Element::column(vec![
+        Element::row(vec![live(22.0, look), Element::spacer().flex(1.0)]),
+        Element::spacer().flex(1.0),
+        Element::row(vec![title, Element::spacer().flex(1.0)]),
+        gap(0.0, 6.0),
+        Element::row(vec![
+            line(&view.note, 12.0, OVER_INK)
+                .centered_y()
+                .shrink_to_fit(),
+            Element::spacer().flex(1.0),
+            stop,
+        ])
+        .gap(8.0),
+    ])
+    .padding(12.5)
 }
 
 /// RUNE's own picture of a stream at rest: a screen in a muted gray with the
@@ -978,6 +1032,9 @@ pub struct Panel {
     /// Joining and quality are simulated by the provider: no audio is carried.
     pub simulated: bool,
     pub video: VideoControls,
+    /// The account shares its screen while the stage is not open: the
+    /// subtitle says «Estás en directo».
+    pub live: bool,
 }
 
 /// The voice section above the account's panel, in the same card: the signal
@@ -1042,6 +1099,7 @@ pub fn panel(view: &Panel, details: Option<Element>, look: &Look) -> Element {
     let subtitle = match &view.phase {
         CallPhase::Failed { reason } => reason.clone(),
         CallPhase::Reconnecting { attempt } => tr!("Intento {attempt} · {place}", attempt, place),
+        _ if view.live => tr!("Estás en directo · {place}", place),
         _ => place,
     };
     // The title reads «Detalles de voz» under the pointer: it opens them too.
@@ -2869,6 +2927,7 @@ mod tests {
                 loss_permille: 4,
             }),
             simulated: true,
+            live: false,
             video: VideoControls {
                 denied: Some(NO_VIDEO.into()),
                 ..Default::default()
@@ -3258,6 +3317,7 @@ mod tests {
                     actions: vec![(ids::PAUSE.into(), "Pausar")],
                     stream: None,
                     focused: false,
+                    card: false,
                 },
                 Preview {
                     surface: ids::CAMERA_SURFACE.into(),
@@ -3271,6 +3331,7 @@ mod tests {
                     actions: Vec::new(),
                     stream: None,
                     focused: false,
+                    card: false,
                 },
             ],
         };
@@ -3318,6 +3379,7 @@ mod tests {
                 actions: Vec::new(),
                 stream: None,
                 focused: false,
+                card: false,
             };
             let (_, laid) = frame(
                 preview(&tile, Size::new(480.0, 270.0), &Look::ONYX),
@@ -3457,6 +3519,7 @@ mod tests {
             actions: Vec::new(),
             stream: None,
             focused: false,
+            card: false,
         };
         let (_, laid) = frame(
             stage(view(Ok(()), vec![stream]), &look),
@@ -3491,6 +3554,7 @@ mod tests {
             actions: Vec::new(),
             stream: None,
             focused: false,
+            card: false,
         };
         let (_, laid) = frame(
             stream_window(&stream, Size::new(960.0, 540.0), false, &look),
@@ -3545,6 +3609,7 @@ mod tests {
                 idle: false,
             }),
             focused,
+            card: false,
         };
         let view = |watching| Stage {
             channel: "General".into(),
@@ -4357,6 +4422,7 @@ mod tests {
                 idle: false,
             }),
             focused,
+            card: false,
         };
         let live = |user: u64, focused| Preview {
             frame: Some((1280, 720)),
@@ -4478,6 +4544,46 @@ mod tests {
     }
 
     #[test]
+    fn the_own_stream_card_says_it_is_live_and_its_click_and_stop_are_named() {
+        let card = Preview {
+            surface: ids::OWN_THUMB_SURFACE.into(),
+            title: "¡Estás en directo!".into(),
+            frame: Some((1920, 1080)),
+            fps: None,
+            kbit: None,
+            waiting: "Esperando al sistema…".into(),
+            stop: (ids::OWN_STREAM_STOP.into(), "Dejar de transmitir"),
+            note: "Los demás ven tu pantalla.".into(),
+            actions: Vec::new(),
+            stream: None,
+            focused: false,
+            card: true,
+        };
+        let look = Look::ONYX;
+        let size = Size::new(480.0, 270.0);
+        let (_, laid) = frame(preview(&card, size, &look), size);
+        let shown = controls(&laid);
+        assert!(shown.contains(&ids::OWN_STREAM.to_owned()), "{shown:?}");
+        assert!(
+            shown.contains(&ids::OWN_STREAM_STOP.to_owned()),
+            "{shown:?}"
+        );
+        let painted = texts(&laid);
+        assert!(
+            painted.contains(&"¡Estás en directo!".to_owned()),
+            "{painted:?}"
+        );
+        assert!(painted.contains(&"Los demás ven tu pantalla.".to_owned()));
+        // Without a frame yet, the card still stands with its button.
+        let waiting = Preview {
+            frame: None,
+            ..card
+        };
+        let (_, laid) = frame(preview(&waiting, size, &look), size);
+        assert!(controls(&laid).contains(&ids::OWN_STREAM_STOP.to_owned()));
+    }
+
+    #[test]
     fn over_a_stream_focused_its_controls_are_named_icons_that_rest_hides() {
         let stream = |idle: bool, fullscreen: bool| Preview {
             surface: ids::stream_surface(2),
@@ -4500,6 +4606,7 @@ mod tests {
                 idle,
             }),
             focused: !fullscreen,
+            card: false,
         };
         let look = Look::ONYX;
         let size = Size::new(960.0, 540.0);
@@ -4557,6 +4664,7 @@ mod tests {
             actions: vec![(ids::PAUSE.into(), "Pausar")],
             stream: None,
             focused: false,
+            card: false,
         };
         let (_, laid) = frame(preview(&own, size, &look), size);
         let shown = controls(&laid);
@@ -4593,6 +4701,7 @@ mod tests {
                 idle,
             }),
             focused,
+            card: false,
         };
         let view = |watching| Stage {
             channel: "General".into(),
@@ -4658,6 +4767,7 @@ mod tests {
                 idle: false,
             }),
             focused,
+            card: false,
         };
         let stage_with = |watching: Vec<Preview>| Stage {
             channel: "General".into(),
@@ -4719,6 +4829,7 @@ mod tests {
             actions: Vec::new(),
             stream: None,
             focused: true,
+            card: false,
         };
         let (_, laid) = frame(stage(stage_with(vec![own]), &look), size);
         let said = texts(&laid);

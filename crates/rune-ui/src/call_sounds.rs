@@ -117,7 +117,7 @@ impl CallSound {
             Self::CameraOn => es("Encender la cámara"),
             Self::CameraOff => es("Apagar la cámara"),
             Self::StreamStart => es("Empezar a transmitir"),
-            Self::StreamStop => es("Dejar de transmitir"),
+            Self::StreamStop => es("Terminar tu transmisión"),
             Self::UserStream => es("Alguien empieza a transmitir"),
             Self::Disconnect => es("Desconexión o error"),
             Self::Message => es("Mensaje nuevo"),

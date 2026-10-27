@@ -69,6 +69,9 @@ pub struct Video {
     // Streams (transmisiones).
     /// The stream watched that takes the stage, the rest in a strip.
     pub spotlight: Option<UserId>,
+    /// The account's own stream takes the stage, its live picture, instead
+    /// of its card in the grid; mutually exclusive with `spotlight`.
+    pub own_focus: bool,
     /// A stream's menu: whose, and the corner where a secondary click
     /// opened it; `None` there when its «⋯» did, anchored to it.
     pub menu: Option<(UserId, Option<(f32, f32)>)>,
@@ -629,7 +632,8 @@ pub(crate) fn controls(ui: &Ui, store: &Store) -> VideoControls {
 /// The previews on the stage, the screen first.
 pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
     let mut previews = Vec::new();
-    if ui.video.screen.on {
+    if ui.video.screen.on && ui.video.own_focus && ui.video.spotlight.is_none() {
+        // Taken the stage: its live picture, what it sends and how.
         previews.push(Preview {
             surface: ids::SCREEN_SURFACE.into(),
             title: t("Tu pantalla").into(),
@@ -642,7 +646,24 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             note: screen_note(ui, store),
             actions: pause_action(store).into_iter().collect(),
             stream: None,
+            focused: true,
+            card: false,
+        });
+    } else if ui.video.screen.on {
+        // In the grid, a card with its still and no picture of its own.
+        previews.push(Preview {
+            surface: ids::OWN_THUMB_SURFACE.into(),
+            title: t("¡Estás en directo!").into(),
+            waiting: t("Esperando al sistema…").into(),
+            frame: ui.video.screen.live.frame(),
+            fps: None,
+            kbit: None,
+            stop: (ids::OWN_STREAM_STOP.into(), t("Dejar de transmitir")),
+            note: t("Los demás ven tu pantalla.").into(),
+            actions: Vec::new(),
+            stream: None,
             focused: false,
+            card: true,
         });
     }
     if ui.video.camera.on {
@@ -658,6 +679,7 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             actions: Vec::new(),
             stream: None,
             focused: false,
+            card: false,
         });
     }
     previews
@@ -796,6 +818,7 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         },
         stream: Some(tile),
         focused: ui.video.spotlight == Some(owner),
+        card: false,
     }
 }
 
@@ -954,6 +977,10 @@ pub(crate) fn intercept(ui: &mut Ui, event: &limn::UiEvent) -> Option<Vec<Intent
         return Some(unfocus(ui));
     }
     let over = ui.video.menu.is_some() || ui.voice.menu.is_some() || ui.voice.card.is_some();
+    if ui.video.own_focus && !over {
+        ui.video.own_focus = false;
+        return Some(Vec::new());
+    }
     (ui.video.spotlight.is_some() && ui.voice.stage.is_some() && !over).then(|| {
         ui.video.spotlight = None;
         Vec::new()
@@ -1055,6 +1082,7 @@ pub(crate) fn watch(ui: &mut Ui, store: &mut Store, owner: UserId, now: Instant)
         .count();
     if others < 2 {
         ui.video.spotlight = Some(owner);
+        ui.video.own_focus = false;
     }
     intents.push(Intent::Command(Command::WatchStream { channel, owner }));
     intents
@@ -1226,6 +1254,7 @@ fn stop_sharing(store: &mut Store) -> Vec<Intent> {
 pub(crate) fn stop(ui: &mut Ui, store: &mut Store, screen: bool) -> Vec<Intent> {
     if screen {
         ui.video.screen = Share::default();
+        ui.video.own_focus = false;
         stop_sharing(store)
     } else {
         stop_camera(ui, store)
@@ -1272,8 +1301,16 @@ pub(crate) fn call_over(ui: &mut Ui) {
     ui.video.windows.clear();
     // Streams (transmisiones).
     ui.video.spotlight = None;
+    ui.video.own_focus = false;
     ui.video.menu = None;
     ui.video.clicked = None;
+}
+
+/// A click on the account's own card: its stream takes the stage.
+pub(crate) fn focus_own(ui: &mut Ui) -> Vec<Intent> {
+    ui.video.own_focus = true;
+    ui.video.spotlight = None;
+    Vec::new()
 }
 
 /// The host lost a source: the system ended it, it went away, or it could
@@ -1288,6 +1325,7 @@ pub fn ended(
 ) -> Vec<Intent> {
     let intents = if screen {
         ui.video.screen = Share::default();
+        ui.video.own_focus = false;
         stop_sharing(store)
     } else {
         ui.video.testing = false;

@@ -74,6 +74,12 @@ const QUEUE: usize = 8;
 const KEY_AGAIN: Duration = Duration::from_millis(500);
 /// How often the shared screen's diagnostic line is written.
 const DIAG_EVERY: Duration = Duration::from_secs(5);
+/// The still on the account's own stream's card: made this often at most,
+/// and no larger than [`THUMB_MAX`] (a still, not live video).
+#[cfg(any(target_os = "linux", windows))]
+const THUMB_EVERY: Duration = Duration::from_secs(5);
+#[cfg(any(target_os = "linux", windows))]
+const THUMB_MAX: (u32, u32) = (320, 180);
 /// What goes to the call, frames and kilobits a second, and who encodes it.
 #[cfg(any(target_os = "linux", windows))]
 type Going = ((u32, u32), &'static str);
@@ -317,6 +323,17 @@ pub struct Video {
     /// The same for the account's camera.
     #[cfg(any(target_os = "linux", windows))]
     camera_diag: Option<(Instant, CaptureStats, EncodeStats)>,
+    /// The still of the account's own stream on its card: the one shown, when
+    /// it was asked for, and the one being made off this thread.
+    #[cfg(any(target_os = "linux", windows))]
+    own_thumb: Option<Frame>,
+    #[cfg(any(target_os = "linux", windows))]
+    own_thumb_at: Option<Instant>,
+    #[cfg(any(target_os = "linux", windows))]
+    own_thumb_making: Option<std::sync::mpsc::Receiver<Option<Frame>>>,
+    /// The density the still was last presented at.
+    #[cfg(any(target_os = "linux", windows))]
+    own_thumb_shown: Option<f32>,
     /// The GPU's engines the account lets encode and decode video.
     #[cfg(any(target_os = "linux", windows))]
     engines: &'static [Engine],
@@ -364,6 +381,45 @@ fn thumbnail_jpeg(frame: &rune_media::video::Frame) -> Option<Vec<u8>> {
         .encode_image(&rgb)
         .ok()?;
     Some(jpeg)
+}
+
+/// Whether the own stream's still is due at `now`, made at `made` (`None`
+/// before any).
+#[cfg(any(target_os = "linux", windows))]
+fn thumb_due(made: Option<Instant>, now: Instant) -> bool {
+    made.is_none_or(|made| now.duration_since(made) >= THUMB_EVERY)
+}
+
+/// The size of a still of a `width` by `height` frame: as large as fits
+/// [`THUMB_MAX`], keeping its shape, never larger than the frame.
+#[cfg(any(target_os = "linux", windows))]
+fn thumb_size(width: u32, height: u32) -> (u32, u32) {
+    let scale = (THUMB_MAX.0 as f32 / width as f32)
+        .min(THUMB_MAX.1 as f32 / height as f32)
+        .min(1.0);
+    let fit = |side: u32| ((side as f32 * scale).round() as u32).max(1);
+    (fit(width), fit(height))
+}
+
+/// The still of `frame` at [`thumb_size`]; `None` for a frame with no area.
+#[cfg(any(target_os = "linux", windows))]
+fn thumbnail_frame(frame: &Frame) -> Option<Frame> {
+    if frame.width == 0 || frame.height == 0 {
+        return None;
+    }
+    let picture = image::RgbaImage::from_raw(frame.width, frame.height, frame.rgba.clone())?;
+    let (width, height) = thumb_size(frame.width, frame.height);
+    let small = image::imageops::resize(
+        &picture,
+        width,
+        height,
+        image::imageops::FilterType::Triangle,
+    );
+    Some(Frame {
+        width,
+        height,
+        rgba: small.into_raw(),
+    })
 }
 
 /// Pixels per point that fill `area` with a frame `width` pixels wide: the
@@ -553,6 +609,7 @@ impl Video {
             ui.video.streams = self.step_streams(ctx, store, laid_out, now);
             intents.extend(rune_ui::video_previews(ui, store, now));
             intents.extend(self.step_thumbnail(ui, store, now));
+            self.step_own_thumb(ctx, laid_out, now);
             let wanted = rune_ui::video_cameras(ui, store);
             ui.video.watched = self.step_cameras(ctx, &wanted, simulated(store), laid_out, now);
         }
@@ -618,6 +675,53 @@ impl Video {
         });
         self.thumbnail = Some((target, receiver));
         Vec::new()
+    }
+
+    /// The still of the account's own stream for its card: made from the
+    /// screen's latest frame at most every [`THUMB_EVERY`], and presented
+    /// on its surface; nothing is presented while the screen is not held.
+    #[cfg(any(target_os = "linux", windows))]
+    fn step_own_thumb(&mut self, ctx: &egui::Context, laid_out: &limn::Frame, now: Instant) {
+        use std::sync::mpsc::TryRecvError;
+        let Some(held) = self.screen.as_ref() else {
+            if self.own_thumb.take().is_some() {
+                limn_egui::forget_surface(ids::OWN_THUMB_SURFACE);
+            }
+            self.own_thumb_at = None;
+            self.own_thumb_making = None;
+            self.own_thumb_shown = None;
+            return;
+        };
+        if let Some(making) = &self.own_thumb_making {
+            match making.try_recv() {
+                Err(TryRecvError::Empty) => {}
+                Ok(thumb) => {
+                    self.own_thumb = thumb;
+                    self.own_thumb_making = None;
+                    self.own_thumb_shown = None;
+                }
+                Err(TryRecvError::Disconnected) => self.own_thumb_making = None,
+            }
+        }
+        if self.own_thumb_making.is_none() && thumb_due(self.own_thumb_at, now) {
+            if let Some(last) = held.last.clone() {
+                let (sender, receiver) = std::sync::mpsc::channel();
+                std::thread::spawn(move || {
+                    let _ = sender.send(thumbnail_frame(&last));
+                });
+                self.own_thumb_making = Some(receiver);
+                self.own_thumb_at = Some(now);
+            }
+        }
+        if let Some(thumb) = &self.own_thumb {
+            present(
+                ctx,
+                ids::OWN_THUMB_SURFACE,
+                thumb,
+                laid_out,
+                &mut self.own_thumb_shown,
+            );
+        }
     }
 
     /// While the share's picker is open, list what RUNE's own picker offers
@@ -1614,6 +1718,29 @@ mod tests {
         assert!(video.cameras[0].hardware);
         key_frame();
         video.clear();
+    }
+
+    #[cfg(any(target_os = "linux", windows))]
+    #[test]
+    fn the_own_still_is_made_at_most_every_five_seconds_and_fits_320_by_180() {
+        let start = Instant::now();
+        assert!(thumb_due(None, start));
+        assert!(!thumb_due(
+            Some(start),
+            start + Duration::from_millis(4_900)
+        ));
+        assert!(thumb_due(Some(start), start + THUMB_EVERY));
+        assert_eq!(thumb_size(1920, 1080), (320, 180));
+        assert_eq!(thumb_size(1000, 1000), (180, 180));
+        assert_eq!(thumb_size(200, 100), (200, 100));
+        let frame = Frame {
+            width: 1920,
+            height: 1080,
+            rgba: vec![0; 1920 * 1080 * 4],
+        };
+        let still = thumbnail_frame(&frame).expect("a still");
+        assert_eq!((still.width, still.height), (320, 180));
+        assert_eq!(still.rgba.len(), 320 * 180 * 4);
     }
 
     #[test]
