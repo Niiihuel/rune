@@ -662,6 +662,7 @@ pub(crate) fn participant(
         server_deafened: false,
         silenced: store.me() != Some(user) && ui.prefs.voice_volume(user.0).1,
         streaming: false,
+        own: false,
         camera: ui
             .video
             .watched
@@ -699,8 +700,10 @@ fn people(ui: &Ui, store: &Store, channel: ChannelId, look: &Look) -> Vec<Partic
         .map(|state| Participant {
             server_muted: state.server_muted,
             server_deafened: state.server_deafened,
-            // The account's own shows on its preview: nothing to watch here.
-            streaming: state.streaming && Some(state.user) != me,
+            // The account's own is live too, as Discord shows it; there is
+            // nothing of it to watch (`own`).
+            streaming: state.streaming,
+            own: Some(state.user) == me,
             camera_on: state.camera,
             thumbnail: video::thumbnail(ui, store, state),
             ..person(state.user, state.muted, state.deafened, state.speaking)
@@ -763,8 +766,7 @@ pub(crate) fn participant_rows(
                 carried: ui.voice_drag.is_some_and(|drag| drag.user == user),
                 ..person
             };
-            let live = person
-                .streaming
+            let live = (person.streaming && !person.own)
                 .then(|| crate::voice_live::card(ui, store, channel, user, &person.name))
                 .flatten();
             let row = parts::participant(&person, card, live.as_ref(), look);

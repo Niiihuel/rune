@@ -1347,6 +1347,8 @@ pub struct Participant {
     pub silenced: bool,
     /// Sharing their screen in the channel.
     pub streaming: bool,
+    /// The account itself: live like anyone, but nothing to watch.
+    pub own: bool,
     /// The size of their camera's frame on their surface, while it shows:
     /// their tile shows it instead of their mark.
     pub camera: Option<(u32, u32)>,
@@ -2190,7 +2192,7 @@ fn call(view: &Stage, look: &Look) -> Element {
             tiles.extend(
                 people
                     .iter()
-                    .map(|shown| person(shown, layout.tile, !watched(shown))),
+                    .map(|shown| person(shown, layout.tile, !shown.own && !watched(shown))),
             );
             tiles.extend(
                 ringing
@@ -2814,6 +2816,7 @@ mod tests {
             server_deafened: false,
             silenced: false,
             streaming: false,
+            own: false,
             camera: None,
             camera_on: false,
             thumbnail: None,
@@ -3461,9 +3464,50 @@ mod tests {
     }
 
     #[test]
+    fn the_account_streaming_is_live_too_with_nothing_to_watch() {
+        let me = Participant {
+            streaming: true,
+            own: true,
+            ..person(1, false, false, false)
+        };
+        let view = Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![me.clone(), person(2, false, false, false)],
+            muted: false,
+            deafened: false,
+            simulated: true,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size: Size::new(980.0, 762.0),
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching: Vec::new(),
+            tiles_hidden: false,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let look = Look::ONYX;
+        let (_, laid) = frame(stage(view, &look), Size::new(980.0, 762.0));
+        // Their tile says it, as Discord's, and offers no «Ver transmisión».
+        assert!(texts(&laid).iter().any(|text| text == "EN VIVO"));
+        assert!(!controls(&laid).contains(&ids::watch(1)));
+        // Their row in the voice list says it too.
+        let (_, row) = frame(participant(&me, None, None, &look), Size::new(300.0, 40.0));
+        assert!(texts(&row).iter().any(|text| text == "EN VIVO"));
+    }
+
+    #[test]
     fn someone_streaming_is_live_can_be_watched_and_their_stream_takes_the_stage() {
         let streamer = Participant {
             streaming: true,
+            own: false,
             ..person(2, false, false, false)
         };
         let view = |watch: Result<(), String>, watching| Stage {
@@ -3586,6 +3630,7 @@ mod tests {
     fn a_stream_focused_takes_the_stage_and_the_rest_go_in_a_strip_under_it() {
         let streaming = |user| Participant {
             streaming: true,
+            own: false,
             ..person(user, false, false, false)
         };
         let stream = |user: u64, focused| Preview {
@@ -3805,6 +3850,7 @@ mod tests {
         .unwrap();
         let shown = |thumbnail| Participant {
             streaming: true,
+            own: false,
             thumbnail,
             ..person(2, false, false, false)
         };
@@ -4279,6 +4325,7 @@ mod tests {
         let look = Look::DARK;
         let streamer = Participant {
             streaming: true,
+            own: false,
             ..person(2, true, false, false)
         };
         let card = LiveCard {

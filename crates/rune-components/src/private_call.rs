@@ -268,6 +268,7 @@ mod tests {
             server_deafened: false,
             silenced: false,
             streaming: false,
+            own: false,
             camera: None,
             camera_on: false,
             thumbnail: None,
