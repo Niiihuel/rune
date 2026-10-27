@@ -456,9 +456,13 @@ fn a_secondary_click_on_a_stream_or_its_streamer_offers_to_stop_watching() {
     host.vz_right_click(&ids::tile(first.0));
     assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(first));
     assert_eq!(count(&mut host, &stop), 2, "from the streamer's tile");
-    host.click(ids::MENU_DISMISS);
+    // Away from the menu, which may cover the screen's middle.
+    let away = Point::new(1.0, 799.0);
+    host.send(UiEvent::PointerDown(away));
+    host.send(UiEvent::PointerUp(away));
     // Someone streaming and not watched: «Ver transmisión» in theirs.
     host.vz_right_click(&ids::tile(second.0));
+    assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(second));
     assert_eq!(count(&mut host, &ids::watch(second.0)), 1);
     host.click(&ids::watch(second.0));
     assert!(host

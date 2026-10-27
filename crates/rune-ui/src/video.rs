@@ -641,7 +641,6 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             frame: ui.video.screen.live.frame(),
             // What the share sends, as its note says.
             fps: ui.video.screen.sent.map(|(fps, _)| fps),
-            kbit: ui.video.screen.sent.map(|(_, kbit)| kbit),
             stop: (ids::STOP_SCREEN.into(), t("Dejar de compartir")),
             note: screen_note(ui, store),
             actions: pause_action(store).into_iter().collect(),
@@ -657,7 +656,6 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             waiting: t("Esperando al sistema…").into(),
             frame: ui.video.screen.live.frame(),
             fps: None,
-            kbit: None,
             stop: (ids::OWN_STREAM_STOP.into(), t("Dejar de transmitir")),
             note: t("Los demás ven tu pantalla.").into(),
             actions: Vec::new(),
@@ -673,7 +671,6 @@ pub(crate) fn previews(ui: &Ui, store: &Store) -> Vec<Preview> {
             waiting: t("Esperando al sistema…").into(),
             frame: ui.video.camera.live.frame(),
             fps: None,
-            kbit: None,
             stop: (ids::STOP_CAMERA.into(), t("Apagar la cámara")),
             note: camera_note(ui, store),
             actions: Vec::new(),
@@ -757,10 +754,11 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         ),
         StreamPhase::Ended(_) => (t("Terminó"), t("Esta transmisión ha finalizado.").into()),
     };
-    let note = if crate::voice::simulated(store) {
-        tr!("{note} · simulada", note)
-    } else {
-        note.to_owned()
+    let note = match watching.phase {
+        _ if crate::voice::simulated(store) => tr!("{note} · simulada", note),
+        // Live is in the stage's header already: no badge over the picture.
+        StreamPhase::Live => String::new(),
+        _ => note.to_owned(),
     };
     // Failed, or stopped by its owner: no picture to show.
     let ended = matches!(
@@ -796,7 +794,6 @@ fn stream(ui: &Ui, store: &Store, watching: &rune_state::Watching, now: Instant)
         ),
         frame: live.and_then(Live::frame).filter(|_| !ended),
         fps: live.and_then(Live::fps).filter(|_| !ended),
-        kbit: None,
         waiting,
         stop: (
             if ended {
