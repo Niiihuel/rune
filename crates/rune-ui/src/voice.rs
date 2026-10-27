@@ -10,7 +10,7 @@
 
 use std::time::{Duration, Instant};
 
-use limn::{Element, Point, Size, UiAction};
+use limn::{Color, Element, Point, Size, UiAction};
 use rune_components::voice::{self as parts, ids, Details, MenuEntry, Panel, Participant, Stage};
 use rune_components::Look;
 use rune_i18n::t;
@@ -640,6 +640,23 @@ pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied, now: Ins
     }
 }
 
+/// The color of `user`'s tile: their avatar's, as Discord paints it, else
+/// their own accent.
+pub(crate) fn tile_accent(
+    ui: &Ui,
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    look: &Look,
+) -> Color {
+    match ui.picture_color(store.avatar_in(server, user)) {
+        Some(color) => look.ink(color),
+        None => store
+            .user(user)
+            .map_or(look.faint, |account| look.ink(account.accent)),
+    }
+}
+
 /// `user` as a participant of a call in `server`'s channel (or outside
 /// servers), with nothing marked of their voice.
 pub(crate) fn participant(
@@ -652,9 +669,7 @@ pub(crate) fn participant(
     Participant {
         user: user.0,
         name: store.display_name(user, server),
-        accent: store
-            .user(user)
-            .map_or(look.faint, |account| look.ink(account.accent)),
+        accent: tile_accent(ui, store, server, user, look),
         muted: false,
         deafened: false,
         speaking: false,

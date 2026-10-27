@@ -67,7 +67,8 @@ pub use files::{Copied, DownloadResult, SaveUpdate, MAX_DOWNLOAD_BYTES, SAVE_EXI
 pub use gifs::{GifSearch, GiphyConfig};
 pub(crate) use images::validated_resource_url;
 pub use images::{
-    Animation, AnimationFrame, Encoding, ImageData, IMAGE_ENTRIES, IMAGE_TEXTURE_ENTRIES,
+    dominant_color, Animation, AnimationFrame, Encoding, ImageData, IMAGE_ENTRIES,
+    IMAGE_TEXTURE_ENTRIES,
 };
 // Pictures on disk between runs (imagenes-y-lectura).
 pub use images::{

@@ -723,3 +723,24 @@ fn the_own_card_and_a_stream_watched_take_the_stage_one_at_a_time() {
     host.click(ids::OWN_STREAM_STOP);
     assert!(!host.vz_shows(ids::OWN_STREAM_STOP) && host.store.sharing().is_none());
 }
+
+#[test]
+fn a_persons_tile_takes_the_color_of_their_avatar_and_their_accent_without_one() {
+    let mut host = Host::new();
+    let user = host.store.me().unwrap();
+    let source = rune_model::RemoteImage {
+        url: "https://cdn.example.test/tile.png".into(),
+        kind: rune_model::ImageKind::Artwork,
+    };
+    let mut account = host.store.user(user).unwrap().clone();
+    account.avatar = Some(source.clone());
+    host.event(Event::UserChanged(account));
+    let tile =
+        |host: &Host| crate::voice::tile_accent(&host.ui, &host.store, None, user, &host.ui.look());
+    let before = tile(&host);
+    host.ui
+        .image_colors
+        .insert(source, rune_model::Rgb(0x12_34_56));
+    assert_eq!(tile(&host), host.ui.look().ink(rune_model::Rgb(0x12_34_56)));
+    assert_ne!(tile(&host), before);
+}

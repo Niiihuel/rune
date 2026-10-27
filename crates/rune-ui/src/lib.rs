@@ -655,6 +655,8 @@ pub struct Ui {
     uploads: uploads::Uploads,
     /// Only validated, bounded thumbnails supplied by the host's asset service.
     pub images: HashMap<rune_model::RemoteImage, limn::RasterImage>,
+    /// The dominant color of each artwork in `images` that has one.
+    pub image_colors: HashMap<rune_model::RemoteImage, rune_model::Rgb>,
     pub image_failures: HashSet<rune_model::RemoteImage>,
     /// First-frame digests of the animations the host is presenting as
     /// surfaces now; see [`playable_images`].
@@ -868,6 +870,16 @@ impl Ui {
     /// The pixels of `source`, once they arrived.
     pub fn picture(&self, source: Option<&rune_model::RemoteImage>) -> Option<limn::RasterImage> {
         source.and_then(|source| self.images.get(source)).cloned()
+    }
+
+    /// The dominant color of `source`'s picture, once it arrived.
+    pub fn picture_color(
+        &self,
+        source: Option<&rune_model::RemoteImage>,
+    ) -> Option<rune_model::Rgb> {
+        source
+            .and_then(|source| self.image_colors.get(source))
+            .copied()
     }
 
     /// Drafts still waiting to be accepted: `None` removes a stored draft.

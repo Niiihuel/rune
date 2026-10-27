@@ -5,6 +5,7 @@
 use std::f32::consts::PI;
 
 use base64::Engine as _;
+use rune_model::ImageKind;
 
 use super::ImageData;
 
@@ -22,7 +23,11 @@ pub(super) fn image(text: &str) -> Option<ImageData> {
         .decode(text)
         .ok()?;
     let (width, height, rgba) = decode(&hash)?;
-    super::still(image::RgbaImage::from_raw(width, height, rgba)?, None)
+    super::still(
+        image::RgbaImage::from_raw(width, height, rgba)?,
+        None,
+        ImageKind::ThumbHash,
+    )
 }
 
 /// The picture `hash` describes as 8-bit RGBA rows, with its width and height.

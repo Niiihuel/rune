@@ -1012,7 +1012,10 @@ pub fn profile_picture(
 /// for a capture: a ring for a decoration, a stripe for a nameplate, a
 /// disc for the rest, in a color of its name. Nothing is fetched.
 /// Decoded for a screen of `density`, as the image service decodes.
-pub fn simulated(source: &rune_model::RemoteImage, density: f32) -> Option<limn::RasterImage> {
+pub fn simulated(
+    source: &rune_model::RemoteImage,
+    density: f32,
+) -> Option<(limn::RasterImage, Option<rune_model::Rgb>)> {
     let path = source.url.split("simulacion.invalid/").nth(1)?;
     // A size asked for draws the same picture (a jumbo emoji's).
     let path = path.split('?').next()?;
@@ -1028,13 +1031,15 @@ pub fn simulated(source: &rune_model::RemoteImage, density: f32) -> Option<limn:
             .write_to(&mut png, image::ImageFormat::Png)
             .ok()?;
         let data = rune_core::normalize_image(png.get_ref(), source, density)?;
-        return super::preview(&data, rune_i18n::t("Imagen simulada"));
+        return super::preview(&data, rune_i18n::t("Imagen simulada"))
+            .map(|image| (image, data.color));
     }
     // An animated vector sticker: RUNE's own sample, drawn as one from the service.
     if path.ends_with(".json") {
         let lottie = include_bytes!("../../../assets/sticker-sample.json");
         let data = rune_core::normalize_image(lottie, source, density)?;
-        return super::preview(&data, rune_i18n::t("Imagen simulada"));
+        return super::preview(&data, rune_i18n::t("Imagen simulada"))
+            .map(|image| (image, data.color));
     }
     let hash = path.bytes().fold(0x811c_9dc5u32, |hash, byte| {
         (hash ^ u32::from(byte)).wrapping_mul(0x0100_0193)
@@ -1085,7 +1090,7 @@ pub fn simulated(source: &rune_model::RemoteImage, density: f32) -> Option<limn:
         .write_to(&mut png, image::ImageFormat::Png)
         .ok()?;
     let data = rune_core::normalize_image(png.get_ref(), source, density)?;
-    super::preview(&data, rune_i18n::t("Imagen simulada"))
+    super::preview(&data, rune_i18n::t("Imagen simulada")).map(|image| (image, data.color))
 }
 
 #[cfg(test)]
@@ -1100,6 +1105,7 @@ mod tests {
                 assert_eq!(picture.dimensions, ALBUM);
                 simulated(&picture.source, 1.0)
                     .expect("the capture draws it")
+                    .0
                     .sha256()
                     .to_owned()
             })

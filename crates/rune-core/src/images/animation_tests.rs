@@ -132,6 +132,7 @@ async fn cached_animations_share_one_budget_and_old_ones_keep_their_first_frame(
                     .collect(),
             })),
             format: Encoding::Png,
+            color: None,
         })
     };
     // Five 16 MiB animations exceed the 64 MiB budget by one.

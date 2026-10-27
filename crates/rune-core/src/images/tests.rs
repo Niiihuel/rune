@@ -500,6 +500,7 @@ async fn successful_download_completes_off_thread_and_cache_evicts_to_its_budget
         base64: Arc::from("x".repeat(CACHE_BYTES / 2 + 1)),
         animation: None,
         format: Encoding::Png,
+        color: None,
     });
     images.insert(source("large1"), Some(large.clone()));
     images.insert(source("large2"), Some(large));
@@ -981,4 +982,45 @@ async fn a_stream_picture_that_did_not_load_is_failed_and_asked_again_unlike_oth
         assert!(images.failures(&wanted).contains(&wanted[0]), "{path}");
         assert_eq!(images.next_retry().is_some(), retried, "{path}");
     }
+}
+
+#[test]
+fn dominant_color_is_the_most_common_opaque_color() {
+    let fill = |rgba: [u8; 4], from: u32, to: u32| {
+        image::RgbaImage::from_fn(32, 32, |x, _| {
+            if (from..to).contains(&x) {
+                image::Rgba(rgba)
+            } else {
+                image::Rgba([0, 0, 0, 0])
+            }
+        })
+    };
+    let red = [255, 0, 0, 255];
+    assert_eq!(
+        dominant_color(&image::RgbaImage::from_pixel(8, 8, image::Rgba(red))),
+        Some(Rgb(0xff_00_00))
+    );
+    // Half red, a quarter blue and a quarter green: red wins.
+    let mut mixed = image::RgbaImage::new(32, 32);
+    for (x, y, pixel) in mixed.enumerate_pixels_mut() {
+        *pixel = image::Rgba(match (x < 16, x < 24, y) {
+            (true, _, _) => red,
+            (false, true, _) => [0, 0, 255, 255],
+            _ => [0, 255, 0, 255],
+        });
+    }
+    assert_eq!(dominant_color(&mixed), Some(Rgb(0xff_00_00)));
+    // Transparent pixels do not count, however many there are.
+    assert_eq!(
+        dominant_color(&fill([0, 0, 255, 255], 0, 8)),
+        Some(Rgb(0xff))
+    );
+    assert_eq!(
+        dominant_color(&image::RgbaImage::from_pixel(
+            8,
+            8,
+            image::Rgba([9, 9, 9, 0])
+        )),
+        None
+    );
 }

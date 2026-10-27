@@ -490,6 +490,7 @@ pub(super) fn normalize(bytes: Vec<u8>, marks: &[PdfMark]) -> Result<ImageData, 
         base64: Arc::from(base64::engine::general_purpose::STANDARD.encode(bytes)),
         animation: None,
         format: crate::images::Encoding::Png,
+        color: None,
     })
 }
 

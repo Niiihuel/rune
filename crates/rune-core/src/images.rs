@@ -9,7 +9,7 @@ use std::{
 
 use base64::Engine as _;
 use image::{ImageFormat, ImageReader};
-use rune_model::{ImageKind, RemoteImage};
+use rune_model::{ImageKind, RemoteImage, Rgb};
 use sha2::{Digest, Sha256};
 use tokio::{
     runtime::Handle,
@@ -134,6 +134,8 @@ pub struct ImageData {
     /// Frames of an animated GIF or WebP, or of a clip, at this preview's size.
     pub animation: Option<Arc<Animation>>,
     pub format: Encoding,
+    /// The picture's dominant color, for an artwork (an avatar's tile takes it).
+    pub color: Option<Rgb>,
 }
 
 impl std::fmt::Debug for ImageData {
@@ -819,7 +821,7 @@ pub(crate) fn normalize_at(
     }
     let side = scaled(THUMBNAIL, density);
     let (first, animation) = lottie::decode(bytes, side, |frame| fit(frame, kind, density))?;
-    still(first, animation.map(Arc::new))
+    still(first, animation.map(Arc::new), kind)
 }
 
 /// [`normalize_at`] for a screen of density 1 and a path that is not
@@ -911,7 +913,11 @@ fn decoded(bytes: &[u8], kind: ImageKind, density: f32) -> Option<ImageData> {
         .flatten()
         .map(Arc::new);
     let frame = fit(decoded, kind, density);
-    still(if obscured { obscure(frame) } else { frame }, animation)
+    still(
+        if obscured { obscure(frame) } else { frame },
+        animation,
+        kind,
+    )
 }
 
 /// `frame` past recognition: shrunk to a few pixels a side and blurred, so
@@ -928,8 +934,15 @@ fn obscure(frame: image::RgbaImage) -> image::RgbaImage {
 }
 
 /// `frame` as the PNG shown while nothing plays, with the frames that do.
-fn still(frame: image::RgbaImage, animation: Option<Arc<Animation>>) -> Option<ImageData> {
+fn still(
+    frame: image::RgbaImage,
+    animation: Option<Arc<Animation>>,
+    kind: ImageKind,
+) -> Option<ImageData> {
     let (width, height) = frame.dimensions();
+    let color = (kind == ImageKind::Artwork)
+        .then(|| dominant_color(&frame))
+        .flatten();
     let mut output = Cursor::new(Vec::new());
     image::DynamicImage::ImageRgba8(frame)
         .write_to(&mut output, ImageFormat::Png)
@@ -943,14 +956,39 @@ fn still(frame: image::RgbaImage, animation: Option<Arc<Animation>>) -> Option<I
         base64: Arc::from(base64::engine::general_purpose::STANDARD.encode(&bytes)),
         animation,
         format: Encoding::Png,
+        color,
     })
+}
+
+/// The most common color of `frame`'s opaque pixels, on a 32-pixel copy,
+/// with 4 bits a channel. Ties go to the lower bucket, so the same picture
+/// always gives the same color. `None` if no pixel is opaque.
+pub fn dominant_color(frame: &image::RgbaImage) -> Option<Rgb> {
+    let small = image::imageops::thumbnail(frame, 32, 32);
+    // Per bucket: the pixel count and the sum of each channel.
+    let mut buckets: HashMap<u16, (u64, [u64; 3])> = HashMap::new();
+    for pixel in small.pixels().filter(|pixel| pixel[3] >= 128) {
+        let key = u16::from(pixel[0] >> 4) << 8
+            | u16::from(pixel[1] >> 4) << 4
+            | u16::from(pixel[2] >> 4);
+        let (count, sums) = buckets.entry(key).or_default();
+        *count += 1;
+        for (sum, channel) in sums.iter_mut().zip(pixel.0) {
+            *sum += u64::from(channel);
+        }
+    }
+    let (_, (count, sums)) = buckets
+        .into_iter()
+        .max_by_key(|(key, (count, _))| (*count, std::cmp::Reverse(*key)))?;
+    let [red, green, blue] = sums.map(|sum| (sum / count) as u32);
+    Some(Rgb(red << 16 | green << 8 | blue))
 }
 
 /// A clip, such as a GIF site's: its first picture as the still and every
 /// picture as an animation, under the same budgets as an animated preview.
 fn clip(bytes: &[u8], density: f32) -> Option<ImageData> {
     let (first, animation) = animation::clip(bytes, |frame| fit(frame, ImageKind::Clip, density))?;
-    still(first, animation.map(Arc::new))
+    still(first, animation.map(Arc::new), ImageKind::Clip)
 }
 
 /// A preview's picture at its own size, for the viewer: decoded once to
@@ -983,6 +1021,7 @@ fn original(bytes: &[u8]) -> Option<ImageData> {
         base64: Arc::from(base64::engine::general_purpose::STANDARD.encode(bytes)),
         animation: None,
         format: encoding,
+        color: None,
     })
 }
 

@@ -138,6 +138,7 @@ pub fn prepare(
         base64: Arc::from(base64::engine::general_purpose::STANDARD.encode(&png)),
         animation: None,
         format: crate::Encoding::Png,
+        color: None,
     });
     let image = match kept {
         Some(gif) => gif,

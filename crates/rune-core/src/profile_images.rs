@@ -405,6 +405,7 @@ fn still(picture: &DynamicImage) -> Result<(Vec<u8>, Arc<ImageData>), &'static s
         base64: Arc::from(base64::engine::general_purpose::STANDARD.encode(&png)),
         animation: None,
         format: crate::Encoding::Png,
+        color: None,
     });
     Ok((png, preview))
 }

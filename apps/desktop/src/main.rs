@@ -4609,8 +4609,12 @@ impl eframe::App for App {
             {
                 retained.insert(source.clone());
                 if !self.ui.images.contains_key(source) {
-                    if let Some(image) = capture_fixture::simulated(source, ctx.pixels_per_point())
+                    if let Some((image, color)) =
+                        capture_fixture::simulated(source, ctx.pixels_per_point())
                     {
+                        if let Some(color) = color {
+                            self.ui.image_colors.insert(source.clone(), color);
+                        }
                         self.ui.images.insert(source.clone(), image);
                         ctx.request_repaint();
                     }
@@ -4684,6 +4688,9 @@ impl eframe::App for App {
         }
         let old_count = self.ui.images.len();
         self.ui.images.retain(|source, _| retained.contains(source));
+        self.ui
+            .image_colors
+            .retain(|source, _| retained.contains(source));
         let mut images_changed = self.ui.images.len() != old_count;
         for (source, data) in ready {
             if self
@@ -4700,6 +4707,9 @@ impl eframe::App for App {
                 rune_core::Encoding::Webp => limn::RasterImageFormat::Webp,
                 rune_core::Encoding::Gif => limn::RasterImageFormat::Gif,
             };
+            if let Some(color) = data.color {
+                self.ui.image_colors.insert(source.clone(), color);
+            }
             if let Some(image) = limn::RasterImage::new(
                 data.sha256.clone(),
                 format,

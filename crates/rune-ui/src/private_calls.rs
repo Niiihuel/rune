@@ -621,12 +621,9 @@ fn incoming_notice(ui: &Ui, store: &Store, root: Element, look: &Look) -> Elemen
             } else {
                 caller(store, channel)
             },
-            accent: if group {
-                look.accent
-            } else {
-                other
-                    .and_then(|user| store.user(user))
-                    .map_or(look.faint, |user| look.ink(user.accent))
+            accent: match other {
+                Some(user) if !group => voice::tile_accent(ui, store, None, user, look),
+                _ => look.accent,
             },
             image: if group {
                 ui.image(&found.icon)

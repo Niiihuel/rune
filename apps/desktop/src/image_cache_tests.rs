@@ -18,6 +18,7 @@ fn a_screen_with_more_pictures_than_the_texture_limit_decodes_each_once() {
                 1.0,
             )
             .unwrap()
+            .0
         })
         .collect();
     let rows = pictures
