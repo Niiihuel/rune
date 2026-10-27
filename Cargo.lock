@@ -5278,7 +5278,7 @@ checksum = "9278fb35b3e730abe136e9b395b5b81b96d06b9f5478a50f0c8430a2237b22de"
 
 [[package]]
 name = "rune-components"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5292,7 +5292,7 @@ dependencies = [
 
 [[package]]
 name = "rune-core"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -5317,7 +5317,7 @@ dependencies = [
 
 [[package]]
 name = "rune-desktop"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "eframe",
  "egui",
@@ -5343,7 +5343,7 @@ dependencies = [
 
 [[package]]
 name = "rune-discord"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -5361,7 +5361,7 @@ dependencies = [
 
 [[package]]
 name = "rune-discord-session"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -5390,11 +5390,11 @@ dependencies = [
 
 [[package]]
 name = "rune-i18n"
-version = "0.1.19"
+version = "0.1.20"
 
 [[package]]
 name = "rune-login"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "getrandom 0.3.4",
  "gtk4",
@@ -5412,7 +5412,7 @@ dependencies = [
 
 [[package]]
 name = "rune-media"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "arc-swap",
  "cpal",
@@ -5439,7 +5439,7 @@ dependencies = [
 
 [[package]]
 name = "rune-model"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "regex-syntax",
  "rune-i18n",
@@ -5449,7 +5449,7 @@ dependencies = [
 
 [[package]]
 name = "rune-platform"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "arboard",
  "futures-util",
@@ -5471,7 +5471,7 @@ dependencies = [
 
 [[package]]
 name = "rune-provider"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "bytes",
  "rune-i18n",
@@ -5483,7 +5483,7 @@ dependencies = [
 
 [[package]]
 name = "rune-release"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek 2.2.0",
@@ -5496,7 +5496,7 @@ dependencies = [
 
 [[package]]
 name = "rune-state"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "rune-i18n",
  "rune-model",
@@ -5505,7 +5505,7 @@ dependencies = [
 
 [[package]]
 name = "rune-storage"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "chacha20poly1305 0.10.1",
  "getrandom 0.3.4",
@@ -5521,7 +5521,7 @@ dependencies = [
 
 [[package]]
 name = "rune-ui"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "limn",
  "rune-components",
@@ -5535,7 +5535,7 @@ dependencies = [
 
 [[package]]
 name = "rune-update"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "base64 0.22.1",
  "ed25519-dalek 2.2.0",
