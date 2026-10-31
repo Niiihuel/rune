@@ -378,6 +378,7 @@ impl Provider for MockProvider {
                 voice_moderation: true,
                 leave_servers: true,
                 trusted_links: &[],
+                report_form: None,
                 // Desktop, language and local voice (P6): the local activity
                 // shows in the account's presence, a few made-up games, and
                 // made-up call codes the interface calls simulated; see

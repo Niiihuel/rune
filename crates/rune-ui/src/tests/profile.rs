@@ -3,6 +3,7 @@
 //! person would, with the simulation answering what they ask of it.
 
 use rune_components::profile::{ids, FullTab, ABOUT_MAX};
+use rune_components::voice::MenuEntry;
 use rune_model::{Member, Rgb, Status};
 use rune_provider::{Failure, ProfileEdit};
 
@@ -1045,7 +1046,9 @@ fn pf_a_members_card_loads_their_profile_once_and_ignores_stale_answers() {
     assert!(host.sent[sent..]
         .iter()
         .all(|command| matches!(command, Command::WatchPeople { .. })));
-    host.click(&format!("{}{user}", ids::FULL));
+    // The full profile is in the «…» menu of the card now.
+    host.click(&format!("{}{user}", ids::CARD_MORE));
+    host.pf_act(&format!("{}{user}", ids::FULL));
     assert_eq!(host.ui.profiles.full, Some((user, Some(server))));
     let painted = host.painted();
     let name = host.store.server(server).unwrap().name.clone();
@@ -1067,7 +1070,9 @@ fn pf_a_members_card_loads_their_profile_once_and_ignores_stale_answers() {
     // Opening a profile again starts on «Sobre mí».
     host.pf_act(ids::FULL_CLOSE);
     host.click(&format!("member:{user}"));
-    host.click(&format!("{}{user}", ids::FULL));
+    // The full profile is in the «…» menu of the card now.
+    host.click(&format!("{}{user}", ids::CARD_MORE));
+    host.pf_act(&format!("{}{user}", ids::FULL));
     assert_eq!(host.ui.profiles.full_tab, FullTab::About);
     host.key(Key::Escape, false, false);
     assert_eq!(host.ui.profiles.full, None, "Escape closes it");
@@ -1644,4 +1649,215 @@ fn pf_the_editor_changes_the_profile_of_a_server_and_waits_where_restricted() {
     // Back to the main profile.
     host.pf_act(ids::MAIN_PROFILE);
     assert_eq!(host.ui.profiles.editor.as_ref().unwrap().server, None);
+}
+
+/// A member of `server` other than the account, who has no conversation with
+/// the account yet (or has one, when `with_conversation`).
+fn pf_someone(host: &Host, server: rune_model::ServerId, with_conversation: bool) -> UserId {
+    let me = host.store.me().unwrap();
+    host.store
+        .members(server)
+        .iter()
+        .map(|member| member.user)
+        .find(|user| {
+            *user != me
+                && host.store.direct_with(*user).is_some() == with_conversation
+                && !host.store.user(*user).is_some_and(|account| account.bot)
+                && host.store.open_direct(*user).allowed()
+        })
+        .expect("someone to write to")
+}
+
+#[test]
+fn pf_a_cards_field_waits_for_a_new_conversation_and_sends_once_it_is_there() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let server = host.store.channel(general).unwrap().server.unwrap();
+    let user = pf_someone(&host, server, false);
+    host.ui.profile = Some(user);
+    let field = format!("{}{user}", ids::MESSAGE);
+    host.pf_input(&field, "hola");
+    let from = host.sent.len();
+    let intents = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Submitted {
+            id: field.clone(),
+            value: "hola".into(),
+        },
+        host.now,
+    );
+    host.run(intents);
+    assert!(
+        host.sent[from..].iter().any(|command| matches!(
+            command,
+            Command::OpenDirect { user: opened, .. } if *opened == user
+        )),
+        "{:?}",
+        host.sent
+    );
+    // The card keeps its text and stays until the conversation exists.
+    assert_eq!(host.ui.profile, Some(user));
+    assert_eq!(host.ui.profiles.message_waiting, Some(user));
+    host.answer_account(from);
+    let channel = host.store.direct_with(user).expect("their conversation");
+    assert!(
+        host.sent.iter().any(|command| matches!(
+            command,
+            Command::SendMessage { channel: sent, content, .. }
+                if *sent == channel && content == "hola"
+        )),
+        "{:?}",
+        host.sent
+    );
+    assert_eq!(host.ui.profile, None, "the card closes once it is sent");
+    assert_eq!(host.ui.profiles.message, None);
+}
+
+#[test]
+fn pf_a_cards_field_sends_at_once_to_an_open_conversation_and_empty_text_nothing() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let server = host.store.channel(general).unwrap().server.unwrap();
+    let user = pf_someone(&host, server, true);
+    host.ui.profile = Some(user);
+    let field = format!("{}{user}", ids::MESSAGE);
+    // Empty text does nothing.
+    let from = host.sent.len();
+    let intents = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Submitted {
+            id: field.clone(),
+            value: String::new(),
+        },
+        host.now,
+    );
+    host.run(intents);
+    assert_eq!(host.sent.len(), from);
+    assert_eq!(host.ui.profile, Some(user));
+    host.pf_input(&field, "  buenas  ");
+    let intents = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Submitted {
+            id: field,
+            value: "  buenas  ".into(),
+        },
+        host.now,
+    );
+    host.run(intents);
+    let channel = host.store.direct_with(user).unwrap();
+    assert!(
+        host.sent[from..].iter().any(|command| matches!(
+            command,
+            Command::SendMessage { channel: sent, content, .. }
+                if *sent == channel && content == "buenas"
+        )),
+        "{:?}",
+        host.sent
+    );
+    assert_eq!(host.ui.profile, None);
+    assert_eq!(host.ui.profiles.message, None);
+}
+
+#[test]
+fn pf_the_more_menu_shares_and_reports_as_the_provider_allows() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let server = host.store.channel(general).unwrap().server.unwrap();
+    let user = pf_someone(&host, server, true);
+    host.ui.profile = Some(user);
+    let labels = |host: &Host| -> Vec<String> {
+        let card = crate::profile::card_of(
+            &host.ui,
+            &host.store,
+            Some(server),
+            user,
+            &rune_components::Look::DARK,
+        )
+        .unwrap();
+        card.more
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|entry| match entry {
+                MenuEntry::Item(_, label, _) | MenuEntry::Danger(_, label) => Some(label),
+                _ => None,
+            })
+            .collect()
+    };
+    // The simulation has no trusted domain and no report form.
+    let shown = labels(&host);
+    assert!(
+        shown.contains(&"Ver perfil completo".to_owned()),
+        "{shown:?}"
+    );
+    assert!(!shown.contains(&"Compartir perfil".to_owned()), "{shown:?}");
+    assert!(
+        !shown.contains(&"Denunciar perfil de usuario".to_owned()),
+        "{shown:?}"
+    );
+    let capabilities = &mut host.store.provider.as_mut().unwrap().capabilities;
+    capabilities.trusted_links = &["discord.com"];
+    capabilities.report_form = Some("https://dis.gd/report");
+    let shown = labels(&host);
+    assert!(shown.contains(&"Compartir perfil".to_owned()), "{shown:?}");
+    assert!(
+        shown.contains(&"Denunciar perfil de usuario".to_owned()),
+        "{shown:?}"
+    );
+    // Sharing copies the page's link on that domain.
+    let shared = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Clicked {
+            id: format!("{}{user}", ids::SHARE),
+        },
+        host.now,
+    );
+    assert!(
+        shared.iter().any(|intent| matches!(
+            intent,
+            Intent::Copy(link) if *link == format!("https://discord.com/users/{user}")
+        )),
+        "{shared:?}"
+    );
+    // Reporting copies the ID for the form, and opens the form.
+    let reported = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Clicked {
+            id: format!("{}{user}", ids::REPORT),
+        },
+        host.now,
+    );
+    assert!(reported.iter().any(|intent| matches!(
+        intent,
+        Intent::Copy(id) if *id == user.0.to_string()
+    )));
+    assert!(reported.iter().any(|intent| matches!(
+        intent,
+        Intent::OpenInBrowser(url) if url == "https://dis.gd/report"
+    )));
+}
+
+#[test]
+fn pf_a_mutual_part_opens_the_full_profile_on_its_tab() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let server = host.store.channel(general).unwrap().server.unwrap();
+    let user = pf_someone(&host, server, true);
+    host.ui.profile = Some(user);
+    let intents = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Clicked {
+            id: format!("{}{user}:servers", ids::MUTUAL),
+        },
+        host.now,
+    );
+    host.run(intents);
+    assert_eq!(host.ui.profiles.full, Some((user, Some(server))));
+    assert_eq!(host.ui.profiles.full_tab, FullTab::Servers);
+    assert_eq!(host.ui.profile, None, "the full profile replaces the card");
 }

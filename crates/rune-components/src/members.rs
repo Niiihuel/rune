@@ -276,6 +276,10 @@ mod tests {
             roles: vec![("Moderación".into(), Color::rgb(200, 80, 80))],
             bot: false,
             message_action: Some("profile:dm:10".into()),
+            message: Some(crate::profile::MessageField {
+                id: "pp:message:10".into(),
+                text: String::new(),
+            }),
             restriction: None,
             member_since: Vec::new(),
             mutual: None,
@@ -290,6 +294,7 @@ mod tests {
             mutual_servers: crate::profile::Mutual::Unknown,
             role_removals: Vec::new(),
             role_menu: None,
+            edit_profile: false,
         };
         let list = Element::column(vec![
             heading(
@@ -308,7 +313,7 @@ mod tests {
             ]),
             Size::new(900.0, 600.0),
         );
-        assert!(controls(&frame).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&frame).contains(&"pp:message:10".to_owned()));
         let painted = texts(&frame);
         assert!(painted.contains(&"En línea — 1".to_owned()), "{painted:?}");
         assert!(painted.contains(&"ada".to_owned()), "{painted:?}");

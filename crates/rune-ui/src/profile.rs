@@ -29,7 +29,8 @@ use rune_model::{
     UserProfile,
 };
 use rune_provider::{
-    Command, Failure, ProfileEdit, ProfileImage, ProfileImageKind, ServerProfileEdit, VoiceSupport,
+    Command, Created, Failure, ProfileEdit, ProfileImage, ProfileImageKind, ServerProfileEdit,
+    VoiceSupport,
 };
 use rune_state::{Applied, Store};
 
@@ -77,6 +78,11 @@ pub struct Profiles {
     pub author_at: Option<((MessageId, bool), limn::Point)>,
     /// The menu open on a card's banner or roles, and whose card it is.
     pub menu: Option<(UserId, CardMenu)>,
+    /// The text written in a card's field, and whose card holds it.
+    pub message: Option<(UserId, String)>,
+    /// The person whose conversation is being opened to receive the field's
+    /// text: it goes once the conversation exists.
+    pub message_waiting: Option<UserId>,
     /// The card shown and since when, by the store's clock: the time of
     /// its effect's layers.
     pub effect_since: Option<(UserId, Option<ServerId>, Timestamp)>,
@@ -426,6 +432,10 @@ pub fn card_of(
         about: loaded
             .and_then(|loaded| loaded.server_about.clone().or(loaded.about.clone()))
             .or(account.about.clone()),
+        message_action: store
+            .open_direct(user)
+            .allowed()
+            .then(|| format!("profile:dm:{user}")),
         // An ignored person's activity stays hidden (2026-10-31).
         activity: presence
             .activity()
@@ -433,10 +443,7 @@ pub fn card_of(
             .map(activity_line),
         roles,
         bot: account.bot,
-        message_action: store
-            .open_direct(user)
-            .allowed()
-            .then(|| format!("profile:dm:{user}")),
+
         identity: crate::identity::card(ui, store, server, user, &held, look),
         loading: loaded.is_none() && store.profile_loading_in(user, server),
         relation: relation(store, user),
@@ -451,6 +458,23 @@ pub fn card_of(
         mutual_friends,
         role_removals,
         role_menu,
+        message: message_field(ui, store, user),
+        edit_profile: store.me() == Some(user) && edit_denied(store).is_none(),
+    })
+}
+
+/// The field under `user`'s card, when the account may write to them: its
+/// action, and the text written so far.
+fn message_field(ui: &Ui, store: &Store, user: UserId) -> Option<parts::MessageField> {
+    (store.me() != Some(user) && store.open_direct(user).allowed()).then(|| parts::MessageField {
+        id: format!("{}{user}", ids::MESSAGE),
+        text: ui
+            .profiles
+            .message
+            .as_ref()
+            .filter(|(who, _)| *who == user)
+            .map(|(_, text)| text.clone())
+            .unwrap_or_default(),
     })
 }
 
@@ -622,6 +646,16 @@ fn more_entries(ui: &Ui, store: &Store, user: UserId, server: Option<ServerId>) 
     groups.push(view);
     let mut safety = crate::ignore::menu(store, user);
     safety.extend(crate::person_menu::block_items(store, user));
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.capabilities.report_form.is_some())
+    {
+        safety.push(MenuEntry::Danger(
+            format!("{}{user}", ids::REPORT),
+            t("Denunciar perfil de usuario").into(),
+        ));
+    }
     groups.push(safety);
     if ui.prefs.developer {
         groups.push(vec![item(
@@ -1078,6 +1112,9 @@ pub fn update(
         UiAction::Clicked { id } => clicked(ui, store, id, now),
         UiAction::InputChanged { id, value } => input(ui, store, id, value),
         UiAction::Submitted { id, .. } if id == ids::CUSTOM_TEXT => Some(save_custom(ui)),
+        UiAction::Submitted { id, .. } if id.starts_with(ids::MESSAGE) => {
+            Some(send_message(ui, store, id, now))
+        }
         // Profile editing (edicion-de-perfil).
         UiAction::AreaSliderChanged { .. } | UiAction::SliderChanged { .. } => {
             crate::framing::update(ui, store, action)
@@ -1089,6 +1126,13 @@ pub fn update(
 fn input(ui: &mut Ui, store: &Store, id: &str, value: &str) -> Option<Vec<Intent>> {
     if id == ids::CUSTOM_TEXT {
         ui.profiles.custom.as_mut()?.text = value.to_owned();
+        return Some(Vec::new());
+    }
+    if let Some(user) = id
+        .strip_prefix(ids::MESSAGE)
+        .and_then(|rest| rest.parse::<u64>().ok())
+    {
+        ui.profiles.message = Some((UserId(user), value.to_owned()));
         return Some(Vec::new());
     }
     if id.starts_with("profile:") && edit_denied(store).is_some() {
@@ -1113,12 +1157,93 @@ fn input(ui: &mut Ui, store: &Store, id: &str, value: &str) -> Option<Vec<Intent
     Some(Vec::new())
 }
 
+/// Enter in a card's field: the text goes to their conversation and the card
+/// closes (REA §4.5). Empty text does nothing. Without a conversation it is
+/// opened first, and the text goes once it exists (see [`message_on_applied`]).
+fn send_message(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<Intent> {
+    let Some(user) = id
+        .strip_prefix(ids::MESSAGE)
+        .and_then(|rest| rest.parse::<u64>().ok())
+        .map(UserId)
+    else {
+        return Vec::new();
+    };
+    let has_text = ui
+        .profiles
+        .message
+        .as_ref()
+        .is_some_and(|(who, text)| *who == user && !text.trim().is_empty());
+    if !has_text {
+        return Vec::new();
+    }
+    let Some(channel) = store.direct_with(user) else {
+        ui.profiles.message_waiting = Some(user);
+        return crate::conversations::open_direct(ui, store, user, now);
+    };
+    let text = ui
+        .profiles
+        .message
+        .take()
+        .map(|(_, text)| text.trim().to_owned())
+        .unwrap_or_default();
+    let mut intents = crate::conversations::open_direct(ui, store, user, now);
+    intents.push(Intent::Send {
+        channel,
+        content: text,
+        reply_to: None,
+        mention_reply: false,
+    });
+    close_floating(ui);
+    intents
+}
+
+/// The text of a card waits for its new conversation: it is sent once the
+/// provider has opened it. When the conversation cannot open, the card keeps
+/// its text and stays.
+pub(crate) fn message_on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<Intent> {
+    let Some(user) = ui.profiles.message_waiting else {
+        return Vec::new();
+    };
+    match applied {
+        Applied::Created {
+            created: Created::Channel(channel),
+            ..
+        } if store.direct_with(user) == Some(*channel) => {
+            ui.profiles.message_waiting = None;
+            let Some((who, text)) = ui.profiles.message.take() else {
+                return Vec::new();
+            };
+            if who != user {
+                ui.profiles.message = Some((who, text));
+                return Vec::new();
+            }
+            close_floating(ui);
+            vec![Intent::Send {
+                channel: *channel,
+                content: text.trim().to_owned(),
+                reply_to: None,
+                mention_reply: false,
+            }]
+        }
+        Applied::Failed {
+            failure: Failure::Direct { .. },
+            ..
+        } => {
+            ui.profiles.message_waiting = None;
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// Close what floats from the panel and the cards, before opening another.
 pub(crate) fn close_floating(ui: &mut Ui) {
     ui.status_menu = false;
     ui.profiles.status_open = false;
     ui.profile = None;
     ui.profiles.menu = None;
+    ui.profiles.message = None;
+    ui.profiles.message_waiting = None;
     // The camera's panel takes its test along, unless the voice page shows it.
     if ui.profiles.devices.take().is_some_and(|quick| quick.camera) && ui.settings.is_none() {
         ui.video.testing = false;
@@ -1251,6 +1376,23 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
             ui.profiles.full_tab = tab;
             return Some(request_profile(ui, store, user, server));
         }
+    }
+    // Reporting copies the person's ID for the provider's form, and opens it.
+    if let Some(user) = number(ids::REPORT) {
+        let form = store
+            .provider
+            .as_ref()
+            .and_then(|info| info.capabilities.report_form);
+        return Some(match form {
+            Some(form) => {
+                ui.notify(t("ID copiado: pégalo en el formulario"), None, false, now);
+                vec![
+                    Intent::Copy(user.to_string()),
+                    Intent::OpenInBrowser(form.to_owned()),
+                ]
+            }
+            None => Vec::new(),
+        });
     }
     if let Some(user) = number(ids::SHARE) {
         let link = store

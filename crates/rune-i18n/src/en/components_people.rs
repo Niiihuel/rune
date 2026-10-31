@@ -221,6 +221,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Bloqueaste a este usuario", "You blocked this user"),
     ("Ignoraste a este usuario", "You ignored this user"),
     ("Añadir roles", "Add roles"),
+    ("Enviar un mensaje a @{name}", "Message @{name}"),
     ("Quitar el rol {role}", "Remove the role {role}"),
     ("Sobre mí", "About me"),
     ("Servidores en común", "Mutual servers"),

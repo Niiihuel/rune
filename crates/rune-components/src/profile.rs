@@ -88,6 +88,8 @@ pub mod ids {
     /// `…:dismiss` closes it. Followed by the person's id.
     pub const CARD_ROLES: &str = "pp:roles:";
     pub const CARD_ROLES_DISMISS: &str = "pp:roles:dismiss";
+    /// The field under a card that writes to its person: followed by their id.
+    pub const MESSAGE: &str = "pp:message:";
     /// Opens someone's full profile: the prefix and their id.
     pub const FULL: &str = "pp:full:";
     pub const FULL_CLOSE: &str = "pp:full:close";
@@ -412,8 +414,6 @@ pub struct Profile {
     /// Their roles where they are seen, highest first, in their colors.
     pub roles: Vec<(String, Color)>,
     pub bot: bool,
-    /// The action that opens a direct conversation with them, if any.
-    pub message_action: Option<String>,
     /// What keeps them from taking part where they are seen: "Aislado
     /// hasta hoy a las 18:30".
     pub restriction: Option<String>,
@@ -422,6 +422,9 @@ pub struct Profile {
     pub member_since: Vec<Since>,
     /// What they share with the account, once known: "2 servidores en común".
     pub mutual: Option<String>,
+    /// The action that opens a direct conversation with them, if any: the
+    /// full profile's «Enviar mensaje».
+    pub message_action: Option<String>,
     /// The action that opens their full profile, if any.
     pub full_action: Option<String>,
     /// The account's private note on them, where it keeps notes.
@@ -449,6 +452,10 @@ pub struct Profile {
     pub role_removals: Vec<Option<String>>,
     /// The roles' checklist, when the account may change them.
     pub role_menu: Option<Vec<MenuEntry>>,
+    /// The field under the card that writes to them, when the account may.
+    pub message: Option<MessageField>,
+    /// The account's own card offers «Editar perfil».
+    pub edit_profile: bool,
 }
 
 /// The friendship with someone, as the round button on a card's banner says
@@ -479,6 +486,14 @@ pub enum CardMenu {
     Relation,
     More,
     Roles,
+}
+
+/// The field under a card that writes to its person (REA §4.5): what is
+/// written so far; Enter sends it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MessageField {
+    pub id: String,
+    pub text: String,
 }
 
 /// Why a card's person is set apart: the account blocks them, or ignores them.
@@ -1300,28 +1315,6 @@ pub fn card(profile: &Profile, look: &Look) -> Element {
     if let Some(note) = profile.note.as_ref().filter(|_| note.is_none()) {
         body.push(note_section(note, look));
     }
-    let mut actions = Vec::new();
-    if let Some(action) = &profile.message_action {
-        actions.push(
-            Button::new(action.clone(), t("Enviar mensaje"), look.menu_palette())
-                .variant(ButtonVariant::Secondary)
-                .icon(Icon::Chat)
-                .render()
-                .flex(1.0),
-        );
-    }
-    if let Some(action) = &profile.full_action {
-        actions.push(
-            Button::new(
-                action.clone(),
-                t("Ver perfil completo"),
-                look.menu_palette(),
-            )
-            .variant(ButtonVariant::Secondary)
-            .render()
-            .flex(1.0),
-        );
-    }
     let mut parts = vec![
         card_head(profile, bubble, look),
         ScrollArea::new(
@@ -1339,13 +1332,8 @@ pub fn card(profile: &Profile, look: &Look) -> Element {
         .render()
         .flex(1.0),
     ];
-    if !actions.is_empty() {
-        parts.push(Element::row(vec![
-            gap(INSET, 0.0),
-            Element::row(actions).gap(8.0).flex(1.0),
-            gap(INSET, 0.0),
-        ]));
-        parts.push(gap(0.0, INSET));
+    if let Some(footer) = card_footer(profile, look) {
+        parts.push(footer);
     }
     crate::identity::with_effect(
         Element::column(parts).hover_region(),
@@ -1353,6 +1341,36 @@ pub fn card(profile: &Profile, look: &Look) -> Element {
         profile.identity.effect.as_ref(),
         Some(ids::CARD_EFFECT),
     )
+}
+
+/// The footer of a card (REA §4.5): a one-line field to write to its person,
+/// whose hint names them, or on the account's own card «Editar perfil».
+fn card_footer(profile: &Profile, look: &Look) -> Option<Element> {
+    let row = match &profile.message {
+        Some(field) => {
+            let hint = tr!("Enviar un mensaje a @{name}", name = profile.name);
+            TextField::new(
+                field.id.clone(),
+                field.text.clone(),
+                hint.clone(),
+                look.menu_palette(),
+            )
+            .accessibility_label(hint)
+            .render()
+            .flex(1.0)
+        }
+        None if profile.edit_profile => {
+            Button::new(ids::EDIT, t("Editar perfil"), look.accent_palette())
+                .icon(Icon::Edit)
+                .render()
+                .flex(1.0)
+        }
+        None => return None,
+    };
+    Some(Element::column(vec![
+        Element::row(vec![gap(INSET, 0.0), row, gap(INSET, 0.0)]),
+        gap(0.0, 12.0),
+    ]))
 }
 
 /// Badges a card's name row shows before «+N» (REA §4.1).
@@ -3131,6 +3149,10 @@ mod tests {
             ],
             bot: false,
             message_action: Some("profile:dm:10".into()),
+            message: Some(MessageField {
+                id: format!("{}10", ids::MESSAGE),
+                text: String::new(),
+            }),
             restriction: None,
             member_since: Vec::new(),
             mutual: None,
@@ -3145,6 +3167,7 @@ mod tests {
             mutual_servers: Mutual::Unknown,
             role_removals: vec![None, None],
             role_menu: None,
+            edit_profile: false,
         }
     }
 
@@ -3170,14 +3193,14 @@ mod tests {
         let button = laid
             .regions
             .iter()
-            .find(|region| region.id == "profile:dm:10")
-            .expect("«Enviar mensaje» stays")
+            .find(|region| region.id == format!("{}10", ids::MESSAGE))
+            .expect("the field to write stays")
             .rect;
         assert!(body.y + body.height <= button.y, "{body:?} {button:?}");
         assert!(button.y + button.height <= 420.0, "inside the window");
         // With room, the whole card shows and nothing scrolls away.
         let (_, roomy) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 2000.0));
-        assert!(controls(&roomy).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&roomy).contains(&format!("{}10", ids::MESSAGE)));
     }
 
     #[test]
@@ -3308,7 +3331,34 @@ mod tests {
                 "{gone}: {painted:?}"
             );
         }
-        assert!(controls(&laid).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&laid).contains(&format!("{}10", ids::MESSAGE)));
+    }
+
+    #[test]
+    fn the_footer_writes_to_someone_with_their_name_or_edits_the_own_profile() {
+        let (_, laid) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 900.0));
+        assert!(controls(&laid).contains(&format!("{}10", ids::MESSAGE)));
+        assert!(texts(&laid).contains(&"Enviar un mensaje a @Ada".to_owned()));
+        assert!(!controls(&laid).contains(&ids::EDIT.to_owned()));
+        // The account's own card edits its profile instead, full width.
+        let own = Profile {
+            message: None,
+            edit_profile: true,
+            full_action: None,
+            ..ada()
+        };
+        let (_, laid) = frame(card(&own, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(controls(&laid).contains(&ids::EDIT.to_owned()));
+        assert!(texts(&laid).contains(&"Editar perfil".to_owned()));
+        // Neither where the account cannot write to them.
+        let none = Profile {
+            message: None,
+            ..ada()
+        };
+        let (_, laid) = frame(card(&none, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(!controls(&laid)
+            .iter()
+            .any(|id| id.starts_with(ids::MESSAGE) || id == ids::EDIT));
     }
 
     #[test]
@@ -4106,7 +4156,7 @@ mod tests {
             .access
             .iter()
             .any(|node| node.name == "Cargando perfil"));
-        assert!(controls(&loaded).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&loaded).contains(&format!("{}10", ids::MESSAGE)));
     }
 
     #[test]
