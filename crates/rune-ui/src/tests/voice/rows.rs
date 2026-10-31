@@ -1,6 +1,6 @@
 //! People's rows under a voice channel in the column (voz-filas-y-arrastre):
 //! the pointer on someone live shows the card of their stream, with its
-//! latest picture and «Ver transmisión».
+//! latest picture and «Mirar transmisión».
 
 use super::*;
 
@@ -35,7 +35,7 @@ fn the_pointer_on_someone_live_shows_their_stream_s_card_and_it_watches_it() {
     host.rows_point(&ids::row(other.0));
     assert_eq!(host.ui.profiles.hovered, Some(other));
     let shown = host.vz_texts();
-    assert!(shown.contains(&"Ver transmisión".to_owned()), "{shown:?}");
+    assert!(shown.contains(&"Mirar transmisión".to_owned()), "{shown:?}");
     assert!(shown.contains(&"Vista previa simulada".to_owned()));
     // Outside the call it cannot be watched yet: shown, disabled.
     assert!(host.vz_shows(&watch) && !host.vz_usable(&watch));
@@ -47,7 +47,7 @@ fn the_pointer_on_someone_live_shows_their_stream_s_card_and_it_watches_it() {
         Some(Intent::Command(Command::LoadStreamPreview { server: on, channel, owner }))
             if (*on, *channel, *owner) == (Some(server), room, other)
     ));
-    // In the call, «Ver transmisión» watches it.
+    // In the call, «Mirar transmisión» watches it.
     host.vz_join("Sala común");
     host.rows_point(&ids::row(other.0));
     assert!(host.vz_usable(&watch));

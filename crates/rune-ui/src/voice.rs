@@ -425,7 +425,8 @@ pub(crate) fn update(
             return Some(open_card(ui, store));
         }
     }
-    if let Some(user) = number(id, "vz:watch:") {
+    // A stream nobody watches: its button, or its tile as a whole, watches it.
+    if let Some(user) = number(id, "vz:watch:").or_else(|| number(id, "vz:stream-tile:")) {
         return Some(video::watch(ui, store, UserId(user), now));
     }
     if let Some(user) = number(id, "vz:live:watch:") {
@@ -537,7 +538,7 @@ pub(crate) fn secondary_click(
     at: Point,
 ) -> Option<Vec<Intent>> {
     let on_tile = || {
-        ["vz:tile:", "vz:tile-more:", "vz:watch:"]
+        ["vz:tile:", "vz:tile-more:", "vz:watch:", "vz:stream-tile:"]
             .into_iter()
             .find_map(|prefix| number(target, prefix))
     };

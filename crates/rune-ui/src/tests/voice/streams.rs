@@ -355,7 +355,7 @@ fn a_streams_picture_is_asked_for_as_the_official_client_does_and_shows_on_its_t
     // The simulation's has none: its tile on the stage says so, under
     // «EN VIVO» and over the way to watch it.
     let texts = host.vz_texts();
-    for expected in ["EN VIVO", "Vista previa simulada", "Ver transmisión"] {
+    for expected in ["EN VIVO", "Vista previa simulada", "Mirar transmisión"] {
         assert!(
             texts.contains(&expected.to_owned()),
             "{expected} in {texts:?}"
@@ -460,10 +460,11 @@ fn a_secondary_click_on_a_stream_or_its_streamer_offers_to_stop_watching() {
     let away = Point::new(1.0, 799.0);
     host.send(UiEvent::PointerDown(away));
     host.send(UiEvent::PointerUp(away));
-    // Someone streaming and not watched: «Ver transmisión» in theirs.
+    // Someone streaming and not watched: «Ver transmisión» in the menu, and
+    // on their stream's own tile, both with the same id.
     host.vz_right_click(&ids::tile(second.0));
     assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(second));
-    assert_eq!(count(&mut host, &ids::watch(second.0)), 1);
+    assert!(count(&mut host, &ids::watch(second.0)) >= 1);
     host.click(&ids::watch(second.0));
     assert!(host
         .store
@@ -561,6 +562,24 @@ impl Host {
     fn tr_controls_show(&mut self, owner: UserId) -> bool {
         self.vz_usable(&ids::fullscreen(owner.0)) && self.vz_usable(ids::MUTE)
     }
+}
+
+#[test]
+fn a_stream_nobody_watches_has_a_tile_that_watches_it_as_its_button_does() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    // The second click opens the stage.
+    host.click(&format!("voice:{room}"));
+    let owner = host.tr_streamers(room, 3, 1)[0];
+    assert!(host.vz_shows(&ids::tile(owner.0)), "their own tile");
+    let tile = ids::watch_tile(owner.0);
+    assert!(host.vz_usable(&tile), "a tile of its own, which watches");
+    let from = host.sent.len();
+    host.click(&tile);
+    assert!(matches!(
+        host.sent[from..],
+        [Command::WatchStream { owner: watched, .. }] if watched == owner
+    ));
 }
 
 // Resting on a stream (transmisiones): as the official client's stage, what
