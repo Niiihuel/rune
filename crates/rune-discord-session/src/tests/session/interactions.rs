@@ -587,7 +587,7 @@ async fn a_user_command_is_listed_by_its_kind_and_runs_on_a_person() {
             (320, CommandKind::Message)
         ]
     );
-    // Run on a person: type 2 with the person as its target, and no options.
+    // Run on a person: type 2 with the person as its target, and empty options.
     let greet = commands[1].clone();
     let used = CommandUse {
         target: Some(UserId(55)),
@@ -602,6 +602,6 @@ async fn a_user_command_is_listed_by_its_kind_and_runs_on_a_person() {
     assert_eq!(run["data"]["id"], "310");
     assert_eq!(run["data"]["version"], "311");
     assert_eq!(run["data"]["name"], "Saludar");
-    assert!(run["data"].get("options").is_none(), "{run}");
+    assert_eq!(run["data"]["options"], serde_json::json!([]), "{run}");
     assert!(run.get("analytics_location").is_none(), "{run}");
 }

@@ -433,9 +433,11 @@ impl Apps {
         let mut data = json!({"version": used.version.to_string(), "id": used.command.to_string(),
             "name": used.name, "type": 1, "application_command": definition, "attachments": []});
         match used.target {
+            // Discord's client sends `options` for every command, empty on a person.
             Some(user) => {
                 data["type"] = json!(2);
                 data["target_id"] = json!(user.0.to_string());
+                data["options"] = json!([]);
             }
             None => data["options"] = json!(options),
         }
