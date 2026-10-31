@@ -643,6 +643,16 @@ impl Http {
                 channel,
                 owner,
             } => self.stream_preview(secret, *server, *channel, *owner).await,
+            Command::OpenActivityButton {
+                request,
+                user,
+                session,
+                application,
+                index,
+            } => {
+                self.activity_button(secret, *request, *user, session, *application, *index)
+                    .await
+            }
             // Streams (transmisiones).
             Command::UploadStreamPreview {
                 server,
@@ -864,6 +874,47 @@ impl Http {
             }
         }
         Ok(events)
+    }
+
+    /// The link of rich-presence button `index` of `user`'s activity in
+    /// `session`, as the official client asks its app for it: `button_urls`
+    /// of the activity's metadata (REA). A missing or unsafe link is a
+    /// refusal, never a page the app did not give. Fixtures only.
+    pub async fn activity_button(
+        &self,
+        secret: &SessionSecret,
+        request: rune_provider::RequestId,
+        user: rune_model::UserId,
+        session: &str,
+        application: Option<u64>,
+        index: u8,
+    ) -> Result<Vec<Event>, RestError> {
+        // The session goes into the path: only its own characters pass.
+        let plain = (1..=128).contains(&session.len())
+            && session
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-');
+        if !plain {
+            return Err(RestError::rejected(es(
+                "La app no tiene un enlace para este botón.",
+            )));
+        }
+        let path = format!(
+            "/users/{user}/sessions/{session}/activities/{}/metadata",
+            application.unwrap_or(0)
+        );
+        let value = self
+            .request(secret, Method::GET, &path, None, 64 * 1024)
+            .await?;
+        match value["button_urls"]
+            .get(usize::from(index))
+            .and_then(crate::rich::link)
+        {
+            Some(url) => Ok(vec![Event::ActivityButtonUrl { request, url }]),
+            None => Err(RestError::rejected(es(
+                "La app no tiene un enlace para este botón.",
+            ))),
+        }
     }
 
     /// Add (`add`) or take back the account's Unicode `emoji` on a message.

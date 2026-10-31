@@ -429,6 +429,9 @@ impl Provider for MockProvider {
                 // to, and says whether the local one is seen; see
                 // `mock::account` and `mock::desktop`.
                 activity_sharing: true,
+                // The simulated apps' buttons are asked and refused, as no
+                // link leaves the simulation; see `mock::identity`.
+                activity_buttons: true,
                 // A banner named and not hosted, and a server made a
                 // community when it has what one needs; see
                 // `mock::server_admin`.
@@ -922,6 +925,14 @@ impl Session {
             }
             Command::PauseStream { channel, paused } => self.later(Duration::ZERO, move |world| {
                 world.pause_share(channel, paused)
+            }),
+            // An app's link is the service's own: none leaves the simulation.
+            Command::OpenActivityButton { request, .. } => self.later(latency, move |_| {
+                vec![Event::Failed {
+                    failure: Failure::ActivityButton { request },
+                    reason: t("Simulado: los botones de las apps no abren enlaces").into(),
+                    ambiguous: false,
+                }]
             }),
             // No picture leaves a simulated stream: only that it streams.
             Command::LoadStreamPreview { channel, owner, .. } => {
@@ -3426,6 +3437,29 @@ mod tests {
             session.events.try_recv().is_err(),
             "nothing comes back for an ignored send"
         );
+    }
+
+    // An app's link is never opened in the simulation: it is refused, said so.
+    #[tokio::test(start_paused = true)]
+    async fn an_activity_button_is_refused_by_the_simulation() {
+        let mut session = Session::start(MockProvider::new(config())).await;
+        session
+            .send(Command::OpenActivityButton {
+                request: 3,
+                user: UserId(17),
+                session: "simulado".into(),
+                application: None,
+                index: 0,
+            })
+            .await;
+        assert!(matches!(
+            session.next().await,
+            Event::Failed {
+                failure: Failure::ActivityButton { request: 3 },
+                ambiguous: false,
+                ..
+            }
+        ));
     }
 
     // Desktop, language and local voice (P6).

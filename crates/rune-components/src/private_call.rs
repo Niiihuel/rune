@@ -286,6 +286,7 @@ mod tests {
             decoration: None,
             movable: false,
             carried: false,
+            game: None,
         }
     }
 

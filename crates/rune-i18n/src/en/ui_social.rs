@@ -321,8 +321,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("No se pudo usar la imagen", "Couldn't use the image"),
     // identity.rs
-    ("{time} restantes", "{time} left"),
-    ("{time} transcurridos", "{time} elapsed"),
+    ("Simulado: no abre Spotify", "Simulated: it doesn't open Spotify"),
     // stage.rs
     ("Ya no estás en ese escenario", "You're no longer on that stage"),
     ("Estás en el público", "You're in the audience"),

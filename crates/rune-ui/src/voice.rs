@@ -703,6 +703,7 @@ pub(crate) fn participant(
         ),
         movable: false,
         carried: false,
+        game: crate::identity::game_mark(ui, store, user),
     }
 }
 
@@ -789,9 +790,8 @@ pub(crate) fn participant_rows(
                 carried: ui.voice_drag.is_some_and(|drag| drag.user == user),
                 ..person
             };
-            let live = (person.streaming && !person.own)
-                .then(|| crate::voice_live::card(ui, store, channel, user, &person.name))
-                .flatten();
+            let live =
+                crate::voice_live::card(ui, store, channel, user, &person.name, person.streaming);
             let row = parts::participant(&person, card, live.as_ref(), look);
             crate::voice_drag::zone(ui, row, channel, &person.user.to_string())
         })

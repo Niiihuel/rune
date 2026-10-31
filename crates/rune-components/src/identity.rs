@@ -6,12 +6,12 @@
 //! service icons are RUNE's own glyphs, never copied artwork.
 
 use limn::{
-    Button, ButtonVariant, Color, Component, Element, FontFamily, Icon, Point, RasterImage,
+    Button, ButtonVariant, Color, Component, Element, FontFamily, Icon, Point, RasterImage, Tooltip,
 };
 
 use rune_i18n::{t, tr};
 
-use crate::{gap, icon, line, strong_line, text, Look};
+use crate::{centered, gap, icon, line, strong_line, text, Look};
 
 /// The actions these pieces report.
 pub mod ids {
@@ -107,14 +107,33 @@ pub enum ActivityKind {
     Competing,
 }
 
+/// A countdown's glyph: an hourglass, drawn for RUNE.
+const HOURGLASS: &str = crate::glyphs::glyph!("hourglass");
+
 impl ActivityKind {
-    fn header(self) -> &'static str {
+    /// The profile card's header: what they do, and with what when it has a
+    /// name, as Discord's activity text.
+    fn header(self, name: &str) -> String {
+        match (self, name.is_empty()) {
+            (Self::Playing, _) => t("Jugando").to_owned(),
+            (Self::Listening, true) => t("Escuchando").to_owned(),
+            (Self::Listening, false) => tr!("Escuchando {name}", name = name),
+            (Self::Watching, true) => t("Viendo").to_owned(),
+            (Self::Watching, false) => tr!("Viendo {name}", name = name),
+            (Self::Competing, true) => t("Compitiendo").to_owned(),
+            (Self::Competing, false) => tr!("Compitiendo en {name}", name = name),
+            (Self::Streaming, true) => t("Transmitiendo").to_owned(),
+            (Self::Streaming, false) => tr!("Transmitiendo {name}", name = name),
+        }
+    }
+
+    /// The header of the voice card's section that lists it.
+    fn section(self) -> &'static str {
         match self {
-            Self::Playing => t("Jugando"),
-            Self::Listening => t("Escuchando"),
-            Self::Watching => t("Viendo"),
-            Self::Streaming => t("Transmitiendo"),
-            Self::Competing => t("Compitiendo"),
+            Self::Playing | Self::Competing => t("Jugando ahora"),
+            Self::Listening => t("Escuchando ahora"),
+            Self::Watching => t("Viendo ahora"),
+            Self::Streaming => t("En vivo"),
         }
     }
 
@@ -129,31 +148,54 @@ impl ActivityKind {
     }
 }
 
-/// How long it has been going, or how far a track is.
+/// How long it has been going, or how far a track is, in seconds.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ActivityTime {
-    /// "47:12 transcurridos".
-    Elapsed(String),
-    /// "2:15 restantes".
-    Remaining(String),
+    /// Since it started.
+    Elapsed(i64),
+    /// Until it ends: a countdown.
+    Remaining(i64),
     /// A track: how far, its length, and the share played from 0 to 1.
-    Track {
-        at: String,
-        length: String,
-        progress: f32,
-    },
+    Track { at: i64, length: i64, progress: f32 },
 }
 
-/// One activity as its card shows it.
+/// One activity as its cards show it: on a profile, and in a voice row's card.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ActivityCard {
     pub kind: ActivityKind,
     pub name: String,
     pub detail: Option<String>,
     pub state: Option<String>,
+    /// The party's players now, and the most allowed (0: no most).
+    pub party: Option<(u32, u32)>,
+    /// A Spotify track: its album is `large_text`, and its button opens it.
+    pub spotify: Option<SpotifyCard>,
+    /// The text of its large picture: a track's album.
+    pub large_text: Option<String>,
     pub image: Option<RasterImage>,
     pub small_image: Option<RasterImage>,
     pub time: Option<ActivityTime>,
+    /// Its rich-presence buttons, in order.
+    pub buttons: Vec<ActivityButton>,
+}
+
+/// A Spotify track's button, which opens the track's page.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpotifyCard {
+    /// The button's id; the album's picture takes `{id}:art` as its tooltip's.
+    pub id: String,
+    /// The track's page to open, or why the button cannot open it.
+    pub open: Result<String, String>,
+}
+
+/// A rich-presence button of an activity.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ActivityButton {
+    pub label: String,
+    /// The id of the action it sends, named by whoever shows the card.
+    pub id: String,
+    /// Whether it can be pressed, or why not.
+    pub enabled: Result<(), String>,
 }
 
 /// A badge on a profile.
@@ -459,33 +501,15 @@ pub fn on_plate(row: Element, height: f32, plate: Option<&Plate>, id: &str) -> E
         .hover_region()
 }
 
-/// The card of one activity: its kind, picture, lines and time.
-pub fn activity_card(card: &ActivityCard, look: &Look) -> Element {
-    let header = Element::row(vec![
-        icon(card.kind.icon(), look.muted)
-            .size(Some(14.0), Some(14.0))
-            .centered_y(),
-        line(card.kind.header(), 12.0, look.muted)
-            .font_family(FontFamily::SansBold)
-            .centered_y(),
-    ])
-    .gap(6.0);
-    // The official client's sizes: a 60 px picture and, over its corner
-    // and 4 px past it, a 24 px round one cut out of the card's ground.
+/// The profile card of one activity, as the official client's: its header,
+/// its picture with a round one over its corner, three lines, its timer or
+/// track, and its buttons, `width` wide.
+pub fn activity_card(card: &ActivityCard, width: f32, look: &Look) -> Element {
+    // The official client's sizes: a 60 px picture and, over its corner and
+    // 4 px past it, a 24 px round one cut out of the card's ground.
     const ART: f32 = 60.0;
     const SMALL: f32 = 24.0;
-    let art = match &card.image {
-        Some(image) => Element::raster_image(image.clone().cover())
-            .size(Some(ART), Some(ART))
-            .radius(6.0),
-        // Seen against the card: its own ground is darker than the card's.
-        None => Element::panel(crate::centered(
-            icon(card.kind.icon(), look.muted).size(Some(28.0), Some(28.0)),
-        ))
-        .size(Some(ART), Some(ART))
-        .radius(6.0)
-        .background(look.menu),
-    };
+    let art = activity_picture(card.image.as_ref(), card.kind, ART, 4.0, look);
     let art = match &card.small_image {
         Some(small) => Element::stack(vec![
             art,
@@ -508,51 +532,136 @@ pub fn activity_card(card: &ActivityCard, look: &Look) -> Element {
         .size(Some(ART), Some(ART)),
         None => art,
     };
-    // Semibold, as the official card's name.
-    let mut lines =
-        vec![strong_line(card.name.clone(), 14.0, look.text).font_family(FontFamily::SansSemibold)];
-    for (value, ink) in [(&card.detail, look.text), (&card.state, look.muted)] {
-        if let Some(value) = value {
-            lines.push(line(value.clone(), 13.0, ink));
-        }
-    }
-    match &card.time {
-        Some(ActivityTime::Elapsed(label) | ActivityTime::Remaining(label)) => {
-            lines.push(line(label.clone(), 12.0, look.online));
-        }
-        Some(ActivityTime::Track { .. }) | None => {}
-    }
+    let (title, second, third) = profile_lines(card);
+    let mut lines = vec![strong_line(title, 14.0, look.text).font_family(FontFamily::SansSemibold)];
+    lines.extend(second.map(|value| line(value, 12.0, look.muted)));
+    lines.extend(third.map(|value| line(value, 12.0, look.muted)));
     let mut body = vec![
-        header,
+        strong_line(card.kind.header(&card.name), 12.0, look.text),
         Element::row(vec![
             art.centered_y(),
             Element::column(lines).gap(2.0).flex(1.0).centered_y(),
         ])
         .gap(12.0),
     ];
-    if let Some(ActivityTime::Track {
-        at,
-        length,
-        progress,
-    }) = &card.time
-    {
-        body.push(track_bar(at, length, *progress, look));
+    match &card.time {
+        Some(ActivityTime::Track {
+            at,
+            length,
+            progress,
+        }) => body.push(track_bar(*at, *length, *progress, look)),
+        Some(time) => body.extend(timer(card.kind, time, look)),
+        None => {}
+    }
+    if !card.buttons.is_empty() {
+        body.push(
+            Element::column(
+                card.buttons
+                    .iter()
+                    .map(|button| action_of(button, width, look))
+                    .collect(),
+            )
+            .gap(8.0),
+        );
     }
     Element::panel(Element::column(body).gap(8.0))
-        .padding(10.0)
+        .padding(8.0)
         .radius(8.0)
         .background(look.raised)
-        .accessible(limn::Access::new(limn::Role::Group).name(format!(
-            "{} {}",
-            card.kind.header(),
-            card.name
-        )))
+        .accessible(limn::Access::new(limn::Role::Group).name(card.kind.header(&card.name)))
 }
 
-/// How far a track is: the time, a bar and its length.
-fn track_bar(at: &str, length: &str, progress: f32, look: &Look) -> Element {
+/// A picture `size` square with `radius`, or the kind's glyph on the menu's
+/// ground when it has none.
+fn activity_picture(
+    image: Option<&RasterImage>,
+    kind: ActivityKind,
+    size: f32,
+    radius: f32,
+    look: &Look,
+) -> Element {
+    match image {
+        Some(image) => Element::raster_image(image.clone().cover())
+            .size(Some(size), Some(size))
+            .radius(radius),
+        None => Element::panel(centered(
+            icon(kind.icon(), look.muted).size(Some(size / 2.0), Some(size / 2.0)),
+        ))
+        .size(Some(size), Some(size))
+        .radius(radius)
+        .background(look.menu),
+    }
+}
+
+/// A profile card's title and two lines, as Discord's: a game's name, then
+/// its details, and its state with its party; anything else's details or
+/// name, then its state, and a track's album last.
+fn profile_lines(card: &ActivityCard) -> (String, Option<String>, Option<String>) {
+    if card.kind == ActivityKind::Playing {
+        let party = card.party.map(party_suffix);
+        let third = match (&card.state, party) {
+            (Some(state), Some(party)) => Some(format!("{state} {party}")),
+            (state, party) => state.clone().or(party),
+        };
+        return (card.name.clone(), card.detail.clone(), third);
+    }
+    let title = card.detail.clone().unwrap_or_else(|| card.name.clone());
+    let third = card.spotify.as_ref().and(card.large_text.clone());
+    (title, card.state.clone(), third)
+}
+
+/// The players of a party in a voice card: «2 de 4», or «2» with no most.
+fn party_text((count, max): (u32, u32)) -> String {
+    if max > 0 {
+        tr!("{count} de {max}", count = count, max = max)
+    } else {
+        count.to_string()
+    }
+}
+
+/// The party after a profile's state: «(2 de 4)», or «(2)» with no most.
+fn party_suffix((count, max): (u32, u32)) -> String {
+    if max > 0 {
+        tr!("({count} de {max})", count = count, max = max)
+    } else {
+        tr!("({count})", count = count)
+    }
+}
+
+/// An activity's time in `look.online`, with a glyph for its kind (an
+/// hourglass for a countdown); none for a track, which has its bar.
+fn timer(kind: ActivityKind, time: &ActivityTime, look: &Look) -> Option<Element> {
+    let (glyph, seconds) = match time {
+        ActivityTime::Elapsed(seconds) => (kind.icon(), *seconds),
+        ActivityTime::Remaining(seconds) => (Icon::Custom(HOURGLASS), *seconds),
+        ActivityTime::Track { .. } => return None,
+    };
+    Some(
+        Element::row(vec![
+            icon(glyph, look.online)
+                .size(Some(12.0), Some(12.0))
+                .centered_y(),
+            line(clock(seconds), 12.0, look.online).centered_y(),
+        ])
+        .gap(4.0),
+    )
+}
+
+/// A party's size beside a timer: a people glyph, then «2 de 4».
+fn party_row(size: (u32, u32), look: &Look) -> Element {
+    Element::row(vec![
+        icon(Icon::Users, look.muted)
+            .size(Some(12.0), Some(12.0))
+            .centered_y(),
+        line(party_text(size), 12.0, look.muted).centered_y(),
+    ])
+    .gap(4.0)
+}
+
+/// A track's bar: the share played in one fill, the rest in the border's color.
+fn bar(progress: f32, look: &Look) -> Element {
     let progress = progress.clamp(0.0, 1.0);
-    let bar = Element::row(vec![
+    Element::row(vec![
         Element::panel(Element::spacer())
             .size(None, Some(4.0))
             .radius(2.0)
@@ -563,18 +672,168 @@ fn track_bar(at: &str, length: &str, progress: f32, look: &Look) -> Element {
             .radius(2.0)
             .background(look.border)
             .flex((1.0 - progress).max(0.001)),
-    ]);
+    ])
+}
+
+/// A track on a profile: its time, its bar and its length.
+fn track_bar(at: i64, length: i64, progress: f32, look: &Look) -> Element {
+    let at = clock(at);
+    let length = clock(length);
     Element::row(vec![
-        line(at.to_owned(), 11.0, look.muted).centered_y(),
-        bar.flex(1.0).centered_y(),
-        line(length.to_owned(), 11.0, look.muted).centered_y(),
+        line(at.clone(), 11.0, look.muted).centered_y(),
+        bar(progress, look).flex(1.0).centered_y(),
+        line(length.clone(), 11.0, look.muted).centered_y(),
     ])
     .gap(8.0)
     .accessible(
         limn::Access::new(limn::Role::ProgressIndicator)
             .name(tr!("{at} de {length}", at, length))
-            .value(progress),
+            .value(progress.clamp(0.0, 1.0)),
     )
+}
+
+/// A track's progress in a voice card: its time so far in two-digit minutes
+/// («04:13»), the bar, and its length.
+fn track_progress(at: i64, length: i64, share: f32, look: &Look) -> Element {
+    Element::row(vec![
+        Element::row(vec![
+            Element::spacer().flex(1.0),
+            strong_line(mmss(at), 12.0, look.muted),
+        ])
+        .size(Some(32.0), None)
+        .centered_y(),
+        bar(share, look).flex(1.0).centered_y(),
+        strong_line(mmss(length), 12.0, look.muted).centered_y(),
+    ])
+    .gap(4.0)
+}
+
+/// Seconds as «04:13».
+fn mmss(seconds: i64) -> String {
+    let seconds = seconds.max(0);
+    format!("{:02}:{:02}", seconds / 60, seconds % 60)
+}
+
+/// A button for an action: `enabled` says whether it can be pressed, or why not.
+fn action(id: &str, label: &str, enabled: Result<(), String>, width: f32, look: &Look) -> Element {
+    let button = Button::new(id.to_owned(), label.to_owned(), look.palette())
+        .variant(ButtonVariant::Secondary)
+        .width(width);
+    match enabled {
+        Ok(()) => button.render(),
+        Err(reason) => button
+            .tooltip_with(crate::voice::denied_hint(label, &reason))
+            .disabled()
+            .render(),
+    }
+}
+
+/// The button of a rich-presence button of an activity.
+fn action_of(button: &ActivityButton, width: f32, look: &Look) -> Element {
+    action(
+        &button.id,
+        &button.label,
+        button.enabled.clone(),
+        width,
+        look,
+    )
+}
+
+/// One activity in a voice card, as Discord's voice popout lists it: its
+/// section's header, then its picture, name and lines (a Spotify track's
+/// album, title and artists), its progress when it is a track, and its
+/// buttons, or the track's «Escuchar en Spotify»; `width` wide.
+pub fn activity_section(card: &ActivityCard, width: f32, look: &Look) -> Element {
+    let text = match &card.spotify {
+        Some(_) => track_text(card, look),
+        None => game_text(card, look),
+    };
+    let mut body = vec![text];
+    if let Some(ActivityTime::Track {
+        at,
+        length,
+        progress,
+    }) = &card.time
+    {
+        body.push(track_progress(*at, *length, *progress, look));
+    }
+    let mut below = vec![Element::column(body).gap(8.0)];
+    match &card.spotify {
+        Some(spotify) => below.push(action(
+            &spotify.id,
+            t("Escuchar en Spotify"),
+            spotify.open.clone().map(|_| ()),
+            width,
+            look,
+        )),
+        None if !card.buttons.is_empty() => below.push(
+            Element::column(
+                card.buttons
+                    .iter()
+                    .map(|button| action_of(button, width, look))
+                    .collect(),
+            )
+            .gap(8.0),
+        ),
+        None => {}
+    }
+    Element::column(vec![
+        strong_line(card.kind.section(), 12.0, look.muted),
+        Element::column(below).gap(12.0),
+    ])
+    .gap(8.0)
+}
+
+/// A game's picture beside its name, its details, its state (when there is
+/// no party), and then its timer and party.
+fn game_text(card: &ActivityCard, look: &Look) -> Element {
+    let mut lines = vec![strong_line(card.name.clone(), 14.0, look.text)];
+    if let Some(detail) = &card.detail {
+        lines.push(line(detail.clone(), 12.0, look.muted));
+    }
+    if let (None, Some(state)) = (card.party, &card.state) {
+        lines.push(line(state.clone(), 12.0, look.muted));
+    }
+    let mut meta: Vec<Element> = card
+        .time
+        .as_ref()
+        .and_then(|time| timer(card.kind, time, look))
+        .into_iter()
+        .collect();
+    meta.extend(card.party.map(|size| party_row(size, look)));
+    if !meta.is_empty() {
+        lines.push(Element::row(meta).gap(8.0));
+    }
+    Element::row(vec![
+        activity_picture(card.image.as_ref(), card.kind, 32.0, 8.0, look),
+        Element::column(lines).gap(2.0).flex(1.0).centered_y(),
+    ])
+    .gap(8.0)
+}
+
+/// A Spotify track's album picture, title and artists; the album's name is
+/// the picture's tooltip.
+fn track_text(card: &ActivityCard, look: &Look) -> Element {
+    let mut art = activity_picture(card.image.as_ref(), card.kind, 32.0, 8.0, look);
+    if let (Some(album), Some(spotify)) = (&card.large_text, &card.spotify) {
+        art = Tooltip::new(
+            art,
+            format!("{}:art", spotify.id),
+            album.clone(),
+            look.menu_palette(),
+        )
+        .render();
+    }
+    let title = card.detail.clone().unwrap_or_else(|| card.name.clone());
+    let mut lines = vec![strong_line(title, 14.0, look.text)];
+    if let Some(artists) = &card.state {
+        lines.push(line(artists.clone(), 12.0, look.muted));
+    }
+    Element::row(vec![
+        art,
+        Element::column(lines).gap(2.0).flex(1.0).centered_y(),
+    ])
+    .gap(8.0)
 }
 
 /// Where someone is connected from, as glyphs with their names.
@@ -1069,14 +1328,18 @@ mod tests {
             name: "Valorant Tracker App".into(),
             detail: Some("Competitive: 9 - 12".into()),
             state: Some("Chamber | Party 2/5".into()),
+            party: None,
+            spotify: None,
+            large_text: None,
             image: None,
             small_image: Some(image()),
-            time: Some(ActivityTime::Elapsed("7:23 elapsed".into())),
+            time: Some(ActivityTime::Elapsed(443)),
+            buttons: Vec::new(),
         };
         let (_, laid) = frame(
             Element::column(vec![
                 line("arriba", 14.0, Color::WHITE),
-                activity_card(&card, &Look::DARK),
+                activity_card(&card, 293.0, &Look::DARK),
                 line("abajo", 14.0, Color::WHITE),
             ])
             .gap(12.0),
@@ -1130,23 +1393,122 @@ mod tests {
             name: "Radio".into(),
             detail: Some("Tema".into()),
             state: Some("Artista".into()),
+            party: None,
+            spotify: None,
+            large_text: None,
             image: None,
             small_image: Some(image()),
             time: Some(ActivityTime::Track {
-                at: "1:15".into(),
-                length: "3:30".into(),
+                at: 75,
+                length: 210,
                 progress: 0.36,
             }),
+            buttons: Vec::new(),
         };
-        let (_, frame) = frame(activity_card(&card, &Look::DARK), Size::new(300.0, 200.0));
+        let (_, frame) = frame(
+            activity_card(&card, 300.0, &Look::DARK),
+            Size::new(300.0, 200.0),
+        );
         let shown = texts(&frame);
-        for expected in ["Escuchando", "Radio", "Tema", "Artista", "1:15", "3:30"] {
+        // The header names what is heard; the title is the track.
+        for expected in ["Escuchando Radio", "Tema", "Artista", "1:15", "3:30"] {
             assert!(shown.iter().any(|text| text == expected), "{expected}");
         }
         assert_eq!(clock(75), "1:15");
+        assert_eq!(clock(65), "1:05");
         assert_eq!(clock(3723), "1:02:03");
     }
 
+    #[test]
+    fn a_game_s_timer_and_party_read_as_discord_writes_them() {
+        let game = |time, party| ActivityCard {
+            kind: ActivityKind::Playing,
+            name: "Factorio".into(),
+            detail: Some("Fábrica".into()),
+            state: Some("Partida".into()),
+            party,
+            spotify: None,
+            large_text: None,
+            image: None,
+            small_image: None,
+            time,
+            buttons: Vec::new(),
+        };
+        // On a profile: the state with the party after it, and the timer.
+        let profile = game(Some(ActivityTime::Elapsed(443)), Some((2, 4)));
+        let (_, laid) = frame(
+            activity_card(&profile, 300.0, &Look::DARK),
+            Size::new(300.0, 220.0),
+        );
+        let shown = texts(&laid);
+        for expected in ["Jugando", "Factorio", "Fábrica", "Partida (2 de 4)", "7:23"] {
+            assert!(shown.iter().any(|text| text == expected), "{expected}");
+        }
+        // In a voice card: the party's count and most, and a countdown's time.
+        let voice = game(Some(ActivityTime::Remaining(90)), Some((3, 0)));
+        let (_, laid) = frame(
+            activity_section(&voice, 248.0, &Look::DARK),
+            Size::new(248.0, 200.0),
+        );
+        let shown = texts(&laid);
+        for expected in ["Jugando ahora", "Factorio", "3", "1:30"] {
+            assert!(shown.iter().any(|text| text == expected), "{expected}");
+        }
+        assert!(
+            !shown.iter().any(|text| text == "Partida"),
+            "no state with a party"
+        );
+        assert_eq!(party_text((2, 4)), "2 de 4");
+        assert_eq!(party_suffix((3, 0)), "(3)");
+    }
+
+    #[test]
+    fn a_spotify_track_names_its_album_and_its_artists_and_opens_its_page() {
+        let track = ActivityCard {
+            kind: ActivityKind::Listening,
+            name: "Spotify".into(),
+            detail: Some("Radio".into()),
+            state: Some("Trío Ferroso, Ana Ruiz".into()),
+            party: None,
+            spotify: Some(SpotifyCard {
+                id: "activity:21:0:spotify".into(),
+                open: Ok("https://open.spotify.com/track/21".into()),
+            }),
+            large_text: Some("Noches de compilación".into()),
+            image: None,
+            small_image: None,
+            time: Some(ActivityTime::Track {
+                at: 253,
+                length: 253,
+                progress: 1.0,
+            }),
+            buttons: Vec::new(),
+        };
+        // On a profile: the header names Spotify, the lines are the artists and the album.
+        let (_, profile) = frame(
+            activity_card(&track, 300.0, &Look::DARK),
+            Size::new(300.0, 220.0),
+        );
+        let shown = texts(&profile);
+        for expected in [
+            "Escuchando Spotify",
+            "Radio",
+            "Trío Ferroso, Ana Ruiz",
+            "Noches de compilación",
+            "4:13",
+        ] {
+            assert!(shown.iter().any(|text| text == expected), "{expected}");
+        }
+        // In a voice card: the two-digit progress and the button to play it.
+        let (_, section) = frame(
+            activity_section(&track, 248.0, &Look::DARK),
+            Size::new(248.0, 260.0),
+        );
+        let shown = texts(&section);
+        for expected in ["Escuchando ahora", "04:13", "Escuchar en Spotify"] {
+            assert!(shown.iter().any(|text| text == expected), "{expected}");
+        }
+    }
     #[test]
     fn marks_badges_and_connections_name_what_they_are() {
         let marks = Marks {

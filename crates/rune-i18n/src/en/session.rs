@@ -482,6 +482,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("GIF de Discord", "Discord GIF"),
     // Apps and interactions.
+    ("La app no tiene un enlace para este botón.", "The app has no link for this button."),
     ("Aplicación", "App"),
     ("Carga el mensaje otra vez antes de usarlo.", "Load the message again before using it."),
     ("El comando no tiene esa opción.", "The command doesn't have that option."),

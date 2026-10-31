@@ -12,6 +12,14 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Viendo {name}", "Watching {name}"),
     ("Transmitiendo {name}", "Streaming {name}"),
     ("Compitiendo en {name}", "Competing in {name}"),
+    ("Jugando ahora", "Playing Now"),
+    ("Escuchando ahora", "Listening Now"),
+    ("Viendo ahora", "Watching Now"),
+    ("Jugando {game}", "Playing {game}"),
+    ("Escuchar en Spotify", "Play on Spotify"),
+    ("{count} de {max}", "{count} of {max}"),
+    ("({count} de {max})", "({count} of {max})"),
+    ("({count})", "({count})"),
     // desktop.rs
     (
         "{name}: canal oculto, no tienes acceso",

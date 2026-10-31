@@ -76,7 +76,7 @@ fn a_card_shows_what_someone_does_with_its_times_and_where_from() {
     assert_eq!(identity.activities.len(), 2);
     assert_eq!(
         identity.activities[0].time,
-        Some(ActivityTime::Elapsed("48:40 transcurridos".into()))
+        Some(ActivityTime::Elapsed(48 * 60 + 40))
     );
     let Some(ActivityTime::Track {
         at,
@@ -86,7 +86,7 @@ fn a_card_shows_what_someone_does_with_its_times_and_where_from() {
     else {
         panic!("a track");
     };
-    assert_eq!((at.as_str(), length.as_str()), ("2:55", "3:30"));
+    assert_eq!((*at, *length), (175, 210));
     assert!((progress - 0.8333).abs() < 0.01);
     assert_eq!(identity.platforms, [Platform::Mobile, Platform::Web]);
     // While it is shown, it moves each second.

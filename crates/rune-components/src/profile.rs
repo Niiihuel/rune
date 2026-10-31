@@ -859,7 +859,7 @@ fn about_parts(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Vec<E
                 identity
                     .activities
                     .iter()
-                    .map(|card| crate::identity::activity_card(card, look))
+                    .map(|card| crate::identity::activity_card(card, width, look))
                     .collect(),
             )
             .gap(8.0),

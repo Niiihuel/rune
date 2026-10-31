@@ -16,6 +16,7 @@ use limn::{
 use rune_i18n::{es, t, tr};
 use rune_model::{CallPhase, CallQuality, Rgb, StreamQuality};
 
+use crate::identity::{activity_section, ActivityCard};
 use crate::{centered, gap, icon, line, strong_line, text, Look};
 
 /// Signal bars, for the connection.
@@ -897,10 +898,14 @@ const ROW_INDENT: f32 = 38.0;
 const ROW_AVATAR: f32 = 24.0;
 const ROW_RING: f32 = 30.0;
 const ROW_RADIUS: f32 = 6.0;
-/// The card of someone live, beside their row: 12 around a 288 by 162
-/// picture of their stream.
-pub const LIVE_CARD_WIDTH: f32 = 312.0;
-const LIVE_PICTURE: (f32, f32) = (288.0, 162.0);
+/// The voice card: 280 wide with 16 of padding, so its content is 248 wide.
+pub const LIVE_CARD_WIDTH: f32 = 280.0;
+/// The width of its content, and of the buttons and pictures in it.
+const LIVE_CONTENT: f32 = 248.0;
+/// Discord's 17 px between a row and its card: transparent, so the pointer crosses.
+const LIVE_GAP: f32 = 17.0;
+/// A stream's picture: 16:9 of the content's width.
+const LIVE_PICTURE: (f32, f32) = (248.0, 139.5);
 /// Tiles keep 16:9, 8 apart as Discord's, rounded 8. The tiles' area is 8 in
 /// from the sides and 16 from the top, where Discord's overlays its header.
 const TILE_GAP: f32 = 8.0;
@@ -1003,7 +1008,7 @@ fn lighter(color: Color, by: u8) -> Color {
 }
 
 /// The hint of a control that cannot be used: what it would do, and why not.
-fn denied_hint(title: &str, reason: &str) -> TooltipSpec {
+pub(crate) fn denied_hint(title: &str, reason: &str) -> TooltipSpec {
     TooltipSpec::new(title).description(reason)
 }
 
@@ -1355,6 +1360,8 @@ pub struct Participant {
     /// They are being carried to another voice channel: their row is lifted
     /// on a card's surface, which the copy following the pointer keeps.
     pub carried: bool,
+    /// The game they play, with its picture: the mark at the end of their row.
+    pub game: Option<GameMark>,
 }
 
 /// The latest picture of someone's stream, as the column shows it.
@@ -1365,13 +1372,9 @@ pub enum Thumbnail {
     Simulated,
 }
 
-/// The card of someone live beside their row in the column, while the
-/// pointer is on it: who, what they stream, the latest picture of it, and
-/// «Mirar transmisión», as the official client's preview of a stream.
+/// The stream of someone live, as the first section of their card shows it.
 #[derive(Clone, Debug, PartialEq)]
-pub struct LiveCard {
-    pub user: u64,
-    pub name: String,
+pub struct LiveStream {
     /// What they stream: the game they play, when known.
     pub activity: Option<String>,
     /// The latest picture of their stream; what is said instead until one
@@ -1381,63 +1384,121 @@ pub struct LiveCard {
     pub watch: Result<(), String>,
 }
 
-/// The card of someone live: `card.picture` 288 by 162 under their name and
-/// what they stream, «Mirar transmisión» under it. Transparent 8 on its left,
-/// toward the row, so the pointer crosses into it.
+/// The card of someone beside their row under a voice channel, while the
+/// pointer is on it: their stream while they are live, then what they do.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiveCard {
+    pub user: u64,
+    pub name: String,
+    /// Their stream, while they are live. Never the account's own: there is
+    /// nothing of it to watch.
+    pub stream: Option<LiveStream>,
+    /// One section per activity they list, in order.
+    pub activities: Vec<ActivityCard>,
+}
+
+/// The game someone plays and its picture, drawn at the end of their row.
+#[derive(Clone, Debug, PartialEq)]
+pub struct GameMark {
+    pub name: String,
+    pub image: limn::RasterImage,
+}
+
+/// The card of someone beside their row, as Discord's voice popout: their
+/// stream while they are live, then a section for each activity they list.
+/// Sections after the first have a line above them. Transparent 17 on its
+/// left, toward the row, so the pointer crosses into it.
 pub fn live_card(card: &LiveCard, look: &Look) -> Element {
-    let (width, height) = LIVE_PICTURE;
-    let mut head = vec![
-        strong_line(&card.name, 15.0, look.text)
-            .flex(1.0)
-            .centered_y(),
-        live(16.0, 10.0, look).centered_y(),
-    ];
-    head.insert(1, gap(8.0, 0.0));
-    let mut body = vec![Element::row(head)];
-    if let Some(activity) = &card.activity {
-        body.push(line(
-            tr!("Transmitiendo {name}", name = activity),
-            13.0,
-            look.muted,
-        ));
+    let mut sections = Vec::new();
+    if let Some(stream) = &card.stream {
+        sections.push(stream_section(card.user, stream, look));
     }
-    let picture = match &card.picture {
+    sections.extend(
+        card.activities
+            .iter()
+            .map(|activity| activity_section(activity, LIVE_CONTENT, look)),
+    );
+    let sections = sections
+        .into_iter()
+        .enumerate()
+        .map(|(index, section)| {
+            if index == 0 {
+                section
+            } else {
+                Element::column(vec![rule(look), gap(0.0, 12.0), section])
+            }
+        })
+        .collect();
+    let surface = Element::panel(Element::column(sections).gap(12.0).padding(16.0))
+        .size(Some(LIVE_CARD_WIDTH), None)
+        .background(look.menu)
+        .border(look.border, 1.0)
+        .radius(12.0)
+        .shadow(look.shadow, limn::Point::new(0.0, 9.0), 22.0, 0.0)
+        .accessibility_label(card.name.clone());
+    Element::row(vec![gap(LIVE_GAP, 0.0), surface]).size(Some(LIVE_CARD_WIDTH + LIVE_GAP), None)
+}
+
+/// The line above a section after the first.
+fn rule(look: &Look) -> Element {
+    Element::panel(Element::spacer())
+        .size(None, Some(1.0))
+        .background(look.border)
+}
+
+/// The stream of someone live: its title, its picture, and «Mirar transmisión».
+fn stream_section(user: u64, stream: &LiveStream, look: &Look) -> Element {
+    let (width, height) = LIVE_PICTURE;
+    let title = match &stream.activity {
+        Some(game) => tr!("Transmitiendo {name}", name = game),
+        None => t("Transmitiendo").to_owned(),
+    };
+    let picture = match &stream.picture {
         Ok(Thumbnail::Image(image)) => {
             Element::raster_image(image.clone().cover()).size(Some(width), Some(height))
         }
         Ok(Thumbnail::Simulated) => centered(text(t("Vista previa simulada"), 13.0, look.muted)),
         Err(note) => centered(text(note.clone(), 13.0, look.muted)),
     };
-    body.push(
-        Element::panel(picture)
-            .size(Some(width), Some(height))
-            .radius(8.0)
-            .background(look.canvas)
-            .clip_children(),
-    );
+    let picture = Element::panel(picture)
+        .size(Some(width), Some(height))
+        .radius(8.0)
+        .background(look.canvas)
+        .clip_children();
     let button = Button::new(
-        ids::live_watch(card.user),
+        ids::live_watch(user),
         t("Mirar transmisión"),
         look.palette(),
     )
-    .variant(ButtonVariant::Success)
-    .icon(Icon::Screen)
+    .variant(ButtonVariant::Secondary)
     .width(width);
-    body.push(match &card.watch {
+    let button = match &stream.watch {
         Ok(()) => button.render(),
         Err(reason) => button
             .tooltip_with(denied_hint(t("Mirar transmisión"), reason))
             .disabled()
             .render(),
-    });
-    let surface = Element::panel(Element::column(body).gap(10.0).padding(12.0))
-        .size(Some(LIVE_CARD_WIDTH), None)
-        .background(look.menu)
-        .border(look.border, 1.0)
-        .radius(12.0)
-        .shadow(look.shadow, limn::Point::new(0.0, 9.0), 22.0, 0.0)
-        .accessibility_label(tr!("Transmisión de {name}", name = card.name));
-    Element::row(vec![gap(8.0, 0.0), surface]).size(Some(LIVE_CARD_WIDTH + 8.0), None)
+    };
+    Element::column(vec![
+        strong_line(title, 12.0, look.muted),
+        Element::column(vec![picture, button]).gap(8.0),
+    ])
+    .gap(8.0)
+}
+
+/// The picture of the game someone plays, at the end of their row, with its
+/// name in a tooltip.
+fn game_mark(id: &str, game: &GameMark, look: &Look) -> Element {
+    let picture = Element::raster_image(game.image.clone().cover())
+        .size(Some(16.0), Some(16.0))
+        .radius(4.0);
+    Tooltip::new(
+        picture,
+        format!("{id}:game"),
+        tr!("Jugando {game}", game = game.name.as_str()),
+        look.menu_palette(),
+    )
+    .render()
 }
 
 /// The «En vivo» mark of someone streaming, `size` high, its text `font` high.
@@ -1579,6 +1640,10 @@ pub fn participant(
     if person.streaming {
         parts.push(gap(4.0, 0.0));
         parts.push(live(16.0, 10.0, look).centered_y());
+    }
+    if let Some(game) = &person.game {
+        parts.push(gap(4.0, 0.0));
+        parts.push(game_mark(&id, game, look).centered_y());
     }
     for mark in marks(person, &id, look.muted, look) {
         parts.push(gap(4.0, 0.0));
@@ -3240,6 +3305,8 @@ pub fn call_question(root: Element, dont_ask_again: bool, look: &Look) -> Elemen
 mod tests {
     use std::time::Duration;
 
+    use crate::identity::{ActivityButton, ActivityKind, ActivityTime, SpotifyCard};
+
     use super::*;
     use crate::testing::{controls, frame, texts};
 
@@ -3263,6 +3330,7 @@ mod tests {
             decoration: None,
             movable: false,
             carried: false,
+            game: None,
         }
     }
 
@@ -5063,9 +5131,12 @@ mod tests {
         let card = LiveCard {
             user: 2,
             name: "Persona 2".into(),
-            activity: Some("VALORANT".into()),
-            picture: Ok(Thumbnail::Simulated),
-            watch: Ok(()),
+            stream: Some(LiveStream {
+                activity: Some("VALORANT".into()),
+                picture: Ok(Thumbnail::Simulated),
+                watch: Ok(()),
+            }),
+            activities: Vec::new(),
         };
         let size = Size::new(900.0, 400.0);
         let column = |card: Option<&LiveCard>| {
@@ -5114,7 +5185,7 @@ mod tests {
             .rect;
         assert_eq!(surface.x, row.x + row.width);
         assert_eq!(surface.y, row.y);
-        assert_eq!(surface.width, LIVE_CARD_WIDTH + 8.0);
+        assert_eq!(surface.width, LIVE_CARD_WIDTH + 17.0);
         // On their marks too.
         let muted = shown
             .regions
@@ -5164,16 +5235,106 @@ mod tests {
         );
         // Not allowed: disabled, with why; no picture yet: said so.
         let denied = LiveCard {
-            picture: Err("Cargando la vista previa…".into()),
-            watch: Err("Entra al canal de voz para ver la transmisión".into()),
-            activity: None,
+            stream: Some(LiveStream {
+                picture: Err("Cargando la vista previa…".into()),
+                watch: Err("Entra al canal de voz para ver la transmisión".into()),
+                activity: None,
+            }),
             ..card
         };
         let (_, laid) = frame(live_card(&denied, &look), size);
         assert!(!controls(&laid).contains(&ids::live_watch(2)));
         let words = texts(&laid);
         assert!(words.iter().any(|text| text == "Cargando la vista previa…"));
-        assert!(!words.iter().any(|text| text.starts_with("Transmitiendo")));
+        // Without a known game, the title says only that it streams.
+        assert!(words.iter().any(|text| text == "Transmitiendo"));
+    }
+
+    #[test]
+    fn a_voice_card_is_280_wide_with_its_stream_then_each_activity_set_off_by_a_line() {
+        let look = Look::DARK;
+        let game = ActivityCard {
+            kind: ActivityKind::Playing,
+            name: "Factorio".into(),
+            detail: Some("Fábrica".into()),
+            state: None,
+            party: Some((2, 4)),
+            spotify: None,
+            large_text: None,
+            image: None,
+            small_image: None,
+            time: Some(ActivityTime::Elapsed(443)),
+            buttons: vec![ActivityButton {
+                label: "Ver la fábrica".into(),
+                id: "vz:live:activity:2:0:button:0".into(),
+                enabled: Ok(()),
+            }],
+        };
+        let track = ActivityCard {
+            kind: ActivityKind::Listening,
+            name: "Spotify".into(),
+            detail: Some("Radio".into()),
+            state: Some("Trío Ferroso".into()),
+            party: None,
+            spotify: Some(SpotifyCard {
+                id: "vz:live:activity:2:1:spotify".into(),
+                open: Err("Simulado: no abre Spotify".into()),
+            }),
+            large_text: Some("Noches".into()),
+            image: None,
+            small_image: None,
+            time: Some(ActivityTime::Track {
+                at: 253,
+                length: 253,
+                progress: 1.0,
+            }),
+            buttons: Vec::new(),
+        };
+        let card = LiveCard {
+            user: 2,
+            name: "Persona 2".into(),
+            stream: Some(LiveStream {
+                activity: Some("VALORANT".into()),
+                picture: Ok(Thumbnail::Simulated),
+                watch: Ok(()),
+            }),
+            activities: vec![game, track],
+        };
+        let size = Size::new(400.0, 800.0);
+        let (_, laid) = frame(live_card(&card, &look), size);
+        let shown = texts(&laid);
+        for expected in [
+            "Transmitiendo VALORANT",
+            "Mirar transmisión",
+            "Jugando ahora",
+            "Ver la fábrica",
+            "Escuchando ahora",
+            "Escuchar en Spotify",
+        ] {
+            assert!(shown.iter().any(|text| text == expected), "{expected}");
+        }
+        // The card is 280 wide, and a line sits above each section after the first.
+        let width_of = |color: Color| {
+            laid.commands.iter().find_map(|command| match command {
+                limn::DrawCommand::FillRect {
+                    rect, color: fill, ..
+                } if *fill == color => Some(rect.width),
+                _ => None,
+            })
+        };
+        assert_eq!(width_of(look.menu), Some(LIVE_CARD_WIDTH));
+        let lines = laid
+            .commands
+            .iter()
+            .filter(|command| {
+                matches!(
+                    command,
+                    limn::DrawCommand::FillRect { rect, color, .. }
+                        if *color == look.border && rect.height == 1.0
+                )
+            })
+            .count();
+        assert_eq!(lines, 2, "after the stream and the game");
     }
 
     // Streams (transmisiones): icons over a stream, hidden once the pointer

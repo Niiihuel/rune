@@ -1202,6 +1202,7 @@ pub fn on_applied(ui: &mut Ui, store: &mut Store, applied: &Applied, now: Instan
     intents.extend(context::on_applied(ui, store, applied));
     intents.extend(server_settings::on_applied(ui, store, applied, now));
     intents.extend(profile::on_applied(ui, store, applied));
+    intents.extend(identity::on_applied(ui, store, applied));
     intents.extend(channel_settings::on_applied(ui, store, applied));
     intents.extend(answer(ui, store, applied, now));
     intents.extend(person_menu::on_applied(ui, store, applied, now));
