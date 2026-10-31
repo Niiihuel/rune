@@ -863,12 +863,21 @@ pub fn platforms(places: &[Platform], look: &Look) -> Element {
 /// Badges as small pictures, or their names while they have none, each
 /// with what it means as its hint.
 pub fn badges(badges: &[BadgeChip], look: &Look) -> Element {
-    let items = badges
+    Element::row(badge_items(badges, 22.0, usize::MAX, look))
+        .gap(4.0)
+        .wrap()
+}
+
+/// The first `most` badges, `size` across, as items of a row; the rest are
+/// counted as «+N», which is not clickable (the card's header, 2026-10-31).
+pub fn badge_items(badges: &[BadgeChip], size: f32, most: usize, look: &Look) -> Vec<Element> {
+    let mut items: Vec<Element> = badges
         .iter()
+        .take(most)
         .enumerate()
         .map(|(index, badge)| {
             let face = match &badge.image {
-                Some(image) => Element::raster_image(image.clone()).size(Some(22.0), Some(22.0)),
+                Some(image) => Element::raster_image(image.clone()).size(Some(size), Some(size)),
                 None => Element::panel(line(badge.description.clone(), 11.0, look.text))
                     .padding(3.0)
                     .radius(4.0)
@@ -886,7 +895,11 @@ pub fn badges(badges: &[BadgeChip], look: &Look) -> Element {
             limn::Tooltip::new(face, id, badge.description.clone(), look.menu_palette()).render()
         })
         .collect();
-    Element::row(items).gap(4.0).wrap()
+    let hidden = badges.len().saturating_sub(most);
+    if hidden > 0 {
+        items.push(line(format!("+{hidden}"), 14.0, look.muted).centered_y());
+    }
+    items
 }
 
 /// The glyph of a connected service: RUNE's own or a neutral one.

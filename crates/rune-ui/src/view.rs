@@ -950,7 +950,7 @@ fn member_list(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> Element
         .size(Some(ui.prefs.members_width), None);
     let list = region(list, MEMBERS, t("Miembros"));
     match held {
-        Some((user, at)) => rune_components::profile::popout(
+        Some((user, at)) => rune_components::profile::card_popout(
             list,
             profile::popout_card(ui, store, Some(server), user, look)
                 .map(|found| rune_components::profile::card(&found, look)),

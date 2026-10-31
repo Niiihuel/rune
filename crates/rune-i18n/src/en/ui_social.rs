@@ -1,6 +1,11 @@
 //! Message actions, search, the inbox, friends, profiles, voice, video and documents (`rune-ui`).
 
 pub(super) const ENTRIES: super::Entries = &[
+    // The card's «…» and friendship menus (2026-10-31).
+    ("Compartir perfil", "Share profile"),
+    ("Denunciar perfil de usuario", "Report User Profile"),
+    ("ID copiado: pégalo en el formulario", "ID copied: paste it in the form"),
+    ("Cancelar solicitud de amistad", "Cancel friend request"),
     // message_actions/
     ("Enlace copiado", "Link copied"),
     ("Enviar sin notificar a nadie", "Send without notifying anyone"),

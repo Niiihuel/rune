@@ -293,27 +293,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
     // Discord's «Apps ›»: after the nickname, before the invitations.
     controls.extend(crate::app_menu::entry(ui, store, user, place));
     if other {
-        let invites: Vec<MenuEntry> = rail_servers(store)
-            .into_iter()
-            .filter(|found| Some(found.id) != server)
-            .filter(|found| {
-                store
-                    .server_abilities(found.id)
-                    .is_some_and(|abilities| abilities.create_invites.allowed())
-                    && !invite_channels(store, found.id).is_empty()
-            })
-            .map(|found| {
-                let id = format!("pm:{}:invite:{}", user.0, found.id.0);
-                if ui.person_invited.contains(&(user, found.id)) {
-                    MenuEntry::Inert(id, t("Invitación enviada").into())
-                } else {
-                    item(id, &found.name, None)
-                }
-            })
-            .collect();
-        if !invites.is_empty() {
-            controls.push(MenuEntry::Submenu(t("Invitar al servidor").into(), invites));
-        }
+        controls.extend(invite_submenu(ui, store, user, server));
         let requests = store
             .provider
             .as_ref()
@@ -338,13 +318,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
     if other {
         // Ignoring (or not) sits right before blocking, as the official menu has it.
         controls.extend(crate::ignore::menu(store, user));
-        if kind == Some(RelationshipKind::Blocked) {
-            if social.unblock.allowed() {
-                controls.push(item(person("unblock"), t("Desbloquear"), None));
-            }
-        } else if social.block.allowed() {
-            controls.push(MenuEntry::Danger(person("block"), t("Bloquear").into()));
-        }
+        controls.extend(block_items(store, user));
     }
     if !other
         && store
@@ -382,6 +356,55 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
         entries.extend(group);
     }
     entries
+}
+
+/// «Invitar al servidor ›»: the servers `user` may be invited to, but `server`
+/// (where the menu is opened); `None` when there are none. Each invitation
+/// already sent is said so.
+pub(crate) fn invite_submenu(
+    ui: &Ui,
+    store: &Store,
+    user: UserId,
+    server: Option<ServerId>,
+) -> Option<MenuEntry> {
+    let invites: Vec<MenuEntry> = rail_servers(store)
+        .into_iter()
+        .filter(|found| Some(found.id) != server)
+        .filter(|found| {
+            store
+                .server_abilities(found.id)
+                .is_some_and(|abilities| abilities.create_invites.allowed())
+                && !invite_channels(store, found.id).is_empty()
+        })
+        .map(|found| {
+            let id = format!("pm:{}:invite:{}", user.0, found.id.0);
+            if ui.person_invited.contains(&(user, found.id)) {
+                MenuEntry::Inert(id, t("Invitación enviada").into())
+            } else {
+                MenuEntry::Item(id, found.name.clone(), None)
+            }
+        })
+        .collect();
+    (!invites.is_empty()).then(|| MenuEntry::Submenu(t("Invitar al servidor").into(), invites))
+}
+
+/// Blocking, or lifting the block, as a person's menu offers it when the
+/// account may: a block is in danger's color, a lifted one is not.
+pub(crate) fn block_items(store: &Store, user: UserId) -> Vec<MenuEntry> {
+    let social = store.social(user);
+    let person = |action: &str| format!("friend:{}:{action}", user.0);
+    if store.blocked(user) {
+        if social.unblock.allowed() {
+            return vec![MenuEntry::Item(
+                person("unblock"),
+                t("Desbloquear").into(),
+                None,
+            )];
+        }
+    } else if social.block.allowed() {
+        return vec![MenuEntry::Danger(person("block"), t("Bloquear").into())];
+    }
+    Vec::new()
 }
 
 /// Whether the account can call `user`: they are not a bot, the provider has

@@ -2930,6 +2930,9 @@ pub struct Capabilities {
     /// Hosts whose links open without asking first, with their subdomains:
     /// the service's own. Other links ask, unless the person trusts them.
     pub trusted_links: &'static [&'static str],
+    /// The page where a person's profile is reported, when the service has
+    /// one: the person's ID is pasted in it, so the report names them.
+    pub report_form: Option<&'static str>,
     // Desktop, language and local voice (P6).
     /// What this device says the person is doing (another program's Rich
     /// Presence, a game) can be published as the account's activity

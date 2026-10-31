@@ -221,7 +221,7 @@ pub fn member(row: &MemberRow, profile: Option<&Profile>, look: &Look) -> Elemen
         .hover_background(look.hover)
         .accessible(limn::Access::new(limn::Role::ListItem).name(row.name.clone()));
     // The card stands against the ground, where a held one stands too.
-    let button = crate::profile::popout(
+    let button = crate::profile::card_popout(
         button,
         profile.map(|profile| crate::profile::card(profile, look)),
         crate::profile::ids::MEMBER_DISMISS,
@@ -262,6 +262,7 @@ mod tests {
             identity: Default::default(),
             image: None,
             banner: None,
+            banner_tint: None,
             name: "Ada".into(),
             handle: "ada".into(),
             accent: Color::rgb(90, 120, 200),
@@ -275,12 +276,25 @@ mod tests {
             roles: vec![("Moderación".into(), Color::rgb(200, 80, 80))],
             bot: false,
             message_action: Some("profile:dm:10".into()),
+            message: Some(crate::profile::MessageField {
+                id: "pp:message:10".into(),
+                text: String::new(),
+            }),
             restriction: None,
             member_since: Vec::new(),
             mutual: None,
             full_action: None,
             note: None,
             loading: false,
+            relation: None,
+            more: None,
+            open_menu: None,
+            notice: None,
+            mutual_friends: crate::profile::Mutual::Unknown,
+            mutual_servers: crate::profile::Mutual::Unknown,
+            role_removals: Vec::new(),
+            role_menu: None,
+            edit_profile: false,
         };
         let list = Element::column(vec![
             heading(
@@ -299,10 +313,11 @@ mod tests {
             ]),
             Size::new(900.0, 600.0),
         );
-        assert!(controls(&frame).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&frame).contains(&"pp:message:10".to_owned()));
         let painted = texts(&frame);
         assert!(painted.contains(&"En línea — 1".to_owned()), "{painted:?}");
-        assert!(painted.contains(&"ada • ella".to_owned()), "{painted:?}");
+        assert!(painted.contains(&"ada".to_owned()), "{painted:?}");
+        assert!(painted.contains(&"ella".to_owned()), "{painted:?}");
         assert!(painted.contains(&"Moderación".to_owned()));
     }
 

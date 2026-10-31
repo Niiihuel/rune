@@ -22,7 +22,8 @@ use rune_i18n::{es, t, tr};
 use rune_model::{Rgb, Status, Timestamp};
 
 use crate::server_settings::{self as parts, Swatches, UnsavedBar};
-use crate::{emoji, gap, icon, line, strong_line, text, time, Look};
+use crate::voice::{menu_entries, menu_width, MenuEntry};
+use crate::{centered, emoji, gap, icon, line, strong_line, text, time, Look};
 
 /// The actions these pieces report. Those that name a message, a status or
 /// a device are built with the helpers or the prefixes here.
@@ -69,6 +70,26 @@ pub mod ids {
     pub const AUTHOR_DISMISS: &str = "pp:author:dismiss";
     /// The card of someone of the member list.
     pub const MEMBER_DISMISS: &str = "profile:dismiss";
+    /// The round buttons over a card's banner, each followed by the person's
+    /// id: the friendship's (which opens its menu, or sends a request when
+    /// there is none) and «…». Their menus close on `…:dismiss`.
+    pub const CARD_RELATION: &str = "pp:relation:";
+    pub const CARD_MORE: &str = "pp:more:";
+    pub const CARD_RELATION_DISMISS: &str = "pp:relation:dismiss";
+    pub const CARD_MORE_DISMISS: &str = "pp:more:dismiss";
+    /// «Compartir perfil» and «Denunciar perfil de usuario» of a card's «…»,
+    /// each followed by the person's id.
+    pub const SHARE: &str = "pp:share:";
+    pub const REPORT: &str = "pp:report:";
+    /// A card's mutual friends or servers: followed by the person's id and
+    /// `:friends` or `:servers`, they open the full profile on that tab.
+    pub const MUTUAL: &str = "pp:mutual:";
+    /// The «+» beside a card's roles opens the checklist of roles; its
+    /// `…:dismiss` closes it. Followed by the person's id.
+    pub const CARD_ROLES: &str = "pp:roles:";
+    pub const CARD_ROLES_DISMISS: &str = "pp:roles:dismiss";
+    /// The field under a card that writes to its person: followed by their id.
+    pub const MESSAGE: &str = "pp:message:";
     /// Opens someone's full profile: the prefix and their id.
     pub const FULL: &str = "pp:full:";
     pub const FULL_CLOSE: &str = "pp:full:close";
@@ -152,6 +173,17 @@ const AVATAR: f32 = 80.0;
 const RING: f32 = 6.0;
 /// Inside a card, left and right.
 const INSET: f32 = 16.0;
+/// A person's card: its corners, and its head, 140 px as the official
+/// popout's. The mark (80 px at (16, 61)) overlaps the banner by 44 px and
+/// hangs 36 px below it; its 6 px ring is cut into the banner, so the ring's
+/// box starts at (10, 55).
+const CARD_RADIUS: f32 = 8.0;
+const HEAD: f32 = 140.0;
+const MARK_TOP: f32 = 61.0;
+/// The status dot of a card's mark: 16 px, in a 28 px disc of the ground.
+const DOT: f32 = 16.0;
+/// The decoration is 1.2 times the mark, centred on it.
+const DECORATION: f32 = AVATAR * 1.2;
 /// The skeleton of a card being read: its height, and its four text lines
 /// (REA §5b, from the card's 268 px body).
 const SKELETON_HEIGHT: f32 = 350.0;
@@ -361,6 +393,9 @@ pub struct Profile {
     pub image: Option<limn::RasterImage>,
     /// A decoded wide image; a missing or loading banner retains the accent.
     pub banner: Option<limn::RasterImage>,
+    /// Without a picture, the banner's color: the profile's accent when it
+    /// has one, else the mark's dominant color. `None` paints `raised`.
+    pub banner_tint: Option<Color>,
     /// The unique handle, without a leading @.
     pub handle: String,
     /// Their color: the banner, and behind their initial.
@@ -379,8 +414,6 @@ pub struct Profile {
     /// Their roles where they are seen, highest first, in their colors.
     pub roles: Vec<(String, Color)>,
     pub bot: bool,
-    /// The action that opens a direct conversation with them, if any.
-    pub message_action: Option<String>,
     /// What keeps them from taking part where they are seen: "Aislado
     /// hasta hoy a las 18:30".
     pub restriction: Option<String>,
@@ -389,6 +422,9 @@ pub struct Profile {
     pub member_since: Vec<Since>,
     /// What they share with the account, once known: "2 servidores en común".
     pub mutual: Option<String>,
+    /// The action that opens a direct conversation with them, if any: the
+    /// full profile's «Enviar mensaje».
+    pub message_action: Option<String>,
     /// The action that opens their full profile, if any.
     pub full_action: Option<String>,
     /// The account's private note on them, where it keeps notes.
@@ -398,6 +434,76 @@ pub struct Profile {
     /// Their profile is being read and none of it is kept yet: the card is
     /// its skeleton, [`card_skeleton`].
     pub loading: bool,
+    /// The friendship's round button on the banner; `None` hides it: the
+    /// account's own card, bots, blocked people, a provider without requests.
+    pub relation: Option<Relation>,
+    /// The «…» menu's entries; `None` hides its button, on the account's own card.
+    pub more: Option<Vec<MenuEntry>>,
+    /// The card's menu that is open, if any: its entries are the ones above.
+    pub open_menu: Option<CardMenu>,
+    /// The account blocks or ignores them: a notice under the name.
+    pub notice: Option<Notice>,
+    /// Who they share with the account, as the card's row shows it:
+    /// nothing while unknown or loading, or when there is none.
+    pub mutual_friends: Mutual,
+    pub mutual_servers: Mutual,
+    /// Per role of `roles`: the action that takes it away, when the account
+    /// may. Only what the checklist lists can be taken away.
+    pub role_removals: Vec<Option<String>>,
+    /// The roles' checklist, when the account may change them.
+    pub role_menu: Option<Vec<MenuEntry>>,
+    /// The field under the card that writes to them, when the account may.
+    pub message: Option<MessageField>,
+    /// The account's own card offers «Editar perfil».
+    pub edit_profile: bool,
+}
+
+/// The friendship with someone, as the round button on a card's banner says
+/// it (REA §3): none (the button sends a request), a friend, a request sent,
+/// or one received.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Friendship {
+    None,
+    Friend,
+    Outgoing,
+    Incoming,
+}
+
+/// The friendship button of a card: its state, the action it sends (the
+/// request when there is none, else the toggle of its menu), and the entries
+/// of that menu.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Relation {
+    pub state: Friendship,
+    pub action: String,
+    pub menu: Vec<MenuEntry>,
+}
+
+/// The menus a card opens from its buttons: the friendship's, «…», and the
+/// roles checklist beside the roles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CardMenu {
+    Relation,
+    More,
+    Roles,
+}
+
+/// The field under a card that writes to its person (REA §4.5): what is
+/// written so far; Enter sends it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MessageField {
+    pub id: String,
+    pub text: String,
+}
+
+/// Why a card's person is set apart: the account blocks them, or ignores them.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Notice {
+    Blocked,
+    Ignored {
+        /// The action of «Dejar de ignorar».
+        unignore: String,
+    },
 }
 
 /// The account's private note on someone, as its field shows it.
@@ -530,6 +636,28 @@ pub fn popout(
     placement: PopoverPlacement,
     look: &Look,
 ) -> Element {
+    popout_radius(anchor, content, dismiss, placement, 12.0, look)
+}
+
+/// [`popout`] for a person's card, with its 8 px corners (2026-10-31).
+pub fn card_popout(
+    anchor: Element,
+    content: Option<Element>,
+    dismiss: &str,
+    placement: PopoverPlacement,
+    look: &Look,
+) -> Element {
+    popout_radius(anchor, content, dismiss, placement, CARD_RADIUS, look)
+}
+
+fn popout_radius(
+    anchor: Element,
+    content: Option<Element>,
+    dismiss: &str,
+    placement: PopoverPlacement,
+    radius: f32,
+    look: &Look,
+) -> Element {
     let Some(content) = content else {
         return anchor;
     };
@@ -537,7 +665,7 @@ pub fn popout(
         .size(Some(WIDTH), None)
         .background(look.menu)
         .border(look.border, 1.0)
-        .radius(12.0)
+        .radius(radius)
         .shadow(look.shadow, Point::new(0.0, 9.0), 22.0, 0.0)
         .clip_children();
     Element::popover(anchor, surface, dismiss, placement).popover_gap(8.0)
@@ -619,10 +747,77 @@ const FULL_HEAD: HeadSize = HeadSize {
     radius: 8.0,
 };
 
-/// The top of a card: received artwork or a color fallback, their mark ringed on it
-/// with their status, and `bubble` beside the mark.
+/// The top of the account's own popout and of its custom status dialog: the
+/// popout's head as it was (the card of someone else has [`card_head`]).
 fn head(profile: &Profile, bubble: Option<Element>, look: &Look) -> Element {
     head_sized(profile, bubble, CARD_HEAD, look)
+}
+
+/// The top of a card (REA §2): the banner, its color when it has no picture,
+/// and the mark over its bottom edge with the ring cut into the banner, the
+/// decoration 1.2 times the mark, the status dot, and `bubble` beside it.
+fn card_head(profile: &Profile, bubble: Option<Element>, look: &Look) -> Element {
+    let banner = Element::panel(match &profile.banner {
+        Some(image) => Element::raster_image(image.clone().cover()).size(None, Some(BANNER)),
+        None => Element::spacer(),
+    })
+    .size(None, Some(BANNER))
+    .background(profile.banner_tint.unwrap_or(look.raised))
+    .clip_children();
+    let face =
+        crate::avatar_with_image(&profile.name, profile.accent, AVATAR, profile.image.clone());
+    let face = if profile.presence {
+        card_mark(face, profile.status, look)
+    } else {
+        face
+    };
+    let ring = Element::panel(face)
+        .padding(RING)
+        .radius((AVATAR + 2.0 * RING) / 2.0)
+        .background(look.menu);
+    let (mark_x, mark_y) = (INSET - RING, MARK_TOP - RING);
+    // A column keeps the banner its height: a stack child would take the head's.
+    let mut layers = vec![Element::column(vec![banner]), at(mark_x, mark_y, ring)];
+    if let Some(decoration) = &profile.identity.marks.decoration {
+        let centre = INSET + AVATAR / 2.0;
+        let middle = MARK_TOP + AVATAR / 2.0;
+        layers.push(at(
+            centre - DECORATION / 2.0,
+            middle - DECORATION / 2.0,
+            Element::raster_image(decoration.clone()).size(Some(DECORATION), Some(DECORATION)),
+        ));
+    }
+    if let Some(bubble) = bubble {
+        // Beside the mark, as high as the banner's edge rises above its ring.
+        layers.push(Element::column(vec![
+            gap(0.0, mark_y + RING / 2.0 + 6.0),
+            Element::row(vec![
+                gap(INSET + AVATAR + 8.0, 0.0),
+                bubble.flex(1.0),
+                gap(INSET, 0.0),
+            ]),
+        ]));
+    }
+    // Over everything, so the buttons take their clicks.
+    layers.extend(banner_buttons(profile, look));
+    Element::stack(layers).size(Some(WIDTH), Some(HEAD))
+}
+
+/// The status of a card's mark: a 16 px dot in the bottom right corner,
+/// ringed in the card's ground so it reads over the picture.
+fn card_mark(face: Element, status: Status, look: &Look) -> Element {
+    let mark = Element::panel(status_mark(status, look, DOT, look.menu))
+        .padding(6.0)
+        .radius(14.0)
+        .background(look.menu);
+    Element::stack(vec![
+        face,
+        Element::column(vec![
+            Element::spacer().flex(1.0),
+            Element::row(vec![Element::spacer().flex(1.0), mark]),
+        ]),
+    ])
+    .size(Some(AVATAR), Some(AVATAR))
 }
 
 fn head_sized(profile: &Profile, bubble: Option<Element>, size: HeadSize, look: &Look) -> Element {
@@ -841,56 +1036,68 @@ fn member_since(entries: &[Since], look: &Look) -> Element {
     .gap(6.0)
 }
 
-/// The parts of a card under the names: what they do, what restricts them,
-/// «Sobre mí» and «Miembro desde».
-fn about_parts(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Vec<Element> {
+/// What the person does: their activity cards, or else the line their
+/// presence gives.
+fn activity_parts(profile: &Profile, width: f32, look: &Look) -> Vec<Element> {
+    let identity = &profile.identity;
+    if identity.activities.is_empty() {
+        return profile
+            .activity
+            .iter()
+            .map(|activity| text(activity.clone(), 13.0, look.text))
+            .collect();
+    }
+    vec![Element::column(
+        identity
+            .activities
+            .iter()
+            .map(|card| crate::identity::activity_card(card, width, look))
+            .collect(),
+    )
+    .gap(8.0)]
+}
+
+/// Someone's bio as Markdown, `width` across. A card (`clamp`) shows three
+/// lines, as the official client's popout does, and leads to the full
+/// profile for the rest (2026-10-17); the full profile shows all of it.
+fn bio(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Option<Element> {
+    let about = profile.about.as_ref()?;
+    let mut bio = crate::identity::with_pictures(about, &profile.identity.pictures, width, look);
+    let long = about.lines().count() > BIO_LINES || about.chars().count() > BIO_CHARS;
+    if clamp && long {
+        bio = Element::column(vec![
+            bio.max_height(BIO_HEIGHT).clip_children(),
+            match &profile.full_action {
+                Some(action) => Element::clickable(
+                    action.replacen(ids::FULL, ids::FULL_BIO, 1),
+                    line(t("Ver biografía completa"), 13.0, look.accent),
+                )
+                .hover_foreground(look.text),
+                None => Element::spacer().size(None, Some(0.0)),
+            },
+        ])
+        .gap(4.0);
+    }
+    Some(bio)
+}
+
+/// The parts of the full profile under its names: what they do, what
+/// restricts them, «Sobre mí» and «Miembro desde».
+fn about_parts(profile: &Profile, width: f32, look: &Look) -> Vec<Element> {
     let mut body = Vec::new();
     let identity = &profile.identity;
     if !identity.platforms.is_empty() && profile.presence {
         body.push(crate::identity::platforms(&identity.platforms, look));
     }
-    if identity.activities.is_empty() {
-        if let Some(activity) = &profile.activity {
-            body.push(text(activity.clone(), 13.0, look.text));
-        }
-    } else {
-        body.push(
-            Element::column(
-                identity
-                    .activities
-                    .iter()
-                    .map(|card| crate::identity::activity_card(card, width, look))
-                    .collect(),
-            )
-            .gap(8.0),
-        );
-    }
+    body.extend(activity_parts(profile, width, look));
     if profile.bot {
         body.push(text(t("Cuenta automatizada (bot)."), 12.0, look.faint));
     }
     if let Some(restriction) = &profile.restriction {
         body.push(restriction_badge(restriction, look));
     }
-    if let Some(about) = &profile.about {
-        let mut bio = crate::identity::with_pictures(about, &identity.pictures, width, look);
-        // The card shows three lines, as the official client's popout does;
-        // the full profile, all of it.
-        let long = about.lines().count() > BIO_LINES || about.chars().count() > BIO_CHARS;
-        if clamp && long {
-            bio = Element::column(vec![
-                bio.max_height(BIO_HEIGHT).clip_children(),
-                match &profile.full_action {
-                    Some(action) => Element::clickable(
-                        action.replacen(ids::FULL, ids::FULL_BIO, 1),
-                        line(t("Ver biografía completa"), 13.0, look.accent),
-                    )
-                    .hover_foreground(look.text),
-                    None => Element::spacer().size(None, Some(0.0)),
-                },
-            ])
-            .gap(4.0);
-        }
-        body.push(section(t("Sobre mí"), bio, look));
+    if let Some(about) = bio(profile, false, width, look) {
+        body.push(section(t("Sobre mí"), about, look));
     }
     if !profile.member_since.is_empty() {
         body.push(section(
@@ -900,6 +1107,97 @@ fn about_parts(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Vec<E
         ));
     }
     body
+}
+
+/// A round button over a card's banner, 32 px on a dark disc with a white
+/// icon, its tooltip the label (REA §3).
+fn banner_button(id: &str, glyph: Icon, label: &str, look: &Look) -> Element {
+    let glyph = icon(glyph, Color::rgb(255, 255, 255)).size(Some(16.0), Some(16.0));
+    let disc = Element::panel(centered(glyph))
+        .size(Some(32.0), Some(32.0))
+        .radius(16.0)
+        .background(Color::rgba(0, 0, 0, 143))
+        .border(Color::rgba(255, 255, 255, 20), 1.0);
+    let button = Element::clickable(id, disc)
+        .accessible(limn::Access::new(limn::Role::Button).name(label.to_owned()));
+    Tooltip::new(button, id, label, look.menu_palette()).render()
+}
+
+/// The menu a card's button opens, `placement` from the button; closed, the
+/// anchor alone. Its width and rows are the person menu's.
+fn card_menu(
+    anchor: Element,
+    entries: Vec<MenuEntry>,
+    open: bool,
+    dismiss: &str,
+    placement: PopoverPlacement,
+    look: &Look,
+) -> Element {
+    let width = menu_width(&entries);
+    DropdownMenu::new(
+        anchor,
+        menu_entries(entries, look),
+        open,
+        dismiss,
+        look.menu_palette(),
+    )
+    .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
+    .width(width)
+    .placement(placement)
+    .render()
+}
+
+/// The round buttons over a card's banner, at its top right: the friendship's
+/// and «…», each with its menu. Nothing when neither shows.
+fn banner_buttons(profile: &Profile, look: &Look) -> Option<Element> {
+    let mut buttons = Vec::new();
+    if let Some(relation) = &profile.relation {
+        let (glyph, label) = match relation.state {
+            Friendship::None => (Icon::Add, t("Añadir amigos")),
+            Friendship::Friend => (Icon::Check, t("Amigo")),
+            Friendship::Outgoing => (Icon::Clock, t("Solicitud de amistad enviada")),
+            Friendship::Incoming => (Icon::Clock, t("Solicitud de amistad entrante")),
+        };
+        let open = profile.open_menu == Some(CardMenu::Relation);
+        let entries = if open {
+            relation.menu.clone()
+        } else {
+            Vec::new()
+        };
+        buttons.push(card_menu(
+            banner_button(&relation.action, glyph, label, look),
+            entries,
+            open,
+            ids::CARD_RELATION_DISMISS,
+            PopoverPlacement::BottomEnd,
+            look,
+        ));
+    }
+    if let (Some(entries), Some(action)) = (&profile.more, profile.full_action.as_ref()) {
+        let open = profile.open_menu == Some(CardMenu::More);
+        let id = action.replacen(ids::FULL, ids::CARD_MORE, 1);
+        let entries = if open { entries.clone() } else { Vec::new() };
+        buttons.push(card_menu(
+            banner_button(&id, Icon::More, t("Más"), look),
+            entries,
+            open,
+            ids::CARD_MORE_DISMISS,
+            PopoverPlacement::BottomEnd,
+            look,
+        ));
+    }
+    if buttons.is_empty() {
+        return None;
+    }
+    Some(Element::column(vec![
+        gap(0.0, 8.0),
+        Element::row(vec![
+            Element::spacer().flex(1.0),
+            Element::row(buttons).gap(8.0),
+            gap(12.0, 0.0),
+        ]),
+    ]))
 }
 
 /// `child` at (`x`, `y`) of the stack it is in, placed by spacers.
@@ -984,13 +1282,14 @@ pub fn card_skeleton(id: &str, look: &Look) -> Element {
     )
 }
 
-/// The card of someone else: who they are, what they set and do, their
-/// roles where they are seen, and a way to write to them. As the official
-/// popout (2026-10-18): its body scrolls between its head and its buttons
-/// when the window is too short for all of it (a popover is never taller
-/// than the window), the note is an icon beside the name, and the effect
-/// gives way while the pointer is over the card. While its profile is being
-/// read, it is its [`card_skeleton`].
+/// The card of someone else (REA §4): the head with its buttons, then the
+/// name with the notice of an ignored or blocked person, what restricts
+/// them, their mutual friends and servers, what they do, their bio, their
+/// roles, and the note when there is no full profile to open. Its body
+/// scrolls between the head and the footer when the window is too short for
+/// all of it (a popover is never taller than the window); the effect gives
+/// way while the pointer is over the card. While its profile is being read,
+/// it is its [`card_skeleton`].
 pub fn card(profile: &Profile, look: &Look) -> Element {
     if profile.loading {
         return card_skeleton(&format!("profile:loading:{}", profile.handle), look);
@@ -1001,71 +1300,392 @@ pub fn card(profile: &Profile, look: &Look) -> Element {
         .full_action
         .as_ref()
         .map(|action| action.replacen(ids::FULL, ids::FULL_NOTE, 1));
-    let mut body = vec![names(profile, false, note.as_deref(), 20.0, look)];
-    if !profile.identity.badges.is_empty() {
-        body.push(crate::identity::badges(&profile.identity.badges, look));
+    let width = WIDTH - 2.0 * INSET;
+    let mut body = vec![card_names(profile, note.as_deref(), look)];
+    if let Some(notice) = &profile.notice {
+        body.push(card_notice(notice, look));
     }
-    let parts = about_parts(profile, true, WIDTH - 2.0 * INSET, look);
-    if !parts.is_empty() || !profile.roles.is_empty() {
-        body.push(divider(look));
+    if let Some(restriction) = &profile.restriction {
+        body.push(restriction_badge(restriction, look));
     }
-    body.extend(parts);
-    if !profile.roles.is_empty() {
-        body.push(section(
-            t("Roles"),
-            role_chips(&profile.roles, &profile.identity.role_marks, look),
-            look,
-        ));
-    }
+    body.extend(card_mutuals(profile, look));
+    body.extend(card_about(profile, width, look));
+    body.extend(card_roles(profile, look));
     // Without a full profile to open (the account's own), the field stays.
     if let Some(note) = profile.note.as_ref().filter(|_| note.is_none()) {
         body.push(note_section(note, look));
     }
-    let mut actions = Vec::new();
-    if let Some(action) = &profile.message_action {
-        actions.push(
-            Button::new(action.clone(), t("Enviar mensaje"), look.menu_palette())
-                .variant(ButtonVariant::Secondary)
-                .icon(Icon::Chat)
-                .render()
-                .flex(1.0),
-        );
-    }
-    if let Some(action) = &profile.full_action {
-        actions.push(
-            Button::new(
-                action.clone(),
-                t("Ver perfil completo"),
-                look.menu_palette(),
-            )
-            .variant(ButtonVariant::Secondary)
-            .render()
-            .flex(1.0),
-        );
-    }
     let mut parts = vec![
-        head(profile, bubble, look),
+        card_head(profile, bubble, look),
         ScrollArea::new(
             ids::card_body(&profile.handle),
-            Element::column(body).gap(12.0).padding(INSET),
+            Element::column(vec![
+                gap(0.0, 4.0),
+                Element::row(vec![
+                    gap(INSET, 0.0),
+                    Element::column(body).gap(12.0).flex(1.0),
+                    gap(INSET, 0.0),
+                ]),
+                gap(0.0, 8.0),
+            ]),
         )
         .render()
         .flex(1.0),
     ];
-    if !actions.is_empty() {
-        parts.push(Element::row(vec![
-            gap(INSET, 0.0),
-            Element::row(actions).gap(8.0).flex(1.0),
-            gap(INSET, 0.0),
-        ]));
-        parts.push(gap(0.0, INSET));
+    if let Some(footer) = card_footer(profile, look) {
+        parts.push(footer);
     }
     crate::identity::with_effect(
-        Element::column(parts),
+        Element::column(parts).hover_region(),
         WIDTH,
         profile.identity.effect.as_ref(),
         Some(ids::CARD_EFFECT),
     )
+}
+
+/// The footer of a card (REA §4.5): a one-line field to write to its person,
+/// whose hint names them, or on the account's own card «Editar perfil».
+fn card_footer(profile: &Profile, look: &Look) -> Option<Element> {
+    let row = match &profile.message {
+        Some(field) => {
+            let hint = tr!("Enviar un mensaje a @{name}", name = profile.name);
+            TextField::new(
+                field.id.clone(),
+                field.text.clone(),
+                hint.clone(),
+                look.menu_palette(),
+            )
+            .accessibility_label(hint)
+            .render()
+            .flex(1.0)
+        }
+        None if profile.edit_profile => {
+            Button::new(ids::EDIT, t("Editar perfil"), look.accent_palette())
+                .icon(Icon::Edit)
+                .render()
+                .flex(1.0)
+        }
+        None => return None,
+    };
+    Some(Element::column(vec![
+        Element::row(vec![gap(INSET, 0.0), row, gap(INSET, 0.0)]),
+        gap(0.0, 12.0),
+    ]))
+}
+
+/// Badges a card's name row shows before «+N» (REA §4.1).
+const BADGES_SHOWN: usize = 6;
+
+/// The name of a card (REA §4.1): the display name at 20 px, its note's icon
+/// while the pointer is on the card, and the BOT mark; then the handle, the
+/// pronouns, the server tag and the badges, in as many lines as they need.
+fn card_names(profile: &Profile, note: Option<&str>, look: &Look) -> Element {
+    let mut top = vec![Element::truncated_text(profile.name.clone())
+        .font_family(FontFamily::SansBold)
+        .font_size(20.0)
+        .foreground(look.text)
+        .shrink_to_fit()
+        .centered_y()];
+    if let (Some(action), Some(field)) = (note, &profile.note) {
+        let hint = if field.text.is_empty() {
+            t("Agregar nota (solo visible para ti)")
+        } else {
+            t("Editar nota (solo visible para ti)")
+        };
+        top.push(
+            IconButton::new(action, Icon::Edit, look.menu_palette())
+                .variant(ButtonVariant::Ghost)
+                .tooltip(hint)
+                .ink(look.muted)
+                .render()
+                .centered_y()
+                .reveal_on_hover(format!("pp:card:{}:note", profile.handle)),
+        );
+    }
+    if profile.bot {
+        top.push(tag("BOT", look).centered_y());
+    }
+    let mut second = vec![text(profile.handle.clone(), 14.0, look.muted).centered_y()];
+    if let Some(pronouns) = &profile.pronouns {
+        second.push(
+            Element::panel(Element::spacer())
+                .size(Some(4.0), Some(4.0))
+                .radius(2.0)
+                .background(look.text)
+                .centered_y(),
+        );
+        second.push(
+            Element::text(pronouns.clone())
+                .font_family(FontFamily::SansMedium)
+                .font_size(14.0)
+                .foreground(look.text)
+                .centered_y(),
+        );
+    }
+    if let Some(chip) = &profile.identity.marks.tag {
+        second.push(card_tag(chip, look).centered_y());
+    }
+    second.extend(crate::identity::badge_items(
+        &profile.identity.badges,
+        20.0,
+        BADGES_SHOWN,
+        look,
+    ));
+    Element::column(vec![
+        Element::row(top).gap(6.0),
+        Element::row(second).gap(6.0).wrap(),
+    ])
+    .gap(2.0)
+}
+
+/// The server tag beside a name: its badge and letters on a raised pill,
+/// 24 px tall (REA §4.1).
+fn card_tag(tag: &crate::identity::TagChip, look: &Look) -> Element {
+    let mut inside = Vec::new();
+    if let Some(badge) = &tag.badge {
+        inside.push(
+            Element::raster_image(badge.clone())
+                .size(Some(14.0), Some(14.0))
+                .centered_y(),
+        );
+    }
+    inside.push(text(tag.text.clone(), 12.0, look.text).centered_y());
+    let hint = match &tag.server {
+        Some(server) => tr!("Etiqueta de servidor de {server}", server),
+        None => t("Etiqueta de servidor").to_owned(),
+    };
+    Element::panel(Element::row(vec![
+        gap(8.0, 0.0),
+        Element::row(inside).gap(4.0).centered_y(),
+        gap(8.0, 0.0),
+    ]))
+    .size(None, Some(24.0))
+    .radius(8.0)
+    .background(look.raised)
+    .border(look.border, 1.0)
+    .accessible(limn::Access::default().description(format!("{hint}: {}", tag.text)))
+}
+
+/// What the account does with someone it blocks or ignores, as a panel under
+/// the name: for an ignored one, a link to lift it (REA §4.6).
+fn card_notice(notice: &Notice, look: &Look) -> Element {
+    let parts = match notice {
+        Notice::Blocked => vec![text(t("Bloqueaste a este usuario"), 14.0, look.muted)],
+        Notice::Ignored { unignore } => vec![
+            text(t("Ignoraste a este usuario"), 14.0, look.muted),
+            text(" • ", 14.0, look.muted),
+            Element::clickable(
+                unignore.clone(),
+                line(t("Dejar de ignorar"), 14.0, look.accent),
+            )
+            .hover_foreground(look.text),
+        ],
+    };
+    Element::panel(Element::column(vec![
+        gap(0.0, 8.0),
+        Element::row(vec![
+            gap(12.0, 0.0),
+            Element::row(parts).wrap(),
+            gap(12.0, 0.0),
+        ]),
+        gap(0.0, 8.0),
+    ]))
+    .radius(8.0)
+    .background(look.raised)
+}
+
+/// The mutual friends and servers of a card, each part opening the full
+/// profile on its tab (REA §4.2): up to three faces overlapping, then the
+/// count. Nothing while they are unknown or there are none.
+fn card_mutuals(profile: &Profile, look: &Look) -> Option<Element> {
+    let known = |mutual: &Mutual| match mutual {
+        Mutual::Known(faces) if !faces.is_empty() => Some(faces.clone()),
+        _ => None,
+    };
+    let (friends, servers) = (
+        known(&profile.mutual_friends),
+        known(&profile.mutual_servers),
+    );
+    if friends.is_none() && servers.is_none() {
+        return None;
+    }
+    let base = profile
+        .full_action
+        .as_ref()?
+        .replacen(ids::FULL, ids::MUTUAL, 1);
+    let both = friends.is_some() && servers.is_some();
+    let size = if both { 12.0 } else { 14.0 };
+    let mut parts = Vec::new();
+    if let Some(faces) = &friends {
+        let words = match faces.len() {
+            1 => t("1 amigo en común").to_owned(),
+            n => tr!("{n} amigos en común", n),
+        };
+        parts.push(mutual_part(
+            format!("{base}:friends"),
+            faces,
+            words,
+            size,
+            look,
+        ));
+    }
+    if both {
+        parts.push(
+            Element::panel(Element::spacer())
+                .size(Some(4.0), Some(4.0))
+                .radius(2.0)
+                .background(look.muted)
+                .centered_y(),
+        );
+    }
+    if let Some(faces) = &servers {
+        let words = match faces.len() {
+            1 => t("1 servidor en común").to_owned(),
+            n => tr!("{n} servidores en común", n),
+        };
+        parts.push(mutual_part(
+            format!("{base}:servers"),
+            faces,
+            words,
+            size,
+            look,
+        ));
+    }
+    Some(Element::row(parts).gap(6.0).wrap())
+}
+
+/// One part of the mutuals: its faces (16 px, the first three overlapping) and
+/// its words, as a button that opens the full profile on its tab.
+fn mutual_part(id: String, faces: &[Face], words: String, size: f32, look: &Look) -> Element {
+    const FACE: f32 = 16.0;
+    const STEP: f32 = 10.0;
+    let shown: Vec<Element> = faces
+        .iter()
+        .take(3)
+        .enumerate()
+        .map(|(index, known)| at(index as f32 * STEP, 0.0, face(known, FACE)))
+        .collect();
+    let width = FACE + shown.len().saturating_sub(1) as f32 * STEP;
+    let pictures = Element::stack(shown).size(Some(width), Some(FACE));
+    Element::clickable(
+        id,
+        Element::row(vec![
+            pictures.centered_y(),
+            text(words.clone(), size, look.muted).centered_y(),
+        ])
+        .gap(6.0),
+    )
+    .accessible(limn::Access::new(limn::Role::Button).name(words))
+}
+
+/// The parts of a card under its mutuals: what the person does, the bot's
+/// line and the bio (see [`bio`]), without the headings of the full profile.
+fn card_about(profile: &Profile, width: f32, look: &Look) -> Vec<Element> {
+    let mut body = activity_parts(profile, width, look);
+    if profile.bot {
+        body.push(text(t("Cuenta automatizada (bot)."), 12.0, look.faint));
+    }
+    body.extend(bio(profile, true, width, look));
+    body
+}
+
+/// The roles of a card, as chips in as many lines as they need. Each the
+/// account may take away has a «×»; a «+» (or «Añadir roles» with none) opens
+/// the checklist of roles when the account may give them (REA §4.4).
+fn card_roles(profile: &Profile, look: &Look) -> Option<Element> {
+    let mut chips: Vec<Element> = profile
+        .roles
+        .iter()
+        .enumerate()
+        .map(|(index, (name, color))| {
+            card_role(
+                name,
+                *color,
+                profile
+                    .identity
+                    .role_marks
+                    .get(index)
+                    .and_then(Option::as_ref),
+                profile
+                    .role_removals
+                    .get(index)
+                    .and_then(|removal| removal.as_deref()),
+                look,
+            )
+        })
+        .collect();
+    if let (Some(entries), Some(action)) = (&profile.role_menu, &profile.full_action) {
+        let id = action.replacen(ids::FULL, ids::CARD_ROLES, 1);
+        let open = profile.open_menu == Some(CardMenu::Roles);
+        let menu = if open { entries.clone() } else { Vec::new() };
+        let anchor = if profile.roles.is_empty() {
+            Button::new(id, t("Añadir roles"), look.menu_palette())
+                .variant(ButtonVariant::Ghost)
+                .icon(Icon::Add)
+                .render()
+        } else {
+            square_button(
+                &id,
+                Icon::Add,
+                t("Añadir roles"),
+                t("Añadir roles").to_owned(),
+                look,
+            )
+        };
+        chips.push(card_menu(
+            anchor,
+            menu,
+            open,
+            ids::CARD_ROLES_DISMISS,
+            PopoverPlacement::BottomStart,
+            look,
+        ));
+    }
+    (!chips.is_empty()).then(|| Element::row(chips).gap(4.0).wrap())
+}
+
+/// A role of a card: a 24 px chip with its color dot, its picture or emoji and
+/// its name, and the «×» that takes it away when `remove` names the action.
+fn card_role(
+    name: &str,
+    color: Color,
+    mark: Option<&crate::identity::RoleMark>,
+    remove: Option<&str>,
+    look: &Look,
+) -> Element {
+    let mut inside = vec![gap(2.0, 0.0), parts::color_dot(color, 16.0).centered_y()];
+    if let Some(mark) = mark {
+        inside.push(crate::identity::role_mark(mark, 14.0, look).centered_y());
+    }
+    inside.push(text(name, 12.0, look.text).centered_y());
+    match remove {
+        Some(action) => inside.push(square_button(
+            action,
+            Icon::Close,
+            t("Eliminar rol"),
+            tr!("Quitar el rol {role}", role = name),
+            look,
+        )),
+        None => inside.push(gap(8.0, 0.0)),
+    }
+    Element::panel(Element::row(inside).gap(4.0).centered_y())
+        .size(None, Some(24.0))
+        .radius(8.0)
+        .background(look.raised)
+        .border(look.border, 1.0)
+}
+
+/// A 24 px square button with an icon of 12 px: its tooltip is `hint`, and
+/// `name` what a reader hears of it.
+fn square_button(id: &str, glyph: Icon, hint: &str, name: String, look: &Look) -> Element {
+    let button = Element::clickable(
+        id,
+        centered(icon(glyph, look.muted).size(Some(12.0), Some(12.0))).size(Some(24.0), Some(24.0)),
+    )
+    .radius(12.0)
+    .hover_background(look.hover)
+    .accessible(limn::Access::new(limn::Role::Button).name(name));
+    Tooltip::new(button, id, hint, look.menu_palette()).render()
 }
 
 /// A warning pill: a clock and what restricts them.
@@ -1163,7 +1783,6 @@ pub fn full_profile(root: Element, full: &FullProfile, window_width: f32, look: 
         FullTab::About => {
             let mut parts = about_parts(
                 profile,
-                false,
                 Modal::fit_width(window_width, FULL_WIDTH) - 2.0 * INSET,
                 look,
             );
@@ -2513,6 +3132,7 @@ mod tests {
             identity: Default::default(),
             image: None,
             banner: None,
+            banner_tint: None,
             name: "Ada".into(),
             handle: "ada".into(),
             accent: Color::rgb(90, 120, 200),
@@ -2529,12 +3149,25 @@ mod tests {
             ],
             bot: false,
             message_action: Some("profile:dm:10".into()),
+            message: Some(MessageField {
+                id: format!("{}10", ids::MESSAGE),
+                text: String::new(),
+            }),
             restriction: None,
             member_since: Vec::new(),
             mutual: None,
             full_action: None,
             note: None,
             loading: false,
+            relation: None,
+            more: None,
+            open_menu: None,
+            notice: None,
+            mutual_friends: Mutual::Unknown,
+            mutual_servers: Mutual::Unknown,
+            role_removals: vec![None, None],
+            role_menu: None,
+            edit_profile: false,
         }
     }
 
@@ -2560,14 +3193,14 @@ mod tests {
         let button = laid
             .regions
             .iter()
-            .find(|region| region.id == "profile:dm:10")
-            .expect("«Enviar mensaje» stays")
+            .find(|region| region.id == format!("{}10", ids::MESSAGE))
+            .expect("the field to write stays")
             .rect;
         assert!(body.y + body.height <= button.y, "{body:?} {button:?}");
         assert!(button.y + button.height <= 420.0, "inside the window");
         // With room, the whole card shows and nothing scrolls away.
         let (_, roomy) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 2000.0));
-        assert!(controls(&roomy).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&roomy).contains(&format!("{}10", ids::MESSAGE)));
     }
 
     #[test]
@@ -2679,11 +3312,10 @@ mod tests {
         let painted = texts(&laid);
         for expected in [
             "Ada",
-            "ada • ella",
+            "ada",
+            "ella",
             "leyendo",
-            "Sobre mí",
             "Escribo programas.",
-            "Roles",
             "Moderación",
             "Equipo",
         ] {
@@ -2692,26 +3324,54 @@ mod tests {
                 "{expected}: {painted:?}"
             );
         }
-        assert!(controls(&laid).contains(&"profile:dm:10".to_owned()));
+        // The card has no headings for its bio or its roles (REA §4.3, §4.4).
+        for gone in ["Sobre mí", "Roles"] {
+            assert!(
+                !painted.iter().any(|text| text == gone),
+                "{gone}: {painted:?}"
+            );
+        }
+        assert!(controls(&laid).contains(&format!("{}10", ids::MESSAGE)));
     }
 
     #[test]
-    fn a_card_shows_restriction_scoped_dates_mutuals_and_the_full_profile() {
+    fn the_footer_writes_to_someone_with_their_name_or_edits_the_own_profile() {
+        let (_, laid) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 900.0));
+        assert!(controls(&laid).contains(&format!("{}10", ids::MESSAGE)));
+        assert!(texts(&laid).contains(&"Enviar un mensaje a @Ada".to_owned()));
+        assert!(!controls(&laid).contains(&ids::EDIT.to_owned()));
+        // The account's own card edits its profile instead, full width.
+        let own = Profile {
+            message: None,
+            edit_profile: true,
+            full_action: None,
+            ..ada()
+        };
+        let (_, laid) = frame(card(&own, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(controls(&laid).contains(&ids::EDIT.to_owned()));
+        assert!(texts(&laid).contains(&"Editar perfil".to_owned()));
+        // Neither where the account cannot write to them.
+        let none = Profile {
+            message: None,
+            ..ada()
+        };
+        let (_, laid) = frame(card(&none, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(!controls(&laid)
+            .iter()
+            .any(|id| id.starts_with(ids::MESSAGE) || id == ids::EDIT));
+    }
+
+    #[test]
+    fn a_card_shows_its_restriction_and_mutuals_but_not_the_dates() {
         let profile = Profile {
             restriction: Some("Aislado hasta hoy a las 18:30".into()),
-            member_since: vec![
-                Since {
-                    scope: "Cuenta".into(),
-                    face: None,
-                    date: "3 de mayo de 2019".into(),
-                },
-                Since {
-                    scope: "Taller".into(),
-                    face: Some(taller()),
-                    date: "12 de marzo de 2024".into(),
-                },
-            ],
-            mutual: Some("2 servidores en común".into()),
+            member_since: vec![Since {
+                scope: "Cuenta".into(),
+                face: None,
+                date: "3 de mayo de 2019".into(),
+            }],
+            mutual_friends: Mutual::Known(vec![taller(), taller()]),
+            mutual_servers: Mutual::Known(vec![taller()]),
             full_action: Some(format!("{}10", ids::FULL)),
             ..ada()
         };
@@ -2725,24 +3385,202 @@ mod tests {
         let painted = texts(&laid);
         for expected in [
             "Aislado hasta hoy a las 18:30",
-            "Miembro desde",
-            "3 de mayo de 2019",
-            "Cuenta",
-            "12 de marzo de 2024",
-            "Taller",
-            "2 servidores en común",
+            "2 amigos en común",
+            "1 servidor en común",
         ] {
             assert!(
                 painted.iter().any(|t| t == expected),
                 "{expected}: {painted:?}"
             );
         }
-        assert!(controls(&laid).contains(&"pp:full:10".to_owned()));
+        // The dates are the full profile's, not the card's.
+        for gone in ["Miembro desde", "3 de mayo de 2019"] {
+            assert!(!painted.iter().any(|t| t == gone), "{gone}: {painted:?}");
+        }
+        let shown = controls(&laid);
         assert!(
-            !texts(&frame(card(&ada(), &LOOK), Size::new(400.0, 900.0)).1)
-                .iter()
-                .any(|t| t == "Miembro desde")
+            shown.contains(&format!("{}10:friends", ids::MUTUAL)),
+            "{shown:?}"
         );
+        assert!(
+            shown.contains(&format!("{}10:servers", ids::MUTUAL)),
+            "{shown:?}"
+        );
+    }
+
+    #[test]
+    fn mutuals_read_12_px_beside_each_other_and_14_px_alone_and_nothing_unknown() {
+        let size_of = |profile: &Profile, wanted: &str| {
+            let (_, laid) = frame(card(profile, &LOOK), Size::new(WIDTH, 900.0));
+            laid.commands.iter().find_map(|command| match command {
+                limn::DrawCommand::Text {
+                    text, font_size, ..
+                } if text == wanted => Some(*font_size),
+                _ => None,
+            })
+        };
+        let both = Profile {
+            mutual_friends: Mutual::Known(vec![taller(), taller()]),
+            mutual_servers: Mutual::Known(vec![taller()]),
+            full_action: Some(format!("{}10", ids::FULL)),
+            ..ada()
+        };
+        assert_eq!(size_of(&both, "2 amigos en común"), Some(12.0));
+        let friends = Profile {
+            mutual_servers: Mutual::Known(Vec::new()),
+            ..both.clone()
+        };
+        assert_eq!(size_of(&friends, "2 amigos en común"), Some(14.0));
+        // Unknown or loading mutuals show nothing, and none is no mutual.
+        for mutual in [Mutual::Unknown, Mutual::Loading, Mutual::Known(Vec::new())] {
+            let quiet = Profile {
+                mutual_friends: mutual.clone(),
+                mutual_servers: mutual,
+                ..both.clone()
+            };
+            let (_, laid) = frame(card(&quiet, &LOOK), Size::new(WIDTH, 900.0));
+            assert!(!controls(&laid).iter().any(|id| id.starts_with(ids::MUTUAL)));
+        }
+    }
+
+    #[test]
+    fn a_card_head_has_the_friendship_and_more_buttons_as_their_states_allow() {
+        let relation = |state, action: &str, menu: Vec<MenuEntry>| Relation {
+            state,
+            action: action.into(),
+            menu,
+        };
+        let shown = |profile: &Profile| {
+            let (_, laid) = frame(card(profile, &LOOK), Size::new(WIDTH, 900.0));
+            controls(&laid)
+        };
+        // Someone without a friendship: the button sends the request.
+        let stranger = Profile {
+            relation: Some(relation(Friendship::None, "friend:10:add", Vec::new())),
+            more: Some(Vec::new()),
+            full_action: Some(format!("{}10", ids::FULL)),
+            ..ada()
+        };
+        let buttons = shown(&stranger);
+        assert!(buttons.contains(&"friend:10:add".to_owned()), "{buttons:?}");
+        assert!(
+            buttons.contains(&format!("{}10", ids::CARD_MORE)),
+            "{buttons:?}"
+        );
+        // A friend's button opens the menu of the friendship, when it is open.
+        let friend = Profile {
+            relation: Some(relation(
+                Friendship::Friend,
+                &format!("{}10", ids::CARD_RELATION),
+                vec![MenuEntry::Item(
+                    "friend:10:remove".into(),
+                    "Eliminar amigo".into(),
+                    None,
+                )],
+            )),
+            open_menu: Some(CardMenu::Relation),
+            ..stranger.clone()
+        };
+        let (_, laid) = frame(card(&friend, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(controls(&laid).contains(&"friend:10:remove".to_owned()));
+        assert!(texts(&laid).contains(&"Eliminar amigo".to_owned()));
+        // Nothing of the buttons on one's own card, bots or blocked people.
+        let own = Profile {
+            relation: None,
+            more: None,
+            full_action: None,
+            ..ada()
+        };
+        assert!(!shown(&own)
+            .iter()
+            .any(|id| id.starts_with(ids::CARD_RELATION) || id.starts_with(ids::CARD_MORE)));
+    }
+
+    #[test]
+    fn a_card_name_shows_six_badges_and_counts_the_rest() {
+        let badges = (0..8)
+            .map(|n| crate::identity::BadgeChip {
+                description: format!("Insignia {n}"),
+                image: None,
+                link: true,
+            })
+            .collect();
+        let profile = Profile {
+            identity: crate::identity::CardIdentity {
+                badges,
+                ..Default::default()
+            },
+            ..ada()
+        };
+        let (_, laid) = frame(card(&profile, &LOOK), Size::new(WIDTH, 900.0));
+        let shown = controls(&laid);
+        assert!(shown.contains(&"pp:badge=5".to_owned()), "{shown:?}");
+        assert!(!shown.contains(&"pp:badge=6".to_owned()), "{shown:?}");
+        assert!(texts(&laid).contains(&"+2".to_owned()));
+    }
+
+    #[test]
+    fn an_ignored_person_is_noticed_with_a_way_to_lift_it_and_a_blocked_one_has_none() {
+        let ignored = Profile {
+            notice: Some(Notice::Ignored {
+                unignore: "friend:10:unignore".into(),
+            }),
+            ..ada()
+        };
+        let (_, laid) = frame(card(&ignored, &LOOK), Size::new(WIDTH, 900.0));
+        let painted = texts(&laid);
+        assert!(painted.contains(&"Ignoraste a este usuario".to_owned()));
+        assert!(painted.contains(&"Dejar de ignorar".to_owned()));
+        assert!(controls(&laid).contains(&"friend:10:unignore".to_owned()));
+        let blocked = Profile {
+            notice: Some(Notice::Blocked),
+            ..ada()
+        };
+        let (_, laid) = frame(card(&blocked, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(texts(&laid).contains(&"Bloqueaste a este usuario".to_owned()));
+        assert!(!controls(&laid).iter().any(|id| id.starts_with("friend:")));
+    }
+
+    #[test]
+    fn roles_on_a_card_come_with_a_remove_button_and_a_plus_for_the_checklist() {
+        let action = "ss:member-of:1:10:role:7";
+        let profile = Profile {
+            role_removals: vec![Some(action.into()), None],
+            role_menu: Some(vec![MenuEntry::Role {
+                id: action.into(),
+                name: "Moderación".into(),
+                color: None,
+                has: true,
+            }]),
+            full_action: Some(format!("{}10", ids::FULL)),
+            ..ada()
+        };
+        let (_, laid) = frame(card(&profile, &LOOK), Size::new(WIDTH, 900.0));
+        let shown = controls(&laid);
+        assert!(shown.contains(&action.to_owned()), "{shown:?}");
+        assert!(
+            shown.contains(&format!("{}10", ids::CARD_ROLES)),
+            "{shown:?}"
+        );
+        // Someone with no roles reads the plus as «Añadir roles».
+        let none = Profile {
+            roles: Vec::new(),
+            role_removals: Vec::new(),
+            ..profile.clone()
+        };
+        let (_, laid) = frame(card(&none, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(texts(&laid).contains(&"Añadir roles".to_owned()));
+        // Without the account's permission, neither shows.
+        let plain = Profile {
+            role_removals: vec![None, None],
+            role_menu: None,
+            ..profile
+        };
+        let (_, laid) = frame(card(&plain, &LOOK), Size::new(WIDTH, 900.0));
+        assert!(!controls(&laid)
+            .iter()
+            .any(|id| id.starts_with(ids::CARD_ROLES)));
+        assert!(!controls(&laid).contains(&action.to_owned()));
     }
 
     fn taller() -> Face {
@@ -2848,17 +3686,30 @@ mod tests {
 
     #[test]
     fn a_card_without_a_banner_paints_its_color_across_the_top() {
-        let (_, laid) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 800.0));
-        let accent = ada().accent;
-        assert!(laid.commands.iter().any(|command| matches!(
-            command,
-            limn::DrawCommand::FillRect { rect, color, .. }
-                if *color == accent && (rect.width - WIDTH).abs() < 1.0 && rect.height == BANNER
-        )));
-        assert!(!laid
-            .commands
-            .iter()
-            .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+        // The banner's color is the profile's (or the mark's), else the raised ground.
+        let painted = |tint: Option<Color>| {
+            let profile = Profile {
+                banner_tint: tint,
+                ..ada()
+            };
+            let (_, laid) = frame(card(&profile, &LOOK), Size::new(WIDTH, 800.0));
+            assert!(!laid
+                .commands
+                .iter()
+                .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+            laid.commands.iter().any(|command| {
+                matches!(
+                    command,
+                    limn::DrawCommand::FillRect { rect, color, .. }
+                        if *color == tint.unwrap_or(LOOK.raised)
+                            && (rect.width - WIDTH).abs() < 1.0
+                            && rect.height == BANNER
+                )
+            })
+        };
+        let blue = Color::rgb(90, 120, 200);
+        assert!(painted(Some(blue)));
+        assert!(painted(None));
     }
 
     #[test]
@@ -3118,7 +3969,7 @@ mod tests {
             // The preview is the card itself, with what is being written;
             // a narrow window stacks it under the form, out of view.
             let preview: &[&str] = if wide {
-                &["Vista previa", "ada • elle", "Ahora en Rust."]
+                &["Vista previa", "ada", "elle", "Ahora en Rust."]
             } else {
                 &[]
             };
@@ -3305,7 +4156,7 @@ mod tests {
             .access
             .iter()
             .any(|node| node.name == "Cargando perfil"));
-        assert!(controls(&loaded).contains(&"profile:dm:10".to_owned()));
+        assert!(controls(&loaded).contains(&format!("{}10", ids::MESSAGE)));
     }
 
     #[test]

@@ -15,18 +15,22 @@ use limn::{Element, Key, UiAction, UiEvent};
 use rune_components::chrome::{self, UserPanel};
 use rune_components::look::activity_line;
 use rune_components::profile::{
-    self as parts, ids, ClearAfter, CustomStatusDialog, EditorErrors, EditorPictures, EditorScope,
-    Face, FullProfile, FullTab, Mutual, OwnPopout, Profile, Since,
+    self as parts, ids, CardMenu, ClearAfter, CustomStatusDialog, EditorErrors, EditorPictures,
+    EditorScope, Face, Friendship, FullProfile, FullTab, Mutual, OwnPopout, Profile, Relation,
+    Since,
 };
 use rune_components::server_settings::{hex, parse_hex, UnsavedBar};
 use rune_components::time::date_label;
+use rune_components::voice::MenuEntry;
 use rune_components::Look;
 use rune_i18n::{t, tr};
 use rune_model::{
-    MessageId, Restriction, Rgb, ServerId, Status, Timestamp, User, UserId, UserProfile,
+    MessageId, RelationshipKind, Restriction, Rgb, ServerId, Status, Timestamp, User, UserId,
+    UserProfile,
 };
 use rune_provider::{
-    Command, Failure, ProfileEdit, ProfileImage, ProfileImageKind, ServerProfileEdit, VoiceSupport,
+    Command, Created, Failure, ProfileEdit, ProfileImage, ProfileImageKind, ServerProfileEdit,
+    VoiceSupport,
 };
 use rune_state::{Applied, Store};
 
@@ -72,6 +76,13 @@ pub struct Profiles {
     pub member_at: Option<(UserId, limn::Point)>,
     /// The same for the card of a message's author.
     pub author_at: Option<((MessageId, bool), limn::Point)>,
+    /// The menu open on a card's banner or roles, and whose card it is.
+    pub menu: Option<(UserId, CardMenu)>,
+    /// The text written in a card's field, and whose card holds it.
+    pub message: Option<(UserId, String)>,
+    /// The person whose conversation is being opened to receive the field's
+    /// text: it goes once the conversation exists.
+    pub message_waiting: Option<UserId>,
     /// The card shown and since when, by the store's clock: the time of
     /// its effect's layers.
     pub effect_since: Option<(UserId, Option<ServerId>, Timestamp)>,
@@ -345,6 +356,12 @@ pub fn card_of(
         .collect();
     let wall = store.wall();
     let loaded = store.profile(user, server);
+    let (mutual_servers, mutual_friends) = if store.me() == Some(user) {
+        (Mutual::Unknown, Mutual::Unknown)
+    } else {
+        mutual_lists(ui, store, server, user, look)
+    };
+    let (role_removals, role_menu) = role_controls(store, server, user, &held);
     let mut member_since = Vec::new();
     if let Some(created) = loaded.and_then(|profile| profile.created) {
         member_since.push(Since {
@@ -380,6 +397,12 @@ pub fn card_of(
         banner: banner(account, loaded)
             .and_then(|source| ui.images.get(source))
             .cloned(),
+        // Without a picture the banner takes the profile's accent, else the
+        // avatar's dominant color, as the official popout does.
+        banner_tint: loaded
+            .and_then(|loaded| loaded.accent)
+            .or_else(|| ui.picture_color(store.avatar_in(server, user)))
+            .map(|color| look.ink(color)),
         // The nickname the profile reported, while the membership is not known here.
         name: loaded
             .and_then(|loaded| loaded.nick.clone())
@@ -409,16 +432,245 @@ pub fn card_of(
         about: loaded
             .and_then(|loaded| loaded.server_about.clone().or(loaded.about.clone()))
             .or(account.about.clone()),
-        activity: presence.activity().map(activity_line),
-        roles,
-        bot: account.bot,
         message_action: store
             .open_direct(user)
             .allowed()
             .then(|| format!("profile:dm:{user}")),
+        // An ignored person's activity stays hidden (2026-10-31).
+        activity: presence
+            .activity()
+            .filter(|_| !store.is_ignored(user))
+            .map(activity_line),
+        roles,
+        bot: account.bot,
+
         identity: crate::identity::card(ui, store, server, user, &held, look),
         loading: loaded.is_none() && store.profile_loading_in(user, server),
+        relation: relation(store, user),
+        more: (store.me() != Some(user)).then(|| more_entries(ui, store, user, server)),
+        open_menu: ui
+            .profiles
+            .menu
+            .filter(|(open, _)| *open == user)
+            .map(|(_, menu)| menu),
+        notice: notice(store, user),
+        mutual_servers,
+        mutual_friends,
+        role_removals,
+        role_menu,
+        message: message_field(ui, store, user),
+        edit_profile: store.me() == Some(user) && edit_denied(store).is_none(),
     })
+}
+
+/// The field under `user`'s card, when the account may write to them: its
+/// action, and the text written so far.
+fn message_field(ui: &Ui, store: &Store, user: UserId) -> Option<parts::MessageField> {
+    (store.me() != Some(user) && store.open_direct(user).allowed()).then(|| parts::MessageField {
+        id: format!("{}{user}", ids::MESSAGE),
+        text: ui
+            .profiles
+            .message
+            .as_ref()
+            .filter(|(who, _)| *who == user)
+            .map(|(_, text)| text.clone())
+            .unwrap_or_default(),
+    })
+}
+
+/// What the account does with `user` that a card says under their name: a
+/// block, or an ignore that can be lifted from the card.
+fn notice(store: &Store, user: UserId) -> Option<rune_components::profile::Notice> {
+    if store.blocked(user) {
+        Some(rune_components::profile::Notice::Blocked)
+    } else if store.is_ignored(user) {
+        Some(rune_components::profile::Notice::Ignored {
+            unignore: format!("friend:{}:unignore", user.0),
+        })
+    } else {
+        None
+    }
+}
+
+/// Who `user` shares with the account in `server`: the servers and the
+/// friends, each known, loading, or not reported. The card and the full
+/// profile show the same lists.
+fn mutual_lists(
+    ui: &Ui,
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    look: &Look,
+) -> (Mutual, Mutual) {
+    let loaded = store.profile(user, server);
+    let list = |faces: Option<Vec<Face>>| match faces {
+        Some(faces) => Mutual::Known(faces),
+        None if loaded.is_none() && store.profile_loading(user) => Mutual::Loading,
+        None => Mutual::Unknown,
+    };
+    let servers = list(loaded.and_then(|loaded| {
+        let ids = loaded.mutual_servers.as_ref()?;
+        Some(
+            ids.iter()
+                .filter_map(|id| Some(server_face(ui, store.server(*id)?, look)))
+                .collect(),
+        )
+    }));
+    let friends = list(loaded.and_then(|loaded| {
+        let ids = loaded.mutual_friends.as_ref()?;
+        Some(
+            ids.iter()
+                .map(|id| {
+                    let account = store.user(*id);
+                    Face {
+                        name: store.display_name(*id, None),
+                        accent: account.map_or(look.faint, |account| look.ink(account.accent)),
+                        image: account.and_then(|account| ui.picture(account.picture())),
+                    }
+                })
+                .collect(),
+        )
+    }));
+    (servers, friends)
+}
+
+/// The roles a card may give and take in `server`: the checklist the person
+/// menu's «Roles» has, and for each role the card holds the action that
+/// takes it away, when the checklist lists it. Nothing for the account's own
+/// card, whose roles are not changed from it.
+fn role_controls(
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    held: &[&rune_model::Role],
+) -> (Vec<Option<String>>, Option<Vec<MenuEntry>>) {
+    let checklist = server
+        .filter(|_| store.me() != Some(user))
+        .and_then(|server| crate::server_settings::member_menu_group(store, server, user).roles)
+        .and_then(|entry| match entry {
+            MenuEntry::Submenu(_, entries) => Some(entries),
+            _ => None,
+        });
+    let removals = held
+        .iter()
+        .map(|role| {
+            let (server, entries) = (server?, checklist.as_ref()?);
+            let action = format!("ss:member-of:{server}:{user}:role:{}", role.id);
+            entries
+                .iter()
+                .any(|entry| matches!(entry, MenuEntry::Role { id, .. } if *id == action))
+                .then_some(action)
+        })
+        .collect();
+    (removals, checklist)
+}
+
+/// The friendship's button of `user`'s card, and the menu it opens: none for
+/// the account, bots, blocked people, and a provider that sends no requests.
+fn relation(store: &Store, user: UserId) -> Option<Relation> {
+    if store.me() == Some(user)
+        || store.user(user).is_some_and(|account| account.bot)
+        || store.blocked(user)
+    {
+        return None;
+    }
+    let social = store.social(user);
+    let person = |action: &str| format!("friend:{}:{action}", user.0);
+    let item = |id: String, label: &str| MenuEntry::Item(id, label.to_owned(), None);
+    let (state, menu) = match store.relationship(user).map(|known| known.kind) {
+        None if store
+            .provider
+            .as_ref()
+            .is_some_and(|info| info.capabilities.friend_requests) =>
+        {
+            (Friendship::None, Vec::new())
+        }
+        Some(RelationshipKind::Friend) => (
+            Friendship::Friend,
+            social
+                .remove
+                .allowed()
+                .then(|| item(person("remove"), t("Eliminar amigo")))
+                .into_iter()
+                .collect(),
+        ),
+        Some(RelationshipKind::OutgoingRequest) => (
+            Friendship::Outgoing,
+            social
+                .remove
+                .allowed()
+                .then(|| item(person("cancel"), t("Cancelar solicitud de amistad")))
+                .into_iter()
+                .collect(),
+        ),
+        Some(RelationshipKind::IncomingRequest) => {
+            let mut menu = Vec::new();
+            if social.accept.allowed() {
+                menu.push(item(person("accept"), t("Aceptar")));
+            }
+            if social.remove.allowed() {
+                menu.push(item(person("dismiss"), t("Ignorar")));
+            }
+            (Friendship::Incoming, menu)
+        }
+        _ => return None,
+    };
+    let action = match state {
+        Friendship::None => person("add"),
+        _ => format!("{}{}", ids::CARD_RELATION, user.0),
+    };
+    Some(Relation {
+        state,
+        action,
+        menu,
+    })
+}
+
+/// The entries of the «…» menu of `user`'s card, in three groups: their
+/// profile, sharing and inviting; ignoring, blocking; and the developer's ID.
+fn more_entries(ui: &Ui, store: &Store, user: UserId, server: Option<ServerId>) -> Vec<MenuEntry> {
+    let item = |id: String, label: &str| MenuEntry::Item(id, label.to_owned(), None);
+    let mut groups = Vec::new();
+    let mut view = vec![item(
+        format!("{}{user}", ids::FULL),
+        t("Ver perfil completo"),
+    )];
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| !info.capabilities.trusted_links.is_empty())
+    {
+        view.push(item(format!("{}{user}", ids::SHARE), t("Compartir perfil")));
+    }
+    view.extend(crate::person_menu::invite_submenu(ui, store, user, server));
+    groups.push(view);
+    let mut safety = crate::ignore::menu(store, user);
+    safety.extend(crate::person_menu::block_items(store, user));
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.capabilities.report_form.is_some())
+    {
+        safety.push(MenuEntry::Danger(
+            format!("{}{user}", ids::REPORT),
+            t("Denunciar perfil de usuario").into(),
+        ));
+    }
+    groups.push(safety);
+    if ui.prefs.developer {
+        groups.push(vec![item(
+            format!("{}{}", rune_components::voice::ids::COPY_ID, user.0),
+            t("Copiar ID del usuario"),
+        )]);
+    }
+    let mut entries = Vec::new();
+    for group in groups.into_iter().filter(|group| !group.is_empty()) {
+        if !entries.is_empty() {
+            entries.push(MenuEntry::Separator);
+        }
+        entries.extend(group);
+    }
+    entries
 }
 
 /// The card of `user` as a popout shows it. While its profile is read and
@@ -827,6 +1079,30 @@ pub fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<Intent> 
     }
 }
 
+/// A card's button opens its menu, or closes the one it has open.
+fn toggle_card_menu(ui: &mut Ui, user: u64, menu: CardMenu) -> Vec<Intent> {
+    let target = (UserId(user), menu);
+    ui.profiles.menu = (ui.profiles.menu != Some(target)).then_some(target);
+    Vec::new()
+}
+
+/// Choosing an entry closes a card's menu, except the button that opens it
+/// again and what keeps it open (a role's check mark).
+pub(crate) fn close_card_menu(ui: &mut Ui, action: &UiAction) {
+    let UiAction::Clicked { id } = action else {
+        return;
+    };
+    let toggles = [ids::CARD_RELATION, ids::CARD_MORE, ids::CARD_ROLES]
+        .iter()
+        .any(|prefix| {
+            id.strip_prefix(prefix)
+                .is_some_and(|rest| rest.parse::<u64>().is_ok())
+        });
+    if !toggles && !crate::person_menu::keeps_open(id) {
+        ui.profiles.menu = None;
+    }
+}
+
 /// Apply an action of the profiles; `None` for the rest of the window.
 pub fn update(
     ui: &mut Ui,
@@ -838,6 +1114,9 @@ pub fn update(
         UiAction::Clicked { id } => clicked(ui, store, id, now),
         UiAction::InputChanged { id, value } => input(ui, store, id, value),
         UiAction::Submitted { id, .. } if id == ids::CUSTOM_TEXT => Some(save_custom(ui)),
+        UiAction::Submitted { id, .. } if id.starts_with(ids::MESSAGE) => {
+            Some(send_message(ui, store, id, now))
+        }
         // Profile editing (edicion-de-perfil).
         UiAction::AreaSliderChanged { .. } | UiAction::SliderChanged { .. } => {
             crate::framing::update(ui, store, action)
@@ -849,6 +1128,13 @@ pub fn update(
 fn input(ui: &mut Ui, store: &Store, id: &str, value: &str) -> Option<Vec<Intent>> {
     if id == ids::CUSTOM_TEXT {
         ui.profiles.custom.as_mut()?.text = value.to_owned();
+        return Some(Vec::new());
+    }
+    if let Some(user) = id
+        .strip_prefix(ids::MESSAGE)
+        .and_then(|rest| rest.parse::<u64>().ok())
+    {
+        ui.profiles.message = Some((UserId(user), value.to_owned()));
         return Some(Vec::new());
     }
     if id.starts_with("profile:") && edit_denied(store).is_some() {
@@ -873,11 +1159,93 @@ fn input(ui: &mut Ui, store: &Store, id: &str, value: &str) -> Option<Vec<Intent
     Some(Vec::new())
 }
 
+/// Enter in a card's field: the text goes to their conversation and the card
+/// closes (REA §4.5). Empty text does nothing. Without a conversation it is
+/// opened first, and the text goes once it exists (see [`message_on_applied`]).
+fn send_message(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Vec<Intent> {
+    let Some(user) = id
+        .strip_prefix(ids::MESSAGE)
+        .and_then(|rest| rest.parse::<u64>().ok())
+        .map(UserId)
+    else {
+        return Vec::new();
+    };
+    let has_text = ui
+        .profiles
+        .message
+        .as_ref()
+        .is_some_and(|(who, text)| *who == user && !text.trim().is_empty());
+    if !has_text {
+        return Vec::new();
+    }
+    let Some(channel) = store.direct_with(user) else {
+        ui.profiles.message_waiting = Some(user);
+        return crate::conversations::open_direct(ui, store, user, now);
+    };
+    let text = ui
+        .profiles
+        .message
+        .take()
+        .map(|(_, text)| text.trim().to_owned())
+        .unwrap_or_default();
+    let mut intents = crate::conversations::open_direct(ui, store, user, now);
+    intents.push(Intent::Send {
+        channel,
+        content: text,
+        reply_to: None,
+        mention_reply: false,
+    });
+    close_floating(ui);
+    intents
+}
+
+/// The text of a card waits for its new conversation: it is sent once the
+/// provider has opened it. When the conversation cannot open, the card keeps
+/// its text and stays.
+pub(crate) fn message_on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<Intent> {
+    let Some(user) = ui.profiles.message_waiting else {
+        return Vec::new();
+    };
+    match applied {
+        Applied::Created {
+            created: Created::Channel(channel),
+            ..
+        } if store.direct_with(user) == Some(*channel) => {
+            ui.profiles.message_waiting = None;
+            let Some((who, text)) = ui.profiles.message.take() else {
+                return Vec::new();
+            };
+            if who != user {
+                ui.profiles.message = Some((who, text));
+                return Vec::new();
+            }
+            close_floating(ui);
+            vec![Intent::Send {
+                channel: *channel,
+                content: text.trim().to_owned(),
+                reply_to: None,
+                mention_reply: false,
+            }]
+        }
+        Applied::Failed {
+            failure: Failure::Direct { .. },
+            ..
+        } => {
+            ui.profiles.message_waiting = None;
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// Close what floats from the panel and the cards, before opening another.
 pub(crate) fn close_floating(ui: &mut Ui) {
     ui.status_menu = false;
     ui.profiles.status_open = false;
     ui.profile = None;
+    ui.profiles.menu = None;
+    ui.profiles.message = None;
+    ui.profiles.message_waiting = None;
     // The camera's panel takes its test along, unless the voice page shows it.
     if ui.profiles.devices.take().is_some_and(|quick| quick.camera) && ui.settings.is_none() {
         ui.video.testing = false;
@@ -990,6 +1358,61 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
         ui.profiles.full = None;
         return Some(Vec::new());
     }
+    // A card's round buttons open their menus; choosing a share copies the
+    // person's page on the provider's first trusted domain.
+    if let Some(user) = number(ids::CARD_RELATION) {
+        return Some(toggle_card_menu(ui, user, CardMenu::Relation));
+    }
+    if let Some(user) = number(ids::CARD_MORE) {
+        return Some(toggle_card_menu(ui, user, CardMenu::More));
+    }
+    if let Some(user) = number(ids::CARD_ROLES) {
+        return Some(toggle_card_menu(ui, user, CardMenu::Roles));
+    }
+    // A card's mutual friends or servers open the full profile on their tab.
+    if let Some((user, tab)) = id
+        .strip_prefix(ids::MUTUAL)
+        .and_then(|rest| rest.split_once(':'))
+    {
+        if let (Ok(user), Some(tab)) = (user.parse::<u64>(), FullTab::from_key(tab)) {
+            let (user, server) = (UserId(user), ui.server);
+            close_floating(ui);
+            ui.profiles.full = Some((user, server));
+            ui.profiles.full_tab = tab;
+            return Some(request_profile(ui, store, user, server));
+        }
+    }
+    // Reporting copies the person's ID for the provider's form, and opens it.
+    if let Some(user) = number(ids::REPORT) {
+        let form = store
+            .provider
+            .as_ref()
+            .and_then(|info| info.capabilities.report_form);
+        return Some(match form {
+            Some(form) => {
+                ui.notify(t("ID copiado: pégalo en el formulario"), None, false, now);
+                vec![
+                    Intent::Copy(user.to_string()),
+                    Intent::OpenInBrowser(form.to_owned()),
+                ]
+            }
+            None => Vec::new(),
+        });
+    }
+    if let Some(user) = number(ids::SHARE) {
+        let link = store
+            .provider
+            .as_ref()
+            .and_then(|info| info.capabilities.trusted_links.first())
+            .map(|domain| format!("https://{domain}/users/{user}"));
+        return Some(match link {
+            Some(link) => {
+                ui.notify(t("Enlace copiado"), None, false, now);
+                vec![Intent::Copy(link)]
+            }
+            None => Vec::new(),
+        });
+    }
     if let Some(tab) = id.strip_prefix(ids::FULL_TAB).and_then(FullTab::from_key) {
         ui.profiles.full_tab = tab;
         return Some(Vec::new());
@@ -1075,10 +1498,12 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
         ids::CUSTOM_SAVE => save_custom(ui),
         ids::AUTHOR_DISMISS => {
             ui.profiles.author = None;
+            ui.profiles.menu = None;
             Vec::new()
         }
         ids::MEMBER_DISMISS => {
             ui.profile = None;
+            ui.profiles.menu = None;
             Vec::new()
         }
         ids::EDITOR_CLOSE => {
@@ -1770,11 +2195,7 @@ fn full_view(ui: &Ui, store: &Store, look: &Look) -> Option<FullProfile> {
     let mut profile = card_of(ui, store, server, user, look)?;
     profile.full_action = None;
     let loaded = store.profile(user, server);
-    let list = |faces: Option<Vec<Face>>| match faces {
-        Some(faces) => Mutual::Known(faces),
-        None if loaded.is_none() && store.profile_loading(user) => Mutual::Loading,
-        None => Mutual::Unknown,
-    };
+    let (mutual_servers, mutual_friends) = mutual_lists(ui, store, server, user, look);
     Some(FullProfile {
         loading: profile.loading,
         profile,
@@ -1782,29 +2203,8 @@ fn full_view(ui: &Ui, store: &Store, look: &Look) -> Option<FullProfile> {
         nick: server
             .and_then(|server| store.member_of(server, user)?.nick.clone())
             .or_else(|| loaded?.nick.clone()),
-        mutual_servers: list(loaded.and_then(|loaded| {
-            let ids = loaded.mutual_servers.as_ref()?;
-            Some(
-                ids.iter()
-                    .filter_map(|id| Some(server_face(ui, store.server(*id)?, look)))
-                    .collect(),
-            )
-        })),
-        mutual_friends: list(loaded.and_then(|loaded| {
-            let ids = loaded.mutual_friends.as_ref()?;
-            Some(
-                ids.iter()
-                    .map(|id| {
-                        let account = store.user(*id);
-                        Face {
-                            name: store.display_name(*id, None),
-                            accent: account.map_or(look.faint, |account| look.ink(account.accent)),
-                            image: account.and_then(|account| ui.picture(account.picture())),
-                        }
-                    })
-                    .collect(),
-            )
-        })),
+        mutual_servers,
+        mutual_friends,
         tab: ui.profiles.full_tab,
         connections: crate::identity::connections(store, user, server),
     })
