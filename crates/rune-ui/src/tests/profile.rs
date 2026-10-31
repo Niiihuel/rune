@@ -642,6 +642,7 @@ fn pf_clicking_an_author_opens_their_card_with_their_roles() {
         ..Default::default()
     }));
     host.click(&id);
+    host.answer_profile();
     assert_eq!(host.ui.profiles.author, Some((message, false)));
     let painted = host.painted();
     let name = host.store.display_name(author, Some(server));

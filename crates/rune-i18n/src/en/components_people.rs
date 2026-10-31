@@ -217,6 +217,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Ver perfil completo", "View full profile"),
     ("No disponible en esta conexión.", "Not available on this connection."),
     ("Cargando…", "Loading…"),
+    ("Cargando perfil", "Loading profile"),
     ("Ninguno en común.", "None in common."),
     ("Apodo: {nick}", "Nickname: {nick}"),
     ("Sin roles.", "No roles."),

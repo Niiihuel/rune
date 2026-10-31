@@ -513,6 +513,7 @@ fn a_secondary_click_on_yourself_offers_your_microphone_profile_and_id() {
     // «Perfil» opens the card beside the row.
     host.vz_right_click(&ids::row(me.0));
     host.click(&format!("{}{}", ids::PROFILE, me.0));
+    host.answer_profile();
     assert_eq!(host.ui.voice.card, Some((me, room, false)));
     assert!(
         host.painted().contains(&"invitado".to_owned()),

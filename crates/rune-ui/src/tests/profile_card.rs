@@ -67,6 +67,7 @@ fn a_members_card_holds_its_place_while_a_busy_list_moves_under_it() {
         server, general, &people, 0, None,
     )));
     host.click(&format!("member:{ada}"));
+    host.answer_profile();
     host.frame();
     let opened = card_rect(&host).expect("the card opens beside her row");
     // People above come and go, her row moves, and an update leaves her
@@ -125,6 +126,7 @@ fn an_authors_card_holds_its_place_while_new_messages_push_the_conversation_up()
         .unwrap()
         .1;
     host.click(&rune_components::profile::ids::author_name(message.id.0));
+    host.answer_profile();
     host.frame();
     let opened = rect(&host).expect("the card opens beside the name");
     // Messages keep coming while it shows: the conversation moves up.
@@ -202,13 +204,11 @@ fn a_voice_card_asks_for_the_profile_and_note_and_a_failed_note_says_so() {
         server,
         people: vec![person],
     }));
-    // On the card the note is an icon that opens the full profile, where
-    // it is (2026-10-18). It cannot be read: its place says it, not
-    // «Cargando la nota…».
-    host.click(&format!(
-        "{}{person}",
-        rune_components::profile::ids::FULL_NOTE
-    ));
+    // The note is where the full profile says it is, and it cannot be read:
+    // its place says it, not «Cargando la nota…». The card's icon for it
+    // waits for the profile read, so the full profile opens directly here.
+    host.ui.profiles.full = Some((person, Some(server)));
+    host.frame();
     assert_eq!(host.ui.profiles.full.map(|(user, _)| user), Some(person));
     host.event(Event::Failed {
         failure: rune_provider::Failure::Note { user: person },
@@ -339,6 +339,7 @@ fn a_members_card_closes_when_the_person_scrolls_the_list_not_when_it_moves_by_i
         server, general, &people, 0, None,
     )));
     host.click(&format!("member:{ada}"));
+    host.answer_profile();
     host.frame();
     let card = card_rect(&host).expect("open");
     // The list moves and rebuilds by itself: the card stays.
@@ -385,6 +386,7 @@ fn an_authors_card_closes_when_the_person_scrolls_the_conversation() {
         .unwrap()
         .id;
     host.click(&rune_components::profile::ids::author_name(message.0));
+    host.answer_profile();
     host.frame();
     assert!(host.ui.profiles.author.is_some());
     // Far from the card, which opens to the right of the name.
@@ -661,6 +663,7 @@ fn a_members_card_stands_16_px_from_its_row() {
     listed(&mut host);
     let row = format!("member:{}", UserId(10));
     host.click(&row);
+    host.answer_profile();
     host.frame();
     let row = crate::profile::member_row(&host.tree, &row).expect("her row in the list");
     let card = card_rect(&host).expect("her card");
@@ -756,4 +759,106 @@ fn a_kept_profile_is_shown_and_asked_for_again_after_a_minute() {
         host.store.profile(ada, Some(server)).is_some(),
         "shown meanwhile"
     );
+    // A kept profile is no read to wait for: its card shows at once.
+    host.frame();
+    assert!(card_rect(&host).is_some(), "shown at once");
+    assert!(!host
+        .tree
+        .frame()
+        .access
+        .iter()
+        .any(|node| node.name == "Cargando perfil"));
+}
+
+#[test]
+fn a_card_waits_250_ms_for_its_profile_then_shows_the_skeleton_then_the_card() {
+    use std::sync::atomic::{AtomicI64, Ordering};
+    static NOW: AtomicI64 = AtomicI64::new(1_790_000_100_000);
+    let mut host = Host::new();
+    host.store.clock = Some(|| Timestamp(NOW.load(Ordering::Relaxed)));
+    let (server, _, _) = listed(&mut host);
+    let ada = UserId(10);
+    let skeleton = |host: &Host| {
+        host.tree
+            .frame()
+            .access
+            .iter()
+            .any(|node| node.name == "Cargando perfil")
+    };
+    let from = host.sent.len();
+    host.click(&format!("member:{ada}"));
+    let request = host.sent[from..]
+        .iter()
+        .find_map(|command| match command {
+            Command::LoadProfile { request, user, .. } if *user == ada => Some(*request),
+            _ => None,
+        })
+        .expect("asked as it opens");
+    // Nothing shows for the first 250 ms, and the window paints when they are over.
+    host.frame();
+    assert!(card_rect(&host).is_none());
+    let now = Timestamp(NOW.load(Ordering::Relaxed));
+    assert_eq!(
+        crate::profile::next_tick(&host.ui, now),
+        Some(Duration::from_millis(250))
+    );
+    NOW.fetch_add(249, Ordering::Relaxed);
+    host.frame();
+    assert!(card_rect(&host).is_none());
+    NOW.fetch_add(1, Ordering::Relaxed);
+    host.frame();
+    assert!(
+        card_rect(&host).is_some() && skeleton(&host),
+        "the skeleton"
+    );
+    assert!(!host.painted().iter().any(|text| text.contains("en común")));
+    // The answer replaces the skeleton with the card.
+    for event in host.provider.manage(Command::LoadProfile {
+        request,
+        user: ada,
+        server: Some(server),
+        effect: true,
+    }) {
+        host.event(event);
+    }
+    host.frame();
+    assert!(card_rect(&host).is_some() && !skeleton(&host));
+    assert!(host.painted().iter().any(|text| text.contains("en común")));
+}
+
+#[test]
+fn a_full_profile_whose_read_is_in_flight_shows_lines_not_no_data() {
+    use std::sync::atomic::{AtomicI64, Ordering};
+    static NOW: AtomicI64 = AtomicI64::new(1_790_000_100_000);
+    let mut host = Host::new();
+    host.store.clock = Some(|| Timestamp(NOW.load(Ordering::Relaxed)));
+    let (server, _, _) = listed(&mut host);
+    let ada = UserId(10);
+    // Her read goes out and is not answered; her full profile opens over it.
+    host.click(&format!("member:{ada}"));
+    host.frame();
+    NOW.fetch_add(250, Ordering::Relaxed);
+    host.frame();
+    host.ui.profiles.full = Some((ada, Some(server)));
+    host.frame();
+    let painted = host.painted();
+    assert!(
+        !painted
+            .iter()
+            .any(|text| text == "No hay más datos de este perfil."),
+        "{painted:?}"
+    );
+    let widths: Vec<f32> = host
+        .tree
+        .frame()
+        .commands
+        .iter()
+        .filter_map(|command| match command {
+            limn::DrawCommand::FillRect { rect, .. } if rect.height == 12.0 => Some(rect.width),
+            _ => None,
+        })
+        .collect();
+    for width in [241.0, 201.0, 228.0, 161.0] {
+        assert!(widths.contains(&width), "{widths:?}");
+    }
 }
