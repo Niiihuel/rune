@@ -59,8 +59,10 @@ publish = false
 # branch rune/radio-cards, on top of rune/hidden-cursor, 2026-10-26).
 # And egui/eframe 0.37 with pasted pictures and the other mouse buttons (PR #136;
 # branch rune/egui-0.37, on top of rune/radio-cards, 2026-10-26).
-limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/egui-0.37", default-features = false }
-limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/egui-0.37", default-features = false }
+# And context menus at the host's density, Discord's person menus (PR #139;
+# branch rune/integration-2026-10-31, on top of rune/egui-0.37, 2026-10-31).
+limn = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-31", default-features = false }
+limn-egui = { git = "https://github.com/Niiihuel/limn", branch = "rune/integration-2026-10-31", default-features = false }
 eframe = { version = "0.37.0", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland", "accesskit"] }
 # The core owns async provider sessions, HTTP I/O and the loopback OAuth callback.
 # Async filesystem writes keep explicit attachment downloads off the UI thread.
