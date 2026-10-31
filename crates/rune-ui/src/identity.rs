@@ -351,7 +351,12 @@ pub(crate) fn card(
             mobile: false,
             ..marks(ui, store, server, user, look)
         },
-        activities: activity_cards(ui, store, user, store.wall()),
+        // An ignored person's activity is hidden from every card (2026-10-31).
+        activities: if store.is_ignored(user) {
+            Vec::new()
+        } else {
+            activity_cards(ui, store, user, store.wall())
+        },
         platforms,
         badges,
         role_marks: roles.iter().map(|role| role_mark(ui, role)).collect(),

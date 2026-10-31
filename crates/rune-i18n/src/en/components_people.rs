@@ -213,9 +213,15 @@ pub(super) const ENTRIES: super::Entries = &[
         "Solo la ves tú. Enter la guarda.",
         "Only you can see it. Enter saves it.",
     ),
-    // The card's banner buttons and menus (2026-10-31).
+    // The card's banner buttons, notice, name and roles (2026-10-31).
     ("Amigo", "Friend"),
     ("Solicitud de amistad entrante", "Incoming Friend Request"),
+    ("Agregar nota (solo visible para ti)", "Add note (only visible to you)"),
+    ("Editar nota (solo visible para ti)", "Edit note (only visible to you)"),
+    ("Bloqueaste a este usuario", "You blocked this user"),
+    ("Ignoraste a este usuario", "You ignored this user"),
+    ("Añadir roles", "Add roles"),
+    ("Quitar el rol {role}", "Remove the role {role}"),
     ("Sobre mí", "About me"),
     ("Servidores en común", "Mutual servers"),
     ("Amigos en común", "Mutual friends"),

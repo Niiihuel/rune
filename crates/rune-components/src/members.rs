@@ -285,6 +285,11 @@ mod tests {
             relation: None,
             more: None,
             open_menu: None,
+            notice: None,
+            mutual_friends: crate::profile::Mutual::Unknown,
+            mutual_servers: crate::profile::Mutual::Unknown,
+            role_removals: Vec::new(),
+            role_menu: None,
         };
         let list = Element::column(vec![
             heading(
@@ -306,7 +311,8 @@ mod tests {
         assert!(controls(&frame).contains(&"profile:dm:10".to_owned()));
         let painted = texts(&frame);
         assert!(painted.contains(&"En línea — 1".to_owned()), "{painted:?}");
-        assert!(painted.contains(&"ada • ella".to_owned()), "{painted:?}");
+        assert!(painted.contains(&"ada".to_owned()), "{painted:?}");
+        assert!(painted.contains(&"ella".to_owned()), "{painted:?}");
         assert!(painted.contains(&"Moderación".to_owned()));
     }
 

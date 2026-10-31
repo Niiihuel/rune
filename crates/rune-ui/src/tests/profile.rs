@@ -456,7 +456,7 @@ fn pf_the_editor_saves_what_changed_and_blocks_a_long_about() {
     host.pf_input(ids::PRONOUNS, " elle ");
     host.click("profile:color:3498db");
     assert!(
-        host.painted().iter().any(|text| text == "invitado • elle"),
+        host.painted().iter().any(|text| text == "elle"),
         "the preview follows"
     );
     let from = host.sent.len();
@@ -652,7 +652,6 @@ fn pf_clicking_an_author_opens_their_card_with_their_roles() {
         "{painted:?}"
     );
     assert!(painted.iter().any(|text| text.starts_with(&handle)));
-    assert!(painted.iter().any(|text| text == "Roles"));
     assert!(painted.contains(&role.name));
     host.key(Key::Escape, false, false);
     assert_eq!(host.ui.profiles.author, None);
@@ -1036,8 +1035,8 @@ fn pf_a_members_card_loads_their_profile_once_and_ignores_stale_answers() {
         painted.iter().any(|t| t.contains("en común")),
         "{painted:?}"
     );
-    assert!(painted.iter().any(|t| t == "Miembro desde"));
-    assert!(painted.iter().any(|t| t == "Cuenta"));
+    // The dates are the full profile's: the card shows its mutuals instead.
+    assert!(!painted.iter().any(|t| t == "Miembro desde"));
     // Opened again, the card uses what was loaded (only who is watched
     // changes as it closes and opens).
     let sent = host.sent.len();

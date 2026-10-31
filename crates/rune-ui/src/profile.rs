@@ -350,6 +350,12 @@ pub fn card_of(
         .collect();
     let wall = store.wall();
     let loaded = store.profile(user, server);
+    let (mutual_servers, mutual_friends) = if store.me() == Some(user) {
+        (Mutual::Unknown, Mutual::Unknown)
+    } else {
+        mutual_lists(ui, store, server, user, look)
+    };
+    let (role_removals, role_menu) = role_controls(store, server, user, &held);
     let mut member_since = Vec::new();
     if let Some(created) = loaded.and_then(|profile| profile.created) {
         member_since.push(Since {
@@ -420,7 +426,11 @@ pub fn card_of(
         about: loaded
             .and_then(|loaded| loaded.server_about.clone().or(loaded.about.clone()))
             .or(account.about.clone()),
-        activity: presence.activity().map(activity_line),
+        // An ignored person's activity stays hidden (2026-10-31).
+        activity: presence
+            .activity()
+            .filter(|_| !store.is_ignored(user))
+            .map(activity_line),
         roles,
         bot: account.bot,
         message_action: store
@@ -436,7 +446,99 @@ pub fn card_of(
             .menu
             .filter(|(open, _)| *open == user)
             .map(|(_, menu)| menu),
+        notice: notice(store, user),
+        mutual_servers,
+        mutual_friends,
+        role_removals,
+        role_menu,
     })
+}
+
+/// What the account does with `user` that a card says under their name: a
+/// block, or an ignore that can be lifted from the card.
+fn notice(store: &Store, user: UserId) -> Option<rune_components::profile::Notice> {
+    if store.blocked(user) {
+        Some(rune_components::profile::Notice::Blocked)
+    } else if store.is_ignored(user) {
+        Some(rune_components::profile::Notice::Ignored {
+            unignore: format!("friend:{}:unignore", user.0),
+        })
+    } else {
+        None
+    }
+}
+
+/// Who `user` shares with the account in `server`: the servers and the
+/// friends, each known, loading, or not reported. The card and the full
+/// profile show the same lists.
+fn mutual_lists(
+    ui: &Ui,
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    look: &Look,
+) -> (Mutual, Mutual) {
+    let loaded = store.profile(user, server);
+    let list = |faces: Option<Vec<Face>>| match faces {
+        Some(faces) => Mutual::Known(faces),
+        None if loaded.is_none() && store.profile_loading(user) => Mutual::Loading,
+        None => Mutual::Unknown,
+    };
+    let servers = list(loaded.and_then(|loaded| {
+        let ids = loaded.mutual_servers.as_ref()?;
+        Some(
+            ids.iter()
+                .filter_map(|id| Some(server_face(ui, store.server(*id)?, look)))
+                .collect(),
+        )
+    }));
+    let friends = list(loaded.and_then(|loaded| {
+        let ids = loaded.mutual_friends.as_ref()?;
+        Some(
+            ids.iter()
+                .map(|id| {
+                    let account = store.user(*id);
+                    Face {
+                        name: store.display_name(*id, None),
+                        accent: account.map_or(look.faint, |account| look.ink(account.accent)),
+                        image: account.and_then(|account| ui.picture(account.picture())),
+                    }
+                })
+                .collect(),
+        )
+    }));
+    (servers, friends)
+}
+
+/// The roles a card may give and take in `server`: the checklist the person
+/// menu's «Roles» has, and for each role the card holds the action that
+/// takes it away, when the checklist lists it. Nothing for the account's own
+/// card, whose roles are not changed from it.
+fn role_controls(
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    held: &[&rune_model::Role],
+) -> (Vec<Option<String>>, Option<Vec<MenuEntry>>) {
+    let checklist = server
+        .filter(|_| store.me() != Some(user))
+        .and_then(|server| crate::server_settings::member_menu_group(store, server, user).roles)
+        .and_then(|entry| match entry {
+            MenuEntry::Submenu(_, entries) => Some(entries),
+            _ => None,
+        });
+    let removals = held
+        .iter()
+        .map(|role| {
+            let (server, entries) = (server?, checklist.as_ref()?);
+            let action = format!("ss:member-of:{server}:{user}:role:{}", role.id);
+            entries
+                .iter()
+                .any(|entry| matches!(entry, MenuEntry::Role { id, .. } if *id == action))
+                .then_some(action)
+        })
+        .collect();
+    (removals, checklist)
 }
 
 /// The friendship's button of `user`'s card, and the menu it opens: none for
@@ -1136,6 +1238,19 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
     }
     if let Some(user) = number(ids::CARD_MORE) {
         return Some(toggle_card_menu(ui, user, CardMenu::More));
+    }
+    // A card's mutual friends or servers open the full profile on their tab.
+    if let Some((user, tab)) = id
+        .strip_prefix(ids::MUTUAL)
+        .and_then(|rest| rest.split_once(':'))
+    {
+        if let (Ok(user), Some(tab)) = (user.parse::<u64>(), FullTab::from_key(tab)) {
+            let (user, server) = (UserId(user), ui.server);
+            close_floating(ui);
+            ui.profiles.full = Some((user, server));
+            ui.profiles.full_tab = tab;
+            return Some(request_profile(ui, store, user, server));
+        }
     }
     if let Some(user) = number(ids::SHARE) {
         let link = store
@@ -1933,11 +2048,7 @@ fn full_view(ui: &Ui, store: &Store, look: &Look) -> Option<FullProfile> {
     let mut profile = card_of(ui, store, server, user, look)?;
     profile.full_action = None;
     let loaded = store.profile(user, server);
-    let list = |faces: Option<Vec<Face>>| match faces {
-        Some(faces) => Mutual::Known(faces),
-        None if loaded.is_none() && store.profile_loading(user) => Mutual::Loading,
-        None => Mutual::Unknown,
-    };
+    let (mutual_servers, mutual_friends) = mutual_lists(ui, store, server, user, look);
     Some(FullProfile {
         loading: profile.loading,
         profile,
@@ -1945,29 +2056,8 @@ fn full_view(ui: &Ui, store: &Store, look: &Look) -> Option<FullProfile> {
         nick: server
             .and_then(|server| store.member_of(server, user)?.nick.clone())
             .or_else(|| loaded?.nick.clone()),
-        mutual_servers: list(loaded.and_then(|loaded| {
-            let ids = loaded.mutual_servers.as_ref()?;
-            Some(
-                ids.iter()
-                    .filter_map(|id| Some(server_face(ui, store.server(*id)?, look)))
-                    .collect(),
-            )
-        })),
-        mutual_friends: list(loaded.and_then(|loaded| {
-            let ids = loaded.mutual_friends.as_ref()?;
-            Some(
-                ids.iter()
-                    .map(|id| {
-                        let account = store.user(*id);
-                        Face {
-                            name: store.display_name(*id, None),
-                            accent: account.map_or(look.faint, |account| look.ink(account.accent)),
-                            image: account.and_then(|account| ui.picture(account.picture())),
-                        }
-                    })
-                    .collect(),
-            )
-        })),
+        mutual_servers,
+        mutual_friends,
         tab: ui.profiles.full_tab,
         connections: crate::identity::connections(store, user, server),
     })
