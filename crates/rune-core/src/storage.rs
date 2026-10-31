@@ -1080,7 +1080,17 @@ fn snapshot_bytes(snapshot: &Snapshot) -> usize {
                 .saturating_add(text_bytes(&activity.detail))
                 .saturating_add(text_bytes(&activity.state))
                 .saturating_add(image_bytes(&activity.image))
-                .saturating_add(image_bytes(&activity.small_image));
+                .saturating_add(image_bytes(&activity.small_image))
+                .saturating_add(text_bytes(&activity.large_text))
+                .saturating_add(text_bytes(&activity.small_text))
+                .saturating_add(text_bytes(&activity.sync_id))
+                .saturating_add(text_bytes(&activity.session))
+                .saturating_add(text_bytes(&activity.url))
+                .saturating_add(vector_bytes(&activity.buttons))
+                .saturating_add(activity.buttons.iter().map(String::capacity).sum::<usize>());
+            if let Some(party) = &activity.party {
+                bytes = bytes.saturating_add(text_bytes(&party.id));
+            }
         }
     }
     bytes
