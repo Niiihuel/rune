@@ -1092,10 +1092,12 @@ pub(crate) fn close_card_menu(ui: &mut Ui, action: &UiAction) {
     let UiAction::Clicked { id } = action else {
         return;
     };
-    let toggles = [ids::CARD_RELATION, ids::CARD_MORE].iter().any(|prefix| {
-        id.strip_prefix(prefix)
-            .is_some_and(|rest| rest.parse::<u64>().is_ok())
-    });
+    let toggles = [ids::CARD_RELATION, ids::CARD_MORE, ids::CARD_ROLES]
+        .iter()
+        .any(|prefix| {
+            id.strip_prefix(prefix)
+                .is_some_and(|rest| rest.parse::<u64>().is_ok())
+        });
     if !toggles && !crate::person_menu::keeps_open(id) {
         ui.profiles.menu = None;
     }
@@ -1363,6 +1365,9 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
     }
     if let Some(user) = number(ids::CARD_MORE) {
         return Some(toggle_card_menu(ui, user, CardMenu::More));
+    }
+    if let Some(user) = number(ids::CARD_ROLES) {
+        return Some(toggle_card_menu(ui, user, CardMenu::Roles));
     }
     // A card's mutual friends or servers open the full profile on their tab.
     if let Some((user, tab)) = id

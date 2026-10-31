@@ -2,7 +2,7 @@
 //! panel's arrows, the profile editor and the cards of people, driven as a
 //! person would, with the simulation answering what they ask of it.
 
-use rune_components::profile::{ids, FullTab, ABOUT_MAX};
+use rune_components::profile::{ids, CardMenu, FullTab, ABOUT_MAX};
 use rune_components::voice::MenuEntry;
 use rune_model::{Member, Rgb, Status};
 use rune_provider::{Failure, ProfileEdit};
@@ -1860,4 +1860,23 @@ fn pf_a_mutual_part_opens_the_full_profile_on_its_tab() {
     assert_eq!(host.ui.profiles.full, Some((user, Some(server))));
     assert_eq!(host.ui.profiles.full_tab, FullTab::Servers);
     assert_eq!(host.ui.profile, None, "the full profile replaces the card");
+}
+
+#[test]
+fn pf_the_roles_plus_opens_its_checklist_and_a_role_keeps_it_open() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let server = host.store.channel(general).unwrap().server.unwrap();
+    let user = pf_someone(&host, server, true);
+    let toggle = format!("{}{user}", ids::CARD_ROLES);
+    host.pf_act(&toggle);
+    assert_eq!(host.ui.profiles.menu, Some((user, CardMenu::Roles)));
+    // The same «+» closes it.
+    host.pf_act(&toggle);
+    assert_eq!(host.ui.profiles.menu, None);
+    host.pf_act(&toggle);
+    // A role's check mark is a choice that keeps the checklist open.
+    let role = host.store.server(server).unwrap().roles[1].id;
+    host.pf_act(&format!("ss:member-of:{server}:{user}:role:{role}"));
+    assert_eq!(host.ui.profiles.menu, Some((user, CardMenu::Roles)));
 }
