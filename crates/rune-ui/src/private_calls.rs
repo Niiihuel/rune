@@ -21,7 +21,7 @@ use rune_components::private_call::{self as parts, ids, Incoming, PrivateStage, 
 use rune_components::voice::Participant;
 use rune_components::Look;
 use rune_i18n::{t, tr};
-use rune_model::{ChannelId, ChannelKind, MessageId, RelationshipKind, Status, UserId};
+use rune_model::{CallPhase, ChannelId, ChannelKind, MessageId, RelationshipKind, Status, UserId};
 use rune_provider::{Command, Failure};
 use rune_state::{Applied, CallStatus, Store};
 
@@ -477,7 +477,7 @@ pub(crate) fn private_stage(
         .channel(channel)
         .is_some_and(|found| found.kind == ChannelKind::Direct);
     let line = match status {
-        CallStatus::Ringing => Some(t("Llamando…").to_owned()),
+        CallStatus::Ringing => Some(t("Invitando a la llamada").to_owned()),
         CallStatus::Unanswered => Some(t("Sin respuesta").to_owned()),
         CallStatus::Declined if direct => Some(tr!(
             "{name} rechazó la llamada",
@@ -512,6 +512,23 @@ pub(crate) fn private_stage(
         )),
         _ => None,
     };
+    // VOICE mode (Discord §1.3), in the account's call here: nobody has a
+    // camera on, nobody streams, and no stream of the call is still watched;
+    // otherwise the tiles.
+    let in_call = store.call().is_some_and(|call| {
+        call.channel == channel && !matches!(call.phase, CallPhase::Failed { .. })
+    });
+    let voice_mode = in_call
+        && !ui.video.camera.on
+        && !ui.video.screen.on
+        && store
+            .voice_in(channel)
+            .iter()
+            .all(|state| !state.camera && !state.streaming)
+        && store
+            .watching()
+            .iter()
+            .all(|watching| watching.channel != channel);
     Some(PrivateStage {
         status: line,
         ringing,
@@ -519,6 +536,7 @@ pub(crate) fn private_stage(
         invitation,
         incoming: status == CallStatus::Incoming,
         expanded: ui.voice.stage == Some(channel),
+        voice_mode,
     })
 }
 
@@ -558,7 +576,10 @@ pub(crate) fn call_view(
             .voice_in(channel)
             .iter()
             .any(|state| state.camera && Some(state.user) != store.me());
-    let height = if video {
+    let height = if private.voice_mode {
+        // Discord's MINIMUM area, under the stage's header and its rule.
+        rune_components::voice::VOICE_HEIGHT + rune_components::sidebar::HEADER + 1.0
+    } else if video {
         (context.window.height * 0.65).clamp(360.0, 640.0)
     } else {
         (context.window.height * 0.5).clamp(300.0, 480.0)

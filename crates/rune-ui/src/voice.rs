@@ -324,9 +324,9 @@ fn number(id: &str, prefix: &str) -> Option<u64> {
 }
 
 /// The channel `user` is in, as shown: their voice state, or the account's
-/// call before the provider confirms it. The account's call first, so that
-/// a direct call, in no server, is found too (2026-10-21: its people had no
-/// menu).
+/// call before the provider confirms it, which also rings them (VOICE mode
+/// shows them as an avatar there). The account's call first, so that a direct
+/// call, in no server, is found too (2026-10-21: its people had no menu).
 fn channel_of(store: &Store, user: UserId) -> Option<ChannelId> {
     let call = store.call().map(|call| call.channel).filter(|channel| {
         store.me() == Some(user)
@@ -334,6 +334,7 @@ fn channel_of(store: &Store, user: UserId) -> Option<ChannelId> {
                 .voice_in(*channel)
                 .iter()
                 .any(|state| state.user == user)
+            || store.ringing(*channel).contains(&user)
     });
     call.or_else(|| {
         store
@@ -407,6 +408,10 @@ pub(crate) fn update(
     if let Some(user) = number(id, parts::ids::COPY_ID) {
         ui.notify(t("ID copiado"), None, false, now);
         return Some(vec![Intent::Copy(user.to_string())]);
+    }
+    // A voice avatar opens its menu on a secondary click only (REA §2.2).
+    if number(id, "vz:avatar:").is_some() {
+        return Some(Vec::new());
     }
     for (prefix, on_tile) in [("vz:user:", false), ("vz:tile:", true)] {
         if let Some(user) = number(id, prefix) {
@@ -534,9 +539,15 @@ pub(crate) fn secondary_click(
     at: Point,
 ) -> Option<Vec<Intent>> {
     let on_tile = || {
-        ["vz:tile:", "vz:tile-more:", "vz:watch:", "vz:stream-tile:"]
-            .into_iter()
-            .find_map(|prefix| number(target, prefix))
+        [
+            "vz:tile:",
+            "vz:tile-more:",
+            "vz:avatar:",
+            "vz:watch:",
+            "vz:stream-tile:",
+        ]
+        .into_iter()
+        .find_map(|prefix| number(target, prefix))
     };
     let (user, row) = match (number(target, "vz:user:"), on_tile()) {
         (Some(user), _) => (UserId(user), true),

@@ -161,6 +161,19 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
             None => item(mine("call"), t("Iniciar una llamada"), None),
         });
     }
+    // Whom the account's call rings, on their avatar in a voice stage: VOICE
+    // mode has no tile to hold the button «Dejar de llamar» (llamadas privadas).
+    if let Place::Tile { channel } = place {
+        if store.call().is_some_and(|call| call.channel == channel)
+            && store.ringing(channel).contains(&user)
+        {
+            talk.push(item(
+                rune_components::private_call::ids::stop_ringing(user.0),
+                t("Dejar de llamar"),
+                None,
+            ));
+        }
+    }
     if other && store.account_abilities().notes.allowed() {
         let label = if store.note(user).is_some_and(|note| !note.is_empty()) {
             t("Editar nota")

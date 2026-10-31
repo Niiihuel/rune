@@ -117,6 +117,12 @@ pub mod ids {
         format!("vz:tile-more:{user}")
     }
 
+    /// Someone's avatar in a private call's VOICE mode: their menu on a
+    /// secondary click, nothing on a plain one.
+    pub fn avatar(user: u64) -> String {
+        format!("vz:avatar:{user}")
+    }
+
     /// How loud someone plays for the account, from their menu.
     pub fn volume(user: u64) -> String {
         format!("vz:volume:{user}")
@@ -1972,6 +1978,166 @@ fn tile(
     )
 }
 
+/// The body of a private call in VOICE mode: Discord's MINIMUM height, under
+/// the stage's header (REA §2.2).
+pub const VOICE_HEIGHT: f32 = 240.0;
+/// VOICE mode's avatars: 80 across, or 40 when the row would not fit them,
+/// with 8 px of room each side, so 16 between two (REA §2.2).
+const AVATAR_LARGE: f32 = 80.0;
+const AVATAR_SMALL: f32 = 40.0;
+const AVATAR_ROOM: f32 = 8.0;
+/// The ring of someone being rung stands 3 px outside their picture.
+const RING_OUTSIDE: f32 = 3.0;
+
+/// VOICE mode (REA §2): everyone in the call and everyone it rings, as one
+/// row of round avatars centred both ways, in name order and without names
+/// under them. A row too wide for `width` overflows both ends and is clipped,
+/// never wrapped. `people` pairs each with whether they are being rung.
+pub(crate) fn avatar_row(people: &[(&Participant, bool)], width: f32, look: &Look) -> Element {
+    let mut people = people.to_vec();
+    people.sort_by_key(|(person, _)| person.name.to_lowercase());
+    let face = if (AVATAR_LARGE + 2.0 * AVATAR_ROOM) * people.len() as f32 <= width {
+        AVATAR_LARGE
+    } else {
+        AVATAR_SMALL
+    };
+    let pitch = face + 2.0 * AVATAR_ROOM;
+    let height = face + 2.0 * RING_OUTSIDE;
+    let total = pitch * people.len() as f32;
+    let cells: Vec<Element> = people
+        .iter()
+        .map(|(person, ringing)| avatar_cell(person, *ringing, face, look))
+        .collect();
+    // Centred even when it overflows, as flex centring overflows both ends.
+    let row = Element::row(cells)
+        .size(Some(total), Some(height))
+        .translate(limn::Point::new((width - total) / 2.0, 0.0));
+    Element::panel(row)
+        .size(Some(width), Some(height))
+        .clip_children()
+}
+
+/// One avatar of [`avatar_row`] in its cell: the picture, with a speaker's
+/// ring or a mute's mark over it; someone being rung is dimmed to 30 % and
+/// ringed outside.
+fn avatar_cell(person: &Participant, ringing: bool, face: f32, look: &Look) -> Element {
+    let pitch = face + 2.0 * AVATAR_ROOM;
+    let height = face + 2.0 * RING_OUTSIDE;
+    let picture = crate::avatar_with_image(&person.name, person.accent, face, person.image.clone());
+    let mut layers = Vec::new();
+    // shortcut: no 2.5 s pulse; limn's animate helpers play once, so the ring stands still.
+    if ringing {
+        layers.push(centered(
+            Element::panel(Element::spacer())
+                .size(Some(height), Some(height))
+                .radius(height / 2.0)
+                .border(Look::alpha(look.text, 217), RING_OUTSIDE),
+        ));
+        // limn-gap: no static opacity on an element (`dim_on_hover` dims only
+        // under the pointer); the ground at 70 % over the picture stands in.
+        let dim = Element::panel(Element::spacer())
+            .size(Some(face), Some(face))
+            .radius(face / 2.0)
+            .background(Look::alpha(look.raised, 178));
+        layers.push(centered(
+            Element::stack(vec![picture, dim]).size(Some(face), Some(face)),
+        ));
+    } else {
+        let mut over = vec![picture];
+        if ringed_speaker(person) {
+            over.push(voice_ring(face, look));
+        }
+        over.extend(mute_mark(person, face, look));
+        layers.push(centered(Element::stack(over).size(Some(face), Some(face))));
+    }
+    let label = match state_of(person) {
+        Some(state) => format!("{}, {state}", person.name),
+        None => person.name.clone(),
+    };
+    Element::clickable(
+        ids::avatar(person.user),
+        Element::stack(layers).size(Some(pitch), Some(height)),
+    )
+    .size(Some(pitch), Some(height))
+    .accessibility_label(label)
+}
+
+/// Whether someone's picture is ringed in green: they speak, and neither they
+/// nor the account keeps them silent.
+fn ringed_speaker(person: &Participant) -> bool {
+    person.speaking
+        && !(person.muted
+            || person.deafened
+            || person.server_muted
+            || person.server_deafened
+            || person.silenced)
+}
+
+/// Discord's fallback ring of a speaker: 2 px of green just inside the
+/// picture's edge, and 1 px of black inside that.
+fn voice_ring(face: f32, look: &Look) -> Element {
+    let inside = face - 4.0;
+    Element::stack(vec![
+        Element::panel(Element::spacer())
+            .size(Some(face), Some(face))
+            .radius(face / 2.0)
+            .border(look.online, 2.0),
+        centered(
+            Element::panel(Element::spacer())
+                .size(Some(inside), Some(inside))
+                .radius(inside / 2.0)
+                .border(Color::rgb(0, 0, 0), 1.0),
+        ),
+    ])
+    .size(Some(face), Some(face))
+}
+
+/// The mark of a mute, deafening or local silence, over the picture's bottom
+/// right in the danger color: 24 px with a 16 px glyph on an 80 px picture,
+/// 12 with 12 on a 40 px one. Local silence comes first, then deafening.
+fn mute_mark(person: &Participant, face: f32, look: &Look) -> Option<Element> {
+    let glyph = if person.silenced {
+        Icon::VolumeMuted
+    } else if person.deafened || person.server_deafened {
+        Icon::Custom(crate::HEADPHONES_OFF)
+    } else if person.muted || person.server_muted {
+        Icon::MicrophoneMuted
+    } else {
+        return None;
+    };
+    let (badge, mark) = if face > AVATAR_SMALL {
+        (24.0, 16.0)
+    } else {
+        (12.0, 12.0)
+    };
+    // shortcut: no cut-out ring around the mark (REA §2.5); add it with the design pass.
+    let disc = Element::panel(centered(icon(glyph, OVER_INK).size(Some(mark), Some(mark))))
+        .size(Some(badge), Some(badge))
+        .radius(badge / 2.0)
+        .background(look.danger_fill);
+    Some(
+        Element::column(vec![
+            Element::spacer().flex(1.0),
+            Element::row(vec![Element::spacer().flex(1.0), disc]),
+        ])
+        .size(Some(face), Some(face)),
+    )
+}
+
+/// What the account sees of someone's voice, as their label says it: the
+/// same words as their marks, with the local silence first.
+fn state_of(person: &Participant) -> Option<&'static str> {
+    if person.silenced {
+        Some(t("Silenciado para ti"))
+    } else if person.deafened || person.server_deafened {
+        Some(t("Ensordecido"))
+    } else if person.muted || person.server_muted {
+        Some(t("Silenciado"))
+    } else {
+        None
+    }
+}
+
 /// The call of a voice channel where the conversation goes.
 #[derive(Clone, Debug)]
 pub struct Stage {
@@ -2197,6 +2363,11 @@ fn call(view: &Stage, look: &Look) -> Element {
         .private
         .as_ref()
         .map_or(&[][..], |private| &private.ringing[..]);
+    // VOICE mode: a private call with nobody on camera and nobody streaming.
+    let voice = view
+        .private
+        .as_ref()
+        .is_some_and(|private| private.voice_mode);
     // Streams (transmisiones): a stream focused takes the stage, the rest
     // in a strip under it, as in the official client and Serein.
     let focus = previews.iter().position(|shown| shown.focused);
@@ -2247,8 +2418,22 @@ fn call(view: &Stage, look: &Look) -> Element {
             })
             .collect()
     };
-    let tiles = match focus {
-        Some(index) => {
+    let tiles = match (voice, focus) {
+        (true, _) => {
+            let row: Vec<(&Participant, bool)> = people
+                .iter()
+                .map(|person| (*person, false))
+                .chain(ringing.iter().map(|person| (person, true)))
+                .collect();
+            Element::panel(Element::column(vec![
+                Element::spacer().flex(1.0),
+                avatar_row(&row, view.size.width, look),
+                Element::spacer().flex(1.0),
+                gap(0.0, below),
+            ]))
+            .background(look.raised)
+        }
+        (false, Some(index)) => {
             let count = previews.len() - 1 + people.len() + streams + ringing.len();
             let strip = if count > 0 && area.height >= STRIP + TILE_GAP + MIN_FOCUS {
                 STRIP
@@ -2298,7 +2483,7 @@ fn call(view: &Stage, look: &Look) -> Element {
             column.push(gap(0.0, below));
             Element::column(column)
         }
-        None => {
+        (false, None) => {
             let count = previews.len() + people.len() + streams + ringing.len();
             let layout = grid(count, area);
             let mut tiles: Vec<Element> = previews
@@ -5400,5 +5585,246 @@ mod tests {
         let said = texts(&laid);
         assert!(said.iter().any(|text| text == "720p · 30 FPS"), "{said:?}");
         assert!(!said.iter().any(|text| text.starts_with("Bitrate")));
+    }
+
+    /// Someone called `name`, for the VOICE row.
+    fn named(name: &str, user: u64) -> Participant {
+        Participant {
+            name: name.into(),
+            ..person(user, false, false, false)
+        }
+    }
+
+    /// The VOICE row of `people` (each with whether they are being rung), `width` wide.
+    fn voice_row(people: &[(&Participant, bool)], width: f32, look: &Look) -> limn::Frame {
+        frame(avatar_row(people, width, look), Size::new(width, 200.0)).1
+    }
+
+    fn avatar_box(laid: &limn::Frame, user: u64) -> limn::Rect {
+        laid.regions
+            .iter()
+            .find(|region| region.id == ids::avatar(user))
+            .unwrap()
+            .rect
+    }
+
+    /// The rectangles filled in `color`.
+    fn fills(laid: &limn::Frame, color: Color) -> Vec<limn::Rect> {
+        laid.commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::FillRect {
+                    rect, color: ink, ..
+                } if *ink == color => Some(*rect),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The rectangles stroked in `color`, `width` thick.
+    fn strokes(laid: &limn::Frame, color: Color, width: f32) -> Vec<limn::Rect> {
+        laid.commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::StrokeRect {
+                    rect,
+                    color: ink,
+                    width: thick,
+                    ..
+                } if *ink == color && *thick == width => Some(*rect),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn icon_boxes(laid: &limn::Frame, wanted: Icon) -> Vec<limn::Rect> {
+        laid.commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::Icon { rect, icon, .. } if *icon == wanted => Some(*rect),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn voice_avatars_are_80_across_while_the_row_fits_and_40_once_not() {
+        let look = Look::DARK;
+        let (ana, bruno, carla) = (named("Ana", 1), named("Bruno", 2), named("Carla", 3));
+        let people = [(&ana, false), (&bruno, false), (&carla, false)];
+        // Three 96 px cells fit in 400; in 200 they take 40 px faces, 56 apart.
+        let wide = voice_row(&people, 400.0, &look);
+        assert_eq!(avatar_box(&wide, 1).width, 96.0);
+        let faces = fills(&wide, Color::rgb(90, 120, 200));
+        assert_eq!(faces.len(), 3);
+        assert!(faces.iter().all(|face| face.width == 80.0), "{faces:?}");
+        let narrow = voice_row(&people, 200.0, &look);
+        assert_eq!(avatar_box(&narrow, 1).width, 56.0);
+        let faces = fills(&narrow, Color::rgb(90, 120, 200));
+        assert!(faces.iter().all(|face| face.width == 40.0), "{faces:?}");
+    }
+
+    #[test]
+    fn voice_avatars_run_in_name_order_and_centre_as_one_row() {
+        let look = Look::DARK;
+        let (zoe, ana) = (named("Zoe", 1), named("Ana", 2));
+        let laid = voice_row(&[(&zoe, false), (&ana, false)], 400.0, &look);
+        // Two 96 px cells centred in 400 start at 104; Ana comes first by name.
+        assert_eq!(avatar_box(&laid, 2).x, 104.0);
+        assert_eq!(avatar_box(&laid, 1).x, 200.0);
+        assert_eq!(avatar_box(&laid, 2).y, avatar_box(&laid, 1).y, "one row");
+    }
+
+    #[test]
+    fn a_row_too_wide_for_its_stage_overflows_both_ends_and_never_wraps() {
+        let look = Look::DARK;
+        let names: Vec<Participant> = (1..=9)
+            .map(|user| named(&format!("Persona {user:02}"), user))
+            .collect();
+        let people: Vec<(&Participant, bool)> =
+            names.iter().map(|person| (person, false)).collect();
+        let laid = voice_row(&people, 200.0, &look);
+        // Nine 56 px cells are 504 wide, centred in 200: the faces start at
+        // -144 and step 56. Only those showing are drawn, and the two at the
+        // ends run out of the stage, one at each side (-32 and 192).
+        let faces = fills(&laid, Color::rgb(90, 120, 200));
+        let xs: Vec<f32> = faces.iter().map(|face| face.x).collect();
+        assert!(xs.contains(&-32.0) && xs.contains(&192.0), "{xs:?}");
+        assert!(
+            faces.iter().all(|face| face.y == faces[0].y),
+            "one row, no wrap"
+        );
+    }
+
+    #[test]
+    fn a_mute_is_a_red_badge_of_24_on_80_and_12_on_40_and_local_silence_comes_first() {
+        let look = Look::DARK;
+        let all = Participant {
+            muted: true,
+            deafened: true,
+            silenced: true,
+            ..named("Ana", 1)
+        };
+        let laid = voice_row(&[(&all, false)], 400.0, &look);
+        let badges = fills(&laid, look.danger_fill);
+        assert_eq!(badges.len(), 1);
+        assert_eq!((badges[0].width, badges[0].height), (24.0, 24.0));
+        // Local silence is the one mark drawn: not the deafened or the muted.
+        let silenced = icon_boxes(&laid, Icon::VolumeMuted);
+        assert_eq!(silenced.len(), 1);
+        assert_eq!(silenced[0].width, 16.0);
+        assert!(icon_boxes(&laid, Icon::Custom(crate::HEADPHONES_OFF)).is_empty());
+        assert!(icon_boxes(&laid, Icon::MicrophoneMuted).is_empty());
+        // At 40 px: a 12 px badge with a 12 px glyph, deafened before muted.
+        let deaf = Participant {
+            muted: true,
+            deafened: true,
+            ..named("Ana", 1)
+        };
+        let narrow = voice_row(
+            &[
+                (&deaf, false),
+                (&named("Bruno", 2), false),
+                (&named("Carla", 3), false),
+            ],
+            200.0,
+            &look,
+        );
+        let badges = fills(&narrow, look.danger_fill);
+        assert_eq!(badges.len(), 1);
+        assert_eq!((badges[0].width, badges[0].height), (12.0, 12.0));
+        let headphones = icon_boxes(&narrow, Icon::Custom(crate::HEADPHONES_OFF));
+        assert_eq!(headphones.len(), 1);
+        assert_eq!(headphones[0].width, 12.0);
+        assert!(icon_boxes(&narrow, Icon::MicrophoneMuted).is_empty());
+    }
+
+    #[test]
+    fn a_speaker_is_ringed_in_green_unless_muted_deafened_or_silenced() {
+        let look = Look::DARK;
+        let ringed = |person: &Participant| {
+            strokes(
+                &voice_row(&[(person, false)], 400.0, &look),
+                look.online,
+                2.0,
+            )
+            .len()
+        };
+        let speaking = Participant {
+            speaking: true,
+            ..named("Ana", 1)
+        };
+        assert_eq!(ringed(&speaking), 1);
+        assert_eq!(ringed(&named("Ana", 1)), 0, "nobody speaks at rest");
+        let quiet = [
+            Participant {
+                muted: true,
+                ..speaking.clone()
+            },
+            Participant {
+                deafened: true,
+                ..speaking.clone()
+            },
+            Participant {
+                silenced: true,
+                ..speaking.clone()
+            },
+            Participant {
+                server_muted: true,
+                ..speaking.clone()
+            },
+        ];
+        for person in &quiet {
+            assert_eq!(ringed(person), 0, "{person:?}");
+        }
+    }
+
+    #[test]
+    fn someone_being_rung_is_dimmed_to_30_percent_and_ringed_outside() {
+        let look = Look::DARK;
+        let rung = voice_row(&[(&named("Bruno", 2), true)], 400.0, &look);
+        // The ground shows through 70 % of the picture, and a ring at 85 % of
+        // the text colour stands 3 px outside it: 86 across for an 80 px face.
+        assert_eq!(fills(&rung, Look::alpha(look.raised, 178)).len(), 1);
+        let ring = strokes(&rung, Look::alpha(look.text, 217), 3.0);
+        assert_eq!(ring.len(), 1);
+        assert_eq!((ring[0].width, ring[0].height), (86.0, 86.0));
+        // In the call, nobody is dimmed.
+        let here = voice_row(&[(&named("Bruno", 2), false)], 400.0, &look);
+        assert!(fills(&here, Look::alpha(look.raised, 178)).is_empty());
+    }
+
+    #[test]
+    fn voice_avatars_are_labelled_with_their_name_and_state_and_nothing_else() {
+        let look = Look::DARK;
+        let label = |person: &Participant, ringing: bool| {
+            voice_row(&[(person, ringing)], 400.0, &look)
+                .access
+                .into_iter()
+                .find(|node| node.id == ids::avatar(person.user))
+                .unwrap()
+                .name
+        };
+        assert_eq!(label(&named("Ana", 1), false), "Ana");
+        let muted = Participant {
+            muted: true,
+            ..named("Ana", 1)
+        };
+        assert_eq!(label(&muted, false), "Ana, Silenciado");
+        let deaf = Participant {
+            deafened: true,
+            ..muted.clone()
+        };
+        assert_eq!(label(&deaf, false), "Ana, Ensordecido");
+        let silenced = Participant {
+            silenced: true,
+            ..deaf
+        };
+        assert_eq!(label(&silenced, false), "Ana, Silenciado para ti");
+        assert_eq!(
+            label(&named("Bruno", 2), true),
+            "Bruno",
+            "rung, not in the call"
+        );
     }
 }
