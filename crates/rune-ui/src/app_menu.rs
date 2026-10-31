@@ -20,6 +20,8 @@ fn conversation(ui: &Ui, store: &Store, user: UserId, place: Place) -> Option<Ch
     let channel = match place {
         // A member list is about the open conversation.
         Place::MemberList { .. } => ui.channel()?,
+        // The Friends page has no conversation, as Discord's generic menu.
+        Place::Friends => return None,
         Place::VoiceRow { channel }
         | Place::Tile { channel }
         | Place::Author { channel }
