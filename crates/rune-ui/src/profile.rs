@@ -38,6 +38,10 @@ use crate::{settings, Intent, SettingsPage, Ui, ViewContext};
 pub(crate) const STATUS_TIMER: &str = "status_timer";
 pub(crate) const CUSTOM_UNTIL: &str = "custom_status_until";
 pub(crate) const SPEAKER: &str = "speaker";
+/// A card whose profile is still being read shows nothing for this long
+/// after it opens, then its skeleton: a quick answer never flashes one
+/// (REA §5d, Discord's 250 ms).
+const SKELETON_AFTER_MS: i64 = 250;
 
 /// What is open of the profiles, and the account's status timers.
 #[derive(Debug, Default)]
@@ -413,6 +417,23 @@ pub fn card_of(
             .allowed()
             .then(|| format!("profile:dm:{user}")),
         identity: crate::identity::card(ui, store, server, user, &held, look),
+        loading: loaded.is_none() && store.profile_loading_in(user, server),
+    })
+}
+
+/// The card of `user` as a popout shows it. While its profile is read and
+/// none is kept, a card has no content for its first 250 ms, then its
+/// skeleton ([`SKELETON_AFTER_MS`]).
+pub(crate) fn popout_card(
+    ui: &Ui,
+    store: &Store,
+    server: Option<ServerId>,
+    user: UserId,
+    look: &Look,
+) -> Option<Profile> {
+    card_of(ui, store, server, user, look).filter(|card| {
+        !card.loading
+            || crate::identity::effect_elapsed(ui, store, user, server) >= SKELETON_AFTER_MS
     })
 }
 
@@ -728,11 +749,17 @@ pub fn tick(ui: &mut Ui, store: &Store, wall: Timestamp) -> Vec<Intent> {
     intents
 }
 
-/// How long until a timer of [`tick`] is due, seen at `wall`.
+/// How long until a timer of [`tick`] is due, seen at `wall`. Also when a
+/// card opened lately may show its skeleton, so the window paints then.
 pub fn next_tick(ui: &Ui, wall: Timestamp) -> Option<Duration> {
     [
         ui.profiles.timed.map(|timed| timed.until),
         ui.profiles.custom_until,
+        // Only a moment still to come: a card opened long ago is no timer.
+        ui.profiles
+            .effect_since
+            .map(|(_, _, since)| Timestamp(since.0 + SKELETON_AFTER_MS))
+            .filter(|due| due.0 > wall.0),
     ]
     .into_iter()
     .flatten()
@@ -1407,6 +1434,8 @@ pub fn editor_view(ui: &Ui, store: &Store, context: &ViewContext) -> Option<Elem
     let (name, pronouns, mut about) = fields(edit, user);
     let changed = shown(user, edit);
     let mut preview = card_of(ui, store, editor.server, user.id, look)?;
+    // The draft is what this preview shows, even while the read is in flight.
+    preview.loading = false;
     preview.name = changed.shown_name().to_owned();
     preview.pronouns = changed.pronouns.clone();
     preview.about = changed.about.clone();
@@ -1747,6 +1776,7 @@ fn full_view(ui: &Ui, store: &Store, look: &Look) -> Option<FullProfile> {
         None => Mutual::Unknown,
     };
     Some(FullProfile {
+        loading: profile.loading,
         profile,
         server: server.and_then(|server| Some(store.server(server)?.shown_name().into())),
         nick: server

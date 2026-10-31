@@ -350,7 +350,12 @@ fn effect_showing<'a>(
 
 /// How long the card of `user` in `server` has been shown, in milliseconds:
 /// the time of its effect (0 the frame it opens).
-fn effect_elapsed(ui: &Ui, store: &Store, user: UserId, server: Option<ServerId>) -> i64 {
+pub(crate) fn effect_elapsed(
+    ui: &Ui,
+    store: &Store,
+    user: UserId,
+    server: Option<ServerId>,
+) -> i64 {
     ui.profiles
         .effect_since
         .filter(|(shown, at, _)| *shown == user && *at == server)

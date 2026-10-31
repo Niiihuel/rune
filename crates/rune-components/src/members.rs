@@ -280,6 +280,7 @@ mod tests {
             mutual: None,
             full_action: None,
             note: None,
+            loading: false,
         };
         let list = Element::column(vec![
             heading(

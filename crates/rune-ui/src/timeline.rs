@@ -726,7 +726,7 @@ pub fn timeline(
         author_card: ui.profiles.author.filter(|_| held.is_none()).and_then(
             |(message, on_mark)| {
                 let author = timeline.get(message)?.author;
-                crate::profile::card_of(ui, store, server, author, &look)
+                crate::profile::popout_card(ui, store, server, author, &look)
                     .map(|card| (message, on_mark, card))
             },
         ),
@@ -850,7 +850,7 @@ pub fn timeline(
         Some((_, at)) => rune_components::profile::popout(
             list,
             held_author
-                .and_then(|author| crate::profile::card_of(ui, store, server, author, &look))
+                .and_then(|author| crate::profile::popout_card(ui, store, server, author, &look))
                 .map(|card| rune_components::profile::card(&card, &look)),
             rune_components::profile::ids::AUTHOR_DISMISS,
             limn::PopoverPlacement::RightStart,

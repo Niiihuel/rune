@@ -837,7 +837,7 @@ fn member_list(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> Element
     let person = |user: UserId| {
         let row = member_row(ui, store, server, user, ui.prefs.role_colors, look)?;
         let card = (ui.profile == Some(user) && held.is_none())
-            .then(|| profile::card_of(ui, store, Some(server), user, look).map(Box::new))
+            .then(|| profile::popout_card(ui, store, Some(server), user, look).map(Box::new))
             .flatten();
         Some(MemberListRow::Person(Box::new(row), card))
     };
@@ -951,7 +951,7 @@ fn member_list(ui: &Ui, store: &Store, server: ServerId, look: &Look) -> Element
     match held {
         Some((user, at)) => rune_components::profile::popout(
             list,
-            profile::card_of(ui, store, Some(server), user, look)
+            profile::popout_card(ui, store, Some(server), user, look)
                 .map(|found| rune_components::profile::card(&found, look)),
             rune_components::profile::ids::MEMBER_DISMISS,
             limn::PopoverPlacement::LeftStart,

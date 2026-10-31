@@ -755,7 +755,7 @@ fn card(
     user: UserId,
     look: &Look,
 ) -> Option<Element> {
-    profile::card_of(ui, store, server, user, look)
+    profile::popout_card(ui, store, server, user, look)
         .map(|found| rune_components::profile::card(&found, look))
 }
 

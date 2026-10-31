@@ -102,6 +102,21 @@ impl Host {
         }
     }
 
+    /// Answer the profile read the last card asked for, as the simulation
+    /// would, so the card shows its profile instead of its skeleton.
+    fn answer_profile(&mut self) {
+        let asked = self
+            .sent
+            .iter()
+            .rev()
+            .find(|command| matches!(command, Command::LoadProfile { .. }))
+            .cloned()
+            .expect("a card asked for its profile");
+        for event in self.provider.manage(asked) {
+            self.event(event);
+        }
+    }
+
     fn event(&mut self, event: Event) {
         let changed = match &event {
             Event::MessageCreated { message, .. } | Event::MessageUpdated(message) => {

@@ -13,9 +13,10 @@
 //! to one or two columns, with fixed close and save controls outside the scroll.
 
 use limn::{
-    Button, ButtonVariant, Color, Component, DropdownMenu, DropdownMenuEntry, DropdownMenuItem,
-    Element, FontFamily, Icon, IconButton, Modal, Point, Popover, PopoverPlacement, ScrollArea,
-    Size, Slider, Tab, Tabs, TabsVariant, TextArea, TextField, Tooltip, TooltipPlacement,
+    Button, ButtonVariant, Color, Component, ComponentPalette, DropdownMenu, DropdownMenuEntry,
+    DropdownMenuItem, Element, FontFamily, Icon, IconButton, Modal, Point, Popover,
+    PopoverPlacement, ScrollArea, Size, Skeleton, Slider, Tab, Tabs, TabsVariant, TextArea,
+    TextField, Tooltip, TooltipPlacement,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::{Rgb, Status, Timestamp};
@@ -151,6 +152,10 @@ const AVATAR: f32 = 80.0;
 const RING: f32 = 6.0;
 /// Inside a card, left and right.
 const INSET: f32 = 16.0;
+/// The skeleton of a card being read: its height, and its four text lines
+/// (REA §5b, from the card's 268 px body).
+const SKELETON_HEIGHT: f32 = 350.0;
+const SKELETON_LINES: [f32; 4] = [241.0, 201.0, 228.0, 161.0];
 /// The status menu beside the popout, and the menus of durations beside it.
 pub const STATUS_MENU_WIDTH: f32 = 310.0;
 pub const DURATION_MENU_WIDTH: f32 = 200.0;
@@ -390,6 +395,9 @@ pub struct Profile {
     pub note: Option<NoteField>,
     /// What they do, where from, their badges and marks (P5).
     pub identity: crate::identity::CardIdentity,
+    /// Their profile is being read and none of it is kept yet: the card is
+    /// its skeleton, [`card_skeleton`].
+    pub loading: bool,
 }
 
 /// The account's private note on someone, as its field shows it.
@@ -508,6 +516,9 @@ pub struct FullProfile {
     pub tab: FullTab,
     /// The accounts elsewhere they show (P5).
     pub connections: Vec<crate::identity::ConnectionRow>,
+    /// Their profile is being read and none of it is kept yet: the About
+    /// tab shows its lines instead of claiming there is no more data.
+    pub loading: bool,
 }
 
 /// `content` floating against `anchor` on a card's surface, `WIDTH` wide,
@@ -891,13 +902,99 @@ fn about_parts(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Vec<E
     body
 }
 
+/// `child` at (`x`, `y`) of the stack it is in, placed by spacers.
+fn at(x: f32, y: f32, child: Element) -> Element {
+    Element::column(vec![gap(0.0, y), Element::row(vec![gap(x, 0.0), child])])
+}
+
+/// The palette of a skeleton on a card's or a modal's surface: its shapes
+/// pulse between two strengths of the text color. limn's `raised` is opaque
+/// and only five levels off the menu's, so the shapes vanished at the bottom
+/// of each pulse.
+fn skeleton_palette(look: &Look) -> ComponentPalette {
+    ComponentPalette {
+        raised: Look::alpha(look.text, 16),
+        hover: Look::alpha(look.text, 30),
+        ..look.menu_palette()
+    }
+}
+
+/// The four text lines of a skeleton, 10 px apart, each as wide as its share.
+fn skeleton_lines(id: &str, look: &Look) -> Element {
+    Element::column(
+        SKELETON_LINES
+            .iter()
+            .enumerate()
+            .map(|(n, width)| {
+                Skeleton::new(format!("{id}:line:{n}"), skeleton_palette(look))
+                    .width(*width)
+                    .height(12.0)
+                    .radius(4.0)
+                    .render()
+            })
+            .collect(),
+    )
+    .gap(10.0)
+}
+
+/// The card while its profile is read: the shapes of the card's parts where
+/// they will be, on its surface, as Discord's skeleton (REA §5b). `id` keeps
+/// their ids stable across frames.
+pub fn card_skeleton(id: &str, look: &Look) -> Element {
+    let palette = skeleton_palette(look);
+    let block = |part: &str, width: f32, height: f32, radius: f32| {
+        Skeleton::new(format!("{id}:{part}"), palette)
+            .width(width)
+            .height(height)
+            .radius(radius)
+            .render()
+    };
+    // The 6 px ring is the card's own surface, inside the 80 px avatar.
+    let avatar = Element::panel(
+        Skeleton::circle(format!("{id}:avatar"), palette, AVATAR - 2.0 * RING).render(),
+    )
+    .padding(RING)
+    .radius(AVATAR / 2.0)
+    .background(look.menu);
+    let chips = Element::row(vec![
+        block("chip:0", 52.0, 16.0, 4.0),
+        gap(16.0, 0.0),
+        block("chip:1", 72.0, 16.0, 4.0),
+        gap(16.0, 0.0),
+        block("chip:2", 48.0, 16.0, 4.0),
+    ]);
+    let divider = Element::panel(Element::spacer())
+        .size(Some(WIDTH), Some(1.0))
+        .background(look.border);
+    Element::stack(vec![
+        at(0.0, 0.0, block("banner", WIDTH, BANNER, 0.0)),
+        at(INSET, 65.0, avatar),
+        at(INSET, 157.0, block("name", 147.0, 18.0, 4.0)),
+        at(INSET, 183.0, block("handle", 94.0, 12.0, 4.0)),
+        at(INSET, 211.0, chips),
+        at(0.0, 239.0, divider),
+        at(INSET, 256.0, skeleton_lines(id, look)),
+    ])
+    .size(Some(WIDTH), Some(SKELETON_HEIGHT))
+    // An id is what lets the platform hear it: without one the status is dropped.
+    .accessible(
+        limn::Access::new(limn::Role::Status)
+            .id(id)
+            .name(t("Cargando perfil")),
+    )
+}
+
 /// The card of someone else: who they are, what they set and do, their
 /// roles where they are seen, and a way to write to them. As the official
 /// popout (2026-10-18): its body scrolls between its head and its buttons
 /// when the window is too short for all of it (a popover is never taller
 /// than the window), the note is an icon beside the name, and the effect
-/// gives way while the pointer is over the card.
+/// gives way while the pointer is over the card. While its profile is being
+/// read, it is its [`card_skeleton`].
 pub fn card(profile: &Profile, look: &Look) -> Element {
+    if profile.loading {
+        return card_skeleton(&format!("profile:loading:{}", profile.handle), look);
+    }
     let bubble =
         custom_status(profile).map(|(custom, emoji)| bubble(custom, emoji, false, None, look));
     let note = profile
@@ -1093,7 +1190,14 @@ pub fn full_profile(root: Element, full: &FullProfile, window_width: f32, look: 
                     look,
                 ));
             }
-            if parts.is_empty() {
+            // While the read is in flight nothing of the body is known yet, so
+            // it is its lines, never "no hay más datos".
+            if full.loading {
+                parts = vec![skeleton_lines(
+                    &format!("profile:loading:{}:about", profile.handle),
+                    look,
+                )];
+            } else if parts.is_empty() {
                 parts.push(text(
                     t("No hay más datos de este perfil."),
                     14.0,
@@ -2430,6 +2534,7 @@ mod tests {
             mutual: None,
             full_action: None,
             note: None,
+            loading: false,
         }
     }
 
@@ -2657,6 +2762,7 @@ mod tests {
             mutual_servers: servers,
             mutual_friends: friends,
             tab,
+            loading: false,
         };
         texts(
             &frame(
@@ -2725,6 +2831,7 @@ mod tests {
             mutual_servers: Mutual::Unknown,
             mutual_friends: Mutual::Unknown,
             tab: FullTab::About,
+            loading: false,
         };
         let (_, laid) = frame(
             full_profile(Element::spacer(), &full, 900.0, &LOOK),
@@ -3128,5 +3235,128 @@ mod tests {
         assert!(texts(&laid)
             .iter()
             .any(|text| text == "Necesitas Nitro para usar un banner"));
+    }
+
+    #[test]
+    fn the_card_being_read_is_a_skeleton_in_the_shapes_of_its_parts() {
+        let (_, laid) = frame(
+            card_skeleton("profile:loading:ada", &LOOK),
+            Size::new(WIDTH, SKELETON_HEIGHT),
+        );
+        let fills: Vec<limn::Rect> = laid
+            .commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::FillRect { rect, .. } => Some(*rect),
+                _ => None,
+            })
+            .collect();
+        let shown = |x: f32, y: f32, width: f32, height: f32| {
+            fills
+                .iter()
+                .any(|rect| (rect.x, rect.y, rect.width, rect.height) == (x, y, width, height))
+        };
+        // The banner; the avatar's 80 px box at (16, 65), its ring, and the pulse inside.
+        assert!(shown(0.0, 0.0, WIDTH, BANNER), "{fills:?}");
+        assert!(shown(INSET, 65.0, AVATAR, AVATAR), "{fills:?}");
+        assert!(shown(22.0, 71.0, 68.0, 68.0), "{fills:?}");
+        for (x, y, width, height) in [
+            (16.0, 157.0, 147.0, 18.0),
+            (16.0, 183.0, 94.0, 12.0),
+            (16.0, 211.0, 52.0, 16.0),
+            (84.0, 211.0, 72.0, 16.0),
+            (172.0, 211.0, 48.0, 16.0),
+            (0.0, 239.0, WIDTH, 1.0),
+            (16.0, 256.0, 241.0, 12.0),
+            (16.0, 278.0, 201.0, 12.0),
+            (16.0, 300.0, 228.0, 12.0),
+            (16.0, 322.0, 161.0, 12.0),
+        ] {
+            assert!(
+                shown(x, y, width, height),
+                "{x},{y} {width}x{height}: {fills:?}"
+            );
+        }
+        // Faint text, not limn's opaque raised: it stays visible at the bottom of the pulse.
+        let banner = laid.commands.iter().find_map(|command| match command {
+            limn::DrawCommand::FillRect { rect, color, .. } if rect.height == BANNER => {
+                Some(*color)
+            }
+            _ => None,
+        });
+        assert_eq!(banner, Some(Look::alpha(LOOK.text, 16)));
+    }
+
+    #[test]
+    fn a_card_whose_profile_is_read_is_its_skeleton_until_it_arrives() {
+        let reading = Profile {
+            loading: true,
+            ..ada()
+        };
+        let (_, laid) = frame(card(&reading, &LOOK), Size::new(WIDTH, SKELETON_HEIGHT));
+        assert!(laid
+            .access
+            .iter()
+            .any(|node| node.name == "Cargando perfil"));
+        assert!(!texts(&laid).iter().any(|text| text == "Ada"));
+        assert!(!controls(&laid).contains(&"profile:dm:10".to_owned()));
+        let (_, loaded) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 900.0));
+        assert!(!loaded
+            .access
+            .iter()
+            .any(|node| node.name == "Cargando perfil"));
+        assert!(controls(&loaded).contains(&"profile:dm:10".to_owned()));
+    }
+
+    #[test]
+    fn the_about_tab_of_a_profile_being_read_shows_lines_not_no_data() {
+        // Nothing of them is known: no about, roles, activity or pronouns.
+        let bare = Profile {
+            about: None,
+            pronouns: None,
+            activity: None,
+            roles: Vec::new(),
+            custom: None,
+            ..ada()
+        };
+        let full = |loading: bool| FullProfile {
+            connections: Default::default(),
+            profile: Profile {
+                loading,
+                ..bare.clone()
+            },
+            server: None,
+            nick: None,
+            mutual_servers: Mutual::Loading,
+            mutual_friends: Mutual::Loading,
+            tab: FullTab::About,
+            loading,
+        };
+        let (_, reading) = frame(
+            full_profile(Element::spacer(), &full(true), 900.0, &LOOK),
+            Size::new(900.0, 900.0),
+        );
+        assert!(!texts(&reading)
+            .iter()
+            .any(|text| text == "No hay más datos de este perfil."));
+        let widths: Vec<f32> = reading
+            .commands
+            .iter()
+            .filter_map(|command| match command {
+                limn::DrawCommand::FillRect { rect, .. } if rect.height == 12.0 => Some(rect.width),
+                _ => None,
+            })
+            .collect();
+        for width in SKELETON_LINES {
+            assert!(widths.contains(&width), "{widths:?}");
+        }
+        // Once the read is over with nothing to show, it says so.
+        let (_, settled) = frame(
+            full_profile(Element::spacer(), &full(false), 900.0, &LOOK),
+            Size::new(900.0, 900.0),
+        );
+        assert!(texts(&settled)
+            .iter()
+            .any(|text| text == "No hay más datos de este perfil."));
     }
 }
