@@ -46,6 +46,37 @@ impl Activity {
     pub fn is_track(&self) -> bool {
         self.kind == ActivityKind::Listening && self.started.is_some() && self.ends.is_some()
     }
+
+    /// Spotify's own presence: its name, and a `spotify:` party. The name
+    /// alone is not enough; Discord checks both.
+    pub fn is_spotify(&self) -> bool {
+        let spotify_party = self
+            .party
+            .as_ref()
+            .and_then(|party| party.id.as_deref())
+            .is_some_and(|id| id.starts_with("spotify:"));
+        self.kind == ActivityKind::Listening && self.name == "Spotify" && spotify_party
+    }
+
+    /// When its timer counts from: its start, else when the service first saw it.
+    pub fn timer_start(&self) -> Option<Timestamp> {
+        self.started.or(self.created)
+    }
+
+    /// The track's page on Spotify, for a Spotify activity with a plain id.
+    pub fn spotify_track_url(&self) -> Option<String> {
+        let id = self.sync_id.as_deref()?;
+        // The id goes into a URL: only letters and digits pass.
+        let plain =
+            (1..=64).contains(&id.len()) && id.bytes().all(|byte| byte.is_ascii_alphanumeric());
+        (self.is_spotify() && plain).then(|| format!("https://open.spotify.com/track/{id}"))
+    }
+
+    /// Spotify's artists as Discord lists them: "A; B" reads "A, B".
+    pub fn artists(&self) -> Option<String> {
+        let state = self.state.as_deref().filter(|_| self.is_spotify())?;
+        Some(state.split("; ").collect::<Vec<_>>().join(", "))
+    }
 }
 
 /// The marks around someone's name and picture, as their service shows
@@ -266,7 +297,7 @@ pub struct Perks {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ImageKind;
+    use crate::{ImageKind, Party};
 
     fn image(name: &str) -> RemoteImage {
         RemoteImage {
@@ -313,7 +344,7 @@ mod tests {
             small_image: None,
             started: Some(Timestamp(1_000)),
             ends: Some(Timestamp(5_000)),
-            application: None,
+            ..Default::default()
         };
         assert!(track.is_track());
         assert_eq!(track.progress(Timestamp(2_000)), Some(0.25));
@@ -322,6 +353,49 @@ mod tests {
         assert_eq!(track.progress(Timestamp(2_000)), None, "no length");
         track.kind = ActivityKind::Playing;
         assert!(!track.is_track());
+    }
+
+    #[test]
+    fn spotify_is_known_by_its_party_and_its_track_by_a_plain_id() {
+        let mut spotify = Activity {
+            kind: ActivityKind::Listening,
+            name: "Spotify".into(),
+            state: Some("Trío; Ana Ruiz".into()),
+            party: Some(Party {
+                id: Some("spotify:21".into()),
+                size: None,
+            }),
+            sync_id: Some("0000000000000000000021".into()),
+            ..Default::default()
+        };
+        assert!(spotify.is_spotify());
+        assert_eq!(spotify.artists().as_deref(), Some("Trío, Ana Ruiz"));
+        assert_eq!(
+            spotify.spotify_track_url().as_deref(),
+            Some("https://open.spotify.com/track/0000000000000000000021")
+        );
+        spotify.party = None;
+        assert!(!spotify.is_spotify(), "the name alone is not enough");
+        assert_eq!(spotify.artists(), None);
+        spotify.party = Some(Party {
+            id: Some("spotify:21".into()),
+            size: None,
+        });
+        spotify.sync_id = Some("ab/../c".into());
+        assert_eq!(spotify.spotify_track_url(), None, "the id goes into a URL");
+        spotify.kind = ActivityKind::Playing;
+        assert!(!spotify.is_spotify());
+    }
+
+    #[test]
+    fn a_timer_counts_from_its_start_or_from_when_it_was_first_seen() {
+        let mut game = Activity {
+            created: Some(Timestamp(5_000)),
+            ..Default::default()
+        };
+        assert_eq!(game.timer_start(), Some(Timestamp(5_000)));
+        game.started = Some(Timestamp(7_000));
+        assert_eq!(game.timer_start(), Some(Timestamp(7_000)));
     }
 
     #[test]
@@ -372,5 +446,23 @@ mod tests {
             serde_json::from_value(serde_json::json!({"status": "Online", "custom": null}))
                 .unwrap();
         assert!(presence.activities.is_empty() && presence.platforms == Platforms::default());
+        // An activity saved before its rich fields reads with them empty.
+        let activity: Activity = serde_json::from_value(serde_json::json!({
+            "kind": "Playing", "name": "Factorio", "detail": "Fábrica", "state": null,
+            "image": null, "small_image": null, "started": 1000, "ends": null,
+            "application": 55
+        }))
+        .unwrap();
+        assert_eq!(
+            activity,
+            Activity {
+                kind: ActivityKind::Playing,
+                name: "Factorio".into(),
+                detail: Some("Fábrica".into()),
+                started: Some(Timestamp(1_000)),
+                application: Some(55),
+                ..Default::default()
+            }
+        );
     }
 }

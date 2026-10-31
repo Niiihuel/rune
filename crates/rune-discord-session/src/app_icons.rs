@@ -172,6 +172,7 @@ mod tests {
                 started: None,
                 ends: None,
                 application,
+                ..Default::default()
             }],
             ..Default::default()
         }

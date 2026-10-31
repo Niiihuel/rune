@@ -44,6 +44,9 @@ impl LocalActivity {
             started: self.start.map(crate::Timestamp),
             ends: self.end.map(crate::Timestamp),
             application: self.application,
+            large_text: self.large_text.clone(),
+            small_text: self.small_text.clone(),
+            ..Default::default()
         }
     }
 }

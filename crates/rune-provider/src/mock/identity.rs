@@ -8,9 +8,9 @@
 
 use rune_i18n::{es, t, tr};
 use rune_model::{
-    Activity, ActivityKind, ChannelId, Identity, ImageKind, Message, Nameplate, Perks, Platforms,
-    RemoteImage, Rgb, RoleStyle, ServerId, ServerTag, Sticker, StickerId, StickerPack, Timestamp,
-    UserId,
+    Activity, ActivityKind, ChannelId, Identity, ImageKind, Message, Nameplate, Party, Perks,
+    Platforms, RemoteImage, Rgb, RoleStyle, ServerId, ServerTag, Sticker, StickerId, StickerPack,
+    Timestamp, UserId,
 };
 
 use super::{Session, World, ME};
@@ -53,23 +53,42 @@ pub(super) fn activities(person: usize, now: Timestamp) -> Vec<Activity> {
         started: None,
         ends: None,
         application: None,
+        ..Default::default()
     };
     match person {
+        1 => vec![Activity {
+            image: Some(picture("actividades/montana")),
+            started: at(23),
+            ..activity(
+                ActivityKind::Playing,
+                "Celeste",
+                Some("Capítulo 7"),
+                Some("En la cumbre"),
+            )
+        }],
         7 => vec![
             Activity {
                 image: Some(picture("actividades/fabrica")),
                 small_image: Some(picture("actividades/engranaje")),
                 started: at(47),
+                party: Some(Party {
+                    id: Some("simulado-factorio".into()),
+                    size: Some((2, 4)),
+                }),
+                buttons: vec!["Ver la fábrica".into()],
+                large_text: Some("Fábrica de circuitos".into()),
+                small_text: Some("Nivel 12".into()),
+                session: Some("simulado".into()),
                 ..activity(
                     ActivityKind::Playing,
                     "Factorio",
                     Some("Construyendo una fábrica de circuitos"),
-                    Some("Partida multijugador (2 de 4)"),
+                    Some("Partida multijugador"),
                 )
             },
             radio(now),
         ],
-        11 => vec![radio(now)],
+        11 => vec![spotify(now)],
         4 => vec![Activity {
             started: at(12),
             ..activity(ActivityKind::Watching, "Charlas de RustConf", None, None)
@@ -101,6 +120,23 @@ fn radio(now: Timestamp) -> Activity {
         started: Some(started),
         ends: Some(Timestamp(started.0 + 210_000)),
         application: None,
+        ..Default::default()
+    }
+}
+
+/// Lucas's Spotify: the track of the radio, with its album, its artists and
+/// the ids Spotify gives it.
+fn spotify(now: Timestamp) -> Activity {
+    Activity {
+        name: "Spotify".into(),
+        state: Some("Trío Ferroso; Ana Ruiz".into()),
+        large_text: Some("Noches de compilación".into()),
+        party: Some(Party {
+            id: Some("spotify:21".into()),
+            size: None,
+        }),
+        sync_id: Some("0000000000000000000021".into()),
+        ..radio(now)
     }
 }
 
@@ -589,8 +625,8 @@ mod tests {
         assert!(last.categories.is_empty());
         assert_eq!(suggestions("  ")[0], "aplausos");
         assert_eq!(suggestions("gato")[1], "gato gracioso");
-        let radio = activities(11, Timestamp(1_000_000));
-        assert!(radio[0].is_track());
+        let lucas = activities(11, Timestamp(1_000_000));
+        assert!(lucas[0].is_track() && lucas[0].is_spotify());
         assert_eq!(activities(7, Timestamp(0)).len(), 2);
         assert!(platforms(1).mobile_only() && !platforms(2).mobile_only());
     }
