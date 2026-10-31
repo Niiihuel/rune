@@ -4782,6 +4782,8 @@ impl eframe::App for App {
         sooner(rune_ui::interaction_tick(&self.store, now));
         // The time of an activity shown moves each second (P5).
         sooner(rune_ui::activity_tick(&self.ui, &self.store));
+        // The «Activo ahora» column: its timers each second, its minutes each 10 s.
+        sooner(rune_ui::active_now_tick(&self.ui, &self.store));
         // A command waiting for its answer fails at its deadline.
         sooner(self.client.next_deadline(now));
         if self.ui.show_metrics {

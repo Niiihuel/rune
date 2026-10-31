@@ -7,6 +7,8 @@
 
 // The account's synced settings (P1).
 mod account;
+// The «Activo ahora» column of the friends page (2026-10-31).
+mod active_now;
 mod alerts;
 mod app_menu;
 mod call_sounds;
@@ -122,6 +124,8 @@ pub use context::open_message;
 pub use documents::{document_result, document_text, DocumentSearch, DocumentViewer};
 pub use gifs::{gif_result, sync_gif_search, GifPickerState};
 pub use identity::activity_tick;
+// The «Activo ahora» column's timers and minutes (2026-10-31).
+pub use active_now::tick as active_now_tick;
 pub use images::{playable_images, wanted_images};
 pub use interactions::interaction_tick;
 pub use invitation_cards::{invitation_card_result, wanted_invitation_cards};
@@ -759,6 +763,8 @@ pub struct Ui {
     pub video: Video,
     /// The friends page of home.
     pub friends: relationships::Friends,
+    /// The «Activo ahora» column beside the friends page.
+    pub active_now: active_now::ActiveNow,
     /// Direct conversations being opened and the group dialog.
     pub conversations: conversations::Conversations,
     typing_sent: HashMap<ChannelId, Instant>,
@@ -1252,6 +1258,7 @@ pub fn secondary_click(
     if opened.is_some() {
         ui.messages.context = None;
         ui.messages.more = None;
+        ui.active_now.menu = None;
     }
     opened
 }
@@ -1593,6 +1600,10 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
     // Choosing anything closes a person's menu, before the handler of the choice.
     person_menu::update(ui, action);
     if let Some(intents) = person_menu::action(ui, store, action, now) {
+        return intents;
+    }
+    // The friends page's «Activo ahora» column (2026-10-31).
+    if let Some(intents) = active_now::update(ui, store, action, now) {
         return intents;
     }
     // Rules and onboarding (2026-10-18).

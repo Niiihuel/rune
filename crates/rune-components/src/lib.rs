@@ -14,6 +14,8 @@ pub mod emoji;
 pub mod folders;
 pub mod forum;
 pub mod friends;
+// The «Activo ahora» column of the friends page (2026-10-31).
+pub mod active_now;
 // RUNE's icon set (íconos).
 pub mod glyphs;
 pub mod group;
