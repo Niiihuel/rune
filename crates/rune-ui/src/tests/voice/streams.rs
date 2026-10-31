@@ -355,7 +355,7 @@ fn a_streams_picture_is_asked_for_as_the_official_client_does_and_shows_on_its_t
     // The simulation's has none: its tile on the stage says so, under
     // «EN VIVO» and over the way to watch it.
     let texts = host.vz_texts();
-    for expected in ["EN VIVO", "Vista previa simulada", "Ver transmisión"] {
+    for expected in ["EN VIVO", "Vista previa simulada", "Mirar transmisión"] {
         assert!(
             texts.contains(&expected.to_owned()),
             "{expected} in {texts:?}"

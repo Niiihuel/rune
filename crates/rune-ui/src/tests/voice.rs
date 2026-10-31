@@ -1339,7 +1339,7 @@ fn someone_streaming_is_watched_on_the_stage_ends_with_why_and_is_let_go() {
     state.streaming = true;
     host.event(Event::VoiceChanged(state));
     let watch = ids::watch(other.0);
-    assert!(host.vz_usable(&watch), "«Ver transmisión» on their tile");
+    assert!(host.vz_usable(&watch), "«Mirar transmisión» on their tile");
     assert!(!host.vz_shows(&ids::watch(host.vz_me().0)));
 
     let from = host.sent.len();

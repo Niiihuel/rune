@@ -10,7 +10,8 @@
 use limn::{
     Button, ButtonSizing, ButtonVariant, ChartSeries, Color, Component, ComponentPalette,
     DropdownMenu, DropdownMenuEntry, DropdownMenuItem, Element, FontFamily, Icon, IconButton,
-    LineChart, PopoverPlacement, RadiusRole, Size, Slider, Tooltip, TooltipPlacement, TooltipSpec,
+    LineChart, PopoverPlacement, RadiusRole, ScrollArea, ScrollbarAppearance, Size, Slider,
+    Tooltip, TooltipPlacement, TooltipSpec,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::{CallPhase, CallQuality, Rgb, StreamQuality};
@@ -122,7 +123,7 @@ pub mod ids {
         format!("vz:mute:{user}")
     }
 
-    /// «Ver transmisión» on the tile of someone streaming.
+    /// «Mirar transmisión» on the tile of someone streaming.
     pub fn watch(user: u64) -> String {
         format!("vz:watch:{user}")
     }
@@ -135,7 +136,7 @@ pub mod ids {
         format!("vz:live:dismiss:{user}")
     }
 
-    /// «Ver transmisión» on the card of someone live beside their row.
+    /// «Mirar transmisión» on the card of someone live beside their row.
     pub fn live_watch(user: u64) -> String {
         format!("vz:live:watch:{user}")
     }
@@ -398,6 +399,9 @@ const POP_OUT: &str = crate::glyphs::glyph!("pop-out");
 const OVER: Color = Color::rgba(0, 0, 0, 153);
 const OVER_HOVER: Color = Color::rgba(0, 0, 0, 204);
 const OVER_INK: Color = Color::rgb(255, 255, 255);
+/// The name of a tile, and the labels over its picture: black at 56 %, as
+/// Discord's name label (REA §2.3).
+const PILL: Color = Color::rgba(0, 0, 0, 143);
 /// The round buttons over a picture, 32 across.
 const OVER_BUTTON: f32 = 32.0;
 
@@ -509,7 +513,7 @@ fn preview_tile(view: &Preview, size: Size, compact: bool, look: &Look) -> Eleme
     let over = match &view.stream {
         // In the strip, a stream watched says it is live at its top right.
         Some(_) if compact => Element::column(vec![
-            Element::row(vec![Element::spacer().flex(1.0), live(22.0, look)]),
+            Element::row(vec![Element::spacer().flex(1.0), live(22.0, 10.0, look)]),
             Element::spacer().flex(1.0),
             Element::row(vec![title, Element::spacer().flex(1.0)]),
         ])
@@ -612,7 +616,7 @@ fn own_over(view: &Preview, title: Element, look: &Look) -> Element {
     .hover_ink(OVER_INK)
     .render();
     Element::column(vec![
-        Element::row(vec![live(22.0, look), Element::spacer().flex(1.0)]),
+        Element::row(vec![live(22.0, 10.0, look), Element::spacer().flex(1.0)]),
         Element::spacer().flex(1.0),
         Element::row(vec![title, Element::spacer().flex(1.0)]),
         gap(0.0, 6.0),
@@ -737,7 +741,7 @@ fn stream_over(view: &Preview, stream: &StreamTile, title: Element, look: &Look)
 fn top_left(view: &Preview, big: bool, look: &Look) -> Element {
     let shown = match view.note.as_str() {
         "" if big => return Element::spacer().size(None, Some(0.0)),
-        "" => live(22.0, look),
+        "" => live(22.0, 10.0, look),
         note => badge(note),
     };
     Element::row(vec![shown, Element::spacer().flex(1.0)])
@@ -879,14 +883,20 @@ const ROW_RADIUS: f32 = 6.0;
 /// picture of their stream.
 pub const LIVE_CARD_WIDTH: f32 = 312.0;
 const LIVE_PICTURE: (f32, f32) = (288.0, 162.0);
-/// Tiles keep 16:9, 8.5 apart, rounded 8, with 17 around them.
-const TILE_GAP: f32 = 8.5;
+/// Tiles keep 16:9, 8 apart as Discord's, rounded 8. The tiles' area is 8 in
+/// from the sides and 16 from the top, where Discord's overlays its header.
+const TILE_GAP: f32 = 8.0;
 const TILE_RADIUS: f32 = 8.0;
-const STAGE_INSET: f32 = 17.0;
+const AREA_SIDE: f32 = 8.0;
+const AREA_TOP: f32 = 16.0;
+/// Up to this many tiles all show; past it the rows scroll, with this many
+/// (partly) in view at most.
+const GRID_VISIBLE: usize = 25;
 // Streams (transmisiones).
-/// The strip under a stream focused: 18 % of the stage, between these.
-const MIN_STRIP: f32 = 72.0;
-const MAX_STRIP: f32 = 124.0;
+/// The strip under a stream focused: 112 high as Discord's, its tiles 16:9,
+/// at most `STRIP_MAX` of them.
+const STRIP: f32 = 112.0;
+const STRIP_MAX: usize = 12;
 /// The least a stream focused keeps; a shorter stage has no strip.
 const MIN_FOCUS: f32 = 180.0;
 /// The bar of the stage, as the official client's tray (REA): its buttons
@@ -1339,7 +1349,7 @@ pub enum Thumbnail {
 
 /// The card of someone live beside their row in the column, while the
 /// pointer is on it: who, what they stream, the latest picture of it, and
-/// «Ver transmisión», as the official client's preview of a stream.
+/// «Mirar transmisión», as the official client's preview of a stream.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LiveCard {
     pub user: u64,
@@ -1349,12 +1359,12 @@ pub struct LiveCard {
     /// The latest picture of their stream; what is said instead until one
     /// arrives, or when none can.
     pub picture: Result<Thumbnail, String>,
-    /// Whether «Ver transmisión» can be used, or why not.
+    /// Whether «Mirar transmisión» can be used, or why not.
     pub watch: Result<(), String>,
 }
 
 /// The card of someone live: `card.picture` 288 by 162 under their name and
-/// what they stream, «Ver transmisión» under it. Transparent 8 on its left,
+/// what they stream, «Mirar transmisión» under it. Transparent 8 on its left,
 /// toward the row, so the pointer crosses into it.
 pub fn live_card(card: &LiveCard, look: &Look) -> Element {
     let (width, height) = LIVE_PICTURE;
@@ -1362,7 +1372,7 @@ pub fn live_card(card: &LiveCard, look: &Look) -> Element {
         strong_line(&card.name, 15.0, look.text)
             .flex(1.0)
             .centered_y(),
-        live(16.0, look).centered_y(),
+        live(16.0, 10.0, look).centered_y(),
     ];
     head.insert(1, gap(8.0, 0.0));
     let mut body = vec![Element::row(head)];
@@ -1389,7 +1399,7 @@ pub fn live_card(card: &LiveCard, look: &Look) -> Element {
     );
     let button = Button::new(
         ids::live_watch(card.user),
-        t("Ver transmisión"),
+        t("Mirar transmisión"),
         look.palette(),
     )
     .variant(ButtonVariant::Success)
@@ -1398,7 +1408,7 @@ pub fn live_card(card: &LiveCard, look: &Look) -> Element {
     body.push(match &card.watch {
         Ok(()) => button.render(),
         Err(reason) => button
-            .tooltip_with(denied_hint(t("Ver transmisión"), reason))
+            .tooltip_with(denied_hint(t("Mirar transmisión"), reason))
             .disabled()
             .render(),
     });
@@ -1412,13 +1422,13 @@ pub fn live_card(card: &LiveCard, look: &Look) -> Element {
     Element::row(vec![gap(8.0, 0.0), surface]).size(Some(LIVE_CARD_WIDTH + 8.0), None)
 }
 
-/// The «En vivo» mark of someone streaming, `size` high.
-fn live(size: f32, look: &Look) -> Element {
+/// The «En vivo» mark of someone streaming, `size` high, its text `font` high.
+fn live(size: f32, font: f32, look: &Look) -> Element {
     Element::panel(Element::row(vec![
         gap(6.0, 0.0),
         Element::text(t("EN VIVO"))
             .font_family(FontFamily::SansBold)
-            .font_size(10.0)
+            .font_size(font)
             .foreground(Color::rgb(255, 255, 255))
             .centered_y(),
         gap(6.0, 0.0),
@@ -1550,7 +1560,7 @@ pub fn participant(
     ];
     if person.streaming {
         parts.push(gap(4.0, 0.0));
-        parts.push(live(16.0, look).centered_y());
+        parts.push(live(16.0, 10.0, look).centered_y());
     }
     for mark in marks(person, &id, look.muted, look) {
         parts.push(gap(4.0, 0.0));
@@ -1637,33 +1647,155 @@ pub struct Grid {
 }
 
 /// The arrangement of `count` tiles of 16:9 in `area` that makes them
-/// largest, `TILE_GAP` apart.
+/// largest, `TILE_GAP` apart, in whole pixels. Past `GRID_VISIBLE` the rows
+/// scroll, and the tiles are as large as keeps that many partly in view
+/// (Discord's rule, REA §1.1).
 pub fn grid(count: usize, area: Size) -> Grid {
     let count = count.max(1);
-    let mut best = Grid {
-        columns: 1,
-        tile: Size::new(0.0, 0.0),
-    };
+    let width = area.width.max(0.0);
+    if count > GRID_VISIBLE {
+        let columns_at = |tile: f32| ((width + TILE_GAP) / (tile + TILE_GAP)).floor().max(1.0);
+        let shown = |tile: f32| {
+            let high = tile * 9.0 / 16.0;
+            let rows = (((area.height - high) / (high + TILE_GAP)).ceil() + 1.0).max(1.0);
+            columns_at(tile) * rows
+        };
+        let tile = (1..=width.floor() as usize)
+            .map(|tile| tile as f32)
+            .find(|tile| shown(*tile) <= GRID_VISIBLE as f32)
+            .unwrap_or(width.floor());
+        return Grid {
+            columns: columns_at(tile) as usize,
+            tile: Size::new(tile, (tile * 9.0 / 16.0).floor()),
+        };
+    }
+    let mut best = (1, 0.0_f32);
     for columns in 1..=count {
         let rows = count.div_ceil(columns);
-        let across = (area.width - TILE_GAP * (columns - 1) as f32) / columns as f32;
+        let across = (width - TILE_GAP * (columns - 1) as f32) / columns as f32;
         let down = (area.height - TILE_GAP * (rows - 1) as f32) / rows as f32;
-        let width = across.min(down * 16.0 / 9.0).max(0.0);
-        if width > best.tile.width {
-            best = Grid {
-                columns,
-                tile: Size::new(width, width * 9.0 / 16.0),
-            };
+        let tile = across.min(down * 16.0 / 9.0).max(0.0);
+        if tile > best.1 {
+            best = (columns, tile);
         }
     }
-    best
+    let tile = best.1.floor();
+    Grid {
+        columns: best.0,
+        tile: Size::new(tile, (tile * 9.0 / 16.0).floor()),
+    }
 }
 
-/// A person on the stage: their mark on their color, or their camera
-/// («Cámara simulada» over it when `simulated`), their name and marks in a
-/// chip at the bottom left, outlined in green while they speak. Under the
-/// pointer a «⋯» opens their menu (`menu`, while open); their card floats
-/// beside the chip while open.
+/// A tile's face, the person's picture on it: 80 across, or 40 on a tile
+/// under 124 wide. It does not grow with the tile (REA §2.2).
+pub(crate) fn face_size(size: Size) -> f32 {
+    if size.width < 124.0 {
+        40.0
+    } else {
+        80.0
+    }
+}
+
+/// How far a tile's overlays stand from its edges: 12, or 4 on a tile 220
+/// wide or less (REA §2.3).
+pub(crate) fn margin(size: Size) -> f32 {
+    if size.width > 220.0 {
+        12.0
+    } else {
+        4.0
+    }
+}
+
+/// What sits over a tile's picture in a pill: black at 56 %, rounded 8.
+fn pill(content: Element) -> Element {
+    Element::panel(content)
+        .radius(8.0)
+        .background(PILL)
+        .shrink_to_fit()
+}
+
+/// A person's name in a pill at the bottom left of their tile, their marks
+/// before it: 16 px, or 14 on a tile 220 wide or less. `None` on a tile 124
+/// wide or less, where it is hidden (REA §2.1).
+pub(crate) fn tile_name(person: &Participant, size: Size, look: &Look) -> Option<Element> {
+    if size.width <= 124.0 {
+        return None;
+    }
+    let font = if size.width > 220.0 { 16.0 } else { 14.0 };
+    // Padding 6 all round; the 2 at each end make the pill 8 across.
+    let mut parts = vec![gap(2.0, 0.0)];
+    for mark in marks(person, &ids::tile(person.user), OVER_INK, look) {
+        parts.push(mark.centered_y());
+        parts.push(gap(4.0, 0.0));
+    }
+    parts.push(
+        line(&person.name, font, OVER_INK)
+            .centered_y()
+            .shrink_to_fit(),
+    );
+    parts.push(gap(2.0, 0.0));
+    Some(pill(Element::row(parts).padding(6.0)))
+}
+
+/// A note over a tile's picture at its top left, such as «Cámara simulada»:
+/// 12 px, 6 across and 2 high inside its pill.
+fn caption(text: &str) -> Element {
+    pill(
+        Element::row(vec![
+            gap(4.0, 0.0),
+            line(text, 12.0, OVER_INK).centered_y(),
+            gap(4.0, 0.0),
+        ])
+        .padding(2.0),
+    )
+}
+
+/// The speaking mark: 2 px of green on the tile's edge and 1 px of black just
+/// inside it, Discord's inset ring (REA §2.5).
+fn speaking_edge(size: Size, look: &Look) -> Element {
+    let inside = Element::panel(Element::spacer())
+        .radius(TILE_RADIUS - 2.0)
+        .border(Color::rgb(0, 0, 0), 1.0)
+        .flex(1.0);
+    Element::panel(Element::column(vec![
+        gap(0.0, 2.0),
+        Element::row(vec![gap(2.0, 0.0), inside, gap(2.0, 0.0)]).flex(1.0),
+        gap(0.0, 2.0),
+    ]))
+    .size(Some(size.width), Some(size.height))
+    .radius(TILE_RADIUS)
+    .border(look.online, 2.0)
+}
+
+/// «Mirar transmisión» in the middle of a tile of someone streaming, «Ver»
+/// on a tile under 175 wide. Disabled with its reason when it cannot be used.
+fn watch_button(
+    person: &Participant,
+    size: Size,
+    permit: &Result<(), String>,
+    look: &Look,
+) -> Element {
+    let label = if size.width < 175.0 {
+        t("Ver")
+    } else {
+        t("Mirar transmisión")
+    };
+    let button = Button::new(ids::watch(person.user), label, look.palette())
+        .variant(ButtonVariant::Secondary);
+    match permit {
+        Ok(()) => button.render(),
+        Err(reason) => button
+            .tooltip_with(denied_hint(label, reason))
+            .disabled()
+            .render(),
+    }
+}
+
+/// A person on the stage: their picture on their color, or their camera
+/// («Cámara simulada» over it when `simulated`), and their name in a pill at
+/// the bottom left with their marks. Under the pointer a «⋯» opens their menu
+/// (`menu`, while open). Their card floats beside the name while open, or
+/// beside the tile when it has no name. Outlined in green while they speak.
 fn tile(
     person: &Participant,
     size: Size,
@@ -1673,51 +1805,15 @@ fn tile(
     simulated: bool,
     look: &Look,
 ) -> Element {
-    let face = (size.height * 90.0 / 307.0).clamp(40.0, 120.0);
-    let ground = Color::rgb(
-        (person.accent.r as f32 * 0.35) as u8,
-        (person.accent.g as f32 * 0.35) as u8,
-        (person.accent.b as f32 * 0.35) as u8,
-    );
-    let mut chip: Vec<Element> = marks(person, &ids::tile(person.user), look.text, look)
-        .into_iter()
-        .map(Element::centered_y)
-        .collect();
-    chip.push(
-        strong_line(&person.name, 14.0, look.text)
-            .centered_y()
-            .shrink_to_fit(),
-    );
-    let chip = Element::panel(Element::row(chip).gap(4.0).padding(8.0))
-        .size(None, Some(34.0))
-        .radius(8.0)
-        .background(Look::alpha(look.rail, 200));
-    let chip = crate::profile::popout(
-        chip,
-        card,
-        ids::CARD_DISMISS,
-        PopoverPlacement::RightStart,
-        look,
-    );
+    let face = face_size(size);
     let open = menu.is_some();
-    let more = IconButton::new(
+    let more = over_button(
         ids::tile_more(person.user),
         Icon::More,
-        filled(Look::alpha(look.rail, 200), look.raised, look),
-    )
-    .variant(ButtonVariant::Raised)
-    .sizing(ButtonSizing {
-        height: 34.0,
-        font_size: 14.0,
-        icon_size: 20.0,
-        horizontal_padding: 8.0,
-        inner_spacing: 6.0,
-    })
-    .width(32.0)
-    .radius(RadiusRole::Card)
-    .ink(look.text)
-    .tooltip(t("Más"))
-    .render();
+        t("Más"),
+        PILL,
+        look,
+    );
     let more = DropdownMenu::new(
         more,
         menu_entries(menu.unwrap_or_default(), look),
@@ -1735,47 +1831,48 @@ fn tile(
     } else {
         more.reveal_on_hover(format!("{}:more", ids::tile(person.user)))
     };
-    // Someone streaming: the mark, and the way to watch unless watched.
-    let mut top = Vec::new();
+    let (name, card) = match tile_name(person, size, look) {
+        Some(name) => (
+            Some(crate::profile::popout(
+                name,
+                card,
+                ids::CARD_DISMISS,
+                PopoverPlacement::RightStart,
+                look,
+            )),
+            None,
+        ),
+        None => (None, card),
+    };
+    let mut bottom: Vec<Element> = name.into_iter().map(Element::shrink_to_fit).collect();
+    bottom.push(Element::spacer().flex(1.0));
+    bottom.push(more);
+    let bottom = Element::row(bottom).padding(margin(size));
+    // Simulated things say so at the top left; someone streaming is live at
+    // the top right, and watched from the middle unless watched.
+    let mut left = Vec::new();
+    let mut right = Vec::new();
+    let mut middle = Element::spacer().flex(1.0);
     if person.camera.is_some() && simulated {
-        top.push(
-            Element::panel(line(t("Cámara simulada"), 13.0, look.text).padding(8.0))
-                .size(None, Some(34.0))
-                .radius(8.0)
-                .background(Look::alpha(look.rail, 200))
-                .shrink_to_fit(),
-        );
+        left.push(caption(t("Cámara simulada")));
     }
     if person.streaming {
-        top.push(live(22.0, look));
+        right.push(live(16.0, 12.0, look));
         // Streams (transmisiones): the simulation has no picture to show.
         if person.thumbnail == Some(Thumbnail::Simulated) {
-            top.push(
-                Element::panel(line(t("Vista previa simulada"), 13.0, look.text).padding(6.0))
-                    .size(None, Some(22.0))
-                    .radius(4.0)
-                    .background(Look::alpha(look.rail, 200))
-                    .shrink_to_fit(),
-            );
+            left.push(caption(t("Vista previa simulada")));
         }
-        top.push(Element::spacer().flex(1.0));
         if let Some(permit) = watch {
-            let button = Button::new(
-                ids::watch(person.user),
-                t("Ver transmisión"),
-                look.palette(),
-            )
-            .variant(ButtonVariant::Secondary)
-            .icon(Icon::Screen);
-            top.push(match permit {
-                Ok(()) => button.render(),
-                Err(reason) => button
-                    .tooltip_with(denied_hint(t("Ver transmisión"), reason))
-                    .disabled()
-                    .render(),
-            });
+            middle = centered(watch_button(person, size, permit, look)).flex(1.0);
         }
     }
+    let top = Element::row(vec![
+        Element::row(left).gap(6.0),
+        Element::spacer().flex(1.0),
+        Element::row(right),
+    ])
+    .padding(8.0);
+    let over = Element::column(vec![top, middle, bottom]);
     // Streams (transmisiones): the latest picture of their stream, dimmed so
     // what is over it reads, as the official client shows it.
     let streamed = match &person.thumbnail {
@@ -1814,36 +1911,24 @@ fn tile(
         )))
         .size(Some(size.width), Some(size.height))
         .radius(TILE_RADIUS)
-        .background(ground)
-        .bottom_background_fade(Look::alpha(person.accent, 110), size.height),
+        .background(person.accent),
     };
-    let mut layers = vec![
-        picture,
-        Element::column(vec![
-            Element::row(top).gap(8.0),
-            Element::spacer().flex(1.0),
-            // A long name is cut short: the «⋯» keeps its place in the tile.
-            Element::row(vec![
-                chip.shrink_to_fit(),
-                Element::spacer().flex(1.0),
-                more,
-            ]),
-        ])
-        .padding(12.5),
-    ];
+    let mut layers = vec![picture, over];
     if person.speaking {
-        layers.push(
-            Element::panel(Element::spacer())
-                .size(Some(size.width), Some(size.height))
-                .radius(TILE_RADIUS)
-                .border(look.online, 2.0),
-        );
+        layers.push(speaking_edge(size, look));
     }
-    Element::clickable(ids::tile(person.user), Element::stack(layers))
+    let tile = Element::clickable(ids::tile(person.user), Element::stack(layers))
         .size(Some(size.width), Some(size.height))
         .radius(TILE_RADIUS)
         .hover_region()
-        .accessibility_label(person.name.clone())
+        .accessibility_label(person.name.clone());
+    crate::profile::popout(
+        tile,
+        card,
+        ids::CARD_DISMISS,
+        PopoverPlacement::RightStart,
+        look,
+    )
 }
 
 /// The call of a voice channel where the conversation goes.
@@ -1973,7 +2058,7 @@ pub fn stage(view: Stage, look: &Look) -> Element {
                 .shrink_to_fit(),
             );
         }
-        badge.push(live(22.0, look));
+        badge.push(live(22.0, 10.0, look));
         header.push(Element::row(badge).gap(2.0).centered_y());
     } else {
         header.push(Element::spacer().flex(1.0));
@@ -2080,8 +2165,8 @@ fn call(view: &Stage, look: &Look) -> Element {
     };
     let below = BAR_BOTTOM + BAR_HEIGHT + BAR_GAP + pill_room;
     let area = Size::new(
-        view.size.width - 2.0 * STAGE_INSET,
-        view.size.height - crate::sidebar::HEADER - 1.0 - STAGE_INSET - below,
+        view.size.width - 2.0 * AREA_SIDE,
+        view.size.height - crate::sidebar::HEADER - 1.0 - AREA_TOP - below,
     );
     let person = |person: &Participant, size: Size, watch: bool| {
         let card = view
@@ -2100,8 +2185,8 @@ fn call(view: &Stage, look: &Look) -> Element {
     let tiles = match focus {
         Some(index) => {
             let count = previews.len() - 1 + people.len() + ringing.len();
-            let strip = if count > 0 && area.height >= MIN_STRIP + TILE_GAP + MIN_FOCUS {
-                (area.height * 0.18).clamp(MIN_STRIP, MAX_STRIP)
+            let strip = if count > 0 && area.height >= STRIP + TILE_GAP + MIN_FOCUS {
+                STRIP
             } else {
                 0.0
             };
@@ -2112,6 +2197,7 @@ fn call(view: &Stage, look: &Look) -> Element {
             let width = room.width.min(room.height * 16.0 / 9.0);
             let main = Size::new(width, width * 9.0 / 16.0);
             let fits = ((area.width + TILE_GAP) / (strip * 16.0 / 9.0 + TILE_GAP)).floor() as usize;
+            let fits = fits.min(STRIP_MAX);
             let small = Size::new(strip * 16.0 / 9.0, strip);
             let mut rest: Vec<Element> = previews
                 .iter()
@@ -2127,7 +2213,7 @@ fn call(view: &Stage, look: &Look) -> Element {
             );
             rest.truncate(fits.max(1));
             let mut column = vec![
-                gap(0.0, STAGE_INSET),
+                gap(0.0, AREA_TOP),
                 Element::spacer().flex(1.0),
                 Element::row(vec![
                     Element::spacer().flex(1.0),
@@ -2148,7 +2234,8 @@ fn call(view: &Stage, look: &Look) -> Element {
             Element::column(column)
         }
         None => {
-            let layout = grid(previews.len() + people.len() + ringing.len(), area);
+            let count = previews.len() + people.len() + ringing.len();
+            let layout = grid(count, area);
             let mut tiles: Vec<Element> = previews
                 .iter()
                 .map(|shown| preview(shown, layout.tile, look))
@@ -2173,16 +2260,24 @@ fn call(view: &Stage, look: &Look) -> Element {
                     Element::spacer().flex(1.0),
                 ]));
             }
-            Element::column(vec![
-                gap(0.0, STAGE_INSET),
+            // Past `GRID_VISIBLE` the rows scroll, as Discord's; fewer sit centred.
+            let body = if count > GRID_VISIBLE {
+                ScrollArea::new(
+                    format!("vz:grid:{}", view.channel),
+                    Element::column(rows).gap(TILE_GAP),
+                )
+                .appearance(ScrollbarAppearance::overlay().buttons(false))
+                .render()
+                .flex(1.0)
+            } else {
                 Element::column(vec![
                     Element::spacer().flex(1.0),
                     Element::column(rows).gap(TILE_GAP),
                     Element::spacer().flex(1.0),
                 ])
-                .flex(1.0),
-                gap(0.0, below),
-            ])
+                .flex(1.0)
+            };
+            Element::column(vec![gap(0.0, AREA_TOP), body, gap(0.0, below)])
         }
     };
     // With a stream focused the bar fades with what is over it once the
@@ -3058,14 +3153,118 @@ mod tests {
 
     #[test]
     fn tiles_take_the_arrangement_that_makes_them_largest() {
-        // Two in a tall room go one over the other, as captured: 546.5 wide.
+        // Two in a tall room go one over the other, as captured: 546 wide,
+        // whole pixels, 307 high.
         let two = grid(2, Size::new(946.0, 622.5));
         assert_eq!(two.columns, 1);
-        assert!((two.tile.width - 546.5).abs() < 1.0, "{two:?}");
+        assert_eq!(two.tile, Size::new(546.0, 307.0), "{two:?}");
         let four = grid(4, Size::new(946.0, 622.5));
         assert_eq!(four.columns, 2);
-        assert!((four.tile.height - four.tile.width * 9.0 / 16.0).abs() < 0.01);
+        assert_eq!(four.tile, Size::new(469.0, 263.0), "{four:?}");
         assert_eq!(grid(0, Size::new(100.0, 100.0)).columns, 1);
+    }
+
+    /// The area of a stage 1000 by 500 for its tiles: the insets of the call
+    /// (8 at the sides, 16 at the top) and the bar's room under them.
+    fn stage_area() -> Size {
+        Size::new(
+            1000.0 - 2.0 * AREA_SIDE,
+            500.0 - AREA_TOP - (BAR_BOTTOM + BAR_HEIGHT + BAR_GAP),
+        )
+    }
+
+    #[test]
+    fn seven_tiles_take_240_by_135_in_rows_of_four_and_three() {
+        // REA's worked example (§1.1), in this stage's area.
+        let layout = grid(7, stage_area());
+        assert_eq!(layout.columns, 4);
+        assert_eq!(layout.tile, Size::new(240.0, 135.0));
+        let rows: Vec<usize> = [(); 7].chunks(layout.columns).map(<[()]>::len).collect();
+        assert_eq!(rows, [4, 3]);
+    }
+
+    #[test]
+    fn thirty_tiles_are_as_large_as_keeps_25_in_view_and_their_rows_scroll() {
+        let area = stage_area();
+        let layout = grid(30, area);
+        // 158 wide: five across, and five rows partly in view at most.
+        assert_eq!(layout.columns, 5);
+        assert_eq!(layout.tile, Size::new(158.0, 88.0));
+        let rows = 30usize.div_ceil(layout.columns) as f32;
+        let content = rows * layout.tile.height + (rows - 1.0) * TILE_GAP;
+        assert!(content > area.height, "{content} in {area:?}");
+    }
+
+    #[test]
+    fn a_stage_of_thirty_scrolls_its_tiles_below_its_header() {
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        let view = Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: (1..=30)
+                .map(|user| person(user, false, false, false))
+                .collect(),
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size,
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching: Vec::new(),
+            tiles_hidden: false,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let (_, laid) = frame(stage(view, &look), size);
+        let scroll = laid
+            .regions
+            .iter()
+            .find(|region| region.id == "vz:grid:General")
+            .expect("the rows scroll");
+        assert!(matches!(scroll.kind, limn::HitKind::Scroll));
+        let below = BAR_BOTTOM + BAR_HEIGHT + BAR_GAP;
+        let high = size.height - crate::sidebar::HEADER - 1.0 - AREA_TOP - below;
+        assert!((scroll.rect.height - high).abs() < 0.5, "{:?}", scroll.rect);
+        // Only the tiles in view are laid out as controls, at most 25 of them.
+        let tiles = controls(&laid)
+            .iter()
+            .filter(|id| id.starts_with("vz:tile:"))
+            .count();
+        assert!(tiles > 0 && tiles <= GRID_VISIBLE, "{tiles} in view");
+    }
+
+    #[test]
+    fn a_tile_names_its_person_from_125_wide_and_says_watch_by_its_width() {
+        let look = Look::ONYX;
+        let streamer = Participant {
+            streaming: true,
+            own: false,
+            ..person(2, false, false, false)
+        };
+        let watch = Ok(());
+        let shown = |width: f32| {
+            let size = Size::new(width, width * 9.0 / 16.0);
+            let element = tile(&streamer, size, None, None, Some(&watch), false, &look);
+            texts(&frame(element, size).1)
+        };
+        assert_eq!(face_size(Size::new(124.0, 70.0)), 80.0);
+        assert_eq!(face_size(Size::new(123.0, 70.0)), 40.0);
+        let narrow = shown(124.0);
+        assert!(!narrow.contains(&"Persona 2".to_owned()), "{narrow:?}");
+        assert!(narrow.contains(&"Ver".to_owned()), "{narrow:?}");
+        assert!(shown(125.0).contains(&"Persona 2".to_owned()));
+        let wide = shown(200.0);
+        assert!(wide.contains(&"Mirar transmisión".to_owned()), "{wide:?}");
+        assert!(wide.contains(&"EN VIVO".to_owned()));
     }
 
     #[test]
@@ -3456,7 +3655,7 @@ mod tests {
         };
         let look = Look::ONYX;
         let (_, laid) = frame(stage(view, &look), Size::new(980.0, 762.0));
-        // Their tile says it, as Discord's, and offers no «Ver transmisión».
+        // Their tile says it, as Discord's, and offers no «Mirar transmisión».
         assert!(texts(&laid).iter().any(|text| text == "EN VIVO"));
         assert!(!controls(&laid).contains(&ids::watch(1)));
         // Their row in the voice list says it too.
@@ -3686,7 +3885,7 @@ mod tests {
             .unwrap()
             .1;
         assert!(big.width > 2.0 * small.width);
-        assert!(small.height <= MAX_STRIP && small.y > big.y + big.height);
+        assert!(small.height <= STRIP + 0.01 && small.y > big.y + big.height);
         let ids = controls(&focused);
         assert!(
             ids.contains(&ids::stream_tile(3)),
@@ -3827,7 +4026,7 @@ mod tests {
             .iter()
             .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
         let texts_shown = texts(&pictured);
-        for expected in ["EN VIVO", "Ver transmisión", "Persona 2"] {
+        for expected in ["EN VIVO", "Mirar transmisión", "Persona 2"] {
             assert!(
                 texts_shown.iter().any(|text| text == expected),
                 "{expected}"
@@ -4324,7 +4523,7 @@ mod tests {
             "Persona 2",
             "Transmitiendo VALORANT",
             "Vista previa simulada",
-            "Ver transmisión",
+            "Mirar transmisión",
         ] {
             assert!(
                 words.iter().any(|text| text == expected),
@@ -4370,7 +4569,7 @@ mod tests {
         // Away from both, it goes.
         tree.handle_event(UiEvent::PointerMove(Point::new(5.0, 390.0)));
         assert!(!controls(&tree.layout(size)).contains(&ids::live_watch(2)));
-        // A click on «Ver transmisión» reports it.
+        // A click on «Mirar transmisión» reports it.
         tree.handle_event(UiEvent::PointerMove(Point::new(row.x + 20.0, row.y + 10.0)));
         tree.layout(size);
         tree.handle_event(UiEvent::PointerMove(Point::new(

@@ -81,8 +81,9 @@ fn answer(id: String, accept: bool, look: &Look) -> Element {
         .render()
 }
 
-/// The tile of someone it rings: their mark, «Llamando…», and the way to
-/// stop ringing them.
+/// The tile of someone it rings: their picture on their color, dimmed, with
+/// «Llamando…», the way to stop ringing them, and their name in the pill of
+/// a person's tile.
 pub fn ringing_tile(person: &Participant, size: Size, look: &Look) -> Element {
     let stop = Button::new(
         ids::stop_ringing(person.user),
@@ -92,26 +93,32 @@ pub fn ringing_tile(person: &Participant, size: Size, look: &Look) -> Element {
     .variant(ButtonVariant::Secondary)
     .size(limn::ControlSize::Compact)
     .render();
-    let face = (size.height * 90.0 / 307.0).clamp(40.0, 120.0);
-    Element::panel(centered(
+    let face = crate::voice::face_size(size);
+    let body = centered(
         Element::column(vec![
-            centered(crate::avatar_with_image(
-                &person.name,
-                person.accent,
-                face,
-                person.image.clone(),
-            ))
-            .size(None, Some(face)),
-            centered(strong_line(&person.name, 14.0, look.text)).size(None, Some(20.0)),
+            crate::avatar_with_image(&person.name, person.accent, face, person.image.clone()),
             centered(line(t("Llamando…"), 13.0, look.muted)).size(None, Some(18.0)),
             centered(stop).size(None, Some(28.0)),
         ])
         .gap(8.0),
-    ))
-    .size(Some(size.width), Some(size.height))
-    .radius(12.0)
-    .background(look.rail)
-    .border(Look::alpha(look.online, 90), 2.0)
+    );
+    let mut bottom: Vec<Element> = crate::voice::tile_name(person, size, look)
+        .into_iter()
+        .map(Element::shrink_to_fit)
+        .collect();
+    bottom.push(Element::spacer().flex(1.0));
+    let bottom = Element::row(bottom).padding(crate::voice::margin(size));
+    let fill = |element: Element| element.size(Some(size.width), Some(size.height));
+    let picture = fill(Element::panel(body).radius(8.0).background(person.accent));
+    let dim = fill(
+        Element::panel(Element::spacer())
+            .radius(8.0)
+            .background(Color::rgba(0, 0, 0, 153)),
+    );
+    let over = fill(Element::column(vec![Element::spacer().flex(1.0), bottom]));
+    fill(Element::panel(Element::stack(vec![picture, dim, over])))
+        .radius(8.0)
+        .border(Look::alpha(look.online, 90), 2.0)
 }
 
 /// «Volver a llamar», or why it cannot.
