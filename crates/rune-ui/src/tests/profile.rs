@@ -1799,7 +1799,7 @@ fn pf_the_more_menu_shares_and_reports_as_the_provider_allows() {
     );
     let capabilities = &mut host.store.provider.as_mut().unwrap().capabilities;
     capabilities.trusted_links = &["discord.com"];
-    capabilities.report_form = Some("https://dis.gd/report");
+    capabilities.report_form = Some("https://dis.gd/request");
     let shown = labels(&host);
     assert!(shown.contains(&"Compartir perfil".to_owned()), "{shown:?}");
     assert!(
@@ -1837,7 +1837,7 @@ fn pf_the_more_menu_shares_and_reports_as_the_provider_allows() {
     )));
     assert!(reported.iter().any(|intent| matches!(
         intent,
-        Intent::OpenInBrowser(url) if url == "https://dis.gd/report"
+        Intent::OpenInBrowser(url) if url == "https://dis.gd/request"
     )));
 }
 

@@ -398,10 +398,12 @@ pub fn card_of(
             .and_then(|source| ui.images.get(source))
             .cloned(),
         // Without a picture the banner takes the profile's accent, else the
-        // avatar's dominant color, as the official popout does.
+        // avatar's dominant color, as the official popout does; a letter
+        // avatar's color is the account's own.
         banner_tint: loaded
             .and_then(|loaded| loaded.accent)
             .or_else(|| ui.picture_color(store.avatar_in(server, user)))
+            .or(Some(account.accent))
             .map(|color| look.ink(color)),
         // The nickname the profile reported, while the membership is not known here.
         name: loaded

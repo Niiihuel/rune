@@ -2786,7 +2786,8 @@ impl Provider for DiscordSessionProvider {
                 leave_servers: true,
                 trusted_links: &["discord.com", "discord.gg", "discordapp.com", "discordapp.net"],
                 // The provider's own report form; the person's ID goes in it.
-                report_form: Some("https://dis.gd/report"),
+                // Discord's own address for a Trust & Safety report (SUBMIT_TNS_REPORT).
+                report_form: Some("https://dis.gd/request"),
                 // Desktop, language and local voice (P6): a program's or a
                 // game's activity in the presence update, its name and
                 // pictures looked up as Serein does; Discord's public list

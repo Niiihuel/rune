@@ -716,7 +716,15 @@ fn mmss(seconds: i64) -> String {
 
 /// A button for an action: `enabled` says whether it can be pressed, or why not.
 fn action(id: &str, label: &str, enabled: Result<(), String>, width: f32, look: &Look) -> Element {
-    let button = Button::new(id.to_owned(), label.to_owned(), look.palette())
+    // Discord's secondary control: a light veil over the card (12 %, 16 % under
+    // the pointer), or it vanishes on the card's own ground.
+    let palette = limn::ComponentPalette {
+        raised: Look::alpha(look.text, 31),
+        hover: Look::alpha(look.text, 41),
+        selected: Look::alpha(look.text, 41),
+        ..look.palette()
+    };
+    let button = Button::new(id.to_owned(), label.to_owned(), palette)
         .variant(ButtonVariant::Secondary)
         .width(width);
     match enabled {
