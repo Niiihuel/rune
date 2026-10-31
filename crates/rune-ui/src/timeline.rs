@@ -870,7 +870,7 @@ pub fn timeline(
     // The card of an emoji clicked (2026-10-18).
     let list = crate::emoji_card::over(ui, store, list, &look);
     match held {
-        Some((_, at)) => rune_components::profile::popout(
+        Some((_, at)) => rune_components::profile::card_popout(
             list,
             held_author
                 .and_then(|author| crate::profile::popout_card(ui, store, server, author, &look))

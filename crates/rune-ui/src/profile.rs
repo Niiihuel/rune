@@ -15,15 +15,18 @@ use limn::{Element, Key, UiAction, UiEvent};
 use rune_components::chrome::{self, UserPanel};
 use rune_components::look::activity_line;
 use rune_components::profile::{
-    self as parts, ids, ClearAfter, CustomStatusDialog, EditorErrors, EditorPictures, EditorScope,
-    Face, FullProfile, FullTab, Mutual, OwnPopout, Profile, Since,
+    self as parts, ids, CardMenu, ClearAfter, CustomStatusDialog, EditorErrors, EditorPictures,
+    EditorScope, Face, Friendship, FullProfile, FullTab, Mutual, OwnPopout, Profile, Relation,
+    Since,
 };
 use rune_components::server_settings::{hex, parse_hex, UnsavedBar};
 use rune_components::time::date_label;
+use rune_components::voice::MenuEntry;
 use rune_components::Look;
 use rune_i18n::{t, tr};
 use rune_model::{
-    MessageId, Restriction, Rgb, ServerId, Status, Timestamp, User, UserId, UserProfile,
+    MessageId, RelationshipKind, Restriction, Rgb, ServerId, Status, Timestamp, User, UserId,
+    UserProfile,
 };
 use rune_provider::{
     Command, Failure, ProfileEdit, ProfileImage, ProfileImageKind, ServerProfileEdit, VoiceSupport,
@@ -72,6 +75,8 @@ pub struct Profiles {
     pub member_at: Option<(UserId, limn::Point)>,
     /// The same for the card of a message's author.
     pub author_at: Option<((MessageId, bool), limn::Point)>,
+    /// The menu open on a card's banner or roles, and whose card it is.
+    pub menu: Option<(UserId, CardMenu)>,
     /// The card shown and since when, by the store's clock: the time of
     /// its effect's layers.
     pub effect_since: Option<(UserId, Option<ServerId>, Timestamp)>,
@@ -380,6 +385,12 @@ pub fn card_of(
         banner: banner(account, loaded)
             .and_then(|source| ui.images.get(source))
             .cloned(),
+        // Without a picture the banner takes the profile's accent, else the
+        // avatar's dominant color, as the official popout does.
+        banner_tint: loaded
+            .and_then(|loaded| loaded.accent)
+            .or_else(|| ui.picture_color(store.avatar_in(server, user)))
+            .map(|color| look.ink(color)),
         // The nickname the profile reported, while the membership is not known here.
         name: loaded
             .and_then(|loaded| loaded.nick.clone())
@@ -418,7 +429,112 @@ pub fn card_of(
             .then(|| format!("profile:dm:{user}")),
         identity: crate::identity::card(ui, store, server, user, &held, look),
         loading: loaded.is_none() && store.profile_loading_in(user, server),
+        relation: relation(store, user),
+        more: (store.me() != Some(user)).then(|| more_entries(ui, store, user, server)),
+        open_menu: ui
+            .profiles
+            .menu
+            .filter(|(open, _)| *open == user)
+            .map(|(_, menu)| menu),
     })
+}
+
+/// The friendship's button of `user`'s card, and the menu it opens: none for
+/// the account, bots, blocked people, and a provider that sends no requests.
+fn relation(store: &Store, user: UserId) -> Option<Relation> {
+    if store.me() == Some(user)
+        || store.user(user).is_some_and(|account| account.bot)
+        || store.blocked(user)
+    {
+        return None;
+    }
+    let social = store.social(user);
+    let person = |action: &str| format!("friend:{}:{action}", user.0);
+    let item = |id: String, label: &str| MenuEntry::Item(id, label.to_owned(), None);
+    let (state, menu) = match store.relationship(user).map(|known| known.kind) {
+        None if store
+            .provider
+            .as_ref()
+            .is_some_and(|info| info.capabilities.friend_requests) =>
+        {
+            (Friendship::None, Vec::new())
+        }
+        Some(RelationshipKind::Friend) => (
+            Friendship::Friend,
+            social
+                .remove
+                .allowed()
+                .then(|| item(person("remove"), t("Eliminar amigo")))
+                .into_iter()
+                .collect(),
+        ),
+        Some(RelationshipKind::OutgoingRequest) => (
+            Friendship::Outgoing,
+            social
+                .remove
+                .allowed()
+                .then(|| item(person("cancel"), t("Cancelar solicitud de amistad")))
+                .into_iter()
+                .collect(),
+        ),
+        Some(RelationshipKind::IncomingRequest) => {
+            let mut menu = Vec::new();
+            if social.accept.allowed() {
+                menu.push(item(person("accept"), t("Aceptar")));
+            }
+            if social.remove.allowed() {
+                menu.push(item(person("dismiss"), t("Ignorar")));
+            }
+            (Friendship::Incoming, menu)
+        }
+        _ => return None,
+    };
+    let action = match state {
+        Friendship::None => person("add"),
+        _ => format!("{}{}", ids::CARD_RELATION, user.0),
+    };
+    Some(Relation {
+        state,
+        action,
+        menu,
+    })
+}
+
+/// The entries of the «…» menu of `user`'s card, in three groups: their
+/// profile, sharing and inviting; ignoring, blocking; and the developer's ID.
+fn more_entries(ui: &Ui, store: &Store, user: UserId, server: Option<ServerId>) -> Vec<MenuEntry> {
+    let item = |id: String, label: &str| MenuEntry::Item(id, label.to_owned(), None);
+    let mut groups = Vec::new();
+    let mut view = vec![item(
+        format!("{}{user}", ids::FULL),
+        t("Ver perfil completo"),
+    )];
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| !info.capabilities.trusted_links.is_empty())
+    {
+        view.push(item(format!("{}{user}", ids::SHARE), t("Compartir perfil")));
+    }
+    view.extend(crate::person_menu::invite_submenu(ui, store, user, server));
+    groups.push(view);
+    let mut safety = crate::ignore::menu(store, user);
+    safety.extend(crate::person_menu::block_items(store, user));
+    groups.push(safety);
+    if ui.prefs.developer {
+        groups.push(vec![item(
+            format!("{}{}", rune_components::voice::ids::COPY_ID, user.0),
+            t("Copiar ID del usuario"),
+        )]);
+    }
+    let mut entries = Vec::new();
+    for group in groups.into_iter().filter(|group| !group.is_empty()) {
+        if !entries.is_empty() {
+            entries.push(MenuEntry::Separator);
+        }
+        entries.extend(group);
+    }
+    entries
 }
 
 /// The card of `user` as a popout shows it. While its profile is read and
@@ -827,6 +943,28 @@ pub fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<Intent> 
     }
 }
 
+/// A card's button opens its menu, or closes the one it has open.
+fn toggle_card_menu(ui: &mut Ui, user: u64, menu: CardMenu) -> Vec<Intent> {
+    let target = (UserId(user), menu);
+    ui.profiles.menu = (ui.profiles.menu != Some(target)).then_some(target);
+    Vec::new()
+}
+
+/// Choosing an entry closes a card's menu, except the button that opens it
+/// again and what keeps it open (a role's check mark).
+pub(crate) fn close_card_menu(ui: &mut Ui, action: &UiAction) {
+    let UiAction::Clicked { id } = action else {
+        return;
+    };
+    let toggles = [ids::CARD_RELATION, ids::CARD_MORE].iter().any(|prefix| {
+        id.strip_prefix(prefix)
+            .is_some_and(|rest| rest.parse::<u64>().is_ok())
+    });
+    if !toggles && !crate::person_menu::keeps_open(id) {
+        ui.profiles.menu = None;
+    }
+}
+
 /// Apply an action of the profiles; `None` for the rest of the window.
 pub fn update(
     ui: &mut Ui,
@@ -878,6 +1016,7 @@ pub(crate) fn close_floating(ui: &mut Ui) {
     ui.status_menu = false;
     ui.profiles.status_open = false;
     ui.profile = None;
+    ui.profiles.menu = None;
     // The camera's panel takes its test along, unless the voice page shows it.
     if ui.profiles.devices.take().is_some_and(|quick| quick.camera) && ui.settings.is_none() {
         ui.video.testing = false;
@@ -990,6 +1129,28 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
         ui.profiles.full = None;
         return Some(Vec::new());
     }
+    // A card's round buttons open their menus; choosing a share copies the
+    // person's page on the provider's first trusted domain.
+    if let Some(user) = number(ids::CARD_RELATION) {
+        return Some(toggle_card_menu(ui, user, CardMenu::Relation));
+    }
+    if let Some(user) = number(ids::CARD_MORE) {
+        return Some(toggle_card_menu(ui, user, CardMenu::More));
+    }
+    if let Some(user) = number(ids::SHARE) {
+        let link = store
+            .provider
+            .as_ref()
+            .and_then(|info| info.capabilities.trusted_links.first())
+            .map(|domain| format!("https://{domain}/users/{user}"));
+        return Some(match link {
+            Some(link) => {
+                ui.notify(t("Enlace copiado"), None, false, now);
+                vec![Intent::Copy(link)]
+            }
+            None => Vec::new(),
+        });
+    }
     if let Some(tab) = id.strip_prefix(ids::FULL_TAB).and_then(FullTab::from_key) {
         ui.profiles.full_tab = tab;
         return Some(Vec::new());
@@ -1075,10 +1236,12 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
         ids::CUSTOM_SAVE => save_custom(ui),
         ids::AUTHOR_DISMISS => {
             ui.profiles.author = None;
+            ui.profiles.menu = None;
             Vec::new()
         }
         ids::MEMBER_DISMISS => {
             ui.profile = None;
+            ui.profiles.menu = None;
             Vec::new()
         }
         ids::EDITOR_CLOSE => {

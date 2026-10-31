@@ -833,7 +833,7 @@ fn content(view: &MessageView<'_>, live: &Live<'_>, width: f32, look: &Look) -> 
                 .underline_on_hover()
                 .accessible(limn::Access::new(limn::Role::Button).name(view.author.name.clone()))
         };
-        let name = crate::profile::popout(
+        let name = crate::profile::card_popout(
             name,
             name_card,
             crate::profile::ids::AUTHOR_DISMISS,
@@ -1074,7 +1074,7 @@ fn content(view: &MessageView<'_>, live: &Live<'_>, width: f32, look: &Look) -> 
                         .name(tr!("Perfil de {name}", name = view.author.name)),
                 )
         };
-        Element::column(vec![crate::profile::popout(
+        Element::column(vec![crate::profile::card_popout(
             mark,
             mark_card,
             crate::profile::ids::AUTHOR_DISMISS,

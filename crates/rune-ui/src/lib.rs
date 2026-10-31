@@ -1600,6 +1600,7 @@ fn answer_action(ui: &mut Ui, store: &mut Store, action: &UiAction, now: Instant
     messages::before(ui, action);
     // Choosing anything closes a person's menu, before the handler of the choice.
     person_menu::update(ui, action);
+    profile::close_card_menu(ui, action);
     if let Some(intents) = person_menu::action(ui, store, action, now) {
         return intents;
     }

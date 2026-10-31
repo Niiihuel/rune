@@ -221,7 +221,7 @@ pub fn member(row: &MemberRow, profile: Option<&Profile>, look: &Look) -> Elemen
         .hover_background(look.hover)
         .accessible(limn::Access::new(limn::Role::ListItem).name(row.name.clone()));
     // The card stands against the ground, where a held one stands too.
-    let button = crate::profile::popout(
+    let button = crate::profile::card_popout(
         button,
         profile.map(|profile| crate::profile::card(profile, look)),
         crate::profile::ids::MEMBER_DISMISS,
@@ -262,6 +262,7 @@ mod tests {
             identity: Default::default(),
             image: None,
             banner: None,
+            banner_tint: None,
             name: "Ada".into(),
             handle: "ada".into(),
             accent: Color::rgb(90, 120, 200),
@@ -281,6 +282,9 @@ mod tests {
             full_action: None,
             note: None,
             loading: false,
+            relation: None,
+            more: None,
+            open_menu: None,
         };
         let list = Element::column(vec![
             heading(

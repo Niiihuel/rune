@@ -22,7 +22,8 @@ use rune_i18n::{es, t, tr};
 use rune_model::{Rgb, Status, Timestamp};
 
 use crate::server_settings::{self as parts, Swatches, UnsavedBar};
-use crate::{emoji, gap, icon, line, strong_line, text, time, Look};
+use crate::voice::{menu_entries, menu_width, MenuEntry};
+use crate::{centered, emoji, gap, icon, line, strong_line, text, time, Look};
 
 /// The actions these pieces report. Those that name a message, a status or
 /// a device are built with the helpers or the prefixes here.
@@ -69,6 +70,17 @@ pub mod ids {
     pub const AUTHOR_DISMISS: &str = "pp:author:dismiss";
     /// The card of someone of the member list.
     pub const MEMBER_DISMISS: &str = "profile:dismiss";
+    /// The round buttons over a card's banner, each followed by the person's
+    /// id: the friendship's (which opens its menu, or sends a request when
+    /// there is none) and «…». Their menus close on `…:dismiss`.
+    pub const CARD_RELATION: &str = "pp:relation:";
+    pub const CARD_MORE: &str = "pp:more:";
+    pub const CARD_RELATION_DISMISS: &str = "pp:relation:dismiss";
+    pub const CARD_MORE_DISMISS: &str = "pp:more:dismiss";
+    /// «Compartir perfil» and «Denunciar perfil de usuario» of a card's «…»,
+    /// each followed by the person's id.
+    pub const SHARE: &str = "pp:share:";
+    pub const REPORT: &str = "pp:report:";
     /// Opens someone's full profile: the prefix and their id.
     pub const FULL: &str = "pp:full:";
     pub const FULL_CLOSE: &str = "pp:full:close";
@@ -152,6 +164,17 @@ const AVATAR: f32 = 80.0;
 const RING: f32 = 6.0;
 /// Inside a card, left and right.
 const INSET: f32 = 16.0;
+/// A person's card: its corners, and its head, 140 px as the official
+/// popout's. The mark (80 px at (16, 61)) overlaps the banner by 44 px and
+/// hangs 36 px below it; its 6 px ring is cut into the banner, so the ring's
+/// box starts at (10, 55).
+const CARD_RADIUS: f32 = 8.0;
+const HEAD: f32 = 140.0;
+const MARK_TOP: f32 = 61.0;
+/// The status dot of a card's mark: 16 px, in a 28 px disc of the ground.
+const DOT: f32 = 16.0;
+/// The decoration is 1.2 times the mark, centred on it.
+const DECORATION: f32 = AVATAR * 1.2;
 /// The skeleton of a card being read: its height, and its four text lines
 /// (REA §5b, from the card's 268 px body).
 const SKELETON_HEIGHT: f32 = 350.0;
@@ -361,6 +384,9 @@ pub struct Profile {
     pub image: Option<limn::RasterImage>,
     /// A decoded wide image; a missing or loading banner retains the accent.
     pub banner: Option<limn::RasterImage>,
+    /// Without a picture, the banner's color: the profile's accent when it
+    /// has one, else the mark's dominant color. `None` paints `raised`.
+    pub banner_tint: Option<Color>,
     /// The unique handle, without a leading @.
     pub handle: String,
     /// Their color: the banner, and behind their initial.
@@ -398,6 +424,43 @@ pub struct Profile {
     /// Their profile is being read and none of it is kept yet: the card is
     /// its skeleton, [`card_skeleton`].
     pub loading: bool,
+    /// The friendship's round button on the banner; `None` hides it: the
+    /// account's own card, bots, blocked people, a provider without requests.
+    pub relation: Option<Relation>,
+    /// The «…» menu's entries; `None` hides its button, on the account's own card.
+    pub more: Option<Vec<MenuEntry>>,
+    /// The card's menu that is open, if any: its entries are the ones above.
+    pub open_menu: Option<CardMenu>,
+}
+
+/// The friendship with someone, as the round button on a card's banner says
+/// it (REA §3): none (the button sends a request), a friend, a request sent,
+/// or one received.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Friendship {
+    None,
+    Friend,
+    Outgoing,
+    Incoming,
+}
+
+/// The friendship button of a card: its state, the action it sends (the
+/// request when there is none, else the toggle of its menu), and the entries
+/// of that menu.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Relation {
+    pub state: Friendship,
+    pub action: String,
+    pub menu: Vec<MenuEntry>,
+}
+
+/// The menus a card opens from its buttons: the friendship's, «…», and the
+/// roles checklist beside the roles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CardMenu {
+    Relation,
+    More,
+    Roles,
 }
 
 /// The account's private note on someone, as its field shows it.
@@ -530,6 +593,28 @@ pub fn popout(
     placement: PopoverPlacement,
     look: &Look,
 ) -> Element {
+    popout_radius(anchor, content, dismiss, placement, 12.0, look)
+}
+
+/// [`popout`] for a person's card, with its 8 px corners (2026-10-31).
+pub fn card_popout(
+    anchor: Element,
+    content: Option<Element>,
+    dismiss: &str,
+    placement: PopoverPlacement,
+    look: &Look,
+) -> Element {
+    popout_radius(anchor, content, dismiss, placement, CARD_RADIUS, look)
+}
+
+fn popout_radius(
+    anchor: Element,
+    content: Option<Element>,
+    dismiss: &str,
+    placement: PopoverPlacement,
+    radius: f32,
+    look: &Look,
+) -> Element {
     let Some(content) = content else {
         return anchor;
     };
@@ -537,7 +622,7 @@ pub fn popout(
         .size(Some(WIDTH), None)
         .background(look.menu)
         .border(look.border, 1.0)
-        .radius(12.0)
+        .radius(radius)
         .shadow(look.shadow, Point::new(0.0, 9.0), 22.0, 0.0)
         .clip_children();
     Element::popover(anchor, surface, dismiss, placement).popover_gap(8.0)
@@ -619,10 +704,77 @@ const FULL_HEAD: HeadSize = HeadSize {
     radius: 8.0,
 };
 
-/// The top of a card: received artwork or a color fallback, their mark ringed on it
-/// with their status, and `bubble` beside the mark.
+/// The top of the account's own popout and of its custom status dialog: the
+/// popout's head as it was (the card of someone else has [`card_head`]).
 fn head(profile: &Profile, bubble: Option<Element>, look: &Look) -> Element {
     head_sized(profile, bubble, CARD_HEAD, look)
+}
+
+/// The top of a card (REA §2): the banner, its color when it has no picture,
+/// and the mark over its bottom edge with the ring cut into the banner, the
+/// decoration 1.2 times the mark, the status dot, and `bubble` beside it.
+fn card_head(profile: &Profile, bubble: Option<Element>, look: &Look) -> Element {
+    let banner = Element::panel(match &profile.banner {
+        Some(image) => Element::raster_image(image.clone().cover()).size(None, Some(BANNER)),
+        None => Element::spacer(),
+    })
+    .size(None, Some(BANNER))
+    .background(profile.banner_tint.unwrap_or(look.raised))
+    .clip_children();
+    let face =
+        crate::avatar_with_image(&profile.name, profile.accent, AVATAR, profile.image.clone());
+    let face = if profile.presence {
+        card_mark(face, profile.status, look)
+    } else {
+        face
+    };
+    let ring = Element::panel(face)
+        .padding(RING)
+        .radius((AVATAR + 2.0 * RING) / 2.0)
+        .background(look.menu);
+    let (mark_x, mark_y) = (INSET - RING, MARK_TOP - RING);
+    // A column keeps the banner its height: a stack child would take the head's.
+    let mut layers = vec![Element::column(vec![banner]), at(mark_x, mark_y, ring)];
+    if let Some(decoration) = &profile.identity.marks.decoration {
+        let centre = INSET + AVATAR / 2.0;
+        let middle = MARK_TOP + AVATAR / 2.0;
+        layers.push(at(
+            centre - DECORATION / 2.0,
+            middle - DECORATION / 2.0,
+            Element::raster_image(decoration.clone()).size(Some(DECORATION), Some(DECORATION)),
+        ));
+    }
+    if let Some(bubble) = bubble {
+        // Beside the mark, as high as the banner's edge rises above its ring.
+        layers.push(Element::column(vec![
+            gap(0.0, mark_y + RING / 2.0 + 6.0),
+            Element::row(vec![
+                gap(INSET + AVATAR + 8.0, 0.0),
+                bubble.flex(1.0),
+                gap(INSET, 0.0),
+            ]),
+        ]));
+    }
+    // Over everything, so the buttons take their clicks.
+    layers.extend(banner_buttons(profile, look));
+    Element::stack(layers).size(Some(WIDTH), Some(HEAD))
+}
+
+/// The status of a card's mark: a 16 px dot in the bottom right corner,
+/// ringed in the card's ground so it reads over the picture.
+fn card_mark(face: Element, status: Status, look: &Look) -> Element {
+    let mark = Element::panel(status_mark(status, look, DOT, look.menu))
+        .padding(6.0)
+        .radius(14.0)
+        .background(look.menu);
+    Element::stack(vec![
+        face,
+        Element::column(vec![
+            Element::spacer().flex(1.0),
+            Element::row(vec![Element::spacer().flex(1.0), mark]),
+        ]),
+    ])
+    .size(Some(AVATAR), Some(AVATAR))
 }
 
 fn head_sized(profile: &Profile, bubble: Option<Element>, size: HeadSize, look: &Look) -> Element {
@@ -902,6 +1054,94 @@ fn about_parts(profile: &Profile, clamp: bool, width: f32, look: &Look) -> Vec<E
     body
 }
 
+/// A round button over a card's banner, 32 px on a dark disc with a white
+/// icon, its tooltip the label (REA §3).
+fn banner_button(id: &str, glyph: Icon, label: &str, look: &Look) -> Element {
+    let glyph = icon(glyph, Color::rgb(255, 255, 255)).size(Some(16.0), Some(16.0));
+    let disc = Element::panel(centered(glyph))
+        .size(Some(32.0), Some(32.0))
+        .radius(16.0)
+        .background(Color::rgba(0, 0, 0, 143))
+        .border(Color::rgba(255, 255, 255, 20), 1.0);
+    let button = Element::clickable(id, disc)
+        .accessible(limn::Access::new(limn::Role::Button).name(label.to_owned()));
+    Tooltip::new(button, id, label, look.menu_palette()).render()
+}
+
+/// The menu a card's button opens, under the button's right edge; closed, the
+/// anchor alone. Its width and rows are the person menu's.
+fn card_menu(
+    anchor: Element,
+    entries: Vec<MenuEntry>,
+    open: bool,
+    dismiss: &str,
+    look: &Look,
+) -> Element {
+    let width = menu_width(&entries);
+    DropdownMenu::new(
+        anchor,
+        menu_entries(entries, look),
+        open,
+        dismiss,
+        look.menu_palette(),
+    )
+    .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
+    .width(width)
+    .placement(PopoverPlacement::BottomEnd)
+    .render()
+}
+
+/// The round buttons over a card's banner, at its top right: the friendship's
+/// and «…», each with its menu. Nothing when neither shows.
+fn banner_buttons(profile: &Profile, look: &Look) -> Option<Element> {
+    let mut buttons = Vec::new();
+    if let Some(relation) = &profile.relation {
+        let (glyph, label) = match relation.state {
+            Friendship::None => (Icon::Add, t("Añadir amigos")),
+            Friendship::Friend => (Icon::Check, t("Amigo")),
+            Friendship::Outgoing => (Icon::Clock, t("Solicitud de amistad enviada")),
+            Friendship::Incoming => (Icon::Clock, t("Solicitud de amistad entrante")),
+        };
+        let open = profile.open_menu == Some(CardMenu::Relation);
+        let entries = if open {
+            relation.menu.clone()
+        } else {
+            Vec::new()
+        };
+        buttons.push(card_menu(
+            banner_button(&relation.action, glyph, label, look),
+            entries,
+            open,
+            ids::CARD_RELATION_DISMISS,
+            look,
+        ));
+    }
+    if let (Some(entries), Some(action)) = (&profile.more, profile.full_action.as_ref()) {
+        let open = profile.open_menu == Some(CardMenu::More);
+        let id = action.replacen(ids::FULL, ids::CARD_MORE, 1);
+        let entries = if open { entries.clone() } else { Vec::new() };
+        buttons.push(card_menu(
+            banner_button(&id, Icon::More, t("Más"), look),
+            entries,
+            open,
+            ids::CARD_MORE_DISMISS,
+            look,
+        ));
+    }
+    if buttons.is_empty() {
+        return None;
+    }
+    Some(Element::column(vec![
+        gap(0.0, 8.0),
+        Element::row(vec![
+            Element::spacer().flex(1.0),
+            Element::row(buttons).gap(8.0),
+            gap(12.0, 0.0),
+        ]),
+    ]))
+}
+
 /// `child` at (`x`, `y`) of the stack it is in, placed by spacers.
 fn at(x: f32, y: f32, child: Element) -> Element {
     Element::column(vec![gap(0.0, y), Element::row(vec![gap(x, 0.0), child])])
@@ -1044,10 +1284,18 @@ pub fn card(profile: &Profile, look: &Look) -> Element {
         );
     }
     let mut parts = vec![
-        head(profile, bubble, look),
+        card_head(profile, bubble, look),
         ScrollArea::new(
             ids::card_body(&profile.handle),
-            Element::column(body).gap(12.0).padding(INSET),
+            Element::column(vec![
+                gap(0.0, 4.0),
+                Element::row(vec![
+                    gap(INSET, 0.0),
+                    Element::column(body).gap(12.0).flex(1.0),
+                    gap(INSET, 0.0),
+                ]),
+                gap(0.0, 8.0),
+            ]),
         )
         .render()
         .flex(1.0),
@@ -2513,6 +2761,7 @@ mod tests {
             identity: Default::default(),
             image: None,
             banner: None,
+            banner_tint: None,
             name: "Ada".into(),
             handle: "ada".into(),
             accent: Color::rgb(90, 120, 200),
@@ -2535,6 +2784,9 @@ mod tests {
             full_action: None,
             note: None,
             loading: false,
+            relation: None,
+            more: None,
+            open_menu: None,
         }
     }
 
@@ -2848,17 +3100,30 @@ mod tests {
 
     #[test]
     fn a_card_without_a_banner_paints_its_color_across_the_top() {
-        let (_, laid) = frame(card(&ada(), &LOOK), Size::new(WIDTH, 800.0));
-        let accent = ada().accent;
-        assert!(laid.commands.iter().any(|command| matches!(
-            command,
-            limn::DrawCommand::FillRect { rect, color, .. }
-                if *color == accent && (rect.width - WIDTH).abs() < 1.0 && rect.height == BANNER
-        )));
-        assert!(!laid
-            .commands
-            .iter()
-            .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+        // The banner's color is the profile's (or the mark's), else the raised ground.
+        let painted = |tint: Option<Color>| {
+            let profile = Profile {
+                banner_tint: tint,
+                ..ada()
+            };
+            let (_, laid) = frame(card(&profile, &LOOK), Size::new(WIDTH, 800.0));
+            assert!(!laid
+                .commands
+                .iter()
+                .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+            laid.commands.iter().any(|command| {
+                matches!(
+                    command,
+                    limn::DrawCommand::FillRect { rect, color, .. }
+                        if *color == tint.unwrap_or(LOOK.raised)
+                            && (rect.width - WIDTH).abs() < 1.0
+                            && rect.height == BANNER
+                )
+            })
+        };
+        let blue = Color::rgb(90, 120, 200);
+        assert!(painted(Some(blue)));
+        assert!(painted(None));
     }
 
     #[test]

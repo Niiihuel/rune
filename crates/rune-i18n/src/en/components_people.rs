@@ -213,6 +213,9 @@ pub(super) const ENTRIES: super::Entries = &[
         "Solo la ves tú. Enter la guarda.",
         "Only you can see it. Enter saves it.",
     ),
+    // The card's banner buttons and menus (2026-10-31).
+    ("Amigo", "Friend"),
+    ("Solicitud de amistad entrante", "Incoming Friend Request"),
     ("Sobre mí", "About me"),
     ("Servidores en común", "Mutual servers"),
     ("Amigos en común", "Mutual friends"),

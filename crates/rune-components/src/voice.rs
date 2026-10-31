@@ -1701,7 +1701,7 @@ pub fn participant(
     .accessibility_label(label);
     let row = if person.movable { row.draggable() } else { row };
     let row = match (card, streamed) {
-        (Some(card), _) => crate::profile::popout(
+        (Some(card), _) => crate::profile::card_popout(
             row,
             Some(card),
             ids::CARD_DISMISS,
@@ -1976,7 +1976,7 @@ fn tile(
     };
     let (name, card) = match tile_name(person, size, look) {
         Some(name) => (
-            Some(crate::profile::popout(
+            Some(crate::profile::card_popout(
                 name,
                 card,
                 ids::CARD_DISMISS,
@@ -2034,7 +2034,7 @@ fn tile(
         .radius(TILE_RADIUS)
         .hover_region()
         .accessibility_label(person.name.clone());
-    crate::profile::popout(
+    crate::profile::card_popout(
         tile,
         card,
         ids::CARD_DISMISS,
