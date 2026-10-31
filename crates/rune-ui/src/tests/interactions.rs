@@ -45,7 +45,7 @@ impl Host {
     }
 
     /// The last interaction sent.
-    fn interacted(&self) -> Option<(rune_provider::RequestId, Interaction)> {
+    pub(super) fn interacted(&self) -> Option<(rune_provider::RequestId, Interaction)> {
         self.sent.iter().rev().find_map(|command| match command {
             Command::Interact {
                 request,
@@ -57,7 +57,7 @@ impl Host {
     }
 
     /// The simulation's commands, answered as its session would.
-    fn list_commands(&mut self) {
+    pub(super) fn list_commands(&mut self) {
         let asked = self.sent.iter().rev().find_map(|command| match command {
             Command::LoadAppCommands { request, channel } => Some((*request, *channel)),
             _ => None,
@@ -277,6 +277,8 @@ fn slash_offers_runes_and_the_apps_commands_and_runs_a_local_one() {
     for name in ["/shrug", "/me", "/msg", "/dado", "/config avisos activar"] {
         assert!(labels.contains(&name), "{name} in {labels:?}");
     }
+    // A user command runs on a person from their menu, never from the `/` list.
+    assert!(!labels.contains(&"/Saludar"), "{labels:?}");
     assert!(offered
         .items
         .iter()

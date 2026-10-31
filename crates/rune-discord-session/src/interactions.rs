@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 
 use rune_model::components::{Component, MenuKind};
 use rune_model::interactions::{
-    AppCommand, CommandAccess, CommandOption, CommandUse, FieldValue, Interaction, Modal,
-    ModalField, ModalInput, OptionChoice, OptionKind, OptionValue,
+    AppCommand, CommandAccess, CommandKind, CommandOption, CommandUse, FieldValue, Interaction,
+    Modal, ModalField, ModalInput, OptionChoice, OptionKind, OptionValue,
 };
 use rune_model::{ChannelId, Permissions, RoleId, ServerId, UserId};
 use rune_provider::{Command, Event, Failure, PreparedUpload, RequestId, Snapshot};
@@ -431,14 +431,20 @@ impl Apps {
             options = vec![json!({"type": kind, "name": name, "options": options})];
         }
         let mut data = json!({"version": used.version.to_string(), "id": used.command.to_string(),
-            "name": used.name, "type": 1, "options": options,
-            "application_command": definition, "attachments": []});
+            "name": used.name, "type": 1, "application_command": definition, "attachments": []});
+        match used.target {
+            Some(user) => {
+                data["type"] = json!(2);
+                data["target_id"] = json!(user.0.to_string());
+            }
+            None => data["options"] = json!(options),
+        }
         if let Some(server) = used.server {
             data["guild_id"] = json!(server.to_string());
         }
         let mut body = json!({"type": if suggest { 4 } else { 2 },
             "application_id": used.app.to_string(), "channel_id": channel.to_string(), "data": data});
-        if !suggest {
+        if !suggest && used.target.is_none() {
             body["analytics_location"] = json!("slash_ui");
         }
         if let Some(server) = guild(snapshot, channel) {
@@ -862,9 +868,9 @@ fn control(value: &Value) -> Option<ModalInput> {
 }
 
 /// The commands of an index the account may know of in `server`, or
-/// outside servers, and their definitions as written. Only commands typed
-/// in the composer (type 1), bounded; a malformed one is left out, a
-/// malformed index fails.
+/// outside servers, and their definitions as written: typed in the composer
+/// (type 1), on a person (2) or on a message (3), bounded; a malformed one is
+/// left out, a malformed index fails.
 pub(crate) fn index(
     value: &Value,
     server: Option<ServerId>,
@@ -883,10 +889,13 @@ pub(crate) fn index(
     let mut found = Vec::new();
     let mut raw = HashMap::new();
     for definition in commands {
-        if definition["type"].as_u64().unwrap_or(1) != 1 {
-            continue;
-        }
-        let Some(command) = command(definition, &apps, server, roles) else {
+        let kind = match definition["type"].as_u64().unwrap_or(1) {
+            1 => CommandKind::ChatInput,
+            2 => CommandKind::User,
+            3 => CommandKind::Message,
+            _ => continue,
+        };
+        let Some(command) = command(definition, &apps, server, roles, kind) else {
             continue;
         };
         let mut kept = definition.clone();
@@ -948,6 +957,7 @@ fn command(
     apps: &HashMap<u64, &Value>,
     server: Option<ServerId>,
     roles: &[RoleId],
+    kind: CommandKind,
 ) -> Option<AppCommand> {
     let app = wire::id(&value["application_id"]).ok()?;
     let only = match &value["guild_id"] {
@@ -1034,6 +1044,7 @@ fn command(
         app_icon: None,
         name: named(value, 32)?,
         description: described(value),
+        kind,
         options: options(&value["options"], 0)?,
         server: only,
         in_servers,
@@ -1170,9 +1181,10 @@ mod tests {
         let (commands, raw) = index(&index_value, Some(ServerId(20)), &[RoleId(20)]).unwrap();
         assert_eq!(
             commands.len(),
-            1,
-            "a menu command, another server's and a nameless one go"
+            2,
+            "a person's command goes with the chat one; another server's and a nameless one do not"
         );
+        assert_eq!(commands[1].kind, CommandKind::User);
         let dice = &commands[0];
         assert_eq!(dice.needs, Some(Permissions::ADMINISTRATOR));
         assert_eq!(dice.access.granted, Some(false), "the app's role override");

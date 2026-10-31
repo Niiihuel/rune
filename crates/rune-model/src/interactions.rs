@@ -19,6 +19,19 @@ pub const MAX_CHOICES: usize = 25;
 /// The longest a command's text option may be.
 pub const MAX_TEXT: usize = 6000;
 
+/// Where a command runs: in the composer as `/name`, on a person from their
+/// menu, or on a message from its menu.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CommandKind {
+    /// Typed in the composer, with options.
+    #[default]
+    ChatInput,
+    /// Run on a person ([`CommandUse::target`]), with no options.
+    User,
+    /// Run on a message. Listed, but RUNE offers none yet.
+    Message,
+}
+
 /// A command an app offers, as listed for a conversation.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppCommand {
@@ -30,6 +43,7 @@ pub struct AppCommand {
     pub app_icon: Option<RemoteImage>,
     pub name: String,
     pub description: String,
+    pub kind: CommandKind,
     pub options: Vec<CommandOption>,
     /// Only in this server's conversations; `None`, wherever its app is.
     pub server: Option<ServerId>,
@@ -108,7 +122,14 @@ impl AppCommand {
     /// does not have, an option it does not take or one given twice, a
     /// required one missing, or a value of the wrong kind or out of bounds.
     pub fn check(&self, used: &CommandUse) -> Result<(), String> {
-        if used.command != self.id || used.app != self.app {
+        // A user command runs on a person, a chat command on none; a message
+        // command runs nowhere yet.
+        let fits = match self.kind {
+            CommandKind::ChatInput => used.target.is_none(),
+            CommandKind::User => used.target.is_some(),
+            CommandKind::Message => false,
+        };
+        if !fits || used.command != self.id || used.app != self.app {
             return Err(t("Ese comando ya no está disponible aquí").into());
         }
         let options = self
@@ -371,6 +392,8 @@ pub struct CommandUse {
     pub values: Vec<(String, OptionValue)>,
     /// For suggestions: the option being written and its text so far.
     pub focused: Option<(String, String)>,
+    /// The person a user command runs on; `None` for the other kinds.
+    pub target: Option<UserId>,
 }
 
 impl CommandUse {
@@ -385,6 +408,7 @@ impl CommandUse {
             path,
             values,
             focused: None,
+            target: None,
         }
     }
 }
@@ -666,6 +690,7 @@ mod tests {
             app_icon: None,
             name: "juego".into(),
             description: "Juegos".into(),
+            kind: CommandKind::ChatInput,
             options: vec![group],
             server: None,
             in_servers: true,
@@ -712,6 +737,28 @@ mod tests {
                 .check(&CommandUse::of(&command, Vec::new(), Vec::new()))
                 .is_err(),
             "a subcommand must be chosen"
+        );
+    }
+
+    #[test]
+    fn a_user_command_runs_on_a_person_and_a_chat_command_on_none() {
+        let mut user = command();
+        user.kind = CommandKind::User;
+        user.options.clear();
+        let on = |target| CommandUse {
+            target,
+            ..CommandUse::of(&user, Vec::new(), Vec::new())
+        };
+        assert!(user.check(&on(Some(UserId(7)))).is_ok());
+        assert!(user.check(&on(None)).is_err(), "a person must be given");
+        let chat = command();
+        let targeted = CommandUse {
+            target: Some(UserId(7)),
+            ..CommandUse::of(&chat, vec!["dado".into(), "tirar".into()], Vec::new())
+        };
+        assert!(
+            chat.check(&targeted).is_err(),
+            "a chat command takes no person"
         );
     }
 

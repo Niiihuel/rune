@@ -13,7 +13,7 @@ use rune_components::Look;
 use rune_i18n::{es, t};
 use rune_model::components::{MenuKind, Select};
 use rune_model::interactions::{
-    AppCommand, CommandOption, CommandUse, Interaction, OptionKind, OptionValue,
+    AppCommand, CommandKind, CommandOption, CommandUse, Interaction, OptionKind, OptionValue,
 };
 use rune_model::{ChannelId, UserId};
 use rune_provider::{Command, RequestId};
@@ -164,7 +164,11 @@ pub(crate) fn completions(ui: &Ui, store: &Store, channel: ChannelId) -> Option<
         groups.push((t("COMANDOS DE RUNE").into(), own));
     }
     let mut apps: Vec<(String, Vec<Completion>)> = Vec::new();
-    for command in store.usable_commands(channel) {
+    let chat = store
+        .usable_commands(channel)
+        .into_iter()
+        .filter(|command| command.kind == CommandKind::ChatInput);
+    for command in chat {
         for (path, description) in command.leaves() {
             let name = std::iter::once(command.name.as_str())
                 .chain(path.iter().map(String::as_str))
@@ -248,7 +252,7 @@ fn chosen(ui: &mut Ui, store: &Store, channel: ChannelId, insert: &str) -> Vec<I
         store
             .usable_commands(channel)
             .into_iter()
-            .find(|command| command.id == id)
+            .find(|command| command.id == id && command.kind == CommandKind::ChatInput)
             .cloned()
     }) else {
         return Vec::new();

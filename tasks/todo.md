@@ -246,7 +246,9 @@ Objetivo del dueño (2026-10-17): todo lo que hace Serein lo hace RUNE,
 reimplementado. Falta: reacción con doble clic, lista de miembros en
 privados y grupos, proxy HTTP para REST, desplazamiento suave independiente
 del movimiento reducido, temas con imágenes de fondo y tipografía propia,
-iniciar minimizado, lista propia de juegos.
+iniciar minimizado, lista propia de juegos. Del «Apps ›» de una persona
+(2026-10-31): el buscador de comandos y el grupo «Comandos usados con
+frecuencia»; los submenús de RUNE no tienen campo de texto.
 
 No se replica, a propósito: captcha automatizado o reenviado, captura del
 token por JS, el servidor RPC por TCP, copiar la URL de un webhook, el

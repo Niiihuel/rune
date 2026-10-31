@@ -187,6 +187,7 @@ fn samples() -> Vec<Command> {
         path: Vec::new(),
         values: Vec::new(),
         focused: Some(("caras".into(), "6".into())),
+        target: None,
     };
     vec![
         Command::LoadHistory {
