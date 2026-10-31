@@ -8,6 +8,7 @@
 // The account's synced settings (P1).
 mod account;
 mod alerts;
+mod app_menu;
 mod call_sounds;
 // Commands and interactions (P3).
 mod attachments;
@@ -1396,6 +1397,7 @@ pub fn after_layout(ui: &mut Ui, store: &mut Store, tree: &UiTree, active: bool)
     intents.extend(voice::watch_server(ui));
     // Scheduled events (eventos-programados): the list the entry counts.
     intents.extend(events::after_layout(ui, store));
+    intents.extend(app_menu::after_layout(ui, store));
     profile::hold_member_card(ui, tree);
     profile::hold_author_card(ui, tree);
     profile::hold_scroll_close(ui, tree);

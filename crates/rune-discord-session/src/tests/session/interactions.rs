@@ -5,7 +5,9 @@
 
 use super::*;
 use bytes::Bytes;
-use rune_model::interactions::{CommandUse, FieldValue, Interaction, ModalInput, OptionValue};
+use rune_model::interactions::{
+    CommandKind, CommandUse, FieldValue, Interaction, ModalInput, OptionValue,
+};
 use rune_model::{PendingAttachment, UploadToken, UserId};
 use rune_provider::{Failure, PreparedUpload};
 
@@ -541,4 +543,65 @@ async fn a_modals_files_need_permission_to_attach_in_the_channel() {
             if reason.contains("adjuntar archivos")
     ));
     assert!(app.requests.try_recv().is_err(), "nothing was staged");
+}
+
+#[tokio::test]
+async fn a_user_command_is_listed_by_its_kind_and_runs_on_a_person() {
+    let mut app = Harness::new().await;
+    app.running
+        .commands
+        .send(Command::LoadAppCommands {
+            request: 1,
+            channel: ChannelId(20),
+        })
+        .await
+        .unwrap();
+    let (_, reply) = app.pending().await;
+    // Types 1 (chat), 2 (on a person) and 3 (on a message) are listed; 4 is not.
+    let index = json!({"applications": [{"id": "44", "name": "Bot"}],
+        "application_commands": [
+            {"id": "300", "version": "301", "application_id": "44", "type": 1,
+                "name": "dado", "description": "Tira", "contexts": [1]},
+            {"id": "310", "version": "311", "application_id": "44", "type": 2,
+                "name": "Saludar", "description": "", "contexts": [1]},
+            {"id": "320", "version": "321", "application_id": "44", "type": 3,
+                "name": "Traducir", "description": "", "contexts": [1]},
+            {"id": "330", "version": "331", "application_id": "44", "type": 4,
+                "name": "Otro", "description": "", "contexts": [1]}],
+        "version": "9"});
+    reply.send(response(200, &index.to_string())).unwrap();
+    let Event::AppCommands {
+        request: 1,
+        commands,
+        ..
+    } = app.next_data().await
+    else {
+        panic!("the commands")
+    };
+    let kinds: Vec<(u64, CommandKind)> = commands.iter().map(|c| (c.id, c.kind)).collect();
+    assert_eq!(
+        kinds,
+        [
+            (300, CommandKind::ChatInput),
+            (310, CommandKind::User),
+            (320, CommandKind::Message)
+        ]
+    );
+    // Run on a person: type 2 with the person as its target, and no options.
+    let greet = commands[1].clone();
+    let used = CommandUse {
+        target: Some(UserId(55)),
+        ..CommandUse::of(&greet, Vec::new(), Vec::new())
+    };
+    let run = interact(&mut app, 2, Interaction::Command(used)).await;
+    assert_eq!(run["type"], 2);
+    assert_eq!(run["application_id"], "44");
+    assert_eq!(run["channel_id"], "20");
+    assert_eq!(run["data"]["type"], 2);
+    assert_eq!(run["data"]["target_id"], "55");
+    assert_eq!(run["data"]["id"], "310");
+    assert_eq!(run["data"]["version"], "311");
+    assert_eq!(run["data"]["name"], "Saludar");
+    assert!(run["data"].get("options").is_none(), "{run}");
+    assert!(run.get("analytics_location").is_none(), "{run}");
 }

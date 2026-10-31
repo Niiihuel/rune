@@ -9,8 +9,8 @@ use std::time::Duration;
 use rune_i18n::t;
 use rune_model::components::{Button, MenuKind, MenuOption, Picked, Select};
 use rune_model::interactions::{
-    AppCommand, CommandAccess, CommandOption, CommandUse, FieldValue, Interaction, Modal,
-    ModalField, ModalInput, OptionChoice, OptionKind, OptionValue,
+    AppCommand, CommandAccess, CommandKind, CommandOption, CommandUse, FieldValue, Interaction,
+    Modal, ModalField, ModalInput, OptionChoice, OptionKind, OptionValue,
 };
 use rune_model::{
     ButtonStyle, ChannelId, ChannelKind, Component, Components, Message, Permissions, Timestamp,
@@ -353,6 +353,14 @@ impl World {
                 .find(|(given, _)| given == name)
                 .map(|(_, value)| value)
         };
+        // A user command runs on a person: it greets them, whatever its name.
+        if let Some(user) = used.target {
+            return Ok(Said::All(format!(
+                "👋 Hola, {} {}.",
+                self.name_of(user),
+                t("(simulado)")
+            )));
+        }
         Ok(match used.name.as_str() {
             "dado" => {
                 let faces = match value("caras") {
@@ -759,6 +767,7 @@ fn commands() -> Vec<AppCommand> {
             app_icon: None,
             name: name.into(),
             description: description.into(),
+            kind: CommandKind::ChatInput,
             options,
             server: None,
             in_servers: true,
@@ -805,6 +814,9 @@ fn commands() -> Vec<AppCommand> {
     );
     moderate.needs = Some(Permissions::MANAGE_MESSAGES);
     moderate.in_direct = false;
+    // A user command, run from a person's menu: it has no description.
+    let mut greet = command(909, "Saludar", "", Vec::new());
+    greet.kind = CommandKind::User;
     vec![
         command(901, "dado", "Tira un dado", vec![faces, private]),
         command(
@@ -824,6 +836,7 @@ fn commands() -> Vec<AppCommand> {
         ),
         command(907, "secreto", "Un mensaje que sólo ves tú", Vec::new()),
         moderate,
+        greet,
     ]
 }
 
@@ -879,6 +892,37 @@ mod tests {
         };
         let names: Vec<_> = choices.iter().map(|choice| choice.name.as_str()).collect();
         assert_eq!(names, ["recetas (simulado)", "redes (simulado)"]);
+    }
+
+    #[test]
+    fn a_user_command_greets_the_person_it_runs_on() {
+        let provider = MockProvider::new(MockConfig::default());
+        let channel = general(&provider);
+        let mut world = provider.world.lock().unwrap();
+        let greet = commands()
+            .into_iter()
+            .find(|c| c.name == "Saludar")
+            .unwrap();
+        assert_eq!(greet.kind, CommandKind::User);
+        let used = CommandUse {
+            target: Some(UserId(21)),
+            ..CommandUse::of(&greet, Vec::new(), Vec::new())
+        };
+        let events = world.answer(1, channel, Interaction::Command(used), &[], Timestamp(0));
+        let Event::MessageCreated { message, .. } = &events[0] else {
+            panic!("{events:?}")
+        };
+        assert!(
+            message.content.starts_with("👋 Hola, "),
+            "{}",
+            message.content
+        );
+        assert!(
+            message.content.ends_with("(simulado)."),
+            "{}",
+            message.content
+        );
+        assert_eq!(message.author, APP, "the app says it");
     }
 
     #[test]

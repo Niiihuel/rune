@@ -3,6 +3,7 @@
 //! do with that person, and no more.
 
 use rune_components::voice::MenuEntry;
+use rune_model::interactions::Interaction;
 use rune_model::{Member, Permissions, Role, RoleId, RoleStyle, ServerId, UserId};
 
 use super::*;
@@ -646,4 +647,126 @@ fn a_call_to_someone_without_a_conversation_opens_it_and_rings_once_it_is_there(
         host.sent
     );
     assert!(host.ui.person_calling.is_none());
+}
+
+/// The rows of the «Apps ›» submenu in `menu`; `None` when it is not offered.
+fn apps_rows(menu: &[MenuEntry]) -> Option<Vec<MenuEntry>> {
+    menu.iter().find_map(|entry| match entry {
+        MenuEntry::Submenu(label, rows) if label == "Apps" => Some(rows.clone()),
+        _ => None,
+    })
+}
+
+/// How many times the interface asked the provider for a conversation's apps.
+fn asked_for_apps(host: &Host) -> usize {
+    host.sent
+        .iter()
+        .filter(|command| matches!(command, Command::LoadAppCommands { .. }))
+        .count()
+}
+
+/// A member of the account's server who is a person, not a bot, and not the account.
+fn a_person_listed(host: &mut Host) -> UserId {
+    let me = host.store.me();
+    let listed = host.listed();
+    listed
+        .into_iter()
+        .find(|user| {
+            Some(*user) != me && host.store.user(*user).is_some_and(|account| !account.bot)
+        })
+        .expect("someone is listed")
+}
+
+#[test]
+fn apps_lists_the_user_commands_of_the_apps_once_read() {
+    let mut host = Host::new();
+    host.ui.members_open = true;
+    let general = host.open_channel("general");
+    let user = a_person_listed(&mut host);
+    host.person_right_click(&format!("member:{user}"));
+    let place = host.ui.person_menu.expect("their menu opens").place;
+    // The menu asks for the list once, as it is laid out, and says it is read.
+    host.frame();
+    assert_eq!(asked_for_apps(&host), 1);
+    let loading = vec![MenuEntry::Inert(
+        format!("pm:{user}:apps:loading"),
+        "Cargando…".into(),
+    )];
+    assert_eq!(
+        apps_rows(&entries(&host.ui, &host.store, user, place)),
+        Some(loading)
+    );
+    host.list_commands();
+    host.frame();
+    assert_eq!(asked_for_apps(&host), 1, "not asked again while open");
+    // One submenu per app, holding its user commands only: «Saludar», not the chat ones.
+    let rows = apps_rows(&entries(&host.ui, &host.store, user, place)).expect("Apps is offered");
+    let [MenuEntry::Submenu(app, items)] = rows.as_slice() else {
+        panic!("{rows:?}")
+    };
+    assert_eq!(app, "RuneBot (simulado)");
+    let [MenuEntry::Item(greet, label, None)] = items.as_slice() else {
+        panic!("{items:?}")
+    };
+    assert_eq!(label, "Saludar");
+    assert!(greet.starts_with(&format!("pm:{user}:app-command:{}:", general.0)));
+}
+
+#[test]
+fn apps_is_not_offered_for_a_bot() {
+    let mut host = Host::new();
+    host.ui.members_open = true;
+    host.open_channel("general");
+    host.person_right_click("member:9");
+    let place = host.ui.person_menu.expect("the bot's menu opens").place;
+    host.frame();
+    let shown = entries(&host.ui, &host.store, UserId(9), place);
+    assert!(apps_rows(&shown).is_none(), "{shown:?}");
+    assert_eq!(asked_for_apps(&host), 0, "no list is asked for a bot");
+}
+
+#[test]
+fn apps_is_not_offered_in_a_direct_conversation_with_a_person() {
+    let host = Host::new();
+    // Outside servers the apps are only a bot's: a person's conversation has none.
+    let (channel, user) = host
+        .store
+        .directs()
+        .into_iter()
+        .filter(|channel| channel.kind == ChannelKind::Direct)
+        .map(|channel| (channel.id, channel.recipients[0]))
+        .find(|(_, user)| host.store.user(*user).is_some_and(|account| !account.bot))
+        .expect("a direct conversation with a person");
+    let shown = entries(&host.ui, &host.store, user, Place::Direct { channel });
+    assert!(apps_rows(&shown).is_none(), "{shown:?}");
+}
+
+#[test]
+fn choosing_a_user_command_runs_it_on_that_person_and_closes_the_menu() {
+    let mut host = Host::new();
+    host.ui.members_open = true;
+    host.open_channel("general");
+    let user = a_person_listed(&mut host);
+    host.person_right_click(&format!("member:{user}"));
+    let place = host.ui.person_menu.expect("their menu opens").place;
+    host.frame();
+    host.list_commands();
+    host.frame();
+    let rows = apps_rows(&entries(&host.ui, &host.store, user, place)).expect("Apps is offered");
+    let [MenuEntry::Submenu(_, items)] = rows.as_slice() else {
+        panic!("{rows:?}")
+    };
+    let [MenuEntry::Item(greet, _, _)] = items.as_slice() else {
+        panic!("{items:?}")
+    };
+    host.tap(greet);
+    assert!(host.ui.person_menu.is_none(), "choosing closes the menu");
+    let (_, interaction) = host.interacted().expect("it went to the app");
+    let Interaction::Command(used) = interaction else {
+        panic!("{interaction:?}")
+    };
+    assert_eq!(used.name, "Saludar");
+    assert_eq!(used.target, Some(user), "it runs on them");
+    assert_eq!(used.app, UserId(9));
+    assert!(used.path.is_empty() && used.values.is_empty());
 }

@@ -798,9 +798,9 @@ pub(crate) fn participant_rows(
         .collect()
 }
 
-/// The entries of the menu on `menu.user`, in the voice's place it opened in.
-fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
-    let place = if menu.row {
+/// The place a voice menu opened in: its row in the column, or its tile.
+pub(crate) fn menu_place(menu: Menu) -> Place {
+    if menu.row {
         Place::VoiceRow {
             channel: menu.channel,
         }
@@ -808,8 +808,12 @@ fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
         Place::Tile {
             channel: menu.channel,
         }
-    };
-    crate::person_menu::entries(ui, store, menu.user, place)
+    }
+}
+
+/// The entries of the menu on `menu.user`, in the voice's place it opened in.
+fn menu_entries(ui: &Ui, store: &Store, menu: Menu) -> Vec<MenuEntry> {
+    crate::person_menu::entries(ui, store, menu.user, menu_place(menu))
 }
 
 /// The voice card of the account's box, while there is a call.

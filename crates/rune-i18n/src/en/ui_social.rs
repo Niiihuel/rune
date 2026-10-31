@@ -477,4 +477,8 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Banear a {name}", "Ban {name}"),
     ("Suspender a {name}", "Timeout {name}"),
     ("Cancelar la suspensión de {name}", "Remove Timeout From {name}"),
+    // The person menu's Apps, as Discord's (2026-10-31).
+    ("Apps", "Apps"),
+    ("No hay comandos disponibles", "No Commands Available"),
+    ("No se pudieron cargar los comandos", "Couldn't load the commands"),
 ];

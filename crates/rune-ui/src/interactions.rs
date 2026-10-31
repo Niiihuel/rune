@@ -34,6 +34,8 @@ pub struct Apps {
     pub(crate) command: Option<crate::commands::Running>,
     /// What `/msg` writes to someone once their conversation opens.
     pub(crate) waiting_direct: Option<(rune_model::UserId, String)>,
+    /// The person menu whose conversation's commands were asked for: a menu asks once.
+    pub(crate) menu_asked: Option<(rune_model::UserId, crate::person_menu::Place)>,
 }
 
 #[cfg(test)]

@@ -287,8 +287,8 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
         ));
     }
     controls.extend(member_menu.nickname);
-    // [insertion point: «Apps ›», the application commands for this person, right
-    // after «Cambiar apodo» and before «Invitar al servidor ›»]
+    // Discord's «Apps ›»: after the nickname, before the invitations.
+    controls.extend(crate::app_menu::entry(ui, store, user, place));
     if other {
         let invites: Vec<MenuEntry> = rail_servers(store)
             .into_iter()
@@ -532,10 +532,13 @@ pub(crate) fn action(
             let hidden = !ui.prefs.video_hidden(user.0);
             vec![ui.prefs.set_video_hidden(user.0, hidden)]
         }
-        _ => {
-            let server = ServerId(what.strip_prefix("invite:")?.parse().ok()?);
-            invite(ui, store, user, server, now)
-        }
+        _ => match what.strip_prefix("app-command:") {
+            Some(command) => crate::app_menu::choose(ui, store, user, command, now),
+            None => {
+                let server = ServerId(what.strip_prefix("invite:")?.parse().ok()?);
+                invite(ui, store, user, server, now)
+            }
+        },
     })
 }
 
