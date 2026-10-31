@@ -100,13 +100,30 @@ fn calling_from_the_header_rings_and_the_call_shows_how_it_goes() {
             }
         ]
     );
-    // Connected, ringing: the call shows under the header with who it rings.
+    // Connected, ringing: the call shows under the header with who it rings,
+    // as an avatar, since nobody is on camera.
     host.pc_connected(direct);
     host.pc_rings(direct, &[other]);
-    assert!(host.pc_says("Llamando…"), "{:?}", host.painted());
+    assert!(
+        host.pc_says("Invitando a la llamada"),
+        "{:?}",
+        host.painted()
+    );
+    assert!(host.pc_offers(&voice_ids::avatar(other.0)), "their avatar");
     assert!(host.pc_offers(voice_ids::LEAVE), "the bar to hang up");
-    // Ringing them may stop, for them alone.
+    // A plain click on the avatar does nothing; its menu stops ringing them,
+    // for them alone (a voice avatar holds no button).
+    host.click(&voice_ids::avatar(other.0));
+    assert!(host.ui.voice.menu.is_none() && host.ui.voice.card.is_none());
     let from = host.sent.len();
+    let opened = crate::voice::secondary_click(
+        &mut host.ui,
+        &host.store,
+        &voice_ids::avatar(other.0),
+        Point::new(40.0, 40.0),
+    );
+    assert!(opened.is_some());
+    assert!(host.pc_offers(&ids::stop_ringing(other.0)), "in their menu");
     host.click(&ids::stop_ringing(other.0));
     assert_eq!(
         host.sent[from..],
@@ -122,7 +139,7 @@ fn calling_from_the_header_rings_and_the_call_shows_how_it_goes() {
     // Answered, then hung up: the account may call again.
     host.event(Event::VoiceChanged(state(other, direct)));
     host.pc_rings(direct, &[]);
-    assert!(!host.pc_says("Llamando…"));
+    assert!(!host.pc_says("Invitando a la llamada"));
     host.event(Event::VoiceLeft {
         user: other,
         channel: direct,
@@ -540,4 +557,53 @@ fn a_call_notification_answers_or_declines_only_while_it_rings() {
         deafened: false
     })));
     assert_eq!(host.ui.channel(), Some(direct));
+}
+
+#[test]
+fn a_direct_call_with_nobody_on_camera_is_a_row_of_avatars_not_tiles() {
+    let mut host = Host::new();
+    let (direct, other) = host.pc_direct();
+    host.click(&ids::start(direct.0));
+    host.event(Event::CallChecked {
+        channel: direct,
+        ringable: true,
+    });
+    host.pc_connected(direct);
+    host.pc_rings(direct, &[other]);
+    let me = host.store.me().unwrap();
+    // VOICE mode (Discord §1.3): the account and the one it rings, as avatars.
+    assert!(host.pc_offers(&voice_ids::avatar(me.0)), "the account");
+    assert!(host.pc_offers(&voice_ids::avatar(other.0)), "who is rung");
+    assert!(!host.pc_offers(&voice_ids::tile(other.0)));
+    // Their camera on: the tiles; off again: the row.
+    let mut camera = state(other, direct);
+    camera.camera = true;
+    host.event(Event::VoiceChanged(camera.clone()));
+    assert!(host.pc_offers(&voice_ids::tile(other.0)));
+    assert!(!host.pc_offers(&voice_ids::avatar(other.0)));
+    camera.camera = false;
+    host.event(Event::VoiceChanged(camera));
+    assert!(host.pc_offers(&voice_ids::avatar(other.0)));
+    assert!(!host.pc_offers(&voice_ids::tile(other.0)));
+    // The account's own camera (simulated) takes the tiles, and off again the row.
+    host.click(voice_ids::CAMERA);
+    assert!(host.pc_offers(&voice_ids::tile(me.0)), "its own tile");
+    host.click(voice_ids::CAMERA);
+    assert!(host.pc_offers(&voice_ids::avatar(other.0)), "the row again");
+}
+
+#[test]
+fn a_server_voice_channel_never_shows_the_avatar_row() {
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    host.click(&format!("voice:{room}"));
+    assert_eq!(host.ui.voice.stage, Some(room), "its stage");
+    let regions: Vec<String> = host
+        .frame()
+        .regions
+        .iter()
+        .map(|region| region.id.clone())
+        .collect();
+    assert!(regions.iter().any(|id| id.starts_with("vz:tile:")), "tiles");
+    assert!(!regions.iter().any(|id| id.starts_with("vz:avatar:")));
 }

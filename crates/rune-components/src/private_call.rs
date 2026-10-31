@@ -51,8 +51,8 @@ pub mod ids {
 /// What a conversation's call adds to the stage.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PrivateStage {
-    /// The line beside its title: «Llamando…», «Sin respuesta»…; `None`
-    /// leaves the phase's.
+    /// The line beside its title: «Invitando a la llamada», «Sin respuesta»…;
+    /// `None` leaves the phase's.
     pub status: Option<String>,
     /// Who it rings and is not in it yet: their tiles say so.
     pub ringing: Vec<Participant>,
@@ -66,6 +66,9 @@ pub struct PrivateStage {
     /// It takes the whole conversation (its header offers «Reducir»), or
     /// shows under the conversation's header («Expandir»).
     pub expanded: bool,
+    /// VOICE mode (Discord's): nobody has a camera on or streams, so its
+    /// people are a row of avatars, not tiles.
+    pub voice_mode: bool,
 }
 
 /// «Aceptar» (`accept`) or «Rechazar», in limn's green and red.
@@ -82,8 +85,8 @@ fn answer(id: String, accept: bool, look: &Look) -> Element {
 }
 
 /// The tile of someone it rings: their picture on their color, dimmed, with
-/// «Llamando…», the way to stop ringing them, and their name in the pill of
-/// a person's tile.
+/// «Invitando a la llamada», the way to stop ringing them, and their name in
+/// the pill of a person's tile. VOICE mode shows them as an avatar instead.
 pub fn ringing_tile(person: &Participant, size: Size, look: &Look) -> Element {
     let stop = Button::new(
         ids::stop_ringing(person.user),
@@ -97,7 +100,7 @@ pub fn ringing_tile(person: &Participant, size: Size, look: &Look) -> Element {
     let body = centered(
         Element::column(vec![
             crate::avatar_with_image(&person.name, person.accent, face, person.image.clone()),
-            centered(line(t("Llamando…"), 13.0, look.muted)).size(None, Some(18.0)),
+            centered(line(t("Invitando a la llamada"), 13.0, look.muted)).size(None, Some(18.0)),
             centered(stop).size(None, Some(28.0)),
         ])
         .gap(8.0),
@@ -312,7 +315,7 @@ mod tests {
         assert_eq!(usable, ["call:7:decline", "call:7:accept"]);
         let tile = ringing_tile(&person(3), Size::new(240.0, 220.0), &look);
         let (said, usable) = shown(tile);
-        assert!(said.iter().any(|text| text == "Llamando…"));
+        assert!(said.iter().any(|text| text == "Invitando a la llamada"));
         assert_eq!(usable, ["vz:stop-ringing:3"]);
         let (said, usable) = shown(ring_again(&Err("No".into()), &look));
         assert!(said.iter().any(|text| text == "Volver a llamar") && usable.is_empty());

@@ -21,7 +21,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Llamada entrante…", "Incoming call…"),
     ("Llamada simulada entrante…", "Simulated incoming call…"),
     ("Llamada simulada", "Simulated call"),
-    ("Llamando…", "Ringing…"),
+    ("Invitando a la llamada", "Ringing"),
     ("Volver a llamar", "Ring again"),
     ("Dejar de llamar", "Stop ringing"),
     ("Iniciar llamada", "Start call"),
