@@ -240,6 +240,31 @@ falla contra Discord, mandar las líneas `rune: …` del registro
 - Mezclar la #119 (`Cursor::Hidden`: el puntero se oculta sobre una
   transmisión en reposo); RUNE usa mientras tanto `rune/hidden-cursor`.
 
+## Fidelidad con Discord (2026-10-31)
+
+Lo que quedó de la tanda (REA del bundle web en la sesión del 2026-10-31):
+
+- Llamadas: los controles sobre los mosaicos no se desvanecen tras 2 s
+  quietos; el aro de quien habla no sigue su volumen (RUNE sólo sabe si
+  habla); la píldora de calidad de una transmisión; la rejilla de más de 25
+  sin captura real.
+- Llamadas privadas: quien suena no late (limn no tiene animaciones en
+  bucle) y su foto se atenúa con una capa (limn no tiene opacidad por
+  elemento): PR a limn.
+- Menús: el ancho se estima por el largo de los textos (limn no mide el
+  contenido de un menú) y el deslizador de volumen no muestra su valor al
+  arrastrarlo (limn: valor en un tooltip): PR a limn.
+- Ignorar: una respuesta cita el texto de alguien ignorado; las menciones
+  que trae el READY no descuentan a los ignorados.
+- «Solicitar que transmita» (el dueño lo dejó para más adelante) y su
+  mensaje recibido «te pidió que transmitas».
+- Perfil: la caja de mensaje sin emoji (el selector trabaja por canal); los
+  íconos de amistad son los de limn (faltan persona con más, con tilde y con
+  reloj en `assets/glyphs`).
+- Activo ahora: sin las afinidades de Discord (gente con la que más se
+  habla, con consentimiento), sin las secciones de Twitch y de actividades
+  integradas; los escenarios no forman tarjeta.
+
 ## Paridad con Serein
 
 Objetivo del dueño (2026-10-17): todo lo que hace Serein lo hace RUNE,
@@ -250,8 +275,9 @@ iniciar minimizado, lista propia de juegos. Del «Apps ›» de una persona
 (2026-10-31): el buscador de comandos y el grupo «Comandos usados con
 frecuencia»; los submenús de RUNE no tienen campo de texto.
 
-No se replica, a propósito: captcha automatizado o reenviado, captura del
-token por JS, el servidor RPC por TCP, copiar la URL de un webhook, el
+No se replica, a propósito: «Comprar esta apariencia» (decisión del dueño,
+2026-10-31), escuchar junto a alguien en Spotify, captcha automatizado o
+reenviado, captura del token por JS, el servidor RPC por TCP, copiar la URL de un webhook, el
 token de Spotify, subidas a servicios externos, conservar mensajes borrados
 por otros, extensiones Wasm, recursos copiados.
 
