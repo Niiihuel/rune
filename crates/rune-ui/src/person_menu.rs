@@ -41,6 +41,9 @@ pub enum Place {
     Author { channel: ChannelId },
     /// The author of a message in a direct conversation, `channel`.
     Direct { channel: ChannelId },
+    /// A friend's avatar in the friends page's «Activo ahora» column: no channel
+    /// and no server, so the groups that need either do not show.
+    Friends,
 }
 
 /// A person's menu opened by a secondary click outside a voice channel: on
@@ -89,7 +92,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
         MenuEntry::Item(id, label.to_owned(), checked)
     };
     let channel = match place {
-        Place::MemberList { .. } => None,
+        Place::MemberList { .. } | Place::Friends => None,
         Place::VoiceRow { channel }
         | Place::Tile { channel }
         | Place::Author { channel }
@@ -138,7 +141,7 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
         .channel()
         .and_then(|channel| store.abilities(channel))
         .is_some_and(|abilities| abilities.write.allowed());
-    if writable && !matches!(place, Place::Tile { .. }) {
+    if writable && !matches!(place, Place::Tile { .. } | Place::Friends) {
         talk.push(item(
             format!("{}{}", ids::MENTION, user.0),
             t("Mención"),
@@ -420,6 +423,8 @@ pub(crate) fn secondary_click(
             },
         };
         (UserId(user), place)
+    } else if let Some(user) = number("active:avatar:") {
+        (UserId(user), Place::Friends)
     } else if let Some(message) = number("pp:name:").or_else(|| number("pp:avatar:")) {
         let channel = ui.channel()?;
         let user = store.timeline(channel)?.get(MessageId(message))?.author;

@@ -511,7 +511,7 @@ fn conversation(
 ) -> Element {
     if crate::relationships::visible(ui) {
         return over_conversation(
-            crate::relationships::view(ui, store, look).flex(1.0),
+            crate::relationships::view(ui, store, look, context, width).flex(1.0),
             ui,
             store,
             look,

@@ -76,6 +76,8 @@ mod media_viewer;
 mod streams;
 // People's rows in the column (voz-filas-y-arrastre).
 mod voice_rows;
+// The «Activo ahora» column of the friends page (2026-10-31).
+mod active_now;
 
 /// Each file's entries, by the file's name.
 pub(crate) const ALL: &[(&str, Entries)] = &[
@@ -128,4 +130,6 @@ pub(crate) const ALL: &[(&str, Entries)] = &[
     ("streams", streams::ENTRIES),
     // People's rows in the column (voz-filas-y-arrastre).
     ("voice_rows", voice_rows::ENTRIES),
+    // The «Activo ahora» column of the friends page (2026-10-31).
+    ("active_now", active_now::ENTRIES),
 ];

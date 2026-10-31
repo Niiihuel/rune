@@ -18,7 +18,7 @@ use rune_model::{Relationship, RelationshipKind, UserId};
 use rune_provider::{Command, Failure, ProviderKind};
 use rune_state::{Applied, Permit, Store};
 
-use crate::{Intent, Ui};
+use crate::{Intent, Ui, ViewContext};
 
 /// The page's own state.
 #[derive(Debug, Default)]
@@ -54,6 +54,7 @@ pub(crate) fn show(ui: &mut Ui) -> Vec<Intent> {
     ui.attachment_viewer = None;
     ui.friends.open = true;
     ui.friends.menu = None;
+    ui.active_now.menu = None;
     intents
 }
 
@@ -301,8 +302,15 @@ enum ListRow {
     Person(Box<FriendRow>),
 }
 
-/// The page, in the main area at home.
-pub(crate) fn view(ui: &Ui, store: &Store, look: &Look) -> Element {
+/// The page, in the main area at home, `width` wide, with the «Activo ahora»
+/// column beside it where the window has room for it.
+pub(crate) fn view(
+    ui: &Ui,
+    store: &Store,
+    look: &Look,
+    context: &ViewContext,
+    width: f32,
+) -> Element {
     let pending = store.pending_requests();
     let tab = ui.friends.tab;
     let body = if tab == FriendsTab::Add {
@@ -327,13 +335,17 @@ pub(crate) fn view(ui: &Ui, store: &Store, look: &Look) -> Element {
     } else {
         list(ui, store, tab, look)
     };
-    Element::column(vec![
+    let page = Element::column(vec![
         parts::header(tab, pending, look),
         Element::panel(Element::spacer())
             .size(None, Some(1.0))
             .background(look.border),
         body.flex(1.0),
-    ])
+    ]);
+    match crate::active_now::column(ui, store, look, context, width) {
+        Some(column) => Element::row(vec![page.flex(1.0), column]),
+        None => page,
+    }
 }
 
 fn list(ui: &Ui, store: &Store, tab: FriendsTab, look: &Look) -> Element {

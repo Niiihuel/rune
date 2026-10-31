@@ -1179,6 +1179,7 @@ mod layout;
 mod media;
 mod messages;
 // Message actions and moderation (P4).
+mod active_now;
 mod message_actions;
 mod navigation;
 mod notices;
