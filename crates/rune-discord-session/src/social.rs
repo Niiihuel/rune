@@ -36,8 +36,14 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
             .relationships
             .as_ref()?
             .iter()
-            .find(|known| known.user == user)
+            .find(|known| known.user == user && known.kind != RelationshipKind::None)
             .map(|known| known.kind)
+    };
+    let ignored = |user: UserId| {
+        snapshot
+            .relationships
+            .as_ref()
+            .is_some_and(|list| list.iter().any(|known| known.user == user && known.ignored))
     };
     let conversation = |channel: ChannelId, kind: ChannelKind| {
         snapshot
@@ -56,6 +62,12 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
         Command::RemoveRelationship { user } if kind_with(*user).is_none() => {
             refuse(es("No hay ninguna relación con esa persona."))
         }
+        Command::IgnoreUser { user } if kind_with(*user) == Some(RelationshipKind::Blocked) => {
+            refuse(es("Bloqueaste a esa persona."))
+        }
+        Command::UnignoreUser { user } if !ignored(*user) => {
+            refuse(es("No ignoras a esa persona."))
+        }
         Command::SetFriendNickname { user, .. }
             if kind_with(*user) != Some(RelationshipKind::Friend) =>
         {
@@ -65,6 +77,8 @@ pub(crate) fn allowed(snapshot: &Snapshot, command: &Command) -> Result<(), Logi
         | Command::RemoveRelationship { user }
         | Command::SetFriendNickname { user, .. }
         | Command::BlockUser { user }
+        | Command::IgnoreUser { user }
+        | Command::UnignoreUser { user }
         | Command::OpenDirect { user, .. } => {
             if user.0 == 0 || Some(*user) == me {
                 refuse(es("Esa persona no es válida para esta acción."))
@@ -275,7 +289,7 @@ pub(crate) fn ready(snapshot: &mut Snapshot, value: &Value) {
     let mut list: Vec<Relationship> = Vec::new();
     for row in rows {
         if let Some(relationship) = decode(snapshot, row, None) {
-            if !list.iter().any(|known| known.user == relationship.user) {
+            if !list.iter().any(|known| known.user == relationship.user) && kept(&relationship) {
                 list.push(relationship);
             }
         }
@@ -325,24 +339,39 @@ fn changed(snapshot: &mut Snapshot, data: &Value) -> Option<Vec<Event>> {
         if data.get("is_spam_request").is_none() {
             relationship.spam = previous.spam && relationship.kind == previous.kind;
         }
+        if data.get("user_ignored").is_none() {
+            relationship.ignored = previous.ignored;
+        }
     }
     let list = snapshot.relationships.as_mut()?;
     list.retain(|known| known.user != user);
-    list.push(relationship.clone());
     let mut events = Vec::new();
     if data["user"].is_object() || snapshot.users.len() != users {
         if let Some(known) = snapshot.users.iter().find(|known| known.id == user) {
             events.push(Event::UserChanged(known.clone()));
         }
     }
-    events.push(Event::RelationshipChanged(relationship));
+    if kept(&relationship) {
+        list.push(relationship.clone());
+        events.push(Event::RelationshipChanged(relationship));
+    } else {
+        events.push(Event::RelationshipRemoved { user });
+    }
     Some(events)
+}
+
+/// Whether a row is a relationship to keep: a friendship, request or block,
+/// or a person the account ignores. Without an ignore, "no relationship" is
+/// the same as no row.
+fn kept(relationship: &Relationship) -> bool {
+    relationship.kind != RelationshipKind::None || relationship.ignored
 }
 
 /// One relationship row, or `None` when it is malformed or about the account
 /// itself. A request Discord files as spam (`is_spam_request`, as the
 /// official client reads it) is kept, marked, for its own folder. `kind`
-/// stands in for a missing `type`, as a partial update leaves it.
+/// stands in for a missing `type`, as a partial update leaves it. Type 0 is
+/// no relationship, which `user_ignored` may still keep (see [`kept`]).
 fn decode(
     snapshot: &mut Snapshot,
     row: &Value,
@@ -357,6 +386,7 @@ fn decode(
         }
     }
     let kind = match row.get("type").map(Value::as_u64) {
+        Some(Some(0)) => RelationshipKind::None,
         Some(Some(1)) => RelationshipKind::Friend,
         Some(Some(2)) => RelationshipKind::Blocked,
         Some(Some(3)) => RelationshipKind::IncomingRequest,
@@ -385,6 +415,7 @@ fn decode(
         nickname,
         spam: kind == RelationshipKind::IncomingRequest
             && row["is_spam_request"].as_bool() == Some(true),
+        ignored: row["user_ignored"].as_bool() == Some(true),
     })
 }
 
@@ -718,5 +749,87 @@ mod tests {
             &json!({"merged_presences":{"friends":[{"user_id":"8","status":"idle"}]}}),
         );
         assert!(matches!(&events[..], [Event::PresenceChanged { user, .. }] if *user == UserId(8)));
+    }
+
+    /// A row of no relationship is kept only while the account ignores its
+    /// person; the other type 0 rows are dropped, as before.
+    #[test]
+    fn an_ignore_keeps_a_row_of_no_relationship_and_nothing_else_of_type_zero() {
+        let me = wire::user(&json!({"id":"9","username":"me"})).unwrap();
+        let snapshot = bootstrap::ready(
+            &json!({
+                "user":{"id":"9"},
+                "relationships":[
+                    {"id":"21","type":0,"user_ignored":true,"user":{"id":"21","username":"ignorada"}},
+                    {"id":"22","type":0},
+                    {"id":"23","type":0,"user_ignored":false}
+                ]
+            }),
+            &me,
+        )
+        .unwrap();
+        let list = snapshot.relationships.as_ref().unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].user, UserId(21));
+        assert!(list[0].kind == RelationshipKind::None && list[0].ignored);
+    }
+
+    #[test]
+    fn ignoring_and_lifting_an_ignore_keep_or_take_away_the_row_and_its_friendship() {
+        let mut snapshot = session();
+        // A stranger ignored: a row of no relationship.
+        let events = dispatch(
+            &mut snapshot,
+            "RELATIONSHIP_ADD",
+            &json!({"id":"5","type":0,"user_ignored":true}),
+        )
+        .unwrap();
+        assert!(matches!(&events[..], [Event::RelationshipChanged(r)]
+            if r.user == UserId(5) && r.kind == RelationshipKind::None && r.ignored));
+        // A friend ignored: still a friend, and marked.
+        let events = dispatch(
+            &mut snapshot,
+            "RELATIONSHIP_UPDATE",
+            &json!({"id":"8","type":1,"user_ignored":true}),
+        )
+        .unwrap();
+        assert!(matches!(&events[..], [Event::RelationshipChanged(r)]
+            if r.kind == RelationshipKind::Friend && r.ignored));
+        // A partial update keeps the flag it leaves out.
+        let events = dispatch(
+            &mut snapshot,
+            "RELATIONSHIP_UPDATE",
+            &json!({"id":"8","nickname":"Otra"}),
+        )
+        .unwrap();
+        assert!(matches!(&events[..], [Event::RelationshipChanged(r)]
+            if r.kind == RelationshipKind::Friend && r.ignored));
+        // Unignoring: the friend stays, the stranger's row goes.
+        assert!(allowed(&snapshot, &Command::UnignoreUser { user: UserId(5) }).is_ok());
+        assert!(allowed(&snapshot, &Command::UnignoreUser { user: UserId(8) }).is_ok());
+        let events = dispatch(
+            &mut snapshot,
+            "RELATIONSHIP_UPDATE",
+            &json!({"id":"5","type":0,"user_ignored":false}),
+        )
+        .unwrap();
+        assert_eq!(events, vec![Event::RelationshipRemoved { user: UserId(5) }]);
+        assert!(!snapshot
+            .relationships
+            .as_ref()
+            .unwrap()
+            .iter()
+            .any(|known| known.user == UserId(5)));
+    }
+
+    #[test]
+    fn ignores_go_out_about_anyone_but_the_account_and_are_lifted_only_when_ignored() {
+        let snapshot = session();
+        let ok = |command: Command| allowed(&snapshot, &command).is_ok();
+        assert!(ok(Command::IgnoreUser { user: UserId(3) }));
+        assert!(!ok(Command::IgnoreUser { user: UserId(9) }));
+        // Blocked people are not ignored (the list has 4 blocked).
+        assert!(!ok(Command::IgnoreUser { user: UserId(4) }));
+        assert!(!ok(Command::UnignoreUser { user: UserId(8) }));
     }
 }

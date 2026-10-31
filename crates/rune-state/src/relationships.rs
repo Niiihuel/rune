@@ -25,6 +25,10 @@ pub struct SocialAbilities {
     pub message: Permit,
     /// Give a friend a private name, or take it away.
     pub nickname: Permit,
+    /// Ignore them: their messages fold, and they are not told.
+    pub ignore: Permit,
+    /// Stop ignoring them.
+    pub unignore: Permit,
 }
 
 impl Store {
@@ -64,6 +68,7 @@ impl Store {
         let known = self.relationships.as_ref()?;
         let mut list: Vec<(String, &Relationship)> = known
             .values()
+            .filter(|relationship| relationship.kind != RelationshipKind::None)
             .map(|relationship| {
                 (
                     self.user(relationship.user)
@@ -80,8 +85,22 @@ impl Store {
         )
     }
 
+    /// The account's friendship, request or block with `user`. Someone it
+    /// only ignores has none: see [`Store::is_ignored`].
     pub fn relationship(&self, user: UserId) -> Option<&Relationship> {
-        self.relationships.as_ref()?.get(&user)
+        self.relationships
+            .as_ref()?
+            .get(&user)
+            .filter(|known| known.kind != RelationshipKind::None)
+    }
+
+    /// Whether the account ignores `user`: their messages fold, they raise no
+    /// notifications and their activity is hidden. They are not told.
+    pub fn is_ignored(&self, user: UserId) -> bool {
+        self.relationships
+            .as_ref()
+            .and_then(|known| known.get(&user))
+            .is_some_and(|known| known.ignored)
     }
 
     /// Whether the account blocked `user`.
@@ -125,6 +144,7 @@ impl Store {
         let capabilities = self.capabilities();
         let requests = self.social_write(capabilities.friend_requests, t("gestionar amistades"));
         let blocks = self.social_write(capabilities.block_users, t("bloquear personas"));
+        let ignores = self.social_write(capabilities.ignore_users, t("ignorar personas"));
         let when = |permit: &Permit, ok: bool, otherwise: &str| match permit {
             Permit::Allowed if !ok => Permit::Denied(otherwise.into()),
             permit => permit.clone(),
@@ -139,6 +159,23 @@ impl Store {
                 &requests,
                 kind.is_some_and(|kind| kind != RelationshipKind::Blocked),
                 t("No hay una amistad ni una solicitud con esta persona"),
+            ),
+            ignore: match &ignores {
+                Permit::Allowed if Some(user) == self.me => {
+                    Permit::Denied(t("No puedes ignorarte a ti").into())
+                }
+                Permit::Allowed if kind == Some(RelationshipKind::Blocked) => {
+                    Permit::Denied(t("Bloqueaste a esta persona").into())
+                }
+                Permit::Allowed if self.is_ignored(user) => {
+                    Permit::Denied(t("Ya ignoras a esta persona").into())
+                }
+                permit => permit.clone(),
+            },
+            unignore: when(
+                &ignores,
+                self.is_ignored(user),
+                t("No ignoras a esta persona"),
             ),
             block: when(
                 &blocks,

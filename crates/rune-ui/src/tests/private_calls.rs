@@ -449,6 +449,7 @@ fn a_refused_direct_call_offers_to_be_friends_and_says_how_it_went() {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }));
     assert!(host.pc_says(&format!("Solicitud de amistad enviada a {name}")));
     // Refused again with the request on its way: nothing more to send.
@@ -462,6 +463,7 @@ fn a_refused_direct_call_offers_to_be_friends_and_says_how_it_went() {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }));
     assert!(host.pc_says("Enviar solicitud de amistad"));
     assert!(!host.pc_offers(&ids::befriend(direct.0)));

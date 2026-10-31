@@ -83,6 +83,16 @@ async fn relationship_writes_use_the_routes_serein_uses_and_wait_for_the_gateway
             Some(json!({"type":2})),
         ),
         (
+            Command::IgnoreUser { user },
+            "PUT /api/v10/users/@me/relationships/7/ignore",
+            None,
+        ),
+        (
+            Command::UnignoreUser { user },
+            "DELETE /api/v10/users/@me/relationships/7/ignore",
+            None,
+        ),
+        (
             Command::SetFriendNickname {
                 user,
                 nickname: Some(" Bestie ".into()),
@@ -231,6 +241,7 @@ fn a_groups_writes_are_checked_against_what_the_session_knows() {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     };
     let snapshot = |owner: u64| {
         let group = json!({"id":"31","type":3,"owner_id":owner.to_string(),

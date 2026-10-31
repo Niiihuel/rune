@@ -30,6 +30,8 @@ pub mod ids {
     pub const NICKNAME_SAVE: &str = "friends:nickname:save";
     pub const NICKNAME_CLEAR: &str = "friends:nickname:clear";
     pub const NICKNAME_CLOSE: &str = "friends:nickname:close";
+    /// The question about ignoring offers blocking instead, as a link.
+    pub const IGNORE_BLOCK: &str = "friends:ignore:block";
 
     /// What a person's control reports: `friend:{user}:{action}`.
     pub fn person(user: impl std::fmt::Display, action: &str) -> String {
@@ -466,11 +468,80 @@ pub fn confirm(root: Element, title: &str, body: &str, confirm: &str, look: &Loo
     .render()
 }
 
+/// Ignoring someone, as the official client asks: what it does and what it
+/// does not, and blocking as the other way, offered in a link. Confirmed
+/// with `ids::CONFIRM`, cancelled with `ids::CONFIRM_CANCEL`.
+pub fn ignore(root: Element, name: &str, look: &Look) -> Element {
+    let point = |words: &str| {
+        Element::row(vec![
+            text("•", 14.0, look.muted),
+            gap(8.0, 0.0),
+            text(words.to_owned(), 14.0, look.muted).flex(1.0),
+        ])
+    };
+    let body = Element::column(vec![
+        point(t("Ocultar su perfil y mensajes")),
+        point(t("Puedes volver a mostrarlos en cualquier momento")),
+        point(t("Silencia sus notificaciones y actividad")),
+        point(t("Verás menos de esta persona")),
+        point(t("Todavía pueden enviarte mensajes y ver tu actividad")),
+        point(t("No sabrán que los ignoraste")),
+        Element::column(vec![
+            strong_line(t("¿No es suficiente?"), 14.0, look.text),
+            Button::new(
+                ids::IGNORE_BLOCK,
+                t("Optar por bloquear"),
+                look.menu_palette(),
+            )
+            .variant(ButtonVariant::Link)
+            .size(ControlSize::Compact)
+            .render(),
+            text(
+                t("Detén el contacto directo y limita lo que ven"),
+                12.0,
+                look.muted,
+            ),
+        ])
+        .gap(4.0),
+    ])
+    .gap(8.0);
+    AlertDialog::new(
+        root,
+        true,
+        tr!("¿Deseas ignorar a {name}?", name),
+        "",
+        ids::CONFIRM,
+        ids::CONFIRM_CANCEL,
+        look.menu_palette(),
+    )
+    .width(CONFIRM_WIDTH)
+    .confirm_label(t("Ignorar"))
+    .body(body)
+    .render()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::testing::{controls, frame, texts};
     use limn::Size;
+
+    #[test]
+    fn the_ignore_question_names_the_person_and_offers_blocking_instead() {
+        let (_, laid) = frame(
+            ignore(Element::spacer(), "Ada", &Look::DARK),
+            Size::new(600.0, 640.0),
+        );
+        let painted = texts(&laid);
+        assert!(
+            painted.contains(&"¿Deseas ignorar a Ada?".to_owned()),
+            "{painted:?}"
+        );
+        assert!(painted.contains(&"Verás menos de esta persona".to_owned()));
+        let shown = controls(&laid);
+        assert!(shown.contains(&ids::IGNORE_BLOCK.to_owned()));
+        assert!(shown.contains(&ids::CONFIRM.to_owned()));
+    }
 
     fn person(actions: Vec<FriendAction>, more: Vec<FriendAction>, open: bool) -> FriendRow {
         FriendRow {

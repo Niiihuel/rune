@@ -434,9 +434,10 @@ fn direct_rows(ui: &Ui, store: &Store, look: &Look, wall: Timestamp) -> Vec<Elem
                 .map_or(look.faint, |user| look.ink(user.accent))
         };
         // What they do, as the member list says it, else their status.
+        let ignored = other.is_some_and(|user| store.is_ignored(user));
         let (line, emoji) = presence
             .as_ref()
-            .map(|presence| crate::identity::status_line(ui, presence))
+            .map(|presence| crate::identity::status_line(ui, presence, ignored))
             .unwrap_or_default();
         rows.push(sidebar::direct(
             DirectRow {
@@ -976,7 +977,8 @@ fn member_row(
 ) -> Option<MemberRow> {
     let account = store.user(user)?;
     let presence = store.presence(user);
-    let (status_line, status_emoji) = crate::identity::status_line(ui, &presence);
+    let ignored = store.is_ignored(user);
+    let (status_line, status_emoji) = crate::identity::status_line(ui, &presence, ignored);
     let ink = store
         .top_role(user, server)
         .and_then(|role| role.color)

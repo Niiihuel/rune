@@ -213,8 +213,10 @@ pub(crate) fn update(
     if let Some(intents) = new_group(ui, store, id, value, now) {
         return Some(intents);
     }
+    // Runs of blocked and of ignored messages fold and show alike.
     if let Some(first) = id
         .strip_prefix("blocked:")
+        .or_else(|| id.strip_prefix("ignored:"))
         .and_then(|first| first.parse().ok())
     {
         let shown = &mut ui.conversations.blocked_shown;

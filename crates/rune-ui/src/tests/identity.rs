@@ -102,7 +102,7 @@ fn lists_say_what_someone_does_else_their_status_with_its_emoji() {
     busy(&mut host);
     let presence = host.store.presence(PERSON);
     assert_eq!(
-        crate::identity::status_line(&host.ui, &presence),
+        crate::identity::status_line(&host.ui, &presence, false),
         (Some("Jugando a Factorio".into()), None),
         "what they do first, with no emoji"
     );
@@ -120,7 +120,7 @@ fn lists_say_what_someone_does_else_their_status_with_its_emoji() {
         custom_emoji: Some(emoji.clone()),
         ..Presence::default()
     };
-    let (line, shown) = crate::identity::status_line(&host.ui, &status);
+    let (line, shown) = crate::identity::status_line(&host.ui, &status, false);
     assert_eq!(line.as_deref(), Some("de vacaciones"));
     assert_eq!(shown.map(|shown| shown.name), Some("ok".into()));
     // An emoji alone.
@@ -128,7 +128,7 @@ fn lists_say_what_someone_does_else_their_status_with_its_emoji() {
         custom: None,
         ..status
     };
-    let (line, shown) = crate::identity::status_line(&host.ui, &alone);
+    let (line, shown) = crate::identity::status_line(&host.ui, &alone, false);
     assert!(line.is_none() && shown.is_some());
 }
 
@@ -493,4 +493,29 @@ fn the_gif_tab_searches_the_provider_with_categories_and_suggestions() {
         ["gato", "gatos"]
     );
     let _ = channel;
+}
+
+#[test]
+fn an_ignored_person_shows_no_activity_only_the_status() {
+    let host = Host::new();
+    let playing = rune_model::Presence {
+        status: rune_model::Status::Online,
+        custom: Some("de vacaciones".into()),
+        activities: vec![rune_model::Activity {
+            kind: rune_model::ActivityKind::Playing,
+            name: "Factorio".into(),
+            detail: None,
+            state: None,
+            image: None,
+            small_image: None,
+            started: None,
+            ends: None,
+            application: None,
+        }],
+        ..rune_model::Presence::default()
+    };
+    let (line, _) = crate::identity::status_line(&host.ui, &playing, false);
+    assert_eq!(line.as_deref(), Some("Jugando a Factorio"));
+    let (line, _) = crate::identity::status_line(&host.ui, &playing, true);
+    assert_eq!(line.as_deref(), Some("de vacaciones"));
 }

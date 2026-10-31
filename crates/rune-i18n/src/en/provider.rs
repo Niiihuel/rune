@@ -867,6 +867,7 @@ pub(super) const ENTRIES: super::Entries = &[
         "you blocked that person: unblock them first",
     ),
     ("bloqueaste a esa persona", "you blocked that person"),
+    ("no ignoras a esa persona", "you don't ignore that person"),
     ("elige al menos a dos amigos", "choose at least two friends"),
     // mock/stage.rs
     ("no está en el escenario", "they're not on the stage"),

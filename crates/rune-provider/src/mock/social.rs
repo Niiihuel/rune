@@ -53,6 +53,7 @@ pub(super) fn starting(history_end: Timestamp) -> Vec<Relationship> {
             since: Some(history_end.plus_minutes(-days * 24 * 60)),
             nickname: None,
             spam,
+            ignored: false,
         })
         .collect()
 }
@@ -68,20 +69,31 @@ impl World {
                 }
                 _ => Err(t("no hay una solicitud de esa persona").into()),
             },
-            Command::RemoveRelationship { user } => {
-                let before = self.relationships.len();
-                self.relationships.retain(|known| known.user != user);
-                if self.relationships.len() == before {
-                    Err(t("no hay ninguna relación con esa persona").into())
-                } else {
-                    Ok(vec![Event::RelationshipRemoved { user }])
-                }
-            }
+            Command::RemoveRelationship { user } => match self.kind_with(user) {
+                Some(_) => Ok(self.end_relation(user)),
+                None => Err(t("no hay ninguna relación con esa persona").into()),
+            },
             Command::BlockUser { user } => {
                 if user == ME || !self.users.iter().any(|known| known.id == user) {
                     Err(t("esa persona no existe").into())
                 } else {
                     Ok(self.relate(user, RelationshipKind::Blocked))
+                }
+            }
+            Command::IgnoreUser { user } => {
+                if user == ME || !self.users.iter().any(|known| known.id == user) {
+                    Err(t("esa persona no existe").into())
+                } else if self.kind_with(user) == Some(RelationshipKind::Blocked) {
+                    Err(t("bloqueaste a esa persona").into())
+                } else {
+                    Ok(self.set_ignored(user, true))
+                }
+            }
+            Command::UnignoreUser { user } => {
+                if self.is_ignored(user) {
+                    Ok(self.set_ignored(user, false))
+                } else {
+                    Err(t("no ignoras a esa persona").into())
                 }
             }
             Command::OpenDirect { request, user } => self.open_direct(request, user),
@@ -221,15 +233,25 @@ impl World {
         })
     }
 
+    /// The friendship, request or block with `user`; none for someone the
+    /// account only ignores.
     pub(super) fn kind_with(&self, user: UserId) -> Option<RelationshipKind> {
         self.relationships
             .iter()
-            .find(|known| known.user == user)
+            .find(|known| known.user == user && known.kind != RelationshipKind::None)
             .map(|known| known.kind)
     }
 
-    /// Set the relationship with `user` to `kind`, replacing any other.
+    fn is_ignored(&self, user: UserId) -> bool {
+        self.relationships
+            .iter()
+            .any(|known| known.user == user && known.ignored)
+    }
+
+    /// Set the relationship with `user` to `kind`, replacing any other; the
+    /// ignore they have stays.
     fn relate(&mut self, user: UserId, kind: RelationshipKind) -> Vec<Event> {
+        let ignored = self.is_ignored(user);
         self.relationships.retain(|known| known.user != user);
         let relationship = Relationship {
             user,
@@ -237,9 +259,53 @@ impl World {
             since: Some(self.now),
             nickname: None,
             spam: false,
+            ignored,
         };
         self.relationships.push(relationship.clone());
         vec![Event::RelationshipChanged(relationship)]
+    }
+
+    /// Ignore or stop ignoring `user`. Someone without a relationship is kept
+    /// as one of none, and that row goes once they are no longer ignored.
+    fn set_ignored(&mut self, user: UserId, ignored: bool) -> Vec<Event> {
+        let mut relationship = self
+            .relationships
+            .iter()
+            .find(|known| known.user == user)
+            .cloned()
+            .unwrap_or(Relationship {
+                user,
+                kind: RelationshipKind::None,
+                since: None,
+                nickname: None,
+                spam: false,
+                ignored: false,
+            });
+        relationship.ignored = ignored;
+        self.relationships.retain(|known| known.user != user);
+        if relationship.kind == RelationshipKind::None && !ignored {
+            vec![Event::RelationshipRemoved { user }]
+        } else {
+            self.relationships.push(relationship.clone());
+            vec![Event::RelationshipChanged(relationship)]
+        }
+    }
+
+    /// The account stops being friends, or requests, with `user`. Someone it
+    /// ignores stays ignored, as one of no relationship.
+    fn end_relation(&mut self, user: UserId) -> Vec<Event> {
+        if let Some(known) = self
+            .relationships
+            .iter_mut()
+            .find(|known| known.user == user && known.ignored)
+        {
+            known.kind = RelationshipKind::None;
+            known.nickname = None;
+            known.spam = false;
+            return vec![Event::RelationshipChanged(known.clone())];
+        }
+        self.relationships.retain(|known| known.user != user);
+        vec![Event::RelationshipRemoved { user }]
     }
 
     fn request_friend(&mut self, username: &str) -> Outcome {
@@ -265,7 +331,9 @@ impl World {
             Some(RelationshipKind::IncomingRequest) => {
                 Ok(self.relate(user, RelationshipKind::Friend))
             }
-            None => Ok(self.relate(user, RelationshipKind::OutgoingRequest)),
+            None | Some(RelationshipKind::None) => {
+                Ok(self.relate(user, RelationshipKind::OutgoingRequest))
+            }
         }
     }
 
@@ -719,5 +787,41 @@ mod tests {
         assert_eq!(spam.len(), 1);
         assert_eq!(spam[0].kind, RelationshipKind::IncomingRequest);
         assert!(!spam[0].awaits_answer());
+    }
+
+    #[test]
+    fn ignoring_keeps_the_relationship_and_a_stranger_is_kept_only_while_ignored() {
+        let provider = provider();
+        // A friend stays one, and is marked; removing her keeps the mark.
+        let ignored = provider.manage(Command::IgnoreUser { user: UserId(10) });
+        assert!(matches!(&ignored[..], [Event::RelationshipChanged(r)]
+            if r.kind == RelationshipKind::Friend && r.ignored));
+        let removed = provider.manage(Command::RemoveRelationship { user: UserId(10) });
+        assert!(matches!(&removed[..], [Event::RelationshipChanged(r)]
+            if r.kind == RelationshipKind::None && r.ignored));
+        let unignored = provider.manage(Command::UnignoreUser { user: UserId(10) });
+        assert!(
+            matches!(&unignored[..], [Event::RelationshipRemoved { user }] if *user == UserId(10))
+        );
+        // Someone with no relationship is kept as one of none, and dropped once unignored.
+        let stranger = UserId(35);
+        let ignored = provider.manage(Command::IgnoreUser { user: stranger });
+        assert!(matches!(&ignored[..], [Event::RelationshipChanged(r)]
+            if r.kind == RelationshipKind::None && r.ignored));
+        assert!(provider
+            .snapshot()
+            .relationships
+            .unwrap()
+            .iter()
+            .any(|known| known.user == stranger && known.ignored));
+        let unignored = provider.manage(Command::UnignoreUser { user: stranger });
+        assert!(
+            matches!(&unignored[..], [Event::RelationshipRemoved { user }] if *user == stranger)
+        );
+        // Refused: unignoring someone not ignored, and ignoring someone blocked.
+        let refused = provider.manage(Command::UnignoreUser { user: stranger });
+        assert!(matches!(&refused[..], [Event::Failed { .. }]));
+        let refused = provider.manage(Command::IgnoreUser { user: UserId(34) });
+        assert!(matches!(&refused[..], [Event::Failed { .. }]));
     }
 }

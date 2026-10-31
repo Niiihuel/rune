@@ -969,6 +969,7 @@ impl DiscordSessionProvider {
                             // People and conversations outside servers: `social::allowed`.
                             | Command::SendFriendRequest { .. } | Command::AcceptFriendRequest { .. }
                             | Command::RemoveRelationship { .. } | Command::BlockUser { .. }
+                            | Command::IgnoreUser { .. } | Command::UnignoreUser { .. }
                             | Command::SetFriendNickname { .. } | Command::OpenDirect { .. }
                             | Command::CreateGroup { .. } | Command::RenameGroup { .. }
                             | Command::SetGroupIcon { .. } | Command::AddGroupMember { .. }
@@ -2668,9 +2669,9 @@ impl Provider for DiscordSessionProvider {
                 // Friend requests, blocks, nicknames, opening and closing direct
                 // conversations, and a group's name, picture and leaving, by the
                 // routes Serein uses (owner rule «si lo usa Serein»); fixtures
-                // only. Making groups, changing their people and handing them
+                // only. Ignoring by the official client's route (REA); fixtures only. Making groups, changing their people and handing them
                 // over by the official web client's routes (REA); fixtures only.
-                relationships: true, friend_requests: true, block_users: true,
+                relationships: true, friend_requests: true, block_users: true, ignore_users: true,
                 friend_nicknames: true, open_direct: true, close_direct: true,
                 manage_groups: true,
                 // Friends' presence from READY and the Gateway, as Serein reads it.

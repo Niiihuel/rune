@@ -9,6 +9,8 @@ use crate::{Timestamp, UserId};
 /// Where the account stands with someone.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub enum RelationshipKind {
+    /// No relationship, kept only for a flag such as being ignored.
+    None,
     Friend,
     /// They asked to be friends; the account has not answered.
     IncomingRequest,
@@ -33,6 +35,10 @@ pub struct Relationship {
     /// in its own folder, and is not counted with the others.
     #[serde(default)]
     pub spam: bool,
+    /// The account ignores them: their messages fold and they raise no
+    /// notifications; they are not told.
+    #[serde(default)]
+    pub ignored: bool,
 }
 
 impl Relationship {
@@ -55,5 +61,15 @@ mod tests {
             serde_json::from_value(serde_json::json!({"user": 7, "kind": "Blocked"})).unwrap();
         assert_eq!(read.kind, RelationshipKind::Blocked);
         assert!(read.since.is_none() && read.nickname.is_none() && !read.spam);
+        assert!(!read.ignored);
+    }
+
+    #[test]
+    fn an_ignored_person_without_a_relationship_is_kept_for_the_flag() {
+        let read: Relationship =
+            serde_json::from_value(serde_json::json!({"user": 7, "kind": "None", "ignored": true}))
+                .unwrap();
+        assert_eq!(read.kind, RelationshipKind::None);
+        assert!(read.ignored);
     }
 }

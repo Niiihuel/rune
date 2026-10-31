@@ -56,6 +56,13 @@ pub(crate) fn author(
     }
 }
 
+/// Why a run of messages folds: its author is blocked, or only ignored.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Fold {
+    Blocked,
+    Ignored,
+}
+
 /// What every row of the list reads, shared by the closure that builds them.
 struct Rows {
     pending_files: HashMap<MessageId, Vec<rune_model::PendingAttachment>>,
@@ -103,6 +110,8 @@ struct Rows {
     style: MessageStyle,
     /// The loaded authors the account blocked: their messages fold.
     blocked: HashSet<UserId>,
+    /// The loaded authors the account ignores: their messages fold too.
+    ignored: HashSet<UserId>,
     /// Runs of blocked messages shown anyway, by their first message.
     blocked_shown: HashSet<MessageId>,
     /// What apps' parts may do (P3).
@@ -148,37 +157,46 @@ impl Rows {
             .collect()
     }
 
-    fn is_blocked(&self, index: usize) -> bool {
-        self.blocked.contains(&self.messages[index].author)
+    /// How the message at `index` folds: its author is blocked, or only ignored.
+    fn fold(&self, index: usize) -> Option<Fold> {
+        let author = self.messages[index].author;
+        if self.blocked.contains(&author) {
+            Some(Fold::Blocked)
+        } else if self.ignored.contains(&author) {
+            Some(Fold::Ignored)
+        } else {
+            None
+        }
     }
 
-    /// Where the run of blocked messages holding `index` starts, and how
-    /// many it has; `None` when the message is not blocked.
-    fn blocked_run(&self, index: usize) -> Option<(usize, usize)> {
-        if !self.is_blocked(index) {
-            return None;
-        }
+    /// Where the run of folded messages holding `index` starts, how many it
+    /// has, and how it folds; `None` when the message does not fold. A run
+    /// is of one kind: blocked and ignored people never share one.
+    fn folded_run(&self, index: usize) -> Option<(Fold, usize, usize)> {
+        let fold = self.fold(index)?;
         let mut first = index;
-        while first > 0 && self.is_blocked(first - 1) {
+        while first > 0 && self.fold(first - 1) == Some(fold) {
             first -= 1;
         }
         let mut end = index + 1;
-        while end < self.messages.len() && self.is_blocked(end) {
+        while end < self.messages.len() && self.fold(end) == Some(fold) {
             end += 1;
         }
-        Some((first, end - first))
+        Some((fold, first, end - first))
     }
 
-    /// A row of the list: a blocked message folds into the line of its run,
+    /// A row of the list: a folded message folds into the line of its run,
     /// as the official client folds them, until it is shown.
     fn row(&self, index: usize) -> Element {
-        let Some((first, count)) = self.blocked_run(index) else {
+        let Some((fold, first, count)) = self.folded_run(index) else {
             return self.build(index);
         };
         let id = self.messages[first].id;
         let shown = self.blocked_shown.contains(&id);
-        let line =
-            (index == first).then(|| rune_components::blocked::run(id, count, shown, &self.look));
+        let line = (index == first).then(|| match fold {
+            Fold::Blocked => rune_components::blocked::run(id, count, shown, &self.look),
+            Fold::Ignored => rune_components::blocked::ignored_run(id, count, shown, &self.look),
+        });
         match (line, shown) {
             (Some(line), true) => Element::column(vec![line, self.build(index)]),
             (Some(line), false) => line,
@@ -810,6 +828,11 @@ pub fn timeline(
             .iter()
             .map(|message| message.author)
             .filter(|author| store.blocked(*author))
+            .collect(),
+        ignored: messages
+            .iter()
+            .map(|message| message.author)
+            .filter(|author| store.is_ignored(*author))
             .collect(),
         blocked_shown: ui.conversations.blocked_shown.clone(),
         app: Some(crate::interactions::rows(ui, store, channel)),

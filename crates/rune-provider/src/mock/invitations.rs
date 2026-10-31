@@ -273,6 +273,7 @@ impl World {
                     since: Some(self.now),
                     nickname: None,
                     spam: false,
+                    ignored: false,
                 };
                 self.relationships.push(friendship.clone());
                 vec![Event::RelationshipChanged(friendship)]

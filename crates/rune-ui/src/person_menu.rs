@@ -233,6 +233,8 @@ pub(crate) fn entries(ui: &Ui, store: &Store, user: UserId, place: Place) -> Vec
             None if requests => people.push(item(person("add"), t("Añadir amigo"), None)),
             _ => {}
         }
+        // Ignoring (or not) sits right before blocking, as the official menu has it.
+        people.extend(crate::ignore::menu(store, user));
         if store.relationship(user).map(|known| known.kind) == Some(RelationshipKind::Blocked) {
             if social.unblock.allowed() {
                 people.push(item(person("unblock"), t("Desbloquear"), None));

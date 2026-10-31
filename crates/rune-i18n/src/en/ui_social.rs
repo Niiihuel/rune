@@ -261,6 +261,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("Solicitud recibida", "Incoming friend request"),
     ("Aceptar", "Accept"),
     ("Ignorar", "Ignore"),
+    ("Dejar de ignorar", "Unignore"),
     ("Solicitud enviada", "Outgoing friend request"),
     ("Bloqueado", "Blocked"),
     ("Desbloquear", "Unblock"),

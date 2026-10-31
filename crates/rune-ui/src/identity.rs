@@ -262,12 +262,14 @@ pub(crate) fn text_picture(ui: &Ui, picture: &rune_model::TextPicture) -> TextPi
 /// What a list says under someone's name: what they do first, else their
 /// custom status with its server's emoji (2026-10-18: the members, friends
 /// and conversations lists left the emoji out; the conversations, also
-/// what they do).
+/// what they do). Someone the account ignores shows no activity, only the
+/// status.
 pub(crate) fn status_line(
     ui: &Ui,
     presence: &rune_model::Presence,
+    ignored: bool,
 ) -> (Option<String>, Option<TextPicture>) {
-    match presence.activity() {
+    match presence.activity().filter(|_| !ignored) {
         Some(activity) => (Some(rune_components::look::activity_line(activity)), None),
         None => (
             presence.custom.clone(),

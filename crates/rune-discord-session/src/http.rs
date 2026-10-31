@@ -657,6 +657,8 @@ impl Http {
             | Command::AcceptFriendRequest { .. }
             | Command::RemoveRelationship { .. }
             | Command::BlockUser { .. }
+            | Command::IgnoreUser { .. }
+            | Command::UnignoreUser { .. }
             | Command::SetFriendNickname { .. }
             | Command::OpenDirect { .. }
             | Command::CreateGroup { .. }

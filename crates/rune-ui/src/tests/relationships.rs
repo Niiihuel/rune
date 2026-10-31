@@ -3,6 +3,7 @@
 
 use super::*;
 use rune_components::friends::ids;
+use rune_components::voice::MenuEntry;
 use rune_model::{RelationshipKind, UserId};
 
 const ELENA: UserId = UserId(14);
@@ -33,6 +34,8 @@ impl Host {
                     | Command::CloseDirect { .. }
                     | Command::SetFriendNickname { .. }
                     | Command::SetGroupOwner { .. }
+                    | Command::IgnoreUser { .. }
+                    | Command::UnignoreUser { .. }
             ) {
                 for event in self.provider.manage(command) {
                     self.event(event);
@@ -547,4 +550,126 @@ fn messages_of_someone_blocked_fold_until_shown() {
         .painted()
         .iter()
         .any(|text| text.contains("no quieres ver")));
+}
+
+/// A press of `id` as a person's menu reports it: the menu is not on screen
+/// in these tests, so the press goes straight to the action.
+fn choose(host: &mut Host, id: &str) {
+    let intents = update(
+        &mut host.ui,
+        &mut host.store,
+        &UiAction::Clicked { id: id.into() },
+        host.now,
+    );
+    host.run(intents);
+}
+
+/// Whether `menu` offers the item `id`.
+fn offers_item(menu: &[MenuEntry], id: &str) -> bool {
+    menu.iter()
+        .any(|entry| matches!(entry, MenuEntry::Item(item, _, _) if item == id))
+}
+
+#[test]
+fn the_ignore_item_is_offered_where_the_account_may_ignore() {
+    use crate::person_menu::{entries, Place};
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let place = Place::Author { channel: general };
+    let menu = entries(&host.ui, &host.store, BRUNO, place);
+    assert!(offers_item(&menu, &ids::person(BRUNO, "ignore")));
+    assert!(!offers_item(&menu, &ids::person(BRUNO, "unignore")));
+    // Blocked people are not offered it, and neither is the account itself.
+    assert!(!offers_item(
+        &entries(&host.ui, &host.store, YAGO, place),
+        &ids::person(YAGO, "ignore")
+    ));
+    let me = host.store.me().unwrap();
+    assert!(!offers_item(
+        &entries(&host.ui, &host.store, me, place),
+        &ids::person(me.0, "ignore")
+    ));
+    // Once ignored, the item says so and lifts it.
+    let sent = host.sent.len();
+    choose(&mut host, &ids::person(BRUNO, "ignore"));
+    host.click(ids::CONFIRM);
+    host.answer_social(sent);
+    let menu = entries(&host.ui, &host.store, BRUNO, place);
+    assert!(offers_item(&menu, &ids::person(BRUNO, "unignore")));
+    assert!(!offers_item(&menu, &ids::person(BRUNO, "ignore")));
+}
+
+#[test]
+fn ignoring_asks_first_folds_their_messages_and_lifts_from_the_menu() {
+    let mut host = Host::new();
+    let general = host.open_channel("general");
+    let last = host
+        .store
+        .timeline(general)
+        .unwrap()
+        .messages()
+        .last()
+        .unwrap()
+        .id;
+    let mut said = (*host.store.timeline(general).unwrap().messages()[0]).clone();
+    said.id = rune_model::MessageId(last.0 + 1);
+    said.author = BRUNO;
+    said.content = "un mensaje que no quieres ver".into();
+    said.timestamp = rune_model::Timestamp(said.timestamp.0 + 1);
+    said.reply_to = None;
+    host.event(Event::MessageCreated {
+        message: said.clone(),
+        nonce: None,
+    });
+    host.tree.scroll_to_end(&timeline_id(general));
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text.contains("no quieres ver")));
+    // Asked first: nothing is sent until «Ignorar» is pressed.
+    let sent = host.sent.len();
+    choose(&mut host, &ids::person(BRUNO, "ignore"));
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text == "¿Deseas ignorar a Bruno?"));
+    assert_eq!(host.sent.len(), sent, "the question comes first");
+    host.click(ids::CONFIRM_CANCEL);
+    assert_eq!(host.sent.len(), sent);
+    choose(&mut host, &ids::person(BRUNO, "ignore"));
+    host.click(ids::CONFIRM);
+    assert_eq!(host.sent[sent..], [Command::IgnoreUser { user: BRUNO }]);
+    // Nothing changes before the provider answers.
+    assert!(!host.store.is_ignored(BRUNO));
+    host.answer_social(sent);
+    assert!(host.store.is_ignored(BRUNO));
+    // Their message folds into a line of its own, which shows it on request.
+    let painted = host.painted();
+    assert!(!painted.iter().any(|text| text.contains("no quieres ver")));
+    assert!(painted.iter().any(|text| text.contains("ignorad")));
+    host.click(&rune_components::blocked::ignored_id(said.id));
+    assert!(host
+        .painted()
+        .iter()
+        .any(|text| text.contains("no quieres ver")));
+    // Lifting the ignore from the menu takes effect at once, through the provider.
+    let sent = host.sent.len();
+    choose(&mut host, &ids::person(BRUNO, "unignore"));
+    assert_eq!(host.sent[sent..], [Command::UnignoreUser { user: BRUNO }]);
+    host.answer_social(sent);
+    assert!(!host.store.is_ignored(BRUNO));
+    assert!(host.store.relationship(BRUNO).is_some(), "still a friend");
+}
+
+#[test]
+fn the_ignore_question_offers_blocking_instead_and_asks_that_one() {
+    let mut host = Host::new();
+    host.friends("all");
+    choose(&mut host, &ids::person(BRUNO, "ignore"));
+    host.click(ids::IGNORE_BLOCK);
+    let sent = host.sent.len();
+    host.click(ids::CONFIRM);
+    assert_eq!(host.sent[sent..], [Command::BlockUser { user: BRUNO }]);
+    host.answer_social(sent);
+    assert!(host.store.blocked(BRUNO) && !host.store.is_ignored(BRUNO));
 }

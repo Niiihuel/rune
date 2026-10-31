@@ -213,6 +213,39 @@ pub(super) const ENTRIES: super::Entries = &[
     ),
     ("Quitar apodo", "Remove nickname"),
     ("Cambiar apodo", "Change nickname"),
+    // Ignoring someone (friends.rs).
+    (
+        "Ocultar su perfil y mensajes",
+        "Hide their profile and messages",
+    ),
+    (
+        "Puedes volver a mostrarlos en cualquier momento",
+        "You can unhide them at any time",
+    ),
+    (
+        "Silencia sus notificaciones y actividad",
+        "Mute their notifications and activity",
+    ),
+    (
+        "Verás menos de esta persona",
+        "You'll see less of this person",
+    ),
+    (
+        "Todavía pueden enviarte mensajes y ver tu actividad",
+        "They can still message you and see your activity",
+    ),
+    (
+        "No sabrán que los ignoraste",
+        "They won't know you ignored them",
+    ),
+    ("¿No es suficiente?", "Not enough?"),
+    ("Optar por bloquear", "Block instead"),
+    (
+        "Detén el contacto directo y limita lo que ven",
+        "Stop direct contact and limit what they view",
+    ),
+    ("¿Deseas ignorar a {name}?", "Ignore {name}?"),
+    ("Ignorar", "Ignore"),
     (
         "Un nombre para {name} que solo ves tú.",
         "A name for {name} that only you see.",
