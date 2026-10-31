@@ -220,3 +220,149 @@ fn a_live_row_draws_no_picture_of_its_stream_under_it() {
         .contains(&"Vista previa simulada".to_owned()));
     assert!(!host.vz_shows(&format!("vz:preview:{}", other.0)));
 }
+
+#[test]
+fn the_pointer_on_someone_in_voice_shows_what_they_do_and_nothing_for_someone_idle() {
+    use rune_model::{Activity, ActivityKind, Presence, Status, Timestamp};
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let me = host.vz_me();
+    let others: Vec<UserId> = host
+        .store
+        .voice_in(room)
+        .iter()
+        .map(|state| state.user)
+        .filter(|user| *user != me)
+        .collect();
+    assert!(others.len() >= 2, "{others:?}");
+    // The simulation gives Bruno an activity of his own: someone with none is idle.
+    let idle = *others
+        .iter()
+        .find(|user| host.store.presence(**user).activities.is_empty())
+        .expect("someone in voice with nothing to do");
+    let doer = *others.iter().find(|user| **user != idle).unwrap();
+    let wall = host.store.wall();
+    host.event(Event::PresenceChanged {
+        user: doer,
+        presence: Presence {
+            status: Status::Online,
+            activities: vec![Activity {
+                kind: ActivityKind::Playing,
+                name: "Factorio".into(),
+                detail: Some("Fábrica".into()),
+                started: Some(Timestamp(wall.0 - 65_000)),
+                ..Default::default()
+            }],
+            ..Presence::default()
+        },
+    });
+    host.rows_point(&ids::row(doer.0));
+    let shown = host.vz_texts();
+    for expected in ["Jugando ahora", "Factorio", "Fábrica", "1:05"] {
+        assert!(
+            shown.contains(&expected.to_owned()),
+            "{expected} in {shown:?}"
+        );
+    }
+    // Someone who lists nothing has no card.
+    host.rows_point(&ids::row(idle.0));
+    assert!(!host.vz_texts().contains(&"Jugando ahora".to_owned()));
+}
+
+#[test]
+fn a_button_on_a_card_asks_its_app_and_the_link_it_gets_asks_before_it_opens() {
+    use rune_model::{Activity, ActivityKind, Presence, Status};
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let doer = host.vz_other(room);
+    host.event(Event::PresenceChanged {
+        user: doer,
+        presence: Presence {
+            status: Status::Online,
+            activities: vec![Activity {
+                kind: ActivityKind::Playing,
+                name: "Factorio".into(),
+                application: Some(42),
+                session: Some("s1".into()),
+                buttons: vec!["Ver la fábrica".into()],
+                ..Default::default()
+            }],
+            ..Presence::default()
+        },
+    });
+    host.rows_point(&ids::row(doer.0));
+    let button = format!("vz:live:activity:{}:0:button:0", doer.0);
+    assert!(host.vz_texts().contains(&"Ver la fábrica".to_owned()));
+    assert!(host.vz_usable(&button), "{button} can be pressed");
+    let from = host.sent.len();
+    host.click(&button);
+    let request = host.sent[from..]
+        .iter()
+        .find_map(|command| match command {
+            Command::OpenActivityButton {
+                request,
+                user,
+                session,
+                application: Some(42),
+                index: 0,
+            } if *user == doer && session == "s1" => Some(*request),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("the button asks its app: {:?}", &host.sent[from..]));
+    // The link comes back, and it waits to be asked for before it opens.
+    host.event(Event::ActivityButtonUrl {
+        request,
+        url: "https://tracker.example/match/9".into(),
+    });
+    assert_eq!(
+        host.ui
+            .message_actions
+            .external
+            .as_ref()
+            .map(|link| link.url.as_str()),
+        Some("https://tracker.example/match/9")
+    );
+}
+
+#[test]
+fn a_spotify_track_on_a_card_says_its_button_is_off_in_the_simulation() {
+    use rune_model::{Activity, ActivityKind, Party, Presence, Status};
+    let mut host = Host::new();
+    let room = host.vz_join("Sala común");
+    let doer = host.vz_other(room);
+    host.event(Event::PresenceChanged {
+        user: doer,
+        presence: Presence {
+            status: Status::Online,
+            activities: vec![Activity {
+                kind: ActivityKind::Listening,
+                name: "Spotify".into(),
+                detail: Some("Radio".into()),
+                state: Some("Trío Ferroso; Ana Ruiz".into()),
+                party: Some(Party {
+                    id: Some("spotify:21".into()),
+                    size: None,
+                }),
+                sync_id: Some("0000000000000000000021".into()),
+                ..Default::default()
+            }],
+            ..Presence::default()
+        },
+    });
+    host.rows_point(&ids::row(doer.0));
+    let shown = host.vz_texts();
+    for expected in [
+        "Escuchando ahora",
+        "Radio",
+        "Trío Ferroso, Ana Ruiz",
+        "Escuchar en Spotify",
+    ] {
+        assert!(
+            shown.contains(&expected.to_owned()),
+            "{expected} in {shown:?}"
+        );
+    }
+    // The simulation opens no track: the button is shown, and off.
+    let open = format!("vz:live:activity:{}:0:spotify", doer.0);
+    assert!(host.vz_shows(&open) && !host.vz_usable(&open));
+}

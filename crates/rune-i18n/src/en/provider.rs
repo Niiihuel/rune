@@ -146,6 +146,10 @@ pub(super) const ENTRIES: super::Entries = &[
     ("cambiar la expresión", "change the expression"),
     ("cambiar el perfil", "change the profile"),
     ("cargar el perfil", "load the profile"),
+    (
+        "abrir el enlace de la actividad",
+        "open the activity's link",
+    ),
     ("cambiar los mensajes fijados", "change the pinned messages"),
     ("cargar los mensajes fijados", "load the pinned messages"),
     ("cambiar la relación", "change the relationship"),
@@ -368,6 +372,10 @@ pub(super) const ENTRIES: super::Entries = &[
         "We couldn't find that message in this context.",
     ),
     ("rechazado (fallo simulado)", "rejected (simulated failure)"),
+    (
+        "Simulado: los botones de las apps no abren enlaces",
+        "Simulated: app buttons don't open links",
+    ),
     (
         "estás aislado en este servidor (simulado)",
         "you're timed out in this server (simulated)",

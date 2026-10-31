@@ -288,6 +288,8 @@ impl Messages {
             }
             // Desktop (P6): about no conversation; checked as they arrive.
             Command::SetLocalActivity(_) | Command::LoadDetectableGames => return Ok(()),
+            // An app's link is read as it arrives; `http::activity_button` checks its session id.
+            Command::OpenActivityButton { .. } => return Ok(()),
             // Streams (transmisiones): checked as they arrive, against the
             // channel and the account's own stream; nobody waits on them.
             Command::LoadStreamPreview { .. } | Command::UploadStreamPreview { .. } => {

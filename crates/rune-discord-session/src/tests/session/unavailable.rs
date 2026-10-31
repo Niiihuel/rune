@@ -159,7 +159,7 @@ classified! {
     ModerateVoice, SetLocalActivity, LoadDetectableGames, LoadStickerPacks, SearchGifs,
     SuggestGifs, LoadServerProfile, ReorderChannels, LoadRoleCounts, WatchPeople, RingCall,
     StopRinging, WatchServer, CheckCall, LoadServerRules, AnswerServerRules, LoadOnboarding,
-    AnswerOnboarding, SaveOnboarding, MuteThread, SetActivitySharing,
+    AnswerOnboarding, SaveOnboarding, MuteThread, SetActivitySharing, OpenActivityButton,
     // Scheduled events (eventos-programados).
     LoadScheduledEvents, LoadEventInterested, SetEventInterest, CreateScheduledEvent,
     EditScheduledEvent, SetScheduledEventStatus, DeleteScheduledEvent,
@@ -417,6 +417,13 @@ fn samples() -> Vec<Command> {
             server: Some(SERVER),
             channel: VOICE,
             owner: PEER,
+        },
+        Command::OpenActivityButton {
+            request: 47,
+            user: PEER,
+            session: "simulado".into(),
+            application: None,
+            index: 0,
         },
         Command::CreateGroup {
             request: 15,

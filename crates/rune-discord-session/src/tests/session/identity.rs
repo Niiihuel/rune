@@ -339,3 +339,80 @@ async fn an_activity_without_pictures_is_told_again_with_its_applications_icon()
         "no second read"
     );
 }
+
+#[tokio::test]
+async fn an_activity_button_gives_the_link_its_app_answers_and_no_other() {
+    let mut app = Harness::new().await;
+    guild_channel(&mut app, VIEW_AND_SEND).await;
+    // The second button's link, read from the activity's app at its place.
+    app.running
+        .commands
+        .send(Command::OpenActivityButton {
+            request: 7,
+            user: rune_model::UserId(11),
+            session: "abc_123".into(),
+            application: Some(42),
+            index: 1,
+        })
+        .await
+        .unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(request.starts_with("GET /api/v10/users/11/sessions/abc_123/activities/42/metadata "));
+    reply
+        .send(response(
+            200,
+            &json!({"button_urls": ["javascript:alert(1)", "https://tracker.example/match/9"]})
+                .to_string(),
+        ))
+        .unwrap();
+    assert!(matches!(
+        app.next_data().await,
+        Event::ActivityButtonUrl { request: 7, url } if url == "https://tracker.example/match/9"
+    ));
+    // A link that is not one a person may open is refused, with nothing else asked.
+    app.running
+        .commands
+        .send(Command::OpenActivityButton {
+            request: 8,
+            user: rune_model::UserId(11),
+            session: "abc_123".into(),
+            application: None,
+            index: 0,
+        })
+        .await
+        .unwrap();
+    let (request, reply) = app.pending().await;
+    assert!(request.starts_with("GET /api/v10/users/11/sessions/abc_123/activities/0/metadata "));
+    reply
+        .send(response(
+            200,
+            &json!({"button_urls": ["javascript:alert(1)"]}).to_string(),
+        ))
+        .unwrap();
+    assert!(matches!(
+        app.next_data().await,
+        Event::Failed {
+            failure: Failure::ActivityButton { request: 8 },
+            ..
+        }
+    ));
+    // A session id with other characters never reaches a path.
+    app.running
+        .commands
+        .send(Command::OpenActivityButton {
+            request: 9,
+            user: rune_model::UserId(11),
+            session: "../me".into(),
+            application: None,
+            index: 0,
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        app.next_data().await,
+        Event::Failed {
+            failure: Failure::ActivityButton { request: 9 },
+            ..
+        }
+    ));
+}

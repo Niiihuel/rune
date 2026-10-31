@@ -186,6 +186,11 @@ pub enum Applied {
     User(UserId),
     /// Someone's profile, asked for, arrived.
     Profile(UserId),
+    /// The link of an activity's button arrived: the interface opens it.
+    ActivityButtonUrl {
+        request: RequestId,
+        url: String,
+    },
     /// A server's bans arrived.
     Bans(ServerId),
     /// A page of a server's audit log arrived.
@@ -964,6 +969,9 @@ impl Store {
                 Applied::Nothing
             }
             Event::ProfileLoaded { request, profile } => self.loaded_profile(request, profile),
+            Event::ActivityButtonUrl { request, url } => {
+                Applied::ActivityButtonUrl { request, url }
+            }
             Event::ProfileChanged(profile) => self.profile_changed(profile),
             Event::MemberListChanged(list) => self.member_list_changed(list),
             Event::ContextLoaded {
@@ -1346,6 +1354,8 @@ impl Store {
             Failure::Unread { .. } | Failure::ServerRead { .. } | Failure::Search { .. } => {}
             // See `interaction_failed`.
             Failure::AppCommands { .. } | Failure::Interaction { .. } => {}
+            // Nothing of an activity's link changes here: the interface says so.
+            Failure::ActivityButton { .. } => {}
             // Message actions (P4): nothing of them is shown ahead; the
             // interface owns its requests' errors.
             Failure::Forward { .. }

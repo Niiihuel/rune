@@ -1,30 +1,60 @@
-//! The card of someone live beside their row under a voice channel in the
-//! column (voz-filas-y-arrastre): as the official client's preview of a
-//! stream, the pointer on the row shows who streams, what, the latest
-//! picture of it (asked for as [`crate::video::stream_previews`] does) and
-//! «Ver transmisión».
+//! The card of someone beside their row under a voice channel in the column
+//! (voz-filas-y-arrastre): as the official client's voice popout, the pointer
+//! on the row shows who streams, what, the latest picture of it (asked for as
+//! [`crate::video::stream_previews`] does) and «Mirar transmisión», then what
+//! the person does: the activities they list.
 
 use std::time::Instant;
 
-use rune_components::voice::{ids, LiveCard, Thumbnail};
+use rune_components::voice::{ids, LiveCard, LiveStream, Thumbnail};
 use rune_i18n::t;
 use rune_model::{ActivityKind, ChannelId, UserId};
 use rune_state::Store;
 
 use crate::{Intent, Ui};
 
-/// The card of `user`, live in `channel` under the name `name`; `None`
-/// while someone is carried to another channel.
+/// The card of `user`, in `channel` under the name `name`: their stream when
+/// `streaming` (never the account's own, which has nothing to watch), and the
+/// activities they list. `None` while someone is carried to another channel,
+/// or when there is nothing to show.
 pub(crate) fn card(
     ui: &Ui,
     store: &Store,
     channel: ChannelId,
     user: UserId,
     name: &str,
+    streaming: bool,
 ) -> Option<LiveCard> {
     if ui.voice_drag.is_some() {
         return None;
     }
+    let presence = store.presence(user);
+    let activities = crate::identity::listed(&presence.activities)
+        .into_iter()
+        .map(|(index, activity)| {
+            crate::identity::activity_card(
+                ui,
+                store,
+                user,
+                index,
+                activity,
+                store.wall(),
+                crate::identity::LIVE_ACTIVITY,
+            )
+        })
+        .collect::<Vec<_>>();
+    let stream = (streaming && store.me() != Some(user)).then(|| stream(ui, store, channel, user));
+    (stream.is_some() || !activities.is_empty()).then(|| LiveCard {
+        user: user.0,
+        name: name.to_owned(),
+        stream,
+        activities,
+    })
+}
+
+/// The stream of `user` live in `channel`: the latest picture of it, whether
+/// it can be watched, and what they stream.
+fn stream(ui: &Ui, store: &Store, channel: ChannelId, user: UserId) -> LiveStream {
     let simulated = crate::voice::simulated(store);
     let offered = store
         .provider
@@ -58,13 +88,11 @@ pub(crate) fn card(
         .iter()
         .find(|activity| activity.kind == ActivityKind::Playing)
         .map(|activity| activity.name.clone());
-    Some(LiveCard {
-        user: user.0,
-        name: name.to_owned(),
+    LiveStream {
         activity,
         picture,
         watch,
-    })
+    }
 }
 
 /// «Ver transmisión» on the card: the stream is watched and the call's

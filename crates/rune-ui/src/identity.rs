@@ -3,17 +3,20 @@
 //! what they are doing with their times, where they are connected from,
 //! their badges and connected accounts, and the pictures all that needs.
 
+use std::collections::HashSet;
 use std::time::Duration;
 
 use limn::UiAction;
 use rune_components::identity::{
-    ActivityCard, ActivityKind, ActivityTime, BadgeChip, CardEffect, CardIdentity, ConnectionRow,
-    Marks, Plate, Platform, RoleMark, TagChip, TextPicture,
+    ActivityButton, ActivityCard, ActivityKind, ActivityTime, BadgeChip, CardEffect, CardIdentity,
+    ConnectionRow, Marks, Plate, Platform, RoleMark, SpotifyCard, TagChip, TextPicture,
 };
+use rune_components::voice::GameMark;
 use rune_components::Look;
-use rune_i18n::tr;
-use rune_model::{Presence, RemoteImage, Role, ServerId, Timestamp, UserId};
-use rune_state::Store;
+use rune_i18n::t;
+use rune_model::{Activity, RemoteImage, Role, ServerId, Timestamp, UserId};
+use rune_provider::Command;
+use rune_state::{Applied, Store};
 
 use crate::{Intent, Ui};
 
@@ -130,47 +133,167 @@ fn kind(kind: rune_model::ActivityKind) -> ActivityKind {
     }
 }
 
-/// The cards of what someone does, with their times at `wall`.
-pub(crate) fn activity_cards(ui: &Ui, presence: &Presence, wall: Timestamp) -> Vec<ActivityCard> {
-    use rune_components::identity::clock;
+/// The id prefixes of an activity's buttons and Spotify track: on a profile,
+/// and on a card beside a voice row (two cards can show the same person).
+const PROFILE_ACTIVITY: &str = "activity:";
+pub(crate) const LIVE_ACTIVITY: &str = "vz:live:activity:";
+
+/// The card of `activity`, the `index`th of `user`'s presence, with its times
+/// at `wall`; its buttons take ids under `prefix`.
+pub(crate) fn activity_card(
+    ui: &Ui,
+    store: &Store,
+    user: UserId,
+    index: usize,
+    activity: &Activity,
+    wall: Timestamp,
+    prefix: &str,
+) -> ActivityCard {
+    let seconds = |from: Timestamp, to: Timestamp| (to.0 - from.0) / 1000;
+    let time = match (activity.started, activity.ends) {
+        (Some(start), Some(end)) if activity.is_track() => Some(ActivityTime::Track {
+            at: seconds(start, wall.min(end)),
+            length: seconds(start, end),
+            progress: activity.progress(wall).unwrap_or(0.0),
+        }),
+        // A countdown: an end and no start. Past its end it shows nothing.
+        (None, Some(end)) => (end > wall).then(|| ActivityTime::Remaining(seconds(wall, end))),
+        _ => activity
+            .timer_start()
+            .filter(|start| *start <= wall)
+            .map(|start| ActivityTime::Elapsed(seconds(start, wall))),
+    };
+    // Without a large picture the small one takes its place, as the official
+    // client shows it.
+    let (large, small) = match (&activity.image, &activity.small_image) {
+        (None, Some(small)) => (Some(small), None),
+        (large, small) => (large.as_ref(), small.as_ref()),
+    };
+    // A button is asked of the session it runs in: without one it says why.
+    let buttons = activity
+        .buttons
+        .iter()
+        .enumerate()
+        .map(|(button, label)| ActivityButton {
+            label: label.clone(),
+            id: format!("{prefix}{}:{index}:button:{button}", user.0),
+            enabled: match activity.session {
+                Some(_) => Ok(()),
+                None => Err(t("No disponible en esta conexión.").to_owned()),
+            },
+        })
+        .collect();
+    ActivityCard {
+        kind: kind(activity.kind),
+        name: activity.name.clone(),
+        detail: activity.detail.clone(),
+        state: activity.artists().or_else(|| activity.state.clone()),
+        party: activity.party.as_ref().and_then(|party| party.size),
+        spotify: activity.is_spotify().then(|| SpotifyCard {
+            id: format!("{prefix}{}:{index}:spotify", user.0),
+            open: spotify_open(store, activity),
+        }),
+        large_text: activity.large_text.clone(),
+        image: ui.picture(large),
+        small_image: ui.picture(small),
+        time,
+        buttons,
+    }
+}
+
+/// Where a Spotify track's button goes: its page, or why it cannot go there.
+fn spotify_open(store: &Store, activity: &Activity) -> Result<String, String> {
+    if store
+        .provider
+        .as_ref()
+        .is_some_and(|info| info.kind == rune_provider::ProviderKind::Simulated)
+    {
+        return Err(t("Simulado: no abre Spotify").to_owned());
+    }
+    activity
+        .spotify_track_url()
+        .ok_or_else(|| t("No disponible en esta conexión.").to_owned())
+}
+
+/// The cards of everything `user` does, with their times at `wall`.
+pub(crate) fn activity_cards(
+    ui: &Ui,
+    store: &Store,
+    user: UserId,
+    wall: Timestamp,
+) -> Vec<ActivityCard> {
+    let presence = store.presence(user);
     presence
         .activities
         .iter()
-        .map(|activity| {
-            let seconds = |from: Timestamp, to: Timestamp| (to.0 - from.0) / 1000;
-            let time = match (activity.started, activity.ends) {
-                (Some(start), Some(end)) if activity.is_track() => Some(ActivityTime::Track {
-                    at: clock(seconds(start, wall.min(end))),
-                    length: clock(seconds(start, end)),
-                    progress: activity.progress(wall).unwrap_or(0.0),
-                }),
-                (_, Some(end)) if end > wall => Some(ActivityTime::Remaining(tr!(
-                    "{time} restantes",
-                    time = clock(seconds(wall, end))
-                ))),
-                (Some(start), _) if start <= wall => Some(ActivityTime::Elapsed(tr!(
-                    "{time} transcurridos",
-                    time = clock(seconds(start, wall))
-                ))),
-                _ => None,
-            };
-            // Without a large picture the small one takes its place, as
-            // the official client shows it.
-            let (large, small) = match (&activity.image, &activity.small_image) {
-                (None, Some(small)) => (Some(small), None),
-                (large, small) => (large.as_ref(), small.as_ref()),
-            };
-            ActivityCard {
-                kind: kind(activity.kind),
-                name: activity.name.clone(),
-                detail: activity.detail.clone(),
-                state: activity.state.clone(),
-                image: ui.picture(large),
-                small_image: ui.picture(small),
-                time,
-            }
+        .enumerate()
+        .map(|(index, activity)| {
+            activity_card(ui, store, user, index, activity, wall, PROFILE_ACTIVITY)
         })
         .collect()
+}
+
+/// What a voice card lists of `activities`, with their places: a game or a
+/// watch that has something to show, and every listening; an application
+/// once. Competing and streams are not listed, as Discord's list.
+pub(crate) fn listed(activities: &[Activity]) -> Vec<(usize, &Activity)> {
+    let mut seen = HashSet::new();
+    let mut listed = Vec::new();
+    for (index, activity) in activities.iter().enumerate() {
+        let shown = match activity.kind {
+            rune_model::ActivityKind::Listening => true,
+            rune_model::ActivityKind::Playing | rune_model::ActivityKind::Watching => {
+                !activity.name.is_empty()
+                    || activity.application.is_some()
+                    || activity.image.is_some()
+                    || activity.small_image.is_some()
+                    || activity.state.is_some()
+                    || activity.detail.is_some()
+                    || activity.party.is_some()
+            }
+            rune_model::ActivityKind::Competing | rune_model::ActivityKind::Streaming => false,
+        };
+        let key = match activity.application {
+            Some(application) => format!("app:{application}"),
+            None => format!("name:{}", activity.name),
+        };
+        if shown && seen.insert(key) {
+            listed.push((index, activity));
+        }
+    }
+    listed
+}
+
+/// The game `user` plays, with its picture, for the mark at the end of their
+/// row in voice; `None` while it has no picture to show.
+pub(crate) fn game_mark(ui: &Ui, store: &Store, user: UserId) -> Option<GameMark> {
+    let (name, picture) = game(store, user)?;
+    Some(GameMark {
+        name,
+        image: ui.picture(Some(&picture))?,
+    })
+}
+
+/// The first activity `user` plays, with the picture it has (the session
+/// fills in its application's when it has none of its own).
+fn game(store: &Store, user: UserId) -> Option<(String, RemoteImage)> {
+    let presence = store.presence(user);
+    let activity = presence
+        .activities
+        .iter()
+        .find(|activity| activity.kind == rune_model::ActivityKind::Playing)?;
+    let picture = activity
+        .image
+        .clone()
+        .or_else(|| activity.small_image.clone())?;
+    Some((activity.name.clone(), picture))
+}
+
+/// The person a voice card's id names: `vz:live:{kind}:{user}…`.
+fn live_user(id: &str) -> Option<u64> {
+    let mut parts = id.strip_prefix("vz:live:")?.split(':');
+    parts.next()?;
+    parts.next()?.parse().ok()
 }
 
 /// What `user`'s card shows beyond who they are, as seen in `server`;
@@ -228,7 +351,7 @@ pub(crate) fn card(
             mobile: false,
             ..marks(ui, store, server, user, look)
         },
-        activities: activity_cards(ui, &presence, store.wall()),
+        activities: activity_cards(ui, store, user, store.wall()),
         platforms,
         badges,
         role_marks: roles.iter().map(|role| role_mark(ui, role)).collect(),
@@ -421,6 +544,7 @@ fn hovered(ui: &Ui, store: &Store, tree: &limn::UiTree) -> Option<UserId> {
     member
         .or_else(|| number("vz:user:"))
         .or_else(|| number("vz:tile:"))
+        .or_else(|| live_user(id))
         .map(UserId)
 }
 
@@ -472,6 +596,22 @@ pub(crate) fn shown(ui: &Ui, store: &Store) -> Option<(UserId, Option<ServerId>)
 
 /// The pictures of the profile shown: activities, badges and marks.
 pub(crate) fn wanted(ui: &Ui, store: &Store, add: &mut dyn FnMut(Option<&RemoteImage>)) {
+    // The pictures of the card beside the row under the pointer, and of the
+    // games played in voice (their marks at the end of the rows).
+    if let Some(user) = ui.profiles.hovered {
+        let presence = store.presence(user);
+        for (_, activity) in listed(&presence.activities) {
+            add(activity.image.as_ref());
+            add(activity.small_image.as_ref());
+        }
+    }
+    for voice in store.voice_by_server().values() {
+        for state in &voice.people {
+            if let Some((_, picture)) = game(store, state.user) {
+                add(Some(&picture));
+            }
+        }
+    }
     let Some((user, server)) = shown(ui, store) else {
         return;
     };
@@ -541,26 +681,43 @@ pub(crate) fn face_marks(
     }
 }
 
-/// When a card shown next changes by itself: each second while it shows
-/// a time that moves, and when a layer of its effect comes or goes.
+/// When a card shown next changes by itself: each second while it shows a
+/// time that moves (the profile shown, or the card beside the row under the
+/// pointer, when its person is in voice), and when a layer of its effect
+/// comes or goes.
 pub fn activity_tick(ui: &Ui, store: &Store) -> Option<Duration> {
-    let (user, server) = shown(ui, store)?;
-    let timed = store
-        .presence(user)
-        .activities
-        .iter()
-        .any(|activity| activity.started.is_some() || activity.ends.is_some());
-    let second = timed.then(|| 1000 - store.wall().0.rem_euclid(1000));
-    let elapsed = effect_elapsed(ui, store, user, server);
-    let layer = effect(ui, store, user, server)
-        .filter(|_| !ui.reduced_motion)
-        .and_then(|effect| {
-            effect
-                .layers
-                .iter()
-                .filter_map(|layer| layer.changes_in(elapsed))
-                .min()
-        });
+    let timed = |user: UserId| {
+        store
+            .presence(user)
+            .activities
+            .iter()
+            .any(|activity| activity.started.is_some() || activity.ends.is_some())
+    };
+    let listed_timed = |user: UserId| {
+        let presence = store.presence(user);
+        listed(&presence.activities)
+            .iter()
+            .any(|(_, activity)| activity.started.is_some() || activity.ends.is_some())
+    };
+    let shown = shown(ui, store);
+    let hovered = ui
+        .profiles
+        .hovered
+        .filter(|user| store.voice_state_of(*user).is_some() && listed_timed(*user));
+    let second = (hovered.is_some() || shown.is_some_and(|(user, _)| timed(user)))
+        .then(|| 1000 - store.wall().0.rem_euclid(1000));
+    let layer = shown.and_then(|(user, server)| {
+        let elapsed = effect_elapsed(ui, store, user, server);
+        effect(ui, store, user, server)
+            .filter(|_| !ui.reduced_motion)
+            .and_then(|effect| {
+                effect
+                    .layers
+                    .iter()
+                    .filter_map(|layer| layer.changes_in(elapsed))
+                    .min()
+            })
+    });
     [second, layer]
         .into_iter()
         .flatten()
@@ -568,12 +725,40 @@ pub fn activity_tick(ui: &Ui, store: &Store) -> Option<Duration> {
         .map(|ms| Duration::from_millis(ms.max(1) as u64))
 }
 
-/// A badge's or a connected account's link, clicked on the profile shown.
-pub(crate) fn update(ui: &Ui, store: &Store, action: &UiAction) -> Option<Vec<Intent>> {
+/// What an activity's card asks for: a rich-presence button, by its number,
+/// or the Spotify track.
+enum ActivityAction {
+    Button(u8),
+    Spotify,
+}
+
+/// The person, the activity's place and what its card asks for, from the id
+/// the card gave it.
+fn activity_action(id: &str) -> Option<(UserId, usize, ActivityAction)> {
+    let rest = id
+        .strip_prefix(PROFILE_ACTIVITY)
+        .or_else(|| id.strip_prefix(LIVE_ACTIVITY))?;
+    let mut parts = rest.split(':');
+    let user = UserId(parts.next()?.parse().ok()?);
+    let index = parts.next()?.parse().ok()?;
+    let action = match parts.next()? {
+        "spotify" => ActivityAction::Spotify,
+        "button" => ActivityAction::Button(parts.next()?.parse().ok()?),
+        _ => return None,
+    };
+    Some((user, index, action))
+}
+
+/// A badge's or a connected account's link on the profile shown, or a button
+/// or Spotify track of an activity on a card.
+pub(crate) fn update(ui: &mut Ui, store: &Store, action: &UiAction) -> Option<Vec<Intent>> {
     use rune_components::identity::ids;
     let UiAction::Clicked { id } = action else {
         return None;
     };
+    if let Some((user, index, what)) = activity_action(id) {
+        return Some(activity_pressed(ui, store, user, index, what));
+    }
     let (user, server) = shown(ui, store)?;
     let loaded = store.profile(user, server);
     let link = if let Some(index) = id.strip_prefix(ids::BADGE) {
@@ -586,6 +771,49 @@ pub(crate) fn update(ui: &Ui, store: &Store, action: &UiAction) -> Option<Vec<In
         return None;
     };
     Some(link.map(Intent::OpenUrl).into_iter().collect())
+}
+
+/// A button asks its app for its link, which comes back to `on_applied`; the
+/// Spotify track's page goes through the link flow.
+fn activity_pressed(
+    ui: &mut Ui,
+    store: &Store,
+    user: UserId,
+    index: usize,
+    what: ActivityAction,
+) -> Vec<Intent> {
+    let presence = store.presence(user);
+    let Some(activity) = presence.activities.get(index) else {
+        return Vec::new();
+    };
+    match what {
+        ActivityAction::Button(button) => {
+            // Without a session the button is disabled, so none is asked for.
+            let Some(session) = activity.session.clone() else {
+                return Vec::new();
+            };
+            let request = ui.fresh_request();
+            vec![Intent::Command(Command::OpenActivityButton {
+                request,
+                user,
+                session,
+                application: activity.application,
+                index: button,
+            })]
+        }
+        ActivityAction::Spotify => match spotify_open(store, activity) {
+            Ok(url) => crate::message_actions::links::external(ui, store, &url, false),
+            Err(_) => Vec::new(),
+        },
+    }
+}
+
+/// A button's link arrived: it opens through the link flow, which asks first.
+pub(crate) fn on_applied(ui: &mut Ui, store: &Store, applied: &Applied) -> Vec<Intent> {
+    let Applied::ActivityButtonUrl { url, .. } = applied else {
+        return Vec::new();
+    };
+    crate::message_actions::links::external(ui, store, url, false)
 }
 
 /// What may play now: the decoration and nameplate of whoever is under the

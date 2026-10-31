@@ -401,6 +401,17 @@ pub enum Command {
         /// nothing of them is asked for (2026-10-18).
         effect: bool,
     },
+    /// The link of rich-presence button `index` (0 or 1) of `user`'s activity
+    /// in `session`, which the service asks the app for (`application`, when
+    /// the activity has one). Needs [`Capabilities::activity_buttons`];
+    /// answered by [`Event::ActivityButtonUrl`], or by [`Event::Failed`].
+    OpenActivityButton {
+        request: RequestId,
+        user: UserId,
+        session: String,
+        application: Option<u64>,
+        index: u8,
+    },
     /// Keep `server`'s member list, as seen from `channel`, current around
     /// its rows `first..=last` (the ones in view), answered by
     /// [`Event::MemberListChanged`] as it changes. Replaces any list watched.
@@ -1359,6 +1370,10 @@ pub enum Failure {
         request: RequestId,
         user: UserId,
     },
+    /// Opening the link of an activity's button.
+    ActivityButton {
+        request: RequestId,
+    },
     /// Pinning or unpinning a message.
     Pin {
         channel: ChannelId,
@@ -1724,6 +1739,9 @@ impl Failure {
                 request: *request,
                 user: *user,
             },
+            Command::OpenActivityButton { request, .. } => Self::ActivityButton {
+                request: *request,
+            },
             Command::PinMessage { channel, message }
             | Command::UnpinMessage { channel, message } => Self::Pin {
                 channel: *channel,
@@ -1994,6 +2012,7 @@ impl Failure {
             Self::Expression { .. } => t("cambiar la expresión"),
             Self::Profile => t("cambiar el perfil"),
             Self::ProfileLoad { .. } => t("cargar el perfil"),
+            Self::ActivityButton { .. } => t("abrir el enlace de la actividad"),
             Self::Pin { .. } => t("cambiar los mensajes fijados"),
             Self::Pins { .. } => t("cargar los mensajes fijados"),
             Self::Relationship { .. } => t("cambiar la relación"),
@@ -2251,6 +2270,13 @@ pub enum Event {
     ProfileLoaded {
         request: RequestId,
         profile: rune_model::UserProfile,
+    },
+    /// The link of the button asked for with [`Command::OpenActivityButton`].
+    /// It is the app's own address: the interface opens it only through the
+    /// link flow, which asks first.
+    ActivityButtonUrl {
+        request: RequestId,
+        url: String,
     },
     /// The watched member list as it is now. The people in it arrive first,
     /// as [`Event::UserChanged`] and [`Event::MemberChanged`].
@@ -2991,6 +3017,9 @@ pub struct Capabilities {
     /// ([`Command::SetActivitySharing`]), and its sessions say whether the
     /// activity published is seen ([`Event::ActivityVisibility`]).
     pub activity_sharing: bool,
+    /// An activity's rich-presence buttons open their links, asked of the
+    /// service ([`Command::OpenActivityButton`]).
+    pub activity_buttons: bool,
     // Icon, banner and community (2026-10-18).
     /// A server's banner can be changed ([`ServerEdit::banner`]).
     pub server_banner: bool,

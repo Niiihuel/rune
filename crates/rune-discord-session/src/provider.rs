@@ -93,6 +93,7 @@ impl RestPhase {
                 | Command::LoadThreads { .. }
                 | Command::SearchMessages { .. }
                 | Command::CheckCall { .. }
+                | Command::OpenActivityButton { .. }
         ) && !crate::admin::is_read(command)
             && !crate::message_actions::is_read(command)
             && !crate::onboarding::is_read(command)
@@ -1019,6 +1020,8 @@ impl DiscordSessionProvider {
                             | Command::SaveOnboarding { .. }
                             // Desktop session and games: `account::allowed`.
                             | Command::SetActivitySharing(_)
+                            // An activity's button: checked as it arrives (`messages::allowed`).
+                            | Command::OpenActivityButton { .. }
                             // Scheduled events: `events::allowed`.
                             | Command::LoadScheduledEvents { .. } | Command::LoadEventInterested { .. }
                             | Command::SetEventInterest { .. } | Command::CreateScheduledEvent { .. }
@@ -2832,6 +2835,9 @@ impl Provider for DiscordSessionProvider {
                 // `settings-proto/1` and `SESSIONS_REPLACE`, as Serein reads
                 // them; fixtures only.
                 activity_sharing: true,
+                // An app's button link, by the activity metadata route the
+                // official client reads (REA); fixtures only.
+                activity_buttons: true,
                 // A server's banner and becoming a community, by the
                 // documented guild route the official client saves with
                 // (REA, 2026-10-18); fixtures only.
