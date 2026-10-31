@@ -123,9 +123,14 @@ pub mod ids {
         format!("vz:mute:{user}")
     }
 
-    /// «Mirar transmisión» on the tile of someone streaming.
+    /// «Mirar transmisión» on the tile of a stream nobody watches.
     pub fn watch(user: u64) -> String {
         format!("vz:watch:{user}")
+    }
+
+    /// The tile of that stream as a whole: a click watches it, as `watch` does.
+    pub fn watch_tile(user: u64) -> String {
+        format!("vz:stream-tile:{user}")
     }
 
     // Rows in the column (voz-filas-y-arrastre).
@@ -402,6 +407,8 @@ const OVER_INK: Color = Color::rgb(255, 255, 255);
 /// The name of a tile, and the labels over its picture: black at 56 %, as
 /// Discord's name label (REA §2.3).
 const PILL: Color = Color::rgba(0, 0, 0, 143);
+/// The ground of a stream nobody watches: Discord's stream preview, #1E1F22.
+const STREAM_GROUND: Color = Color::rgb(30, 31, 34);
 /// The round buttons over a picture, 32 across.
 const OVER_BUTTON: f32 = 32.0;
 
@@ -1714,27 +1721,32 @@ fn pill(content: Element) -> Element {
         .shrink_to_fit()
 }
 
-/// A person's name in a pill at the bottom left of their tile, their marks
-/// before it: 16 px, or 14 on a tile 220 wide or less. `None` on a tile 124
-/// wide or less, where it is hidden (REA §2.1).
-pub(crate) fn tile_name(person: &Participant, size: Size, look: &Look) -> Option<Element> {
+/// A name in a pill at the bottom left of a tile, `marks` before it: 16 px,
+/// or 14 on a tile 220 wide or less. `None` on a tile 124 wide or less, where
+/// it is hidden (REA §2.1).
+fn name_tag(name: &str, marks: Vec<Element>, size: Size) -> Option<Element> {
     if size.width <= 124.0 {
         return None;
     }
     let font = if size.width > 220.0 { 16.0 } else { 14.0 };
     // Padding 6 all round; the 2 at each end make the pill 8 across.
     let mut parts = vec![gap(2.0, 0.0)];
-    for mark in marks(person, &ids::tile(person.user), OVER_INK, look) {
+    for mark in marks {
         parts.push(mark.centered_y());
         parts.push(gap(4.0, 0.0));
     }
-    parts.push(
-        line(&person.name, font, OVER_INK)
-            .centered_y()
-            .shrink_to_fit(),
-    );
+    parts.push(line(name, font, OVER_INK).centered_y().shrink_to_fit());
     parts.push(gap(2.0, 0.0));
     Some(pill(Element::row(parts).padding(6.0)))
+}
+
+/// A person's name on their tile, their marks before it (see [`name_tag`]).
+pub(crate) fn tile_name(person: &Participant, size: Size, look: &Look) -> Option<Element> {
+    name_tag(
+        &person.name,
+        marks(person, &ids::tile(person.user), OVER_INK, look),
+        size,
+    )
 }
 
 /// A note over a tile's picture at its top left, such as «Cámara simulada»:
@@ -1767,8 +1779,8 @@ fn speaking_edge(size: Size, look: &Look) -> Element {
     .border(look.online, 2.0)
 }
 
-/// «Mirar transmisión» in the middle of a tile of someone streaming, «Ver»
-/// on a tile under 175 wide. Disabled with its reason when it cannot be used.
+/// «Mirar transmisión» in the middle of a stream's tile, «Ver» on a tile
+/// under 175 wide. Disabled with its reason when it cannot be used.
 fn watch_button(
     person: &Participant,
     size: Size,
@@ -1791,17 +1803,69 @@ fn watch_button(
     }
 }
 
+/// The tile of a live stream nobody watches, after its streamer's (REA §1.1,
+/// §2.7): the picture when known, dimmed as a watched stream's, on Discord's
+/// stream ground; «EN VIVO» top right, «Vista previa simulada» top left in the
+/// simulation, the watch button in the middle, and the streamer's name in the
+/// pill. No face, so nothing sits under the button. A click watches the
+/// stream, as the button does, when the account may.
+fn watch_tile(
+    person: &Participant,
+    size: Size,
+    watch: &Result<(), String>,
+    look: &Look,
+) -> Element {
+    let picture = match &person.thumbnail {
+        Some(Thumbnail::Image(image)) => Element::stack(vec![
+            Element::raster_image(image.clone().cover()).size(Some(size.width), Some(size.height)),
+            Element::panel(Element::spacer())
+                .size(Some(size.width), Some(size.height))
+                .background(Look::alpha(Color::rgb(0, 0, 0), 96)),
+        ]),
+        _ => Element::spacer().size(Some(size.width), Some(size.height)),
+    };
+    let ground = Element::panel(picture)
+        .size(Some(size.width), Some(size.height))
+        .radius(TILE_RADIUS)
+        .background(STREAM_GROUND)
+        .clip_children();
+    let mut left = Vec::new();
+    if person.thumbnail == Some(Thumbnail::Simulated) {
+        left.push(caption(t("Vista previa simulada")));
+    }
+    let top = Element::row(vec![
+        Element::row(left).gap(6.0),
+        Element::spacer().flex(1.0),
+        live(16.0, 12.0, look),
+    ])
+    .padding(8.0);
+    let middle = centered(watch_button(person, size, watch, look)).flex(1.0);
+    let mut bottom: Vec<Element> = name_tag(&person.name, Vec::new(), size)
+        .into_iter()
+        .map(Element::shrink_to_fit)
+        .collect();
+    bottom.push(Element::spacer().flex(1.0));
+    let bottom = Element::row(bottom).padding(margin(size));
+    let shown = Element::stack(vec![ground, Element::column(vec![top, middle, bottom])])
+        .size(Some(size.width), Some(size.height));
+    let shown = match watch {
+        Ok(()) => Element::clickable(ids::watch_tile(person.user), shown),
+        Err(_) => shown,
+    };
+    shown.accessibility_label(tr!("Transmisión de {name}", name = person.name))
+}
+
 /// A person on the stage: their picture on their color, or their camera
 /// («Cámara simulada» over it when `simulated`), and their name in a pill at
 /// the bottom left with their marks. Under the pointer a «⋯» opens their menu
 /// (`menu`, while open). Their card floats beside the name while open, or
 /// beside the tile when it has no name. Outlined in green while they speak.
+/// Their stream is a tile of its own, see [`watch_tile`].
 fn tile(
     person: &Participant,
     size: Size,
     card: Option<Element>,
     menu: Option<Vec<MenuEntry>>,
-    watch: Option<&Result<(), String>>,
     simulated: bool,
     look: &Look,
 ) -> Element {
@@ -1848,49 +1912,18 @@ fn tile(
     bottom.push(Element::spacer().flex(1.0));
     bottom.push(more);
     let bottom = Element::row(bottom).padding(margin(size));
-    // Simulated things say so at the top left; someone streaming is live at
-    // the top right, and watched from the middle unless watched.
+    // Simulated things say so at the top left.
     let mut left = Vec::new();
-    let mut right = Vec::new();
-    let mut middle = Element::spacer().flex(1.0);
     if person.camera.is_some() && simulated {
         left.push(caption(t("Cámara simulada")));
-    }
-    if person.streaming {
-        right.push(live(16.0, 12.0, look));
-        // Streams (transmisiones): the simulation has no picture to show.
-        if person.thumbnail == Some(Thumbnail::Simulated) {
-            left.push(caption(t("Vista previa simulada")));
-        }
-        if let Some(permit) = watch {
-            middle = centered(watch_button(person, size, permit, look)).flex(1.0);
-        }
     }
     let top = Element::row(vec![
         Element::row(left).gap(6.0),
         Element::spacer().flex(1.0),
-        Element::row(right),
     ])
     .padding(8.0);
-    let over = Element::column(vec![top, middle, bottom]);
-    // Streams (transmisiones): the latest picture of their stream, dimmed so
-    // what is over it reads, as the official client shows it.
-    let streamed = match &person.thumbnail {
-        Some(Thumbnail::Image(image)) if person.streaming => Some(image),
-        _ => None,
-    };
+    let over = Element::column(vec![top, Element::spacer().flex(1.0), bottom]);
     let picture = match person.camera {
-        _ if streamed.is_some() => Element::panel(Element::stack(vec![
-            Element::raster_image(streamed.cloned().expect("matched").cover())
-                .size(Some(size.width), Some(size.height)),
-            Element::panel(Element::spacer())
-                .size(Some(size.width), Some(size.height))
-                .background(Look::alpha(Color::rgb(0, 0, 0), 96)),
-        ]))
-        .size(Some(size.width), Some(size.height))
-        .radius(TILE_RADIUS)
-        .background(Color::rgb(0, 0, 0))
-        .clip_children(),
         Some((width, height)) => {
             let scale = (size.width / width as f32).min(size.height / height as f32);
             Element::panel(centered(
@@ -2147,6 +2180,10 @@ fn call(view: &Stage, look: &Look) -> Element {
         let surface = ids::stream_surface(person.user);
         view.watching.iter().any(|shown| shown.surface == surface)
     };
+    // A live stream nobody watches is a tile of its own, after its
+    // streamer's (REA §1.1); the account's own is a card among the previews.
+    let offered = |person: &Participant| person.streaming && !person.own && !watched(person);
+    let streams = people.iter().filter(|person| offered(person)).count();
     // Private calls: whom it rings, after who is in it.
     let ringing = view
         .private
@@ -2156,7 +2193,7 @@ fn call(view: &Stage, look: &Look) -> Element {
     // in a strip under it, as in the official client and Serein.
     let focus = previews.iter().position(|shown| shown.focused);
     // The pill over the bar offers to hide the tiles, when there are some.
-    let hideable = focus.is_some() && previews.len() + people.len() + ringing.len() > 1;
+    let hideable = focus.is_some() && previews.len() + people.len() + streams + ringing.len() > 1;
     // The bar, and the pill over it on its own line, under the tiles.
     let pill_room = if hideable {
         TILES_PILL_HEIGHT + BAR_GAP
@@ -2168,7 +2205,7 @@ fn call(view: &Stage, look: &Look) -> Element {
         view.size.width - 2.0 * AREA_SIDE,
         view.size.height - crate::sidebar::HEADER - 1.0 - AREA_TOP - below,
     );
-    let person = |person: &Participant, size: Size, watch: bool| {
+    let person = |person: &Participant, size: Size| {
         let card = view
             .card
             .as_ref()
@@ -2179,12 +2216,24 @@ fn call(view: &Stage, look: &Look) -> Element {
             .as_ref()
             .filter(|(user, _)| *user == person.user)
             .map(|(_, menu)| menu.clone());
-        let watch = watch.then_some(&view.watch);
-        tile(person, size, card, menu, watch, view.simulated, look)
+        tile(person, size, card, menu, view.simulated, look)
+    };
+    // Each person's tile, and after it the tile of their stream when offered.
+    let people_tiles = |size: Size| -> Vec<Element> {
+        people
+            .iter()
+            .flat_map(|shown| {
+                let mut tiles = vec![person(shown, size)];
+                if offered(shown) {
+                    tiles.push(watch_tile(shown, size, &view.watch, look));
+                }
+                tiles
+            })
+            .collect()
     };
     let tiles = match focus {
         Some(index) => {
-            let count = previews.len() - 1 + people.len() + ringing.len();
+            let count = previews.len() - 1 + people.len() + streams + ringing.len();
             let strip = if count > 0 && area.height >= STRIP + TILE_GAP + MIN_FOCUS {
                 STRIP
             } else {
@@ -2205,7 +2254,7 @@ fn call(view: &Stage, look: &Look) -> Element {
                 .filter(|(at, _)| *at != index)
                 .map(|(_, shown)| preview_tile(shown, small, true, look))
                 .collect();
-            rest.extend(people.iter().map(|shown| person(shown, small, false)));
+            rest.extend(people_tiles(small));
             rest.extend(
                 ringing
                     .iter()
@@ -2234,17 +2283,13 @@ fn call(view: &Stage, look: &Look) -> Element {
             Element::column(column)
         }
         None => {
-            let count = previews.len() + people.len() + ringing.len();
+            let count = previews.len() + people.len() + streams + ringing.len();
             let layout = grid(count, area);
             let mut tiles: Vec<Element> = previews
                 .iter()
                 .map(|shown| preview(shown, layout.tile, look))
                 .collect();
-            tiles.extend(
-                people
-                    .iter()
-                    .map(|shown| person(shown, layout.tile, !shown.own && !watched(shown))),
-            );
+            tiles.extend(people_tiles(layout.tile));
             tiles.extend(
                 ringing
                     .iter()
@@ -2930,7 +2975,6 @@ mod tests {
                     Size::new(320.0, 180.0),
                     None,
                     None,
-                    None,
                     false,
                     &Look::DARK,
                 ),
@@ -3243,7 +3287,7 @@ mod tests {
     }
 
     #[test]
-    fn a_tile_names_its_person_from_125_wide_and_says_watch_by_its_width() {
+    fn a_tile_names_its_person_from_125_wide_and_its_watch_says_watch_by_width() {
         let look = Look::ONYX;
         let streamer = Participant {
             streaming: true,
@@ -3251,20 +3295,90 @@ mod tests {
             ..person(2, false, false, false)
         };
         let watch = Ok(());
-        let shown = |width: f32| {
+        let face = |width: f32| {
             let size = Size::new(width, width * 9.0 / 16.0);
-            let element = tile(&streamer, size, None, None, Some(&watch), false, &look);
+            let element = tile(&streamer, size, None, None, false, &look);
+            texts(&frame(element, size).1)
+        };
+        let offer = |width: f32| {
+            let size = Size::new(width, width * 9.0 / 16.0);
+            let element = watch_tile(&streamer, size, &watch, &look);
             texts(&frame(element, size).1)
         };
         assert_eq!(face_size(Size::new(124.0, 70.0)), 80.0);
         assert_eq!(face_size(Size::new(123.0, 70.0)), 40.0);
-        let narrow = shown(124.0);
+        assert!(!face(124.0).contains(&"Persona 2".to_owned()));
+        assert!(face(125.0).contains(&"Persona 2".to_owned()));
+        assert!(!face(200.0).contains(&"EN VIVO".to_owned()));
+        let narrow = offer(124.0);
         assert!(!narrow.contains(&"Persona 2".to_owned()), "{narrow:?}");
         assert!(narrow.contains(&"Ver".to_owned()), "{narrow:?}");
-        assert!(shown(125.0).contains(&"Persona 2".to_owned()));
-        let wide = shown(200.0);
+        let wide = offer(200.0);
+        assert!(wide.contains(&"Persona 2".to_owned()), "{wide:?}");
         assert!(wide.contains(&"Mirar transmisión".to_owned()), "{wide:?}");
         assert!(wide.contains(&"EN VIVO".to_owned()));
+    }
+
+    #[test]
+    fn a_live_stream_nobody_watches_is_a_tile_after_its_streamers() {
+        let look = Look::ONYX;
+        let size = Size::new(980.0, 762.0);
+        let streaming = |user| Participant {
+            streaming: true,
+            own: false,
+            ..person(user, false, false, false)
+        };
+        let view = Stage {
+            channel: "General".into(),
+            phase: Some(CallPhase::Connected),
+            people: vec![person(1, false, false, false), streaming(2)],
+            muted: false,
+            deafened: false,
+            simulated: false,
+            join_denied: None,
+            chat: Err("Sin chat".into()),
+            size,
+            card: None,
+            tile_menu: None,
+            more_open: false,
+            video: VideoControls::default(),
+            previews: Vec::new(),
+            watch: Ok(()),
+            watching: Vec::new(),
+            tiles_hidden: false,
+            private: None,
+            quick: None,
+            camera_panel: None,
+            end: 0.0,
+        };
+        let (_, laid) = frame(stage(view, &look), size);
+        // Three tiles: the person, their stream after them, and the first one.
+        let tiles: Vec<String> = controls(&laid)
+            .into_iter()
+            .filter(|id| id.starts_with("vz:tile:") || id.starts_with("vz:stream-tile:"))
+            .collect();
+        assert_eq!(tiles.len(), 3, "{tiles:?}");
+        let at = |id: &str| {
+            laid.regions
+                .iter()
+                .find(|region| region.id == id)
+                .unwrap_or_else(|| panic!("{id}"))
+                .rect
+        };
+        let (face, stream) = (at(&ids::tile(2)), at(&ids::watch_tile(2)));
+        assert!(
+            (stream.y, stream.x) > (face.y, face.x),
+            "{stream:?} after {face:?}"
+        );
+        let said = texts(&laid);
+        assert_eq!(said.iter().filter(|text| *text == "EN VIVO").count(), 1);
+        assert_eq!(
+            said.iter()
+                .filter(|text| *text == "Mirar transmisión")
+                .count(),
+            1
+        );
+        assert!(controls(&laid).contains(&ids::watch(2)));
     }
 
     #[test]
@@ -3630,6 +3744,20 @@ mod tests {
             own: true,
             ..person(1, false, false, false)
         };
+        // Their stream is its card among the previews, which says it is live.
+        let card = Preview {
+            surface: ids::OWN_THUMB_SURFACE.into(),
+            title: "¡Estás en directo!".into(),
+            frame: None,
+            fps: None,
+            waiting: "Esperando al sistema…".into(),
+            stop: (ids::OWN_STREAM_STOP.into(), "Dejar de transmitir"),
+            note: "Los demás ven tu pantalla.".into(),
+            actions: Vec::new(),
+            stream: None,
+            focused: false,
+            card: true,
+        };
         let view = Stage {
             channel: "General".into(),
             phase: Some(CallPhase::Connected),
@@ -3644,7 +3772,7 @@ mod tests {
             tile_menu: None,
             more_open: false,
             video: VideoControls::default(),
-            previews: Vec::new(),
+            previews: vec![card],
             watch: Ok(()),
             watching: Vec::new(),
             tiles_hidden: false,
@@ -3655,9 +3783,11 @@ mod tests {
         };
         let look = Look::ONYX;
         let (_, laid) = frame(stage(view, &look), Size::new(980.0, 762.0));
-        // Their tile says it, as Discord's, and offers no «Mirar transmisión».
+        // Their tile is plain, with no stream tile of their own; the card says
+        // it is live, and no «Mirar transmisión» is offered for their own.
         assert!(texts(&laid).iter().any(|text| text == "EN VIVO"));
         assert!(!controls(&laid).contains(&ids::watch(1)));
+        assert!(!controls(&laid).contains(&ids::watch_tile(1)));
         // Their row in the voice list says it too.
         let (_, row) = frame(participant(&me, None, None, &look), Size::new(300.0, 40.0));
         assert!(texts(&row).iter().any(|text| text == "EN VIVO"));
@@ -3996,7 +4126,7 @@ mod tests {
     }
 
     #[test]
-    fn someone_streaming_shows_the_latest_picture_of_their_stream_on_their_tile() {
+    fn a_stream_nobody_watches_has_its_own_tile_with_the_picture_and_no_face() {
         let image = limn::RasterImage::new(
             "1".repeat(64),
             limn::RasterImageFormat::Png,
@@ -4013,14 +4143,8 @@ mod tests {
         };
         let look = Look::ONYX;
         let size = Size::new(480.0, 270.0);
-        let laid = |person: &Participant| {
-            frame(
-                tile(person, size, None, None, Some(&Ok(())), false, &look),
-                size,
-            )
-            .1
-        };
-        let pictured = laid(&shown(Some(Thumbnail::Image(image))));
+        let offer = |person: &Participant| frame(watch_tile(person, size, &Ok(()), &look), size).1;
+        let pictured = offer(&shown(Some(Thumbnail::Image(image.clone()))));
         assert!(pictured
             .commands
             .iter()
@@ -4032,16 +4156,38 @@ mod tests {
                 "{expected}"
             );
         }
-        // None yet: their mark; the simulation's says it is made up.
-        let plain = laid(&shown(None));
+        // None yet: the ground alone; the simulation's says it is made up.
+        let plain = offer(&shown(None));
         assert!(!plain
             .commands
             .iter()
             .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
-        let simulated = laid(&shown(Some(Thumbnail::Simulated)));
+        let simulated = offer(&shown(Some(Thumbnail::Simulated)));
         assert!(texts(&simulated)
             .iter()
             .any(|text| text == "Vista previa simulada"));
+        // Their own tile is a plain person's: no picture of the stream, no
+        // «EN VIVO», no watch button; the stream has its tile of its own.
+        let face = frame(
+            tile(
+                &shown(Some(Thumbnail::Image(image))),
+                size,
+                None,
+                None,
+                false,
+                &look,
+            ),
+            size,
+        )
+        .1;
+        assert!(!face
+            .commands
+            .iter()
+            .any(|command| matches!(command, limn::DrawCommand::RasterImage { .. })));
+        let words = texts(&face);
+        assert!(words.iter().any(|text| text == "Persona 2"));
+        assert!(!words.iter().any(|text| text == "EN VIVO"), "{words:?}");
+        assert!(!controls(&face).contains(&ids::watch(2)));
     }
 
     #[test]
