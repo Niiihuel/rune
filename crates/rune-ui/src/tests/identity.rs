@@ -504,13 +504,7 @@ fn an_ignored_person_shows_no_activity_only_the_status() {
         activities: vec![rune_model::Activity {
             kind: rune_model::ActivityKind::Playing,
             name: "Factorio".into(),
-            detail: None,
-            state: None,
-            image: None,
-            small_image: None,
-            started: None,
-            ends: None,
-            application: None,
+            ..Default::default()
         }],
         ..rune_model::Presence::default()
     };
