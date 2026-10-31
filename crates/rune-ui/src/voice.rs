@@ -365,8 +365,11 @@ pub(crate) fn update(
     } = action
     {
         let user = number(id, "vz:volume:")?;
-        // Whole percents, so 100 % is easy to land on.
-        let volume = (fraction.clamp(0.0, 1.0) * parts::MAX_VOLUME * 100.0).round() / 100.0;
+        // The fraction is a position on Discord's curve, not a straight line
+        // (see `parts::slider_volume`); whole percents, so 100 % is easy to land on.
+        let position = fraction.clamp(0.0, 1.0) * parts::SLIDER_TOP;
+        let volume =
+            (parts::slider_volume(position).min(parts::MAX_VOLUME) * 100.0).round() / 100.0;
         let muted = ui.prefs.voice_volume(user).1;
         let save = ui.prefs.set_voice_volume(user, volume, muted);
         return Some(if *committed { vec![save] } else { Vec::new() });
@@ -378,8 +381,7 @@ pub(crate) fn update(
     // Choosing anything closes a person's menu and the bar's options, items
     // of other parts included; a role toggled in it keeps it open for the
     // next, as the official client's does.
-    let role = id.starts_with("ss:member-of:") && id.contains(":role:");
-    let menu = if role {
+    let menu = if crate::person_menu::keeps_open(id) {
         ui.voice.menu
     } else {
         ui.voice.menu.take()
@@ -394,12 +396,6 @@ pub(crate) fn update(
     }
     if let Some(channel) = number(id, "voice:") {
         return Some(channel_clicked(ui, store, ChannelId(channel), now));
-    }
-    if let Some(user) = number(id, parts::ids::PROFILE) {
-        let on_tile = menu.is_some_and(|menu| !menu.row);
-        ui.voice.card =
-            channel_of(store, UserId(user)).map(|channel| (UserId(user), channel, on_tile));
-        return Some(open_card(ui, store));
     }
     if let Some(user) = number(id, parts::ids::MENTION) {
         return Some(mention(ui, store, UserId(user)));
@@ -978,7 +974,8 @@ pub(crate) fn stage_of(
 }
 
 /// A person's menu opened by a secondary click, over everything.
-pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, look: &Look) -> Element {
+/// `room` is the window's height: a long menu grows with it, as Discord's.
+pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, room: f32, look: &Look) -> Element {
     let Some(menu) = ui.voice.menu else {
         return root;
     };
@@ -987,6 +984,6 @@ pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, look: &Look) -> El
     };
     Element::stack(vec![
         root,
-        parts::context_menu(at, menu_entries(ui, store, menu), look),
+        parts::context_menu(at, menu_entries(ui, store, menu), room, look),
     ])
 }

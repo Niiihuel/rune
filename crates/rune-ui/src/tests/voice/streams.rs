@@ -249,9 +249,11 @@ fn a_streams_menu_has_its_own_volume_and_its_ways_to_show_it() {
         !host.vz_shows(&ids::volume(owner.0)),
         "the person's is theirs"
     );
+    // The note wraps, so its first words are what is on screen.
     assert!(host
         .vz_texts()
-        .contains(&"Simulado: la llamada no lleva audio".to_owned()));
+        .iter()
+        .any(|text| text.starts_with("Simulado")));
     // Its volume and silence are the stream's sound, apart from the voice's.
     let intents = crate::update(
         &mut host.ui,
@@ -264,9 +266,9 @@ fn a_streams_menu_has_its_own_volume_and_its_ways_to_show_it() {
         Instant::now(),
     );
     assert_eq!(intents.len(), 1, "kept");
-    assert_eq!(host.ui.prefs.voice_volume(sound), (0.5, false));
+    assert_eq!(host.ui.prefs.voice_volume(sound), (0.14, false));
     host.click(&ids::local_mute(sound));
-    assert_eq!(host.ui.prefs.voice_volume(sound), (0.5, true));
+    assert_eq!(host.ui.prefs.voice_volume(sound), (0.14, true));
     assert_eq!(host.ui.prefs.voice_volume(owner.0), (1.0, false));
     assert!(host.ui.video.menu.is_none(), "an item closes it");
     // The only one there, it was focused as it was watched, as in the

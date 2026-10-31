@@ -489,7 +489,8 @@ pub(crate) fn header_tool(store: &Store, channel: ChannelId, look: &Look) -> Opt
 }
 
 /// The dialogs, menus and questions of conversations, over `root`.
-pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Element {
+/// `room` is the window's height, for its menu.
+pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, room: f32, look: &Look) -> Element {
     let name = |user: UserId| store.display_name(user, None);
     let mut root = match ui.conversations.group.as_ref() {
         Some(draft) => match form(ui, store, draft, look) {
@@ -506,7 +507,7 @@ pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Ele
         if !entries.is_empty() {
             root = Element::stack(vec![
                 root,
-                rune_components::channel_menu::context_menu(at, entries, look),
+                rune_components::channel_menu::context_menu(at, entries, room, look),
             ]);
         }
     }

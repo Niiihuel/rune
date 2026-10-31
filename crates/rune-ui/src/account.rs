@@ -754,7 +754,7 @@ pub(crate) fn overlay(
     store: &Store,
     root: Element,
     look: &Look,
-    _context: &ViewContext,
+    context: &ViewContext,
 ) -> Element {
     let mut root = root;
     if let Some(dialog) = &ui.account.dialog {
@@ -783,7 +783,10 @@ pub(crate) fn overlay(
     }
     if let Some((target, at)) = ui.account.menu {
         let entries = menu_entries(ui, store, target);
-        root = Element::stack(vec![root, menu_parts::context_menu(at, entries, look)]);
+        root = Element::stack(vec![
+            root,
+            menu_parts::context_menu(at, entries, context.window.height, look),
+        ]);
     }
     root
 }

@@ -2,9 +2,34 @@
 //! palettes limn's components take. The accent is an ember amber; nothing is
 //! borrowed from another product's brand.
 
-use limn::{Color, ComponentPalette, ScrollbarAppearance};
+use limn::{Color, ComponentPalette, ContextMenuMetrics, ScrollbarAppearance};
 use rune_i18n::{es, t, tr};
 use rune_model::{Rgb, Status};
+
+/// The density of every context menu, as Discord's menus (REA 2026-10-31):
+/// rows of at least 32 with 14 px labels, 8 around the rows and 8 on each
+/// side of a separator.
+pub const MENU_METRICS: ContextMenuMetrics = ContextMenuMetrics {
+    row_height: 32.0,
+    label_size: 14.0,
+    detail_size: 12.0,
+    inset: 8.0,
+    horizontal_padding: 8.0,
+    gap: 8.0,
+    separator_height: 17.0,
+    scrollbar_gutter: 14.0,
+    header_height: 24.0,
+    max_height: 480.0,
+};
+
+/// [`MENU_METRICS`] for a menu that may grow as tall as `room` less 32, as
+/// Discord's menus do with the window; a person's menu is long.
+pub fn menu_metrics_within(room: f32) -> ContextMenuMetrics {
+    ContextMenuMetrics {
+        max_height: (room - 32.0).max(240.0),
+        ..MENU_METRICS
+    }
+}
 
 /// Every color RUNE paints with.
 #[derive(Clone, Copy, Debug, PartialEq)]

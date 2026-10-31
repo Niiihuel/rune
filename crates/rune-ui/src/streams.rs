@@ -168,12 +168,13 @@ pub(crate) fn menu_entries(ui: &Ui, store: &Store, owner: UserId) -> Vec<MenuEnt
 }
 
 /// A stream's menu, over everything, while open on a stream still watched.
-pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, look: &Look) -> Element {
+/// `room` is the window's height: a long menu grows with it, as Discord's.
+pub(crate) fn overlays(ui: &Ui, store: &Store, root: Element, room: f32, look: &Look) -> Element {
     let Some((owner, Some(at))) = ui.video.menu.filter(|(owner, _)| watched(store, *owner)) else {
         return root;
     };
     Element::stack(vec![
         root,
-        parts::context_menu(at, menu_entries(ui, store, owner), look),
+        parts::context_menu(at, menu_entries(ui, store, owner), room, look),
     ])
 }

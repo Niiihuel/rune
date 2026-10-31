@@ -453,6 +453,7 @@ pub fn audio_menu(view: &AudioMenu, look: &Look) -> Element {
         look.menu_palette(),
     )
     .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
     .width(MENU_WIDTH)
     .inline(true)
     .render()

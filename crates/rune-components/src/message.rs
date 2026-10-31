@@ -480,6 +480,7 @@ pub fn live_row(view: MessageView<'_>, live: Live<'_>, look: &Look) -> Element {
         look.menu_palette(),
     )
     .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
     .at(at)
     .render()
 }

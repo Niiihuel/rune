@@ -170,7 +170,7 @@ pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec
     vec![match seat {
         StageSeat::Speaker | StageSeat::Invited => MenuEntry::Item(
             ids::audience(channel, user),
-            t("Pasar al público").into(),
+            t("Trasladar a la audiencia").into(),
             None,
         ),
         StageSeat::Audience | StageSeat::HandRaised => MenuEntry::Item(

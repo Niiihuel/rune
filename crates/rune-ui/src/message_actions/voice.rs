@@ -15,44 +15,53 @@ use crate::{Intent, Ui};
 
 const PREFIX: &str = "vz:mod:";
 
-/// The moderation items of `user`'s menu in the voice channel `channel`:
-/// only those the account may do now. As in Discord, an action it cannot
-/// take (offline, no other room) is absent, not greyed out.
-pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec<MenuEntry> {
+/// The voice moderation items of `user`'s menu in the voice channel `channel`,
+/// split where the menu places them. Only those the account may do now: as in
+/// Discord, an action it cannot take (offline, no other room) is absent, not
+/// greyed out.
+#[derive(Debug, Default)]
+pub(crate) struct VoiceMenu {
+    /// Server mute, server deafen and disconnect.
+    pub moderation: Vec<MenuEntry>,
+    /// «Mover a», with the rooms the user may be moved to.
+    pub move_to: Option<MenuEntry>,
+}
+
+pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> VoiceMenu {
     let Some(server) = store.channel(channel).and_then(|found| found.server) else {
-        return Vec::new();
+        return VoiceMenu::default();
     };
     let (Some(can), Some(granted)) = (
         store.voice_moderation(server, user),
         store.server_abilities(server),
     ) else {
-        return Vec::new();
+        return VoiceMenu::default();
     };
     let state = store
         .voice_in(can.channel)
         .into_iter()
         .find(|state| state.user == user);
-    let mut items = Vec::new();
+    let mut moderation = Vec::new();
+    let mut move_to = None;
     if granted.mute_members.allowed() && can.mute.allowed() {
         let id = format!("{PREFIX}mute:{user}");
-        let label = t("Silenciar en el servidor");
-        items.push(MenuEntry::Item(
+        // Discord marks the server mute in danger too.
+        moderation.push(MenuEntry::DangerChecked(
             id,
-            label.into(),
-            Some(state.is_some_and(|state| state.server_muted)),
+            t("Silenciar servidor").into(),
+            state.is_some_and(|state| state.server_muted),
         ));
     }
     if granted.deafen_members.allowed() && can.deafen.allowed() {
         let id = format!("{PREFIX}deafen:{user}");
-        let label = t("Ensordecer en el servidor");
-        items.push(MenuEntry::Item(
+        moderation.push(MenuEntry::Item(
             id,
-            label.into(),
+            t("Ensordecer servidor").into(),
             Some(state.is_some_and(|state| state.server_deafened)),
         ));
     }
     if granted.move_members.allowed() && can.move_to.allowed() {
-        items.push(MenuEntry::Submenu(
+        move_to = Some(MenuEntry::Submenu(
             t("Mover a").into(),
             can.rooms
                 .iter()
@@ -69,9 +78,12 @@ pub(crate) fn menu_group(store: &Store, channel: ChannelId, user: UserId) -> Vec
     // Disconnecting takes the move permission, as `voice_moderation` has it.
     if granted.move_members.allowed() && can.disconnect.allowed() {
         let id = format!("{PREFIX}disconnect:{user}");
-        items.push(MenuEntry::Danger(id, t("Desconectar").into()));
+        moderation.push(MenuEntry::Danger(id, t("Desconectar").into()));
     }
-    items
+    VoiceMenu {
+        moderation,
+        move_to,
+    }
 }
 
 pub(crate) fn update(

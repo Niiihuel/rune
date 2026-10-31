@@ -1170,6 +1170,7 @@ pub(crate) fn overlay(
     mut root: Element,
     look: &Look,
     wall: Timestamp,
+    room: f32,
 ) -> Element {
     let threads = &ui.threads;
     if let Some(view) = threads
@@ -1197,7 +1198,7 @@ pub(crate) fn overlay(
         if !entries.is_empty() {
             root = Element::stack(vec![
                 root,
-                rune_components::channel_menu::context_menu(at, entries, look),
+                rune_components::channel_menu::context_menu(at, entries, room, look),
             ]);
         }
     }

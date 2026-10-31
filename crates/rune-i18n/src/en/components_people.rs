@@ -146,7 +146,6 @@ pub(super) const ENTRIES: super::Entries = &[
     ("silenciado para ti", "muted for you"),
     ("Más", "More"),
     ("Cámara simulada", "Simulated camera"),
-    ("Ver transmisión", "Watch stream"),
     ("Mirar transmisión", "Watch Stream"),
     ("Ver", "Watch"),
     ("Conectando…", "Connecting…"),

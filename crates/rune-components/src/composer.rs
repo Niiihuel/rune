@@ -367,6 +367,7 @@ fn plus_menu(view: &ComposerView<'_>, enabled: bool, look: &Look) -> Element {
         look.menu_palette(),
     )
     .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
     .width(300.0)
     .placement(PopoverPlacement::TopStart)
     .render()

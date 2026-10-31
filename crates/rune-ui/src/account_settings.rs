@@ -9,7 +9,7 @@ use rune_model::{ChannelId, ServerId};
 use crate::{account, channel_list, profile, server_menu, Ui};
 
 /// The keys of [`Ui::settings_to_keep`] that belong to the account.
-pub const ACCOUNT_SETTINGS: [&str; 11] = [
+pub const ACCOUNT_SETTINGS: [&str; 12] = [
     "server",
     "channel",
     "favorite_channels",
@@ -22,6 +22,8 @@ pub const ACCOUNT_SETTINGS: [&str; 11] = [
     profile::CUSTOM_UNTIL,
     // Rail and notifications.
     account::OPEN_FOLDERS_SETTING,
+    // Calls from a person's menu are asked about unless the account said not to.
+    crate::person_menu::ASK_SETTING,
 ];
 
 impl Ui {
@@ -42,6 +44,8 @@ impl Ui {
         channel_list::restore(self, &setting);
         profile::restore(self, &setting);
         account::restore_open_folders(self, setting(account::OPEN_FOLDERS_SETTING));
+        self.prefs.ask_before_call =
+            setting(crate::person_menu::ASK_SETTING).as_deref() != Some("false");
     }
 }
 

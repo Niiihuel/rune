@@ -139,15 +139,15 @@ pub fn view(ui: &Ui, store: &Store, context: &ViewContext) -> Element {
     let root = server_menu::dialogs(ui, store, root, look, context);
     let root = channel_list::overlays(ui, store, root, look, context);
     let root = profile::overlays(ui, store, root, look, context);
-    let root = voice::overlays(ui, store, root, look);
-    let root = crate::person_menu::overlays(ui, store, root, look);
+    let root = voice::overlays(ui, store, root, window.height, look);
+    let root = crate::person_menu::overlays(ui, store, root, window.height, look);
     // Streams (transmisiones).
-    let root = crate::streams::overlays(ui, store, root, look);
+    let root = crate::streams::overlays(ui, store, root, window.height, look);
     // Private calls: a call coming in, over everything but verifications.
     let root = crate::private_calls::overlay(ui, store, root, look);
     let root = crate::relationships::overlay(ui, store, root, look);
-    let root = crate::conversations::overlay(ui, store, root, look);
-    let root = crate::threads::overlay(ui, store, root, look, context.wall);
+    let root = crate::conversations::overlay(ui, store, root, window.height, look);
+    let root = crate::threads::overlay(ui, store, root, look, context.wall, window.height);
     let root = crate::attachments::overlay(ui, store, root, look, context);
     let root = crate::voice_messages::overlay(ui, store, root, look, context);
     let root = crate::documents::overlay(ui, store, root, look, context);

@@ -63,6 +63,39 @@ pub mod ids {
 
 /// A context menu's width: a channel's, a category's or the list's.
 pub const MENU_WIDTH: f32 = 248.0;
+
+/// A context menu as wide as its longest row, from `MENU_WIDTH` to 320, as
+/// Discord's menus fit their content; a reason under a label still cuts.
+// limn-gap: a menu cannot take its rows' measured width; it is estimated
+// from a 14 px label's average glyph.
+pub fn fit_width(entries: &[Entry]) -> f32 {
+    const GLYPH: f32 = 7.6;
+    const SMALL_GLYPH: f32 = 6.6;
+    let items = || {
+        entries.iter().filter_map(|entry| match entry {
+            Entry::Item(item) => Some(item),
+            _ => None,
+        })
+    };
+    // An icon, a check or a chevron in one row gives every row its slot.
+    let leading = items().any(|item| item.icon.is_some());
+    let trailing = items().any(|item| item.checked.is_some() || !item.submenu.is_empty());
+    let widest = items()
+        .map(|item| {
+            let label = item.label.chars().count() as f32 * GLYPH;
+            match &item.detail {
+                // Beside the label on an item with a submenu, else under it.
+                Some(detail) if !item.submenu.is_empty() => {
+                    label + 8.0 + detail.chars().count() as f32 * SMALL_GLYPH
+                }
+                Some(detail) => label.max(detail.chars().count() as f32 * SMALL_GLYPH),
+                None => label,
+            }
+        })
+        .fold(0.0, f32::max);
+    let slots = if leading { 24.0 } else { 0.0 } + if trailing { 28.0 } else { 0.0 };
+    (widest + slots + 32.0).clamp(MENU_WIDTH, 320.0)
+}
 /// The bell's menu, a little wider for the levels' explanations.
 pub const BELL_WIDTH: f32 = 280.0;
 /// The pinned messages popout.
@@ -206,7 +239,9 @@ fn dropdown_item(item: Item, look: &Look) -> DropdownMenuItem {
 
 /// The context menu with `entries`, its corner at `at` in the window. It is
 /// laid over everything: put it last in a stack the size of the window.
-pub fn context_menu(at: (f32, f32), entries: Vec<Entry>, look: &Look) -> Element {
+/// `room` is the window's height: a long menu grows with it, as Discord's.
+pub fn context_menu(at: (f32, f32), entries: Vec<Entry>, room: f32, look: &Look) -> Element {
+    let width = fit_width(&entries);
     DropdownMenu::new(
         gap(1.0, 1.0),
         dropdown_entries(entries, look),
@@ -215,7 +250,8 @@ pub fn context_menu(at: (f32, f32), entries: Vec<Entry>, look: &Look) -> Element
         look.menu_palette(),
     )
     .context_menu_style()
-    .width(MENU_WIDTH)
+    .context_metrics(crate::look::menu_metrics_within(room))
+    .width(width)
     .at(Point::new(at.0.max(0.0), at.1.max(0.0)))
     .render()
 }
@@ -243,6 +279,7 @@ pub fn bell(open: bool, muted: bool, entries: Vec<Entry>, look: &Look) -> Elemen
         look.menu_palette(),
     )
     .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
     .width(BELL_WIDTH)
     .placement(PopoverPlacement::BottomEnd)
     .render()
@@ -268,6 +305,7 @@ pub fn more(open: bool, entries: Vec<Entry>, look: &Look) -> Element {
         look.menu_palette(),
     )
     .context_menu_style()
+    .context_metrics(crate::look::MENU_METRICS)
     .width(MENU_WIDTH)
     .placement(PopoverPlacement::BottomEnd)
     .render()
@@ -740,7 +778,7 @@ mod tests {
         let (_, frame) = frame(
             Element::stack(vec![
                 Element::spacer(),
-                context_menu((40.0, 60.0), entries, &Look::DARK),
+                context_menu((40.0, 60.0), entries, 800.0, &Look::DARK),
             ]),
             WINDOW,
         );

@@ -1868,7 +1868,10 @@ pub(crate) fn overlays(
     if let Some((target, at)) = ui.channel_list.menu {
         let entries = menu_entries(ui, store, target, context.wall);
         if !entries.is_empty() {
-            root = Element::stack(vec![root, parts::context_menu(at, entries, look)]);
+            root = Element::stack(vec![
+                root,
+                parts::context_menu(at, entries, context.window.height, look),
+            ]);
         }
     }
     root
