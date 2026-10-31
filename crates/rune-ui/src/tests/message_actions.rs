@@ -530,18 +530,25 @@ fn moderation_moves_mutes_and_disconnects_within_its_reach() {
         suppressed: false,
         speak_request: None,
     }));
-    let entries = crate::message_actions::voice_menu_group(&host.store, room, someone);
+    let menu = crate::message_actions::voice_menu_group(&host.store, room, someone);
+    let entries: Vec<_> = menu
+        .moderation
+        .iter()
+        .chain(menu.move_to.iter())
+        .cloned()
+        .collect();
     let labels: Vec<String> = entries
         .iter()
         .filter_map(|entry| match entry {
             rune_components::voice::MenuEntry::Item(_, label, _)
             | rune_components::voice::MenuEntry::Danger(_, label)
+            | rune_components::voice::MenuEntry::DangerChecked(_, label, _)
             | rune_components::voice::MenuEntry::Submenu(label, _) => Some(label.clone()),
             _ => None,
         })
         .collect();
     assert!(
-        labels.contains(&"Silenciar en el servidor".to_owned()),
+        labels.contains(&"Silenciar servidor".to_owned()),
         "{labels:?}"
     );
     // Disconnecting is drawn in the danger color, as the official client does.
@@ -560,7 +567,8 @@ fn moderation_moves_mutes_and_disconnects_within_its_reach() {
     );
     // Nobody moderates their own voice from here.
     let me = host.store.me().unwrap();
-    assert!(crate::message_actions::voice_menu_group(&host.store, room, me).is_empty());
+    let own = crate::message_actions::voice_menu_group(&host.store, room, me);
+    assert!(own.moderation.is_empty() && own.move_to.is_none());
     let _ = UserId(0);
 }
 
@@ -581,7 +589,13 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
         .flat_map(|group| group.members)
         .find(|user| Some(*user) != host.store.me())
         .unwrap();
-    let entries = crate::server_settings::member_menu_group(&host.store, owned, someone);
+    let menu = crate::server_settings::member_menu_group(&host.store, owned, someone);
+    let entries: Vec<_> = menu
+        .nickname
+        .into_iter()
+        .chain(menu.roles)
+        .chain(menu.moderation)
+        .collect();
     let mut labels = Vec::new();
     let mut role = None;
     for entry in &entries {
@@ -606,7 +620,11 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     for wanted in ["Cambiar apodo", "Roles"] {
         assert!(labels.contains(&wanted.to_owned()), "{labels:?}");
     }
-    for wanted in ["danger:Aislar a ", "danger:Expulsar a ", "danger:Vetar a "] {
+    for wanted in [
+        "danger:Suspender a ",
+        "danger:Expulsar a ",
+        "danger:Banear a ",
+    ] {
         assert!(
             labels.iter().any(|label| label.starts_with(wanted)),
             "{labels:?}"
@@ -647,7 +665,7 @@ fn a_voice_menu_offers_the_servers_own_actions_and_opens_their_dialogs() {
     // Nobody kicks or bans themselves from here.
     let me = host.store.me().unwrap();
     let own = crate::server_settings::member_menu_group(&host.store, owned, me);
-    assert!(!own.iter().any(|entry| matches!(
+    assert!(!own.moderation.iter().any(|entry| matches!(
         entry,
         rune_components::voice::MenuEntry::Danger(_, label) if label.starts_with("Expulsar a ")
     )));

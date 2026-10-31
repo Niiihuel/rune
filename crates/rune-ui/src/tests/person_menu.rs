@@ -6,7 +6,7 @@ use rune_components::voice::MenuEntry;
 use rune_model::{Member, Permissions, Role, RoleId, RoleStyle, ServerId, UserId};
 
 use super::*;
-use crate::person_menu::{entries, Place};
+use crate::person_menu::{entries, PersonCall, Place, ASK_SETTING};
 use crate::server_settings::advanced::invite_channels;
 
 /// The labels of `menu`'s entries, in order: what it offers, on or off.
@@ -15,8 +15,12 @@ fn labels(menu: &[MenuEntry]) -> Vec<String> {
         .filter_map(|entry| match entry {
             MenuEntry::Item(_, label, _)
             | MenuEntry::Danger(_, label)
+            | MenuEntry::DangerChecked(_, label, _)
+            | MenuEntry::Described { label, .. }
+            | MenuEntry::Inert(_, label)
             | MenuEntry::Submenu(label, _)
             | MenuEntry::Disabled(_, label, _) => Some(label.clone()),
+            MenuEntry::Volume { label, .. } => Some(label.to_string()),
             _ => None,
         })
         .collect()
@@ -142,7 +146,7 @@ fn a_secondary_click_on_a_member_opens_their_menu_in_the_list() {
         "{shown:?}"
     );
     assert_eq!(
-        labels(&shown).contains(&"Mensaje".to_owned()),
+        labels(&shown).contains(&"Enviar mensaje".to_owned()),
         host.store.social(user).message.allowed()
     );
 }
@@ -219,7 +223,7 @@ fn what_the_rank_or_the_owner_blocks_is_not_offered() {
     let place = Place::MemberList { server };
     for user in [owner, peer] {
         let shown = labels(&entries(&host.ui, &host.store, user, place));
-        for prefix in ["Expulsar a ", "Vetar a ", "Aislar a ", "Cambiar apodo"] {
+        for prefix in ["Expulsar a ", "Banear a ", "Suspender a ", "Cambiar apodo"] {
             assert!(
                 !shown.iter().any(|label| label.starts_with(prefix)),
                 "{user}: {shown:?}"
@@ -272,7 +276,7 @@ fn the_account_s_own_menu_offers_no_one_else_s_actions() {
         Place::MemberList { server },
     ));
     assert!(shown.contains(&"Perfil".to_owned()), "{shown:?}");
-    for not in ["Mensaje", "Añadir amigo", "Bloquear"] {
+    for not in ["Enviar mensaje", "Añadir amigos", "Bloquear"] {
         assert!(!shown.contains(&not.to_owned()), "{shown:?}");
     }
     assert!(!shown.iter().any(|label| label.starts_with("Expulsar a ")));
@@ -288,9 +292,15 @@ fn a_direct_conversation_offers_a_call_that_rings_it_and_a_note() {
         user,
         Place::Direct { channel },
     ));
-    assert!(shown.contains(&"Llamar".to_owned()), "{shown:?}");
+    assert!(
+        shown.contains(&"Iniciar una llamada".to_owned()),
+        "{shown:?}"
+    );
     assert!(shown.contains(&"Añadir nota".to_owned()), "{shown:?}");
+    // The question comes first; its «Iniciar llamada» rings the conversation.
     host.tap(&format!("pm:{user}:call"));
+    assert!(host.ui.person_call.is_some_and(|call| call.user == user));
+    host.tap(rune_components::voice::ids::PERSON_CALL);
     let rang = host.sent.iter().any(|command| {
         matches!(command, Command::RingCall { channel: rung, .. } | Command::CheckCall { channel: rung }
             if *rung == channel)
@@ -374,7 +384,20 @@ fn an_invitation_to_a_server_is_sent_by_their_conversation() {
         })
         .find(|user| *user != me && host.store.member_of(server, *user).is_none())
         .expect("someone who is not in that server");
-    let shown = entries(&host.ui, &host.store, user, Place::MemberList { server });
+    // Their menu is in another server: the one it names is offered, as the invitations' rows are.
+    let menu_in = host
+        .store
+        .servers()
+        .iter()
+        .map(|found| found.id)
+        .find(|found| *found != server)
+        .expect("another server");
+    let shown = entries(
+        &host.ui,
+        &host.store,
+        user,
+        Place::MemberList { server: menu_in },
+    );
     let invites = shown.iter().find_map(|entry| match entry {
         MenuEntry::Submenu(label, items) if label == "Invitar al servidor" => Some(items),
         _ => None,
@@ -403,4 +426,223 @@ fn an_invitation_to_a_server_is_sent_by_their_conversation() {
         .notices
         .iter()
         .any(|notice| notice.title == "Invitación enviada"));
+}
+
+#[test]
+fn a_friend_in_a_voice_row_has_the_official_groups_in_their_order() {
+    let mut host = Host::new();
+    host.ui.prefs.developer = true;
+    let room = host.vz_join("Sala común");
+    let friend = host.vz_other(room);
+    host.event(Event::RelationshipChanged(rune_model::Relationship {
+        user: friend,
+        kind: rune_model::RelationshipKind::Friend,
+        since: None,
+        nickname: Some("Pili".into()),
+        spam: false,
+    }));
+    let shown = entries(
+        &host.ui,
+        &host.store,
+        friend,
+        Place::VoiceRow { channel: room },
+    );
+    let names = labels(&shown);
+    // Each group where the official client puts it, and the ID last.
+    let order = [
+        "Perfil",
+        "Enviar mensaje",
+        "Cambiar apodo de amigo",
+        "Volumen de usuario",
+        "Silenciar",
+        "Eliminar amigo",
+        "Bloquear",
+        "Copiar ID del usuario",
+    ];
+    let mut last = 0;
+    for wanted in order {
+        let at = names
+            .iter()
+            .position(|name| name == wanted)
+            .unwrap_or_else(|| panic!("{wanted} in {names:?}"));
+        assert!(at >= last, "{wanted} out of order in {names:?}");
+        last = at;
+    }
+    // Separators only between groups, never first, last, or twice in a row.
+    assert!(!matches!(shown.first(), Some(MenuEntry::Separator)));
+    assert!(!matches!(shown.last(), Some(MenuEntry::Separator)));
+    assert!(shown
+        .windows(2)
+        .all(|pair| !matches!(pair, [MenuEntry::Separator, MenuEntry::Separator])));
+    // Removing a friend is an ordinary item, not a danger one.
+    assert!(shown.contains(&MenuEntry::Item(
+        format!("friend:{}:remove", friend.0),
+        "Eliminar amigo".into(),
+        None
+    )));
+    // A note is said to be theirs alone, under its label.
+    assert!(
+        shown.iter().any(|entry| matches!(
+            entry,
+            MenuEntry::Described { label, description, .. }
+                if (label == "Añadir nota" || label == "Editar nota")
+                    && description == "Solo tú puedes ver esto"
+        )),
+        "{shown:?}"
+    );
+}
+
+#[test]
+fn the_invitation_rows_leave_out_this_server_and_list_one_the_person_is_in() {
+    let mut host = Host::new();
+    let me = host.store.me().unwrap();
+    let invitable = |host: &Host, server: ServerId| {
+        host.store
+            .server_abilities(server)
+            .is_some_and(|abilities| abilities.create_invites.allowed())
+            && !invite_channels(&host.store, server).is_empty()
+    };
+    let servers: Vec<ServerId> = host
+        .store
+        .servers()
+        .iter()
+        .map(|found| found.id)
+        .filter(|server| invitable(&host, *server))
+        .collect();
+    let (here, there) = match servers.as_slice() {
+        [here, there, ..] => (*here, *there),
+        _ => panic!("two servers to invite to: {servers:?}"),
+    };
+    // Someone who is in `there`, and so not in the server the menu is in.
+    let user = host
+        .store
+        .members(there)
+        .iter()
+        .map(|member| member.user)
+        .find(|user| *user != me)
+        .expect("someone who is in that server");
+    let row = |host: &Host| {
+        entries(
+            &host.ui,
+            &host.store,
+            user,
+            Place::MemberList { server: here },
+        )
+        .into_iter()
+        .find_map(|entry| match entry {
+            MenuEntry::Submenu(label, items) if label == "Invitar al servidor" => Some(items),
+            _ => None,
+        })
+        .expect("an invitation submenu")
+    };
+    let ids: Vec<String> = row(&host)
+        .iter()
+        .filter_map(|entry| match entry {
+            MenuEntry::Item(id, _, _) | MenuEntry::Inert(id, _) => Some(id.clone()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        !ids.contains(&format!("pm:{user}:invite:{here}")),
+        "{ids:?}"
+    );
+    assert!(
+        ids.contains(&format!("pm:{user}:invite:{there}")),
+        "{ids:?}"
+    );
+    // Once sent, that server's row says so, and it is off.
+    host.tap(&format!("pm:{user}:invite:{there}"));
+    assert!(row(&host).iter().any(|entry| matches!(
+        entry,
+        MenuEntry::Inert(id, label)
+            if *id == format!("pm:{user}:invite:{there}") && label == "Invitación enviada"
+    )));
+}
+
+#[test]
+fn a_call_is_asked_about_until_the_account_says_not_to_ask_again() {
+    let mut host = Host::new();
+    let (channel, user) = host.first_direct();
+    assert!(host.ui.prefs.ask_before_call, "asked at first");
+    host.tap(&format!("pm:{user}:call"));
+    assert_eq!(
+        host.ui.person_call,
+        Some(PersonCall {
+            user,
+            dont_ask_again: false,
+        })
+    );
+    // The check box is ticked, and «Iniciar llamada» keeps the choice with the account.
+    host.tap(rune_components::voice::ids::PERSON_CALL_FORGET);
+    assert!(host.ui.person_call.is_some_and(|call| call.dont_ask_again));
+    host.tap(rune_components::voice::ids::PERSON_CALL);
+    assert!(!host.ui.prefs.ask_before_call);
+    assert!(host
+        .ui
+        .settings_to_keep()
+        .iter()
+        .any(|(key, value)| *key == ASK_SETTING && value.as_deref() == Some("false")));
+    assert!(
+        host.sent.iter().any(|command| matches!(
+            command,
+            Command::RingCall { channel: rung, .. } | Command::CheckCall { channel: rung }
+                if *rung == channel
+        )),
+        "{:?}",
+        host.sent
+    );
+    // Next time there is no question.
+    host.tap(&format!("pm:{user}:call"));
+    assert!(host.ui.person_call.is_none(), "no question");
+}
+
+#[test]
+fn a_call_to_someone_without_a_conversation_opens_it_and_rings_once_it_is_there() {
+    let mut host = Host::new();
+    host.ui.prefs.ask_before_call = false;
+    let me = host.store.me().unwrap();
+    let user = host
+        .store
+        .servers()
+        .iter()
+        .flat_map(|found| {
+            host.store
+                .members(found.id)
+                .iter()
+                .map(|member| member.user)
+                .collect::<Vec<_>>()
+        })
+        .find(|user| {
+            *user != me
+                && host.store.direct_with(*user).is_none()
+                && !host.store.user(*user).is_some_and(|account| account.bot)
+                && host.store.open_direct(*user).allowed()
+        })
+        .expect("someone without a conversation");
+    let from = host.sent.len();
+    host.tap(&format!("pm:{user}:call"));
+    assert!(
+        host.sent[from..].iter().any(|command| matches!(
+            command,
+            Command::OpenDirect { user: opened, .. } if *opened == user
+        )),
+        "{:?}",
+        host.sent
+    );
+    assert!(host.ui.person_calling.is_some(), "the call waits for it");
+    host.answer_account(from);
+    let channel = host
+        .store
+        .direct_with(user)
+        .expect("their conversation is there");
+    assert!(
+        host.sent.iter().any(|command| matches!(
+            command,
+            Command::RingCall { channel: rung, .. } | Command::CheckCall { channel: rung }
+                if *rung == channel
+        )),
+        "{:?}",
+        host.sent
+    );
+    assert!(host.ui.person_calling.is_none());
 }

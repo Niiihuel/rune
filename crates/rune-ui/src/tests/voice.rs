@@ -86,7 +86,7 @@ impl Host {
     }
 
     /// Join the voice channel `name` with a click, answered: its ID.
-    fn vz_join(&mut self, name: &str) -> ChannelId {
+    pub(super) fn vz_join(&mut self, name: &str) -> ChannelId {
         let channel = self.channel_named(name);
         let from = self.sent.len();
         self.click(&format!("voice:{channel}"));
@@ -162,7 +162,7 @@ impl Host {
     }
 
     /// Someone else in `channel`.
-    fn vz_other(&self, channel: ChannelId) -> UserId {
+    pub(super) fn vz_other(&self, channel: ChannelId) -> UserId {
         let me = self.vz_me();
         self.store
             .voice_in(channel)
@@ -490,7 +490,7 @@ fn a_secondary_click_on_yourself_offers_your_microphone_profile_and_id() {
     host.ui.prefs.developer = true;
     host.vz_right_click(&ids::row(me.0));
     for id in [
-        format!("{}{}", ids::PROFILE, me.0),
+        format!("{}{}", rune_components::profile::ids::FULL, me.0),
         format!("{}{}", ids::MENTION, me.0),
         ids::MENU_MUTE.to_owned(),
         ids::MENU_DEAFEN.to_owned(),
@@ -510,16 +510,12 @@ fn a_secondary_click_on_yourself_offers_your_microphone_profile_and_id() {
     );
     assert!(host.ui.voice.menu.is_none(), "choosing closes it");
 
-    // «Perfil» opens the card beside the row.
+    // «Perfil» opens the full profile, from a row as everywhere else.
     host.vz_right_click(&ids::row(me.0));
-    host.click(&format!("{}{}", ids::PROFILE, me.0));
-    assert_eq!(host.ui.voice.card, Some((me, room, false)));
-    assert!(
-        host.painted().contains(&"invitado".to_owned()),
-        "the handle"
-    );
-    host.key(Key::Escape, false, false);
-    assert_eq!(host.ui.voice.card, None);
+    host.click(&format!("{}{}", rune_components::profile::ids::FULL, me.0));
+    assert_eq!(host.ui.profiles.full.map(|(who, _)| who), Some(me));
+    // Closing it is the profile's own; the test only needs it shut.
+    host.ui.profiles.full = None;
 
     host.vz_right_click(&ids::row(me.0));
     host.click(&format!("{}{}", ids::COPY_ID, me.0));
@@ -532,7 +528,11 @@ fn a_secondary_click_on_yourself_offers_your_microphone_profile_and_id() {
     // Someone else's menu has none of the account's own items.
     let other = host.vz_other(room);
     host.vz_right_click(&ids::row(other.0));
-    assert!(host.vz_shows(&format!("{}{}", ids::PROFILE, other.0)));
+    assert!(host.vz_shows(&format!(
+        "{}{}",
+        rune_components::profile::ids::FULL,
+        other.0
+    )));
     assert!(!host.vz_shows(ids::MENU_MUTE));
     // «Mención» writes them into the conversation's composer.
     host.click(&format!("{}{}", ids::MENTION, other.0));
@@ -549,8 +549,12 @@ fn a_secondary_click_on_yourself_offers_your_microphone_profile_and_id() {
     // A secondary click on a tile too.
     host.vz_right_click(&ids::tile(other.0));
     assert_eq!(host.ui.voice.menu.map(|menu| menu.user), Some(other));
-    host.click(&format!("{}{}", ids::PROFILE, other.0));
-    assert_eq!(host.ui.voice.card, Some((other, room, true)));
+    host.click(&format!(
+        "{}{}",
+        rune_components::profile::ids::FULL,
+        other.0
+    ));
+    assert_eq!(host.ui.profiles.full.map(|(who, _)| who), Some(other));
 }
 
 #[test]
@@ -618,10 +622,13 @@ fn a_person_s_volume_and_silence_stay_on_this_device() {
     let other = host.vz_other(room);
     host.vz_right_click(&ids::tile(other.0));
     assert!(host.vz_shows(&ids::volume(other.0)));
+    // The note wraps, so its first words are what is on screen.
     assert!(host
         .painted()
-        .contains(&"Simulado: la llamada no lleva audio".to_owned()));
+        .iter()
+        .any(|text| text.starts_with("Simulado")));
     let from = host.sent.len();
+    // The slider's fractions are positions on Discord's curve: 30 % of it is 24 % of volume.
     let slide = |fraction, committed| UiAction::SliderChanged {
         id: ids::volume(other.0),
         fraction,
@@ -629,18 +636,18 @@ fn a_person_s_volume_and_silence_stay_on_this_device() {
     };
     let intents = update(&mut host.ui, &mut host.store, &slide(0.3, false), host.now);
     assert!(intents.is_empty(), "kept once let go");
-    assert_eq!(host.ui.prefs.voice_volume(other.0), (0.6, false));
+    assert_eq!(host.ui.prefs.voice_volume(other.0), (0.24, false));
     let intents = update(&mut host.ui, &mut host.store, &slide(0.75, true), host.now);
     assert_eq!(
         intents,
         [Intent::SaveSetting {
             key: "voice_volumes".into(),
-            value: Some(format!("{}:1.5:0", other.0)),
+            value: Some(format!("{}:1.41:0", other.0)),
         }]
     );
     assert!(host.ui.voice.menu.is_some(), "sliding keeps the menu open");
     host.click(&ids::local_mute(other.0));
-    assert_eq!(host.ui.prefs.voice_volume(other.0), (1.5, true));
+    assert_eq!(host.ui.prefs.voice_volume(other.0), (1.41, true));
     assert!(host.vz_shows(&format!("{}:silenced", ids::tile(other.0))));
     assert!(host.vz_shows(&format!("{}:silenced", ids::row(other.0))));
     assert!(host.sent[from..].is_empty(), "nothing goes to the provider");
@@ -1553,7 +1560,7 @@ fn several_streams_share_the_stage_up_to_their_bound_and_the_oldest_goes() {
         Instant::now(),
     );
     assert_eq!(intents.len(), 1, "kept");
-    assert_eq!(host.ui.prefs.voice_volume(sound), (0.5, false));
+    assert_eq!(host.ui.prefs.voice_volume(sound), (0.14, false));
     assert_eq!(host.ui.prefs.voice_volume(owner.0), (1.0, false));
     host.ui.voice.menu = None;
     // Letting go of one leaves the others: from its menu, as in the

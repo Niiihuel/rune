@@ -745,6 +745,14 @@ pub struct Ui {
     pub person_menu: Option<person_menu::PersonMenu>,
     /// An invitation to a server sent from a person's menu, until it is.
     pub person_invite: Option<person_menu::PersonInvite>,
+    /// The question a call from a person's menu asks first, while it is open.
+    pub person_call: Option<person_menu::PersonCall>,
+    /// The call a person's menu starts once its conversation is opened, and
+    /// the request that opens that conversation.
+    pub(crate) person_calling: Option<(UserId, rune_provider::RequestId)>,
+    /// The servers an invitation was sent to from a person's menu, by person,
+    /// so their row says so until RUNE closes.
+    pub person_invited: HashSet<(UserId, ServerId)>,
     /// The account's screen and camera, previewed by the host.
     pub video: Video,
     /// The friends page of home.
@@ -1019,6 +1027,10 @@ impl Ui {
         .chain([(
             account::OPEN_FOLDERS_SETTING,
             account::kept_open_folders(self),
+        )])
+        .chain([(
+            person_menu::ASK_SETTING,
+            Some(self.prefs.ask_before_call.to_string()),
         )])
         .chain(self.prefs.kept())
         // Own themes, main color and transparency (temas-propios).

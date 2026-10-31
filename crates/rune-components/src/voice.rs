@@ -8,9 +8,10 @@
 //! fail: with no video, the camera and the screen say so.
 
 use limn::{
-    Button, ButtonSizing, ButtonVariant, ChartSeries, Color, Component, ComponentPalette,
-    DropdownMenu, DropdownMenuEntry, DropdownMenuItem, Element, FontFamily, Icon, IconButton,
-    LineChart, PopoverPlacement, RadiusRole, Size, Slider, Tooltip, TooltipPlacement, TooltipSpec,
+    AlertDialog, Button, ButtonSizing, ButtonVariant, ChartSeries, Checkbox, Color, Component,
+    ComponentPalette, DropdownMenu, DropdownMenuEntry, DropdownMenuItem, Element, FontFamily, Icon,
+    IconButton, LineChart, PopoverPlacement, RadiusRole, Size, Slider, Tooltip, TooltipPlacement,
+    TooltipSpec,
 };
 use rune_i18n::{es, t, tr};
 use rune_model::{CallPhase, CallQuality, Rgb, StreamQuality};
@@ -83,12 +84,16 @@ pub mod ids {
     pub const MENU_DISMISS: &str = "vz:menu:dismiss";
     pub const CARD_DISMISS: &str = "vz:card:dismiss";
     /// Items of a person's menu, followed by their ID.
-    pub const PROFILE: &str = "vz:menu:profile:";
     pub const MENTION: &str = "vz:menu:mention:";
     pub const COPY_ID: &str = "vz:menu:copy-id:";
     /// The account's own microphone and sound, from its menu.
     pub const MENU_MUTE: &str = "vz:menu:mute";
     pub const MENU_DEAFEN: &str = "vz:menu:deafen";
+    /// The question before a call from a person's menu: its «Iniciar llamada»,
+    /// its «Cancelar», and the check box «No volver a preguntar».
+    pub const PERSON_CALL: &str = "vz:person-call";
+    pub const PERSON_CALL_CANCEL: &str = "vz:person-call:cancel";
+    pub const PERSON_CALL_FORGET: &str = "vz:person-call:forget";
     /// The arrows beside the bar's microphone and sound: the quick voice
     /// panel of each, [`crate::quick_voice`].
     pub const INPUT_OPTIONS: &str = "vz:input-options";
@@ -2640,7 +2645,7 @@ pub enum MenuEntry {
     /// note under it.
     Volume {
         user: u64,
-        /// «Volumen del usuario», «Volumen de la transmisión».
+        /// «Volumen de usuario», «Volumen de transmisión».
         label: &'static str,
         volume: f32,
         note: Option<String>,
@@ -2654,6 +2659,19 @@ pub enum MenuEntry {
     /// An action that removes or punishes, such as kicking: its action and
     /// label, drawn in the theme's danger color.
     Danger(String, String),
+    /// A check box in the danger color, such as the server mute: its action,
+    /// its label, and whether it is checked.
+    DangerChecked(String, String, bool),
+    /// An action with a second line under its label that says what it does,
+    /// such as «Añadir nota»: its action, its label, and that line.
+    Described {
+        id: String,
+        label: String,
+        description: String,
+    },
+    /// An item that is off with no reason to give, such as a friend request
+    /// already sent: its action and label. It does not react to a click.
+    Inert(String, String),
     /// An action the account may take but cannot now, such as one the rank
     /// blocks: its action, its label, and why, as a muted second line. It
     /// does not react to a click.
@@ -2672,8 +2690,33 @@ pub enum MenuEntry {
 /// The most a person's volume goes: 200 %.
 pub const MAX_VOLUME: f32 = 2.0;
 
-/// A person's menu, 297 wide.
-pub const MENU_WIDTH: f32 = 297.0;
+/// The top of the volume slider, in Discord's positions (see [`slider_position`]).
+pub const SLIDER_TOP: f32 = 200.0;
+
+/// The position of `volume` (1.0 is 100 %) on the volume slider, from 0 to
+/// [`SLIDER_TOP`]. Discord's curve reads loudness, not a straight line: a power
+/// below 100 % and a logarithm above, so 100 % sits in the middle.
+pub fn slider_position(volume: f32) -> f32 {
+    100.0
+        * if volume < 1.0 {
+            volume.powf(0.357)
+        } else {
+            20.0 * volume.log10() / 6.0 + 1.0
+        }
+}
+
+/// The volume at `position` on the slider: the inverse of [`slider_position`].
+pub fn slider_volume(position: f32) -> f32 {
+    let fraction = position / 100.0;
+    if fraction < 1.0 {
+        fraction.powf(1.0 / 0.357)
+    } else {
+        10f32.powf((fraction - 1.0) * 6.0 / 20.0)
+    }
+}
+
+/// A person's menu, 220 wide: Discord's is sized by its content, about 210 px.
+pub const MENU_WIDTH: f32 = 220.0;
 
 /// `entries` as limn's menu takes them.
 pub fn menu_entries(entries: Vec<MenuEntry>, look: &Look) -> Vec<DropdownMenuEntry> {
@@ -2687,20 +2730,27 @@ pub fn menu_entries(entries: Vec<MenuEntry>, look: &Look) -> Vec<DropdownMenuEnt
                 volume,
                 note,
             } => {
+                let position = slider_position(volume);
                 let mut parts = vec![
                     line(t(label), 14.0, look.text),
-                    Slider::new(ids::volume(user), volume / MAX_VOLUME, look.palette())
-                        .ink(look.accent)
-                        .accessibility_label(t(label))
-                        .render(),
+                    // limn-gap: Slider has no value tooltip (Discord shows it while hovering or dragging).
+                    Slider::new(
+                        ids::volume(user),
+                        (position / SLIDER_TOP).clamp(0.0, 1.0),
+                        look.palette(),
+                    )
+                    .ink(look.accent)
+                    .accessibility_label(t(label))
+                    .render(),
                     line(
-                        tr!("{pct} %", pct = format!("{:.0}", volume * 100.0)),
+                        tr!("{pct} %", pct = format!("{position:.0}")),
                         12.0,
                         look.muted,
                     ),
                 ];
+                // It wraps: the 220 px menu would cut the sentence that says it is simulated.
                 if let Some(note) = note {
-                    parts.push(line(note, 12.0, look.faint));
+                    parts.push(text(note, 12.0, look.faint));
                 }
                 DropdownMenuEntry::Custom(Box::new(Element::column(parts).gap(6.0).padding(8.0)))
             }
@@ -2719,6 +2769,19 @@ pub fn menu_entries(entries: Vec<MenuEntry>, look: &Look) -> Vec<DropdownMenuEnt
             }
             MenuEntry::Danger(id, label) => {
                 DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).destructive(look.danger))
+            }
+            MenuEntry::DangerChecked(id, label, checked) => DropdownMenuEntry::Item(
+                DropdownMenuItem::new(id, label)
+                    .checkbox(checked)
+                    .destructive(look.danger),
+            ),
+            MenuEntry::Described {
+                id,
+                label,
+                description,
+            } => DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).description(description)),
+            MenuEntry::Inert(id, label) => {
+                DropdownMenuEntry::Item(DropdownMenuItem::new(id, label).disabled())
             }
             MenuEntry::Disabled(id, label, reason) => DropdownMenuEntry::Item(
                 DropdownMenuItem::new(id, label)
@@ -2758,6 +2821,34 @@ pub fn context_menu(at: (f32, f32), entries: Vec<MenuEntry>, look: &Look) -> Ele
     .context_menu_style()
     .width(MENU_WIDTH)
     .at(limn::Point::new(at.0.max(0.0), at.1.max(0.0)))
+    .render()
+}
+
+/// The question before a call from a person's menu, over `root`: whether
+/// «No volver a preguntar» is ticked, which the account keeps.
+pub fn call_question(root: Element, dont_ask_again: bool, look: &Look) -> Element {
+    let palette = look.menu_palette();
+    let check = Checkbox::new(ids::PERSON_CALL_FORGET, dont_ask_again, palette)
+        .accessibility_label(t("No volver a preguntar"))
+        .render()
+        .centered_y();
+    AlertDialog::new(
+        root,
+        true,
+        t("¿Quieres empezar una llamada?"),
+        t("Disfruta de este momento. Avisa cuando lo tengas todo listo."),
+        ids::PERSON_CALL,
+        ids::PERSON_CALL_CANCEL,
+        palette,
+    )
+    .confirm_label(t("Iniciar llamada"))
+    .body(
+        Element::row(vec![
+            check,
+            line(t("No volver a preguntar"), 14.0, look.text),
+        ])
+        .gap(10.0),
+    )
     .render()
 }
 
@@ -3955,7 +4046,7 @@ mod tests {
             vec![
                 MenuEntry::Item(
                     "vz:mod:mute:7".into(),
-                    "Silenciar en el servidor".into(),
+                    "Silenciar servidor".into(),
                     Some(true),
                 ),
                 MenuEntry::Submenu(
@@ -3967,7 +4058,7 @@ mod tests {
                     )],
                 ),
                 MenuEntry::Separator,
-                MenuEntry::Item(ids::local_mute(7), "Silenciar para mí".into(), Some(true)),
+                MenuEntry::Item(ids::local_mute(7), "Silenciar".into(), Some(true)),
             ],
             &look,
         );
@@ -4081,11 +4172,11 @@ mod tests {
             vec![
                 MenuEntry::Volume {
                     user: 7,
-                    label: "Volumen del usuario",
+                    label: "Volumen de usuario",
                     volume: 1.5,
                     note: Some("Simulado".into()),
                 },
-                MenuEntry::Item(ids::local_mute(7), "Silenciar para mí".into(), Some(true)),
+                MenuEntry::Item(ids::local_mute(7), "Silenciar".into(), Some(true)),
             ],
             &look,
         );
@@ -4105,16 +4196,108 @@ mod tests {
         assert!(ids.contains(&ids::volume(7)), "{ids:?}");
         assert!(ids.contains(&ids::local_mute(7)), "{ids:?}");
         let shown = texts(&laid);
-        for expected in [
-            "Volumen del usuario",
-            "150 %",
-            "Simulado",
-            "Silenciar para mí",
-        ] {
+        // 150 % of volume is at 159 on Discord's slider.
+        for expected in ["Volumen de usuario", "159 %", "Simulado", "Silenciar"] {
             assert!(
                 shown.iter().any(|text| text == expected),
                 "{expected} in {shown:?}"
             );
+        }
+    }
+
+    #[test]
+    fn the_volume_slider_reads_loudness_as_discord_does_and_comes_back() {
+        // Silence at the bottom, 100 % in the middle, 200 % at the top.
+        assert!(slider_position(0.0).abs() < 1e-4);
+        assert!((slider_position(1.0) - 100.0).abs() < 1e-4);
+        assert!((slider_position(2.0) - 200.0).abs() < 0.5);
+        for volume in [0.1_f32, 0.5, 0.75, 1.0, 1.5, 1.99] {
+            let back = slider_volume(slider_position(volume));
+            assert!((back - volume).abs() < 1e-4, "{volume} came back as {back}");
+        }
+        assert!(slider_volume(SLIDER_TOP) <= MAX_VOLUME);
+    }
+
+    #[test]
+    fn an_item_with_a_line_under_it_says_what_it_does_and_one_off_does_not_react() {
+        let look = Look::ONYX;
+        let laid = person_menu(
+            vec![
+                MenuEntry::Described {
+                    id: "pp:full-note:7".into(),
+                    label: "Añadir nota".into(),
+                    description: "Solo tú puedes ver esto".into(),
+                },
+                MenuEntry::Inert(
+                    "friend:7:sent".into(),
+                    "Solicitud de amistad enviada".into(),
+                ),
+            ],
+            &look,
+        );
+        let shown = texts(&laid);
+        assert!(shown.contains(&"Añadir nota".to_owned()), "{shown:?}");
+        assert!(
+            shown.contains(&"Solo tú puedes ver esto".to_owned()),
+            "{shown:?}"
+        );
+        let clickable = controls(&laid);
+        assert!(clickable.contains(&"pp:full-note:7".to_owned()));
+        assert!(!clickable.contains(&"friend:7:sent".to_owned()));
+    }
+
+    #[test]
+    fn the_server_mute_is_a_check_box_in_the_danger_color() {
+        let look = Look::ONYX;
+        let laid = person_menu(
+            vec![MenuEntry::DangerChecked(
+                "vz:mod:mute:7".into(),
+                "Silenciar servidor".into(),
+                true,
+            )],
+            &look,
+        );
+        assert!(controls(&laid).contains(&"vz:mod:mute:7".to_owned()));
+        assert_eq!(icon_centers(&laid, Icon::Check).len(), 1, "ticked");
+        let ink = laid
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                limn::DrawCommand::Text { text, color, .. } if text == "Silenciar servidor" => {
+                    Some(*color)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(ink, look.danger);
+    }
+
+    #[test]
+    fn the_call_question_says_what_it_asks_and_has_the_check_box_not_to_ask_again() {
+        let look = Look::ONYX;
+        let (_, laid) = frame(
+            call_question(Element::spacer(), false, &look),
+            Size::new(800.0, 600.0),
+        );
+        let shown = texts(&laid);
+        // The body wraps over two lines in the test's measure: its first is enough.
+        for expected in [
+            "¿Quieres empezar una llamada?",
+            "Disfruta de este momento.",
+            "No volver a preguntar",
+        ] {
+            assert!(
+                shown.iter().any(|text| text.starts_with(expected)),
+                "{expected} in {shown:?}"
+            );
+        }
+        let clickable = controls(&laid);
+        for id in [
+            ids::PERSON_CALL,
+            ids::PERSON_CALL_CANCEL,
+            ids::PERSON_CALL_FORGET,
+        ] {
+            assert!(clickable.contains(&id.to_owned()), "{id} in {clickable:?}");
         }
     }
 

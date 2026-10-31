@@ -189,6 +189,9 @@ pub struct Prefs {
     /// Whose camera is hidden for the account, by user ID: their tile shows
     /// the avatar. Only on this device: it is never sent.
     pub hidden_video: BTreeSet<u64>,
+    /// Whether a call from a person's menu is asked about first; the account
+    /// turns it off with «No volver a preguntar». Kept with the account.
+    pub ask_before_call: bool,
     /// The desktop portal's token for the screen last chosen, to share it
     /// again without its picker. It names a choice there, not a credential.
     pub screen_restore: Option<String>,
@@ -390,6 +393,7 @@ impl Default for Prefs {
             output_volume: 1.0,
             voice_volumes: BTreeMap::new(),
             hidden_video: BTreeSet::new(),
+            ask_before_call: true,
             screen_restore: None,
             // Asked for: a notification of the system is never a surprise.
             desktop_notifications: false,
@@ -681,6 +685,12 @@ impl Prefs {
             self.hidden_video.remove(&user);
         }
         save("hidden_video", self.hidden_video_kept())
+    }
+
+    /// Ask before a call from a person's menu, or not. Returns what to keep.
+    pub(crate) fn set_ask_before_call(&mut self, ask: bool) -> Intent {
+        self.ask_before_call = ask;
+        save(crate::person_menu::ASK_SETTING, ask)
     }
 
     /// The IDs of the cameras hidden, `;` between them.
@@ -1695,6 +1705,8 @@ mod tests {
             output_volume: 1.35,
             voice_volumes: BTreeMap::from([(7, (1.5, false)), (9, (1.0, true))]),
             hidden_video: BTreeSet::from([3]),
+            // An account's setting, kept with the account (not here).
+            ask_before_call: true,
             screen_restore: Some("4f1c-portal-choice".into()),
             desktop_notifications: true,
             notification_content: false,

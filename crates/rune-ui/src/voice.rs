@@ -365,8 +365,11 @@ pub(crate) fn update(
     } = action
     {
         let user = number(id, "vz:volume:")?;
-        // Whole percents, so 100 % is easy to land on.
-        let volume = (fraction.clamp(0.0, 1.0) * parts::MAX_VOLUME * 100.0).round() / 100.0;
+        // The fraction is a position on Discord's curve, not a straight line
+        // (see `parts::slider_volume`); whole percents, so 100 % is easy to land on.
+        let position = fraction.clamp(0.0, 1.0) * parts::SLIDER_TOP;
+        let volume =
+            (parts::slider_volume(position).min(parts::MAX_VOLUME) * 100.0).round() / 100.0;
         let muted = ui.prefs.voice_volume(user).1;
         let save = ui.prefs.set_voice_volume(user, volume, muted);
         return Some(if *committed { vec![save] } else { Vec::new() });
@@ -394,12 +397,6 @@ pub(crate) fn update(
     }
     if let Some(channel) = number(id, "voice:") {
         return Some(channel_clicked(ui, store, ChannelId(channel), now));
-    }
-    if let Some(user) = number(id, parts::ids::PROFILE) {
-        let on_tile = menu.is_some_and(|menu| !menu.row);
-        ui.voice.card =
-            channel_of(store, UserId(user)).map(|channel| (UserId(user), channel, on_tile));
-        return Some(open_card(ui, store));
     }
     if let Some(user) = number(id, parts::ids::MENTION) {
         return Some(mention(ui, store, UserId(user)));

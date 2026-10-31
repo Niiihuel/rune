@@ -448,24 +448,31 @@ fn movable(store: &Store, server: ServerId, role: RoleId) -> bool {
 }
 
 /// The server's own entries of `user`'s menu outside the settings (a voice
-/// channel): nickname, roles, timeout, kick and ban, only those the account
-/// may use. Each opens the members page with its dialog, as there.
-pub(crate) fn member_menu_group(
-    store: &Store,
-    server: ServerId,
-    user: UserId,
-) -> Vec<rune_components::voice::MenuEntry> {
+/// channel), split where that menu places them: the nickname, the roles, and
+/// the moderation (timeout, kick and ban), only those the account may use.
+/// Each opens the members page with its dialog, as there.
+#[derive(Debug, Default)]
+pub(crate) struct MemberMenu {
+    /// «Cambiar apodo».
+    pub nickname: Option<rune_components::voice::MenuEntry>,
+    /// «Roles», with the roles the user may be given or taken.
+    pub roles: Option<rune_components::voice::MenuEntry>,
+    /// «Suspender», «Expulsar» and «Banear».
+    pub moderation: Vec<rune_components::voice::MenuEntry>,
+}
+
+pub(crate) fn member_menu_group(store: &Store, server: ServerId, user: UserId) -> MemberMenu {
     use rune_components::voice::MenuEntry;
     let (Some(abilities), Some(found), Some(member)) = (
         store.server_abilities(server),
         store.server(server),
         store.member_of(server, user),
     ) else {
-        return Vec::new();
+        return MemberMenu::default();
     };
     let id = |what: &str| format!("ss:member-of:{server}:{user}:{what}");
     let name = store.display_name(user, Some(server));
-    let mut items = Vec::new();
+    let mut menu = MemberMenu::default();
     // Only what the account may do now: no permission or a higher rank hides it.
     let nick_permit = if Some(user) == store.me() {
         &abilities.change_nick
@@ -473,7 +480,7 @@ pub(crate) fn member_menu_group(
         &abilities.manage_nicks
     };
     if nick_permit.allowed() && nick_lock(store, server, user).is_none() {
-        items.push(MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None));
+        menu.nickname = Some(MenuEntry::Item(id("nick"), t("Cambiar apodo").into(), None));
     }
     if abilities.manage_roles.allowed() {
         let mut roles: Vec<&Role> = found
@@ -493,7 +500,7 @@ pub(crate) fn member_menu_group(
             })
             .collect();
         if !roles.is_empty() {
-            items.push(MenuEntry::Submenu(t("Roles").into(), roles));
+            menu.roles = Some(MenuEntry::Submenu(t("Roles").into(), roles));
         }
     }
     if Some(user) != store.me() {
@@ -502,11 +509,11 @@ pub(crate) fn member_menu_group(
         {
             let timed_out = advanced::timed_out(store, server, user);
             let (action, label) = if timed_out {
-                ("untimeout", tr!("Quitar el aislamiento a {name}", name))
+                ("untimeout", tr!("Cancelar la suspensión de {name}", name))
             } else {
-                ("timeout", tr!("Aislar a {name}", name))
+                ("timeout", tr!("Suspender a {name}", name))
             };
-            items.push(if timed_out {
+            menu.moderation.push(if timed_out {
                 MenuEntry::Item(id(action), label, None)
             } else {
                 MenuEntry::Danger(id(action), label)
@@ -514,14 +521,14 @@ pub(crate) fn member_menu_group(
         }
         if abilities.kick.allowed() && member_lock(store, server, user, &abilities.kick).is_none() {
             let label = tr!("Expulsar a {name}", name);
-            items.push(MenuEntry::Danger(id("kick"), label));
+            menu.moderation.push(MenuEntry::Danger(id("kick"), label));
         }
         if abilities.ban.allowed() && member_lock(store, server, user, &abilities.ban).is_none() {
-            let label = tr!("Vetar a {name}", name);
-            items.push(MenuEntry::Danger(id("ban"), label));
+            let label = tr!("Banear a {name}", name);
+            menu.moderation.push(MenuEntry::Danger(id("ban"), label));
         }
     }
-    items
+    menu
 }
 
 /// `{server}:{user}:{what}` from [`member_menu_group`]: a role changes right
