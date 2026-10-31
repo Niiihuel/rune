@@ -17,6 +17,7 @@ fn relation(user: UserId, kind: RelationshipKind) -> Relationship {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }
 }
 
@@ -48,6 +49,7 @@ fn everything() -> Capabilities {
         relationships: true,
         friend_requests: true,
         block_users: true,
+        ignore_users: true,
         open_direct: true,
         manage_groups: true,
         group_members: true,
@@ -288,4 +290,78 @@ fn only_friends_get_a_nickname_and_spam_waits_apart() {
     assert_eq!(store.pending_requests(), 1);
     // Spam is still a request: it can be accepted or ignored.
     assert!(store.social(UserId(4)).accept.allowed());
+}
+
+#[test]
+fn ignoring_is_a_flag_of_its_own_and_a_stranger_is_no_relationship_at_all() {
+    let now = Instant::now();
+    let mut store = social_store(
+        everything(),
+        Some(vec![relation(ADA, RelationshipKind::Friend)]),
+    );
+    let social = store.social(ADA);
+    assert!(social.ignore.allowed() && !social.unignore.allowed());
+    // Ignored, still a friend: the flag is the only thing that changes.
+    store.apply(
+        Event::RelationshipChanged(Relationship {
+            ignored: true,
+            ..relation(ADA, RelationshipKind::Friend)
+        }),
+        now,
+    );
+    assert!(store.is_ignored(ADA) && store.relationship(ADA).is_some());
+    let social = store.social(ADA);
+    assert!(!social.ignore.allowed() && social.unignore.allowed());
+    assert!(social.remove.allowed() && social.block.allowed());
+    // Ignored with no relationship: not a friend, request or block, not listed.
+    store.apply(
+        Event::RelationshipChanged(Relationship {
+            ignored: true,
+            ..relation(BRUNO, RelationshipKind::None)
+        }),
+        now,
+    );
+    assert!(store.is_ignored(BRUNO) && store.relationship(BRUNO).is_none());
+    assert!(store
+        .relationships()
+        .unwrap()
+        .iter()
+        .all(|known| known.user != BRUNO));
+    let social = store.social(BRUNO);
+    assert!(!social.remove.allowed() && !social.accept.allowed());
+    assert!(social.block.allowed() && social.message.allowed());
+    // Blocked people are not ignored; and the account cannot ignore itself.
+    store.apply(
+        Event::RelationshipChanged(relation(BRUNO, RelationshipKind::Blocked)),
+        now,
+    );
+    assert!(!store.social(BRUNO).ignore.allowed());
+    assert!(!store.social(ME).ignore.allowed());
+    let lacking = social_store(Capabilities::default(), Some(Vec::new()));
+    assert!(!lacking.social(ADA).ignore.allowed());
+}
+
+#[test]
+fn nothing_an_ignored_person_writes_counts_as_a_mention() {
+    let mut initial = snapshot();
+    initial.relationships = Some(vec![Relationship {
+        ignored: true,
+        ..relation(ADA, RelationshipKind::None)
+    }]);
+    let mut store = Store::new();
+    store.apply(Event::Ready(Box::new(initial)), Instant::now());
+    let before = store.read(GENERAL).mentions;
+    let mention = Message {
+        mentions: vec![ME],
+        ..message(6, ADA)
+    };
+    assert!(!store.counts_as_mention(&mention, ME));
+    store.apply(
+        Event::MessageCreated {
+            message: mention,
+            nonce: None,
+        },
+        Instant::now(),
+    );
+    assert_eq!(store.read(GENERAL).mentions, before);
 }

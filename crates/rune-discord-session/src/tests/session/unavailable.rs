@@ -146,7 +146,8 @@ classified! {
     Kick, Ban, Unban, LoadBans, LoadInvites, RevokeInvite, RenameExpression, DeleteExpression,
     EditProfile, LoadAudit, PinMessage, UnpinMessage, LoadProfile, WatchMemberList,
     UnwatchMemberList, LoadPins, SendFriendRequest, AcceptFriendRequest, RemoveRelationship,
-    BlockUser, OpenDirect, RenameGroup, AddGroupMember, RemoveGroupMember, LeaveGroup,
+    BlockUser, IgnoreUser, UnignoreUser, OpenDirect, RenameGroup, AddGroupMember,
+    RemoveGroupMember, LeaveGroup,
     LoadStreamPreview, CreateGroup, SetGroupIcon, CloseDirect, SetFriendNickname, CreateThread,
     CreatePost, LoadThreads, FollowThread, EditThread, DeleteThread, RaiseHand, SetSpeaker,
     EditServerProfile, SetGroupOwner, TimeoutMember, CreateInvite, CreateExpression,
@@ -393,6 +394,8 @@ fn samples() -> Vec<Command> {
         Command::AcceptFriendRequest { user: PEER },
         Command::RemoveRelationship { user: PEER },
         Command::BlockUser { user: PEER },
+        Command::IgnoreUser { user: PEER },
+        Command::UnignoreUser { user: PEER },
         Command::OpenDirect {
             request: 14,
             user: PEER,

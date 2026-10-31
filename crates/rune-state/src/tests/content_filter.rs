@@ -27,6 +27,7 @@ fn store() -> Store {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }]);
     store.apply(Event::Ready(Box::new(snapshot)), Instant::now());
     store

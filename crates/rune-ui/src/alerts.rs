@@ -3,12 +3,12 @@
 //!
 //! Only mentions of the account (by name, or through its roles while it
 //! does not silence those) and direct conversations alert, never the
-//! account's own messages. Nothing alerts while the account is in «No
-//! molestar», from a muted server, category or channel, a thread the account
-//! silenced, or one set to notify nothing, nor the conversation open in the
-//! focused window. The
-//! host shows the notification and plays the sound; a click opens the
-//! conversation only for the same account.
+//! account's own messages nor an ignored person's. Nothing alerts while the
+//! account is in «No molestar», from a muted server, category or channel, a
+//! thread the account silenced, or one set to notify nothing, nor the
+//! conversation open in the focused window. The host shows the notification
+//! and plays the sound; a click opens the conversation only for the same
+//! account.
 
 use rune_components::server_menu::NotifyLevel;
 use rune_i18n::{t, tr};
@@ -48,8 +48,10 @@ pub fn message_alert(
         return None;
     }
     let account = store.me()?;
+    // An ignored person's messages alert nobody, not even in a direct conversation.
     if message.author == account
         || message.delivery.is_local()
+        || store.is_ignored(message.author)
         || store.presence(account).status == Status::DoNotDisturb
     {
         return None;

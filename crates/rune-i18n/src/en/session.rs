@@ -629,6 +629,8 @@ pub(super) const ENTRIES: super::Entries = &[
         "A group is only created with friends, each one once.",
     ),
     ("Solo tus amigos pueden tener un apodo.", "Only your friends can have a nickname."),
+    ("No ignoras a esa persona.", "You don't ignore that person."),
+    ("Bloqueaste a esa persona.", "You blocked that person."),
     ("Un grupo nuevo lleva de 2 a 9 amigos.", "A new group takes 2 to 9 friends."),
     // Stages.
     ("Entra al escenario primero.", "Join the stage first."),

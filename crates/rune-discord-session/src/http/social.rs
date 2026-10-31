@@ -63,6 +63,25 @@ impl Http {
                 )
                 .await
             }
+            // The official client's route (REA, 2026-10-16); fixtures only.
+            Command::IgnoreUser { user } => {
+                self.write(
+                    secret,
+                    Method::PUT,
+                    &format!("{}/ignore", relationship(user)),
+                    None,
+                )
+                .await
+            }
+            Command::UnignoreUser { user } => {
+                self.write(
+                    secret,
+                    Method::DELETE,
+                    &format!("{}/ignore", relationship(user)),
+                    None,
+                )
+                .await
+            }
             Command::SetFriendNickname { user, nickname } => {
                 let nickname = nickname
                     .as_deref()

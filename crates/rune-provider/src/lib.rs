@@ -437,6 +437,17 @@ pub enum Command {
     BlockUser {
         user: UserId,
     },
+    /// Ignore `user`: their messages fold, they raise no notifications, and
+    /// they are not told. Answered by [`Event::RelationshipChanged`], which
+    /// keeps any relationship they have.
+    IgnoreUser {
+        user: UserId,
+    },
+    /// Stop ignoring `user`. Answered by [`Event::RelationshipChanged`], or
+    /// [`Event::RelationshipRemoved`] when that was all there was.
+    UnignoreUser {
+        user: UserId,
+    },
     /// The direct conversation with `user`, made if there is none. The
     /// provider reports the channel and then [`Event::Created`]; asking again
     /// names the same channel.
@@ -1725,7 +1736,9 @@ impl Failure {
             Command::SendFriendRequest { .. } => Self::Relationship { user: None },
             Command::AcceptFriendRequest { user }
             | Command::RemoveRelationship { user }
-            | Command::BlockUser { user } => Self::Relationship { user: Some(*user) },
+            | Command::BlockUser { user }
+            | Command::IgnoreUser { user }
+            | Command::UnignoreUser { user } => Self::Relationship { user: Some(*user) },
             Command::OpenDirect { request, user } => Self::Direct {
                 request: *request,
                 user: *user,
@@ -2752,6 +2765,8 @@ pub struct Capabilities {
     pub friend_requests: bool,
     /// People can be blocked and unblocked.
     pub block_users: bool,
+    /// People can be ignored and unignored ([`Command::IgnoreUser`]).
+    pub ignore_users: bool,
     /// A direct conversation can be started with someone who has none yet.
     pub open_direct: bool,
     /// Group conversations can be renamed, given a picture and left; adding

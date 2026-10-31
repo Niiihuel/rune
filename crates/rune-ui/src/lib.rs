@@ -22,6 +22,7 @@ mod conversations;
 mod documents;
 mod expressions;
 mod gifs;
+mod ignore;
 mod images;
 mod inbox;
 mod interactions;

@@ -4,6 +4,8 @@ pub(super) const ENTRIES: super::Entries = &[
     // blocked.rs
     ("1 mensaje bloqueado", "1 blocked message"),
     ("{count} mensajes bloqueados", "{count} blocked messages"),
+    ("1 mensaje ignorado", "1 ignored message"),
+    ("{count} mensajes ignorados", "{count} ignored messages"),
     ("Ocultar", "Hide"),
     ("Mostrar", "Show"),
     // challenge.rs

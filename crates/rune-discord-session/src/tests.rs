@@ -511,7 +511,8 @@ fn provider_declares_only_implemented_communication_capabilities() {
     // fixtures only, never tried against the service.
     let capabilities = info.capabilities;
     assert!(capabilities.relationships && capabilities.friend_requests);
-    assert!(capabilities.block_users && capabilities.friend_nicknames);
+    assert!(capabilities.block_users && capabilities.ignore_users);
+    assert!(capabilities.friend_nicknames);
     assert!(capabilities.open_direct && capabilities.close_direct);
     assert!(capabilities.manage_groups && capabilities.friend_presence);
     // Making groups, their people and owner by the official web client's

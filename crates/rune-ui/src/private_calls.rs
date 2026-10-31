@@ -299,7 +299,7 @@ fn befriending(store: &Store, user: UserId) -> Option<(String, Result<(), String
                 Err(tr!("Bloqueaste a {name}: desbloquéala para llamarle", name)),
             ))
         }
-        None => Some((send.into(), permit(store.add_friend()))),
+        None | Some(RelationshipKind::None) => Some((send.into(), permit(store.add_friend()))),
     }
 }
 
@@ -320,7 +320,7 @@ fn befriend(ui: &mut Ui, store: &Store, channel: ChannelId) -> Vec<Intent> {
             | RelationshipKind::Friend
             | RelationshipKind::Blocked,
         ) => return Vec::new(),
-        None => match store.user(user) {
+        None | Some(RelationshipKind::None) => match store.user(user) {
             Some(account) if store.add_friend().allowed() => Command::SendFriendRequest {
                 username: account.name.clone(),
             },

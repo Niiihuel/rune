@@ -277,6 +277,7 @@ pub(super) const ENTRIES: super::Entries = &[
     ("enviar solicitudes de amistad", "send friend requests"),
     ("gestionar amistades", "manage friends"),
     ("bloquear personas", "block people"),
+    ("ignorar personas", "ignore people"),
     ("No hay una solicitud de esta persona", "There's no request from this person"),
     (
         "No hay una amistad ni una solicitud con esta persona",
@@ -286,6 +287,10 @@ pub(super) const ENTRIES: super::Entries = &[
     ("No bloqueaste a esta persona", "You haven't blocked this person"),
     ("poner apodos a tus amigos", "give your friends nicknames"),
     ("Solo tus amigos pueden tener un apodo", "Only your friends can have a nickname"),
+    ("No puedes ignorarte a ti", "You can't ignore yourself"),
+    ("Bloqueaste a esta persona", "You blocked this person"),
+    ("Ya ignoras a esta persona", "You already ignore this person"),
+    ("No ignoras a esta persona", "You don't ignore this person"),
     ("No puedes escribirte a ti", "You can't message yourself"),
     (
         "Bloqueaste a esta persona: desbloquéala para escribirle",

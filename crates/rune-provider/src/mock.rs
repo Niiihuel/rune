@@ -305,6 +305,7 @@ impl Provider for MockProvider {
                 relationships: true,
                 friend_requests: true,
                 block_users: true,
+                ignore_users: true,
                 open_direct: true,
                 manage_groups: true,
                 thread_replies: true,

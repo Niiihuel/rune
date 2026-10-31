@@ -1007,6 +1007,7 @@ fn a_group_and_a_friendship_are_accepted_once_and_opened_when_they_arrive() {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }));
     let painted = host.painted().join(" ");
     assert!(painted.contains("Ya son amigos.") && painted.contains("Enviar mensaje"));

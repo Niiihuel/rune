@@ -92,9 +92,9 @@ impl Store {
 
     /// Whether `message`, not the account's, counts as a mention of it: by
     /// name, or through its roles or everyone in a server unless it
-    /// silenced those.
+    /// silenced those. Nothing an ignored person writes counts.
     pub fn counts_as_mention(&self, message: &Message, me: UserId) -> bool {
-        if message.author == me {
+        if message.author == me || self.is_ignored(message.author) {
             return false;
         }
         let server = self

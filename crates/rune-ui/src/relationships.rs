@@ -42,6 +42,7 @@ pub struct Friends {
 enum Confirm {
     Remove(UserId),
     Block(UserId),
+    Ignore(UserId),
 }
 
 /// Show the page at home, over whatever conversation was open there.
@@ -118,6 +119,16 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
             ui.friends.confirm = None;
             return Some(Vec::new());
         }
+        // Ignoring offers blocking instead: the same person, asked the other question.
+        ids::IGNORE_BLOCK => {
+            ui.friends.confirm = match ui.friends.confirm {
+                Some(Confirm::Ignore(user)) if store.social(user).block.allowed() => {
+                    Some(Confirm::Block(user))
+                }
+                other => other,
+            };
+            return Some(Vec::new());
+        }
         ids::CONFIRM => {
             let social = |user| store.social(user);
             return Some(match ui.friends.confirm.take() {
@@ -126,6 +137,9 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
                 }
                 Some(Confirm::Block(user)) if social(user).block.allowed() => {
                     command(Command::BlockUser { user })
+                }
+                Some(Confirm::Ignore(user)) if social(user).ignore.allowed() => {
+                    command(Command::IgnoreUser { user })
                 }
                 _ => Vec::new(),
             });
@@ -159,11 +173,17 @@ fn clicked(ui: &mut Ui, store: &mut Store, id: &str, now: Instant) -> Option<Vec
             Vec::new()
         }
         "accept" if allowed(&social.accept, ui) => command(Command::AcceptFriendRequest { user }),
-        // Ignoring or cancelling a request takes nothing away: no question.
-        "ignore" | "cancel" if allowed(&social.remove, ui) => {
+        // Dismissing or cancelling a request takes nothing away: no question.
+        "dismiss" | "cancel" if allowed(&social.remove, ui) => {
             command(Command::RemoveRelationship { user })
         }
         "unblock" if allowed(&social.unblock, ui) => command(Command::RemoveRelationship { user }),
+        // Ignoring asks first, in `overlay`; a person's ignore is lifted at once.
+        "ignore" if allowed(&social.ignore, ui) => {
+            ui.friends.confirm = Some(Confirm::Ignore(user));
+            Vec::new()
+        }
+        "unignore" if allowed(&social.unignore, ui) => command(Command::UnignoreUser { user }),
         "remove" if allowed(&social.remove, ui) => {
             ui.friends.confirm = Some(Confirm::Remove(user));
             Vec::new()
@@ -475,7 +495,7 @@ fn row_of(ui: &Ui, store: &Store, known: &Relationship, presence: bool, look: &L
     let block = action("block", t("Bloquear"), Icon::Lock, &social.block, true);
     // Their custom status's server emoji, before its words (2026-10-18).
     let (shown, detail_emoji) = if presence && known.kind == RelationshipKind::Friend {
-        crate::identity::status_line(ui, &status)
+        crate::identity::status_line(ui, &status, store.is_ignored(user))
     } else {
         (None, None)
     };
@@ -526,7 +546,7 @@ fn row_of(ui: &Ui, store: &Store, known: &Relationship, presence: bool, look: &L
             },
             vec![
                 action("accept", t("Aceptar"), Icon::Check, &social.accept, false),
-                action("ignore", t("Ignorar"), Icon::Close, &social.remove, false),
+                action("dismiss", t("Ignorar"), Icon::Close, &social.remove, false),
             ],
             vec![block],
         ),
@@ -552,6 +572,8 @@ fn row_of(ui: &Ui, store: &Store, known: &Relationship, presence: bool, look: &L
             )],
             Vec::new(),
         ),
+        // Never listed: kept only for an ignore, which the rows do not show.
+        RelationshipKind::None => (String::new(), Vec::new(), Vec::new()),
     };
     FriendRow {
         name: known
@@ -597,6 +619,7 @@ pub(crate) fn overlay(ui: &Ui, store: &Store, root: Element, look: &Look) -> Ele
         )
     };
     match confirm {
+        Confirm::Ignore(user) => parts::ignore(root, &name(user), look),
         Confirm::Remove(user) => parts::confirm(
             root,
             &tr!("Eliminar a «{name}»", name = name(user)),

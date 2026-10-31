@@ -707,6 +707,7 @@ fn a_forums_cards_show_their_first_words_reaction_and_picture() {
         since: None,
         nickname: None,
         spam: false,
+        ignored: false,
     }));
     let head: String = starter.excerpt.chars().take(20).collect();
     assert!(!host.painted().iter().any(|t| t.starts_with(&head)));

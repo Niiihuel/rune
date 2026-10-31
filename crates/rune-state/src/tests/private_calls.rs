@@ -197,6 +197,7 @@ fn calling_needs_the_capability_and_nobody_blocked() {
             since: None,
             nickname: None,
             spam: false,
+            ignored: false,
         }),
         Instant::now(),
     );

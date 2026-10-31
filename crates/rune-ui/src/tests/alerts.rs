@@ -138,3 +138,33 @@ fn a_click_opens_only_a_conversation_of_the_same_account() {
     host.run(intents);
     assert_eq!(host.ui.channel(), Some(general));
 }
+
+#[test]
+fn an_ignored_person_alerts_nobody_not_even_in_a_direct_conversation() {
+    let mut host = Host::new();
+    host.ui.prefs.desktop_notifications = true;
+    let general = host.open_channel("general");
+    let bruno = UserId(11);
+    let direct = host.store.direct_with(bruno).unwrap();
+    let mut dm = incoming(&host, general, "hola");
+    dm.channel = direct;
+    dm.author = bruno;
+    assert!(alert(&host, &dm).is_some(), "a direct message alerts");
+    for event in host.provider.manage(Command::IgnoreUser { user: bruno }) {
+        host.event(event);
+    }
+    assert_eq!(
+        alert(&host, &dm),
+        None,
+        "ignored: no notification, no sound"
+    );
+    // A mention from them counts for nothing either.
+    let mut mention = incoming(&host, general, "<@1> mira");
+    mention.mentions.push(host.store.me().unwrap());
+    mention.author = bruno;
+    assert_eq!(alert(&host, &mention), None);
+    // Someone else still alerts.
+    let mut other = mention.clone();
+    other.author = UserId(14);
+    assert!(alert(&host, &other).is_some());
+}
