@@ -44,7 +44,7 @@ fn busy(host: &mut Host) {
                     small_image: None,
                     started: Some(Timestamp(wall.0 - (48 * 60 + 40) * 1000)),
                     ends: None,
-                    application: None,
+                    ..Default::default()
                 },
                 Activity {
                     kind: ActivityKind::Listening,
@@ -55,7 +55,7 @@ fn busy(host: &mut Host) {
                     small_image: None,
                     started: Some(Timestamp(wall.0 - 175_000)),
                     ends: Some(Timestamp(wall.0 + 35_000)),
-                    application: None,
+                    ..Default::default()
                 },
             ],
             platforms: Platforms {
@@ -152,7 +152,7 @@ fn a_private_rows_line_says_what_they_do_else_their_status_with_its_emoji() {
                 small_image: None,
                 started: Some(wall),
                 ends: None,
-                application: None,
+                ..Default::default()
             }],
             ..Presence::default()
         },

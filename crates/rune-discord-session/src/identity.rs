@@ -19,8 +19,9 @@ use rune_i18n::t;
 use std::collections::HashSet;
 
 use rune_model::{
-    Activity, ActivityKind, Badge, Connection, Identity, ImageKind, Nameplate, Perks, Platforms,
-    RemoteImage, Rgb, RoleStyle, ServerId, ServerTag, StickerPack, Timestamp, MAX_ACTIVITIES,
+    Activity, ActivityKind, Badge, Connection, Identity, ImageKind, Nameplate, Party, Perks,
+    Platforms, RemoteImage, Rgb, RoleStyle, ServerId, ServerTag, StickerPack, Timestamp,
+    MAX_ACTIVITIES,
 };
 use rune_provider::{
     Command, GifAttribution, GifCategory, GifItem, GifPage, GifQuery, MAX_GIF_CATEGORIES,
@@ -133,23 +134,57 @@ fn asset(application: Option<u64>, key: &Value) -> Option<RemoteImage> {
 /// those services is read: never a connection's token.
 fn cover(key: &str) -> Option<String> {
     let (service, id) = key.split_once(':')?;
-    let plain = |extra: &[u8]| {
-        !id.is_empty()
-            && id.len() <= 64
-            && id
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || extra.contains(&byte))
-    };
     match service {
-        "spotify" if plain(b"") => Some(format!("https://i.scdn.co/image/{id}")),
-        "twitch" if plain(b"_") => Some(format!(
+        "spotify" if short_id(id, b"") => Some(format!("https://i.scdn.co/image/{id}")),
+        "twitch" if short_id(id, b"_") => Some(format!(
             "https://static-cdn.jtvnw.net/previews-ttv/live_user_{id}-160x160.jpg"
         )),
-        "youtube" if plain(b"_-") => {
+        "youtube" if short_id(id, b"_-") => {
             Some(format!("https://i.ytimg.com/vi/{id}/hqdefault_live.jpg"))
         }
         _ => None,
     }
+}
+
+/// An id of 1 to 64 characters: letters and digits, and the `marks` given.
+fn short_id(id: &str, marks: &[u8]) -> bool {
+    (1..=64).contains(&id.len())
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || marks.contains(&byte))
+}
+
+/// The labels of up to two buttons, at most 32 characters each: a string, or
+/// an object with a `label`, the shape of one's own presence.
+fn buttons(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|button| line(button).or_else(|| line(&button["label"])))
+        .filter(|label| label.chars().count() <= 32)
+        .take(2)
+        .collect()
+}
+
+/// A party's players as `[current, max]`: two whole numbers that fit a `u32`.
+fn party_size(value: &Value) -> Option<(u32, u32)> {
+    let [current, max] = value.as_array()?.as_slice() else {
+        return None;
+    };
+    let whole = |count: &Value| u32::try_from(count.as_u64()?).ok();
+    Some((whole(current)?, whole(max)?))
+}
+
+/// A stream's page: HTTPS on Twitch or YouTube, at most 512 characters.
+fn stream_page(value: &Value) -> Option<String> {
+    let text = value.as_str().filter(|text| text.len() <= 512)?;
+    let page = url::Url::parse(text).ok()?;
+    let known = matches!(
+        page.host_str()?,
+        "twitch.tv" | "www.twitch.tv" | "youtube.com" | "www.youtube.com"
+    );
+    (page.scheme() == "https" && known).then(|| page.to_string())
 }
 
 /// One activity of a presence as RUNE shows it; a custom status (type 4),
@@ -171,6 +206,7 @@ pub(crate) fn activity(value: &Value) -> Option<Activity> {
         // A badge that is the same picture adds nothing.
         image.as_ref() != Some(small)
     });
+    let party = &value["party"];
     Some(Activity {
         kind,
         name: line(&value["name"])?,
@@ -181,6 +217,24 @@ pub(crate) fn activity(value: &Value) -> Option<Activity> {
         started,
         ends: moment(&value["timestamps"]["end"]).filter(|end| started.is_none_or(|s| *end > s)),
         application,
+        // The object alone makes a party, as Discord counts it.
+        party: party.is_object().then(|| Party {
+            id: line(&party["id"]),
+            size: party_size(&party["size"]),
+        }),
+        buttons: buttons(&value["buttons"]),
+        large_text: line(&assets["large_text"]),
+        small_text: line(&assets["small_text"]),
+        sync_id: value["sync_id"]
+            .as_str()
+            .filter(|id| short_id(id, b""))
+            .map(str::to_owned),
+        session: value["session_id"]
+            .as_str()
+            .filter(|id| short_id(id, b"_-"))
+            .map(str::to_owned),
+        url: stream_page(&value["url"]).filter(|_| kind == ActivityKind::Streaming),
+        created: moment(&value["created_at"]),
     })
 }
 
@@ -986,6 +1040,69 @@ mod tests {
         assert!(found[2].image.is_none(), "a path that climbs is refused");
         let platforms = platforms(&json!({"desktop": "idle", "mobile": "offline", "web": "dnd"}));
         assert!(platforms.desktop && !platforms.mobile && platforms.web);
+    }
+
+    #[test]
+    fn rich_fields_are_read_and_the_invalid_ones_are_dropped() {
+        let spotify = activity(&json!({
+            "type": 2, "name": "Spotify", "details": "Tema", "state": "A; B",
+            "sync_id": "0000000000000000000021", "party": {"id": "spotify:21"},
+            "assets": {"large_image": "spotify:ab67616d0000b273", "large_text": "Álbum"},
+            "created_at": 1_700_000_000_000u64
+        }))
+        .unwrap();
+        assert!(spotify.is_spotify());
+        assert_eq!(spotify.large_text.as_deref(), Some("Álbum"));
+        assert_eq!(spotify.artists().as_deref(), Some("A, B"));
+        assert_eq!(spotify.timer_start(), Some(Timestamp(1_700_000_000_000)));
+        assert!(spotify.spotify_track_url().is_some());
+        let game = activity(&json!({
+            "type": 0, "name": "Factorio", "application_id": "55",
+            "party": {"id": "lobby-1", "size": [3, 5]},
+            "buttons": ["Unirme", {"label": "Ver"}, "Tercero"],
+            "session_id": "abc_123-XYZ"
+        }))
+        .unwrap();
+        let party = game.party.unwrap();
+        assert_eq!(party.id.as_deref(), Some("lobby-1"));
+        assert_eq!(party.size, Some((3, 5)));
+        assert_eq!(game.buttons, ["Unirme", "Ver"], "at most two");
+        assert_eq!(game.session.as_deref(), Some("abc_123-XYZ"));
+        // A bad field goes; the activity stays.
+        let broken = activity(&json!({
+            "type": 0, "name": "Juego", "party": {"id": "p", "size": [1]},
+            "buttons": ["x".repeat(33), "Ok"], "sync_id": "ab/cd", "session_id": "a b",
+            "assets": {"large_text": "Texto"}
+        }))
+        .unwrap();
+        let party = broken.party.unwrap();
+        assert_eq!((party.id.as_deref(), party.size), (Some("p"), None));
+        assert_eq!(broken.buttons, ["Ok"], "a label over 32 characters goes");
+        assert_eq!((broken.sync_id, broken.session), (None, None));
+        assert_eq!(broken.large_text.as_deref(), Some("Texto"));
+        assert_eq!(broken.name, "Juego");
+        let streaming = |url: &str| {
+            activity(&json!({"type": 1, "name": "Directo", "url": url}))
+                .unwrap()
+                .url
+        };
+        assert_eq!(
+            streaming("https://www.twitch.tv/ada").as_deref(),
+            Some("https://www.twitch.tv/ada")
+        );
+        for refused in [
+            "http://twitch.tv/ada",
+            "https://twitch.tv.example/",
+            "https://example.test/twitch.tv",
+        ] {
+            assert_eq!(streaming(refused), None, "{refused}");
+        }
+        let game_page = json!({"type": 0, "name": "Juego", "url": "https://twitch.tv/ada"});
+        assert_eq!(
+            activity(&game_page).unwrap().url,
+            None,
+            "only a stream has a page"
+        );
     }
 
     #[test]

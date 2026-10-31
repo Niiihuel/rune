@@ -451,8 +451,9 @@ impl Status {
 }
 
 /// What someone is doing, as a service reports it.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub enum ActivityKind {
+    #[default]
     Playing,
     Listening,
     Watching,
@@ -462,7 +463,7 @@ pub enum ActivityKind {
 
 /// An activity: its kind, its name, two lines about it, its pictures and
 /// its times.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Activity {
     pub kind: ActivityKind,
     pub name: String,
@@ -485,6 +486,42 @@ pub struct Activity {
     /// provider give one without pictures its application's (2026-10-17).
     #[serde(default)]
     pub application: Option<u64>,
+    /// The group it is played in; the card shows its size, as «3 de 5».
+    #[serde(default)]
+    pub party: Option<Party>,
+    /// The labels of its buttons, at most two; their links come from the
+    /// provider on demand.
+    #[serde(default)]
+    pub buttons: Vec<String>,
+    /// The text of its large picture: a Spotify album's name, on hover.
+    #[serde(default)]
+    pub large_text: Option<String>,
+    /// The text of its small picture, on hover.
+    #[serde(default)]
+    pub small_text: Option<String>,
+    /// A Spotify track's id: the card links the title to the track.
+    #[serde(default)]
+    pub sync_id: Option<String>,
+    /// The presence session it belongs to; asking for its buttons' links needs it.
+    #[serde(default)]
+    pub session: Option<String>,
+    /// A stream's page, for a `Streaming` activity (Twitch or YouTube).
+    #[serde(default)]
+    pub url: Option<String>,
+    /// When the service first saw it: a timer without `started` counts from here.
+    #[serde(default)]
+    pub created: Option<Timestamp>,
+}
+
+/// The group an activity is played in, as its service reports it.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Party {
+    /// The service's id for the group; Spotify's starts with `spotify:`.
+    #[serde(default)]
+    pub id: Option<String>,
+    /// Players now and the most allowed; a maximum of 0 means no maximum.
+    #[serde(default)]
+    pub size: Option<(u32, u32)>,
 }
 
 /// Someone's status, the line of text they set, what they are doing and
