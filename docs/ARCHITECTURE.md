@@ -220,13 +220,18 @@ publica el suyo) camina sólo la racha del autor.
 
 ## Diseño
 
-Lenguaje visual compacto propio: Discord y Serein son referencia de
-comportamiento, no un diseño a copiar píxel a píxel (preferencia del dueño,
-2026-10-14). Las medidas de columnas y filas salen de capturas del cliente
-oficial (tema Ónix, zoom 67 %) y las conservan las pruebas de
-`crates/rune-ui/src/tests/layout.rs`; los colores, `rune-components::look`.
-No se agrega un control sólo porque aparece en la referencia: su acción
-tiene que existir y respetar las capacidades.
+La estructura, las medidas, los textos y el comportamiento siguen al cliente
+oficial de Discord, sacados por REA de su bundle web público: el dueño lo
+pidió el 2026-10-31 (mosaicos de llamada, menús, perfil, tarjetas de
+actividad, «Activo ahora»), y antes ya se hacía por zonas («como Discord»).
+Hasta entonces la regla era un lenguaje propio con Discord y Serein sólo
+como referencia de comportamiento (2026-10-14). Los colores siguen siendo
+los de RUNE (`rune-components::look`, acento ámbar); la densidad de los
+menús contextuales es `look::MENU_METRICS`. Las medidas de columnas y filas
+salen de capturas del cliente oficial (tema Ónix, zoom 67 %) y las conservan
+las pruebas de `crates/rune-ui/src/tests/layout.rs`. No se agrega un control
+sólo porque aparece en la referencia: su acción tiene que existir y respetar
+las capacidades.
 
 ## Idiomas
 
